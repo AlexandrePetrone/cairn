@@ -1,0 +1,14 @@
+parameters:
+    level: 8
+    # The instance configuration file is hand-written: keep the runtime
+    # checks on values that PHPDoc alone declares as typed.
+    treatPhpDocTypesAsCertain: false
+    paths:
+        - src/
+        - tests/
+        - config/instance.example.php
+    tmpDir: var/cache/phpstan
+    symfony:
+        containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml
+    doctrine:
+        objectManagerLoader: tests/object-manager.php

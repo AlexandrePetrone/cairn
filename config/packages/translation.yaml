@@ -1,5 +1,8 @@
 framework:
-    default_locale: en
+    default_locale: '%env(CAIRN_LOCALE)%'
     translator:
+        # English stays the fallback so that an unknown CAIRN_LOCALE still
+        # yields a usable interface.
+        fallbacks: ['en']
         default_path: '%kernel.project_dir%/translations'
         providers:

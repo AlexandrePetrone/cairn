@@ -1,0 +1,11 @@
+status:
+    open: Open
+    in_progress: In progress
+    waiting: Waiting
+    closed: Closed
+
+criticality:
+    low: Low
+    normal: Normal
+    high: High
+    blocking: Blocking

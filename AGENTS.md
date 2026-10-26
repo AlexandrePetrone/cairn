@@ -1,108 +1,242 @@
 # AGENTS.md
 
-This is a Symfony project. Check `composer.json` for the exact Symfony/PHP version
-in use, and read `symfony.lock` to see which recipes ran. Don't assume Doctrine,
-Twig, API Platform, Messenger, or Lock are installed unless one of those says so.
+Cairn is an issue tracker for a web agency: a single instance, ~50 client
+organisations, ~80 active projects, several issue categories per project, each
+with its own workflow. It replaces Redmine with a client-centred tool.
 
-## Ask before generating
+## Temporary specification files (will disappear)
 
-If the task doesn't specify, ask rather than guess:
+> **Temporary.** During the initial build, the functional specification lives
+> in the parent directory, outside this repository and untracked. These files
+> will be deleted once the project is implemented. Do not link to them from
+> code or docs; when something in them becomes a durable decision, copy it here.
+>
+> - `../context.md`: consolidated functional spec and decisions (vocabulary,
+>   V1 scope, configuration pipeline, functional model).
+> - `../tickets.config.php`: commented schema of the instance configuration
+>   file (roles, permissions, fields, links, workflows). Its identifiers still
+>   use `ticket.*` and `relations`; the code uses `issue.*` and `links`.
+> - `../mockup/`: throwaway PHP + Tailwind mockups of every screen, plus
+>   `brief-ux-demandes.md` (UX brief) and `_data.php` (sample data).
 
-- Persistence: Doctrine ORM, Doctrine ODM, or none?
-- Interface: server-rendered (Twig), API (Serializer, maybe API Platform), or both?
-- Auth: SecurityBundle, and which authenticator?
+## Stack
 
-If you can't ask (no interactive channel), state the assumption you're making and
-pick the smallest option (e.g. no persistence layer) rather than scaffolding a
-full stack nobody asked for.
+Symfony 8.1 on PHP 8.4, installed from `webapp-pack`. Check `composer.json`
+for the exact versions and `symfony.lock` for which recipes ran. Already in
+place: Doctrine ORM + migrations, Messenger (Doctrine transport), Form,
+Validator, Serializer, Security, Twig, Mailer, Notifier, Translation,
+AssetMapper, Stimulus, Turbo.
 
-## Adding features: Flex, not hand-wiring
+Decisions already taken:
 
-Install new capabilities with `composer require <package>` (e.g. `symfony/lock`,
-`symfony/messenger`, `orm-pack`) and let the Flex recipe register the bundle and
-generate its config. Don't hand-edit `config/bundles.php` or hand-write a bundle's
-base config; that's what the recipe is for. Don't skip a good-fit component just
-because it isn't installed yet; installing it is one command.
+- Persistence: Doctrine ORM, schema compatible with both MariaDB and
+  PostgreSQL. Nothing is ever physically deleted.
+- Interface: server-rendered Twig + Turbo + UX Twig/Live Components, Tailwind
+  for styling. The kanban and the rich-text editor are React islands.
+- Auth: SecurityBundle, email + password, invitation of external users by
+  email; agency SSO may come later.
+- Workflow engine: the Symfony Workflow component, with workflow definitions
+  built at runtime from the configuration snapshot stored in database, not
+  from YAML.
+
+Install missing capabilities with `composer require <package>` and let the
+Flex recipe register the bundle and generate its config. Don't hand-edit
+`config/bundles.php` or hand-write a bundle's base config. Planned additions:
+`symfony/workflow`, `symfony/ux-twig-component`, `symfony/ux-live-component`,
+`symfony/lock`, `symfony/scheduler`.
+
+## Vocabulary
+
+Use the English term in code, the French one in the UI (through translation
+keys, see below). Never mix them.
+
+| UI (fr)        | Code             | Meaning                                                          |
+|----------------|------------------|------------------------------------------------------------------|
+| Demande        | `Issue`          | The tracked object. Key `WORKSPACE-PROJECT-123`.                   |
+| Catégorie      | `Tracker`        | Type of an issue within a project, bound to one workflow. In DB. |
+| Workflow       | `Workflow`       | Places + transitions. Defined in configuration, not in the UI.   |
+| Étape          | `Place`          | Position in a workflow (Symfony Workflow term).                  |
+| Action         | `Transition`     | Named button that moves an issue to another place.               |
+| Statut         | `PlaceStatus`    | Family of a place: Open, InProgress, Waiting, Closed. PHP enum.  |
+| Criticité      | `Criticality`    | Low, Normal, High, Blocking. First-class column, not a field.    |
+| Champ          | `Field`          | Global attribute, enabled per tracker.                           |
+| Lien           | `Link`           | Related, Duplicates/DuplicatedBy, Blocks/BlockedBy.              |
+| Espace         | `Workspace`      | Group of projects sharing memberships.                           |
+| Projet         | `Project`        |                                                                  |
+| Organisation   | `Organization`   | Client company.                                                  |
+| Rôle           | `Role`           | Defined in configuration.                                        |
+| Accès          | `Membership`     | Role of a user or organisation on a project or workspace.        |
+| Interne/Externe| `internal` flag  | Agency user vs client user.                                      |
+| Privé          | `private`        | Hidden from external users.                                      |
+| Version        | `Release`        | Planned delivery, optional per project.                          |
+| Historique     | `JournalEntry`   | Immutable journal, keeps the labels of the time.                 |
+| Fichier        | `Attachment`     |                                                                  |
+| —              | `ConfigSnapshot` | Applied configuration definition, stored in database.            |
+
+## Architecture
+
+Standard Symfony layout plus a light command/query separation. No modules,
+no hexagonal layers, no event sourcing, no query bus. A Symfony developer
+must find their bearings by opening `src/`.
+
+```
+src/
+  Entity/            single flat folder; persisted enums in Entity/Enum/
+  Repository/        one per entity: find by id/key and simple finders only
+  Message/           write commands, grouped by domain: Issue/, Project/, …
+  MessageHandler/    exact mirror of Message/, one handler per command
+  Query/             screen reads: filters, visibility, multi-entity queries
+  Event/             domain events: IssueCreated, IssueTransitioned, …
+  EventListener/     journal recorder, notification dispatcher, …
+  Controller/        grouped by screen: Issue/, Project/, Admin/, Webhook/
+  Form/              form types and their data objects
+  Security/          voters, AccessControl, RoleResolver, authenticators
+  Twig/Components/   UX Twig and Live components
+  Config/            instance config pipeline: Definition/, validator, diff,
+                     sync, ConfigRegistry; config-only enums
+  Workflow/          WorkflowProvider built from the snapshot, guards
+  Notification/      subscription rules, mail builders, digest
+  GitLab/            webhook payload, reference parser, related enums
+  Command/           console commands (app:config:sync, digest, …)
+```
+
+Rules:
+
+- **Writes are commands.** Every mutation is a Messenger message in
+  `Message/<Domain>/` handled synchronously by `MessageHandler/<Domain>/`.
+  Controllers, Live components, webhooks and console commands build a
+  command and dispatch it. They contain no business rules.
+- **Reads are queries.** A repository answers "give me this entity". As soon
+  as a read depends on filters, on visibility or spans several entities, it
+  is a class in `Query/<Domain>/` with its own filter DTO. Queries never
+  mutate; commands never return data beyond the created identifier.
+- **Side effects go through events.** A handler dispatches a domain event
+  with the EventDispatcher inside the transaction. Whatever must be atomic
+  with the write, such as the journal, is written in the handler or by a
+  synchronous listener. Whatever may fail independently, such as mail, is
+  re-dispatched as an asynchronous Messenger message with
+  `DispatchAfterCurrentBusStamp` so it only leaves after commit.
+- **One authorization service.** `Security/AccessControl` takes the acting
+  user as an explicit argument and resolves the effective role (direct
+  membership > organisation > global). Handlers call it directly. Voters are
+  thin adapters over it for `#[IsGranted]` and Twig.
+- **Entities carry intent.** Prefer `moveTo()`, `makePrivate()`, `close()`
+  over generic setters. Entities never receive services.
+- **Only `Config/` and `Workflow/` are self-contained subtrees**, because they
+  have no equivalent in a standard Symfony project.
+- **No catch-all folders.** No `Service/`, no central `Enum/`, no `Dto/`.
+  An enum or DTO lives next to what gives it meaning: `Criticality` and
+  `PlaceStatus` in `Entity/Enum/` because they are persisted, `FieldType` and
+  `MigrationPolicy` in `Config/`, webhook payloads in `GitLab/`,
+  `IssueFilter` in `Query/Issue/`, form data objects in `Form/`. When an enum
+  has two owners, persistence wins and `Config/` imports from `Entity/Enum/`.
+- **Templates** follow screens, not PHP namespaces: `templates/issue/show.html.twig`,
+  `templates/components/` for UX components.
+
+### Configuration and snapshot
+
+Workflows, roles, global permissions, fields and link types live in one PHP
+configuration file outside the repository, loaded from an environment
+variable (see `config/instance.example.php`). Trackers, projects,
+organisations, memberships and releases live in database. Criticality
+levels and statuses are fixed enums in code. Notification rules and GitLab
+settings are not part of the file yet: add them when those features are
+built, shaped by their actual consumer.
+
+The file is never read at runtime. It is loaded, validated, normalised into
+readonly definition objects, diffed against the last `ConfigSnapshot`, and
+applied by `app:config:sync` (idempotent, locked with `symfony/lock`,
+`--dry-run`). The snapshot is the source of truth in production. The sync is
+also a plain service so that a future back-office can reuse it.
+
+An issue's state is stored as a place identifier string, not a foreign key.
+Places separate a stable technical id from a label; a removed place either
+declares `migrate_from` on its successor or the sync refuses (strict policy
+by default). The journal is never migrated.
 
 ## Conventions
 
-Follow https://symfony.com/doc/current/best_practices.html to write idiomatic
-Symfony:
-
-- Use PHP attributes for framework metadata, and not only on controllers:
-  `#[Route]`, `#[MapRequestPayload]`, `#[IsGranted]` on actions, `#[Assert\...]`
-  on properties, `#[AsCommand]`, `#[AsEventListener]`, `#[AsMessageHandler]`, and
-  `#[AsAlias]` / `#[AsTaggedItem]` / `#[Autoconfigure]` on services. No YAML or
-  XML routing.
-- Rely on autowiring and autoconfiguration. Type-hint constructor arguments and
-  let the container resolve them. Where a type-hint can't express it, stay in the
-  class with `#[Autowire]` (parameters, env vars, expressions) or `#[Target]` (one
-  of several implementations of an interface). A YAML service definition is the
-  last resort, not the first.
-- Controllers extend `AbstractController`, stay thin, and delegate to services.
-- Use the framework for what it already does: Form for server-rendered forms,
-  Validator for validation, Serializer for JSON, Messenger for async work,
-  Security (voters, authenticators) for access control, Twig `path()`/`url()`
-  instead of hardcoded URLs.
-- Before hand-writing infrastructure (locks, queues, caches, HTTP clients,
-  mailers, schedulers) or reaching for a third-party library, check whether a
-  Symfony component covers it. It usually does.
-
-Three specifics worth spelling out, because they are easy to get wrong:
-
-- Bind request data with `#[MapRequestPayload]` / `#[MapQueryString]` on action
-  arguments, which wires up Serializer and Validator for you, instead of calling
-  `json_decode()` or `SerializerInterface` by hand. If neither package is
-  installed yet, `composer require` them rather than falling back to manual
-  parsing.
-- Use constructor property promotion, and `readonly` for DTOs and value objects.
-  Don't mark a service `readonly` if it might become `lazy: true`: a lazy proxy
-  can't extend a `readonly` class.
-- Use `symfony/lock` (`LockFactory`) for mutual exclusion. A hand-built flag or
-  lock file looks fine in review and is usually wrong under concurrency.
+- Code, identifiers, comments, commit messages and this file are in English.
+- **One language per instance**, set by `CAIRN_LOCALE` (wired to
+  `framework.default_locale`). There is no per-user locale: issues are
+  written in one language, so the interface follows it. Two kinds of text:
+  - Interface strings written in code (menus, buttons, validation and mail
+    templates, enum labels such as `PlaceStatus`) go through translation
+    keys and `translations/messages.<locale>.yaml`. Keys are named by
+    domain (`status.open`, `issue.action.create`), never English sentences.
+    No hardcoded labels in Twig or PHP, even though only French is shipped
+    in V1. `debug:translation fr` lists missing and unused keys.
+  - Content written by the agency or the users (configuration labels,
+    hints and prompts; project, tracker, issue and comment text) is data in
+    the instance language. It is displayed as-is and never passed to the
+    translator.
+- Follow https://symfony.com/doc/current/best_practices.html:
+  - PHP attributes for all framework metadata: `#[Route]`,
+    `#[MapRequestPayload]`, `#[IsGranted]`, `#[Assert\...]`, `#[AsCommand]`,
+    `#[AsEventListener]`, `#[AsMessageHandler]`, `#[AsLiveComponent]`. No YAML
+    or XML routing.
+  - Autowiring and autoconfiguration. Type-hint constructor arguments; use
+    `#[Autowire]` and `#[Target]` where a type-hint can't express it. A YAML
+    service definition is the last resort.
+  - Controllers extend `AbstractController` and stay thin.
+  - Constructor property promotion; `readonly` for DTOs, commands, events and
+    definition objects. Don't mark a service `readonly` if it may become lazy.
+  - Use the framework before writing infrastructure: Form, Validator,
+    Serializer, Messenger, Security voters, `symfony/lock`, Scheduler, Twig
+    `path()`/`url()`.
+- **No migrations before the first release.** Until then the schema is
+  derived from the entities: apply changes with
+  `doctrine:schema:update --force` (or drop and recreate), and don't write
+  anything under `migrations/`. Once the first release is tagged, every schema
+  change goes through `make:migration` then `doctrine:migrations:migrate`,
+  never `doctrine:schema:update` or SQL by hand.
+- `.env` holds defaults only. Real secrets go in `.env.local` or the secrets
+  vault, read via `%env(...)%`.
 
 ## Everyday workflow
 
-- Run the app with `symfony serve -d`, and commands with `symfony console ...`
-  (or `bin/console` when the Symfony CLI isn't available).
+- Run the app with `symfony serve -d`, commands with `symfony console ...`
+  (or `bin/console` when the Symfony CLI isn't available). In dev and test
+  the database is SQLite under `var/` (see `DATABASE_URL` in `.env`); the
+  Docker Compose Postgres service is there for testing against a real
+  server when needed (`docker compose up -d database`, the Symfony CLI then
+  injects its `DATABASE_URL`).
+- `CAIRN_CONFIG` points to the instance configuration file; `.env` defaults
+  to the committed `config/instance.example.php`. After changing it, run
+  `symfony console app:config:sync --dry-run`, then without `--dry-run`.
 - When something fails, read `var/log/dev.log` and the web profiler
   (`/_profiler`) before changing code.
-- If `maker-bundle` is installed, prefer `bin/console make:*` with every argument
-  passed up front and `--no-interaction` where supported: makers prompt on a
-  terminal by default, which hangs a non-interactive shell. If a maker still
-  needs interactive input, hand-write the code instead.
-- If Doctrine ORM is installed, schema changes go through migrations
-  (`bin/console make:migration`, then `doctrine:migrations:migrate`), never
-  `doctrine:schema:update` or hand-written SQL.
-- `.env` is committed and holds defaults only. Real secrets belong in `.env.local`
-  (git-ignored) or the secrets vault (`bin/console secrets:set`), read via
-  `%env(...)%`.
+- Prefer `bin/console make:*` with every argument passed up front and
+  `--no-interaction`; makers prompt on a terminal by default, which hangs a
+  non-interactive shell. If a maker still needs input, hand-write the code.
+- Discover, don't guess: `bin/console about`, `debug:router`,
+  `debug:container`, `debug:autowiring <name>`, `debug:config <bundle>`,
+  `config:dump-reference <bundle>`, `lint:container`, `lint:twig templates/`,
+  `lint:yaml config/`. Read the installed source under `vendor/` and the docs
+  at https://symfony.com/doc/current/.
 
 ## Testing
 
-Install `symfony/test-pack` if it isn't already. Functional/HTTP tests extend
-`WebTestCase`; service-level tests extend `KernelTestCase`. Run
-`php bin/phpunit` (falls back to `vendor/bin/phpunit`). A feature isn't done
-until it has a test that exercises it the way a caller would, an HTTP request for
-a controller or a service call for a service, not just "it didn't throw."
+Functional tests extend `WebTestCase`; handler and service tests extend
+`KernelTestCase` and run against a real database: `tests/bootstrap.php`
+builds the test schema from the entities and `dama/doctrine-test-bundle`
+rolls every test back. Run `castor test` (arguments are passed to PHPUnit,
+e.g. `castor test --filter Codec`). A feature isn't done until it has a
+test that exercises it the way a caller would: an HTTP request for a
+controller, a dispatched command for a handler, a query call for a query.
+Not just "it didn't throw".
 
-## Code style
+## Quality tools
 
-Symfony's coding standard, the `@Symfony` php-cs-fixer ruleset (a PSR-12-derived
-superset). Run `vendor/bin/php-cs-fixer fix` if `friendsofphp/php-cs-fixer` is
-installed; it isn't part of the skeleton by default.
+Project tasks are defined in `castor.php` and run with the Castor CLI
+(install it from https://castor.jolicode.com, it is not a Composer
+dependency):
 
-## Discover, don't guess
-
-Framework APIs change between versions and your training data may be stale. Look
-things up in the project instead of relying on memory:
-
-- `bin/console about`: versions, environment, paths.
-- `bin/console debug:router`, `debug:container`, `debug:autowiring <name>`,
-  `debug:config <bundle>`, `config:dump-reference <bundle>`: what exists and how
-  it is configured.
-- `bin/console lint:container`, plus `lint:twig templates/` and
-  `lint:yaml config/` where those packages are installed: validate before running.
-- Read the installed source and docblocks under `vendor/`.
-- Docs: https://symfony.com/doc/current/ (switch to the version matching
-  `composer.json` if it differs).
+- `castor qa`: everything below. Run it before handing work
+  over; it must pass.
+- `castor cs`: php-cs-fixer with the `@Symfony` and `@Symfony:risky` rulesets
+  plus `declare(strict_types=1)` in every file (`--check` to only report).
+- `castor phpstan`: PHPStan level 8 with the Symfony and Doctrine
+  extensions (`phpstan.dist.neon`). PHPDoc types are not treated as certain,
+  so runtime checks on hand-written configuration values stay meaningful.
+- `castor test`: PHPUnit.
