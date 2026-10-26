@@ -35,9 +35,11 @@ Decisions already taken:
   for styling. The kanban and the rich-text editor are React islands.
 - Auth: SecurityBundle, email + password, invitation of external users by
   email; agency SSO may come later.
-- Workflow engine: the Symfony Workflow component, with workflow definitions
+- Workflow engine: the Symfony Workflow component, with state machines
   built at runtime from the configuration snapshot stored in database, not
-  from YAML.
+  from YAML (`framework.workflows` stays empty). They enforce structure and
+  dispatch the workflow events; who may trigger a transition is decided by
+  `AccessControl`, never by a workflow guard.
 
 Install missing capabilities with `composer require <package>` and let the
 Flex recipe register the bundle and generate its config. Don't hand-edit
@@ -94,7 +96,8 @@ src/
   Twig/Components/   UX Twig and Live components
   Config/            instance config pipeline: Definition/, validator, diff,
                      sync, ConfigRegistry; config-only enums
-  Workflow/          WorkflowProvider built from the snapshot, guards
+  Workflow/          state machines built from the snapshot (WorkflowFactory,
+                     WorkflowProvider), HasPlace for the objects they move
   Notification/      subscription rules, mail builders, digest
   GitLab/            webhook payload, reference parser, related enums
   Command/           console commands (app:config:sync, digest, …)
