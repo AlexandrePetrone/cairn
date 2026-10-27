@@ -9,3 +9,23 @@ criticality:
     normal: Normale
     high: Haute
     blocking: Bloquante
+
+issue:
+    private: Privée
+    unassigned: Non assigné
+
+action:
+    close: Fermer
+    remove: Retirer
+
+panel:
+    see_all: Tout voir
+
+filter:
+    show_closed: Afficher les fermées
+    search: Rechercher…
+    no_match: Aucun résultat
+    clear: Tout effacer
+
+form:
+    optional: facultatif

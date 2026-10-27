@@ -1,0 +1,6 @@
+component: Avatar
+variants:
+    internal: { args: { name: Thomas Girard } }
+    external: { args: { name: Claire Martin, kind: external } }
+    system: { args: { name: GitLab, kind: system } }
+    unassigned: { args: { name: null } }

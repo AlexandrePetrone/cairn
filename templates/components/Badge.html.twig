@@ -1,0 +1,24 @@
+{# Small generic label: account and release states, "Admin", "Privée" with its lock, counts. For issue status or criticality use Status:Badge and Criticality:Badge. #}
+{% props tone = 'gray', icon = null, size = 'md' %}
+{% set badgeClasses = html_cva(
+    base: 'inline-flex items-center gap-1 font-medium ring-1 ring-inset align-middle',
+    variants: {
+        tone: {
+            gray: 'bg-gray-100 text-gray-500 ring-gray-200',
+            emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+            blue: 'bg-blue-50 text-blue-700 ring-blue-200',
+            violet: 'bg-violet-50 text-violet-700 ring-violet-200',
+            amber: 'bg-amber-100 text-amber-800 ring-amber-200',
+            red: 'bg-red-50 text-red-700 ring-red-200',
+            indigo: 'bg-indigo-50 text-indigo-700 ring-indigo-200',
+        },
+        size: {
+            sm: 'rounded px-1 py-px text-[10px] [&>svg]:h-2.5 [&>svg]:w-2.5',
+            md: 'rounded-md px-1.5 py-0.5 text-xs [&>svg]:h-3 [&>svg]:w-3',
+        },
+    },
+) %}
+<span class="{{ badgeClasses.apply({ tone: tone, size: size }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
+    {% if icon %}{{ ux_icon('lucide:' ~ icon) }}{% endif %}
+    {% block content %}{% endblock %}
+</span>

@@ -1,0 +1,15 @@
+{# The identifier is everywhere: monospace, clickable when it has a link. `sm` on kanban cards, `lg` in the issue header. #}
+{% props key, href = null, size = 'md' %}
+{% set issueKeyClasses = html_cva(
+    base: 'font-mono font-medium',
+    variants: {
+        size: { sm: 'text-[11px] text-gray-500', md: 'text-xs text-gray-600', lg: 'text-xs font-semibold text-gray-700' },
+        link: { true: 'hover:text-indigo-600' },
+    },
+) %}
+{% set issueKeyClass = issueKeyClasses.apply({ size: size, link: href is not null }, attributes.render('class'))|tailwind_merge %}
+{% if href %}
+    <a href="{{ href }}" class="{{ issueKeyClass }}" {{ attributes }}>{{ key }}</a>
+{% else %}
+    <span class="{{ issueKeyClass }}" {{ attributes }}>{{ key }}</span>
+{% endif %}

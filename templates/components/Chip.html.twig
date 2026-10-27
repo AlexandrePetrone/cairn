@@ -1,0 +1,14 @@
+{# Monospace chip for keys and versions: MD-SPT, 2.5.0. `dark` for the slate header. #}
+{% props tone = 'gray' %}
+{% set chipClasses = html_cva(
+    base: 'font-mono text-[11px] font-medium rounded px-1.5 py-0.5',
+    variants: {
+        tone: {
+            gray: 'bg-gray-100 text-gray-500',
+            dark: 'bg-slate-700 text-slate-300',
+            white: 'bg-white text-gray-500 ring-1 ring-inset ring-gray-200',
+            plain: 'text-gray-400',
+        },
+    },
+) %}
+<span class="{{ chipClasses.apply({ tone: tone }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>{% block content %}{% endblock %}</span>

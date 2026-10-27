@@ -1,0 +1,3 @@
+{% props rows = 4 %}
+{% set textareaClasses = html_cva(base: 'mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100') %}
+<textarea rows="{{ rows }}" class="{{ textareaClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>{% block content %}{% endblock %}</textarea>

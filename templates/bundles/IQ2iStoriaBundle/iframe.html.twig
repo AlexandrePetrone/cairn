@@ -1,0 +1,19 @@
+{# Storia preview: same styles, fonts and Stimulus controllers as the application. #}
+{% extends '@!IQ2iStoria/iframe.html.twig' %}
+
+{% block stylesheets %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+{% endblock %}
+
+{% block javascripts %}
+    {{ importmap('app') }}
+{% endblock %}
+
+{% block body %}
+    <div class="min-h-screen bg-gray-50 text-gray-800 text-sm antialiased p-4">
+        {{ content|raw }}
+    </div>
+{% endblock %}

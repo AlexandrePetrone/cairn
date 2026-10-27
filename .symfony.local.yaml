@@ -1,0 +1,6 @@
+# Workers started by `symfony serve`.
+workers:
+    tailwind:
+        cmd: ['symfony', 'console', 'tailwind:build', '--watch']
+    storia:
+        cmd: ['symfony', 'console', 'storia:watch']

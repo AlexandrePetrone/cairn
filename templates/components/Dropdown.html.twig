@@ -1,0 +1,16 @@
+{# Trigger + menu driven by the `dropdown` controller. Put the trigger in block `trigger` (it must carry aria-expanded). #}
+{% props align = 'left', width = 'md' %}
+{% set dropdownClasses = html_cva(base: 'relative inline-block') %}
+{% set dropdownMenuClasses = html_cva(
+    base: 'hidden absolute top-full mt-1 z-50 rounded-lg border border-gray-200 bg-white text-gray-800 shadow-xl py-1',
+    variants: {
+        align: { left: 'left-0', right: 'right-0' },
+        width: { sm: 'w-60', md: 'w-64', lg: 'w-80' },
+    },
+) %}
+<div class="{{ dropdownClasses.apply({}, attributes.render('class'))|tailwind_merge }}" data-controller="dropdown" {{ attributes }}>
+    {% block trigger %}{% endblock %}
+    <div data-dropdown-target="menu" class="{{ dropdownMenuClasses.apply({ align: align, width: width }) }}">
+        {% block content %}{% endblock %}
+    </div>
+</div>

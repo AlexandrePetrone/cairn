@@ -1,0 +1,9 @@
+{% props href = '#', icon = null, active = false %}
+{% set dropdownItemClasses = html_cva(
+    base: 'flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-gray-50',
+    variants: { active: { true: 'text-indigo-700', false: 'text-gray-700' } },
+) %}
+<a href="{{ href }}" class="{{ dropdownItemClasses.apply({ active: active }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
+    {% if icon %}{{ ux_icon('lucide:' ~ icon, { class: 'h-4 w-4 text-gray-400' }) }}{% endif %}
+    {% block content %}{% endblock %}
+</a>

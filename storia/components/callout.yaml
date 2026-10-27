@@ -1,0 +1,8 @@
+component: Callout
+variants:
+    gray: { blocks: { content: 'Le préfixe ne peut plus changer : des demandes existent.' } }
+    amber: { args: { tone: amber }, blocks: { content: '<h2 class="font-semibold">À regarder en premier</h2>' } }
+    blue: { args: { tone: blue }, blocks: { content: Thomas Girard sera notifié. } }
+    danger: { args: { tone: danger }, blocks: { content: Archiver le projet } }
+    private: { args: { tone: private }, blocks: { content: '<h2 class="font-semibold">Qualification</h2>' } }
+    small: { args: { size: sm }, blocks: { content: 'Le préfixe ne peut plus changer : des demandes existent.' } }

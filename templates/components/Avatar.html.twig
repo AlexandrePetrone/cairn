@@ -1,0 +1,27 @@
+{# Initials on a colour that tells internal (indigo) from external (emerald) and system (orange). No name: "?" for unassigned. #}
+{% props name = null, kind = 'internal', size = 'md' %}
+{% set avatarClasses = html_cva(
+    base: 'inline-flex shrink-0 items-center justify-center rounded-full font-semibold',
+    variants: {
+        kind: {
+            internal: 'bg-indigo-600 text-white',
+            external: 'bg-emerald-600 text-white',
+            system: 'bg-orange-500 text-white',
+            unassigned: 'border border-dashed border-gray-300 font-normal text-gray-400',
+        },
+        size: {
+            xs: 'h-4 w-4 text-[8px]',
+            sm: 'h-5 w-5 text-[9px]',
+            md: 'h-6 w-6 text-[10px]',
+            lg: 'h-7 w-7 text-xs',
+            xl: 'h-8 w-8 text-xs',
+            '2xl': 'h-10 w-10 text-sm',
+            '3xl': 'h-12 w-12 text-sm',
+        },
+    },
+) %}
+{% if name %}
+    {% set avatarNameParts = name|trim|split(' ') %}
+    {% set avatarInitials = (avatarNameParts[0]|first ~ (avatarNameParts[1] is defined ? avatarNameParts[1]|first : ''))|upper %}
+{% endif %}
+<span class="{{ avatarClasses.apply({ kind: name ? kind : 'unassigned', size: size }, attributes.render('class'))|tailwind_merge }}" title="{{ name ?? 'issue.unassigned'|trans }}" {{ attributes }}>{{ name ? avatarInitials : '?' }}</span>

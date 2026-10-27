@@ -1,0 +1,4 @@
+component: IssueKey
+variants:
+    default: { args: { key: MD-SPT-128 } }
+    link: { args: { key: MD-SPT-128, href: '#' } }

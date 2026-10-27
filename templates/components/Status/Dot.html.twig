@@ -1,0 +1,10 @@
+{# A status colour, fixed and global: places have no colour of their own. #}
+{% props status, size = 'sm' %}
+{% set statusDotClasses = html_cva(
+    base: 'inline-block shrink-0 rounded-full',
+    variants: {
+        status: { open: 'bg-blue-500', in_progress: 'bg-amber-500', waiting: 'bg-violet-500', closed: 'bg-gray-400' },
+        size: { sm: 'h-1.5 w-1.5', md: 'h-2 w-2' },
+    },
+) %}
+<span class="{{ statusDotClasses.apply({ status: status, size: size }, attributes.render('class'))|tailwind_merge }}" title="{{ ('status.' ~ status)|trans }}" {{ attributes }}></span>

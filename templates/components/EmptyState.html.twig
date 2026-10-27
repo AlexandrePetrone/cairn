@@ -1,0 +1,45 @@
+{# Nothing to show: an icon, a title, an explanation (content) and the way out (block `actions`).
+   `tone` sets the colours, `size` the spacing (sm inside a column or a panel, md for a whole list), `bordered` adds a dashed frame. #}
+{% props title, icon = 'inbox', tone = 'gray', size = 'md', bordered = false %}
+{% set emptyStateClasses = html_cva(
+    base: 'flex flex-col items-center text-center',
+    variants: {
+        size: { sm: 'gap-1.5 px-3 py-5', md: 'gap-2 px-6 py-10' },
+        bordered: { true: 'rounded-lg border border-dashed' },
+    },
+    compoundVariants: [
+        { bordered: [true], tone: ['gray'], class: 'border-gray-300' },
+        { bordered: [true], tone: ['amber'], class: 'border-amber-300 bg-amber-50/40' },
+    ],
+) %}
+{% set emptyStateIconClasses = html_cva(
+    base: 'inline-flex items-center justify-center rounded-full',
+    variants: {
+        tone: { gray: 'bg-gray-100 text-gray-400', amber: 'bg-amber-100 text-amber-600' },
+        size: { sm: 'h-8 w-8 [&>svg]:h-4 [&>svg]:w-4', md: 'h-11 w-11 [&>svg]:h-5 [&>svg]:w-5' },
+    },
+) %}
+{% set emptyStateTitleClasses = html_cva(
+    base: 'font-medium',
+    variants: {
+        tone: { gray: 'text-gray-900', amber: 'text-amber-900' },
+        size: { sm: 'text-xs', md: 'text-sm' },
+    },
+) %}
+{% set emptyStateTextClasses = html_cva(
+    base: 'max-w-sm',
+    variants: {
+        tone: { gray: 'text-gray-500', amber: 'text-amber-800' },
+        size: { sm: 'text-[11px]', md: 'text-sm' },
+    },
+) %}
+<div class="{{ emptyStateClasses.apply({ size: size, bordered: bordered, tone: tone }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
+    <span class="{{ emptyStateIconClasses.apply({ tone: tone, size: size }) }}">{{ ux_icon('lucide:' ~ icon) }}</span>
+    <p class="{{ emptyStateTitleClasses.apply({ tone: tone, size: size }) }}">{{ title }}</p>
+    {% if block('content') is not empty %}
+        <div class="{{ emptyStateTextClasses.apply({ tone: tone, size: size }) }}">{% block content %}{% endblock %}</div>
+    {% endif %}
+    {% if block('actions') is not empty %}
+        <div class="mt-2 flex items-center gap-2">{% block actions %}{% endblock %}</div>
+    {% endif %}
+</div>

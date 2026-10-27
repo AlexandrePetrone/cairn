@@ -1,0 +1,4 @@
+# Composite: rendered by avatarStack.html.twig next to this file.
+variants:
+    default: { args: { overflow: 0 } }
+    with_overflow: { args: { overflow: 3 } }

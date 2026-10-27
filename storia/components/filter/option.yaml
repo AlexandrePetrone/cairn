@@ -1,0 +1,5 @@
+component: Filter:Option
+variants:
+    default: { args: {  count: 2 }, blocks: { content: Haute } }
+    checked: { args: { count: 2, checked: true }, blocks: { content: Haute } }
+    empty_count: { args: { count: 0 }, blocks: { content: Basse } }

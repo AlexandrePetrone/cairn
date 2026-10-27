@@ -1,0 +1,6 @@
+component: Badge
+variants:
+    gray: { blocks: { content: Désactivé } }
+    emerald: { args: { tone: emerald }, blocks: { content: Actif } }
+    with_icon: { args: { tone: amber, icon: lock, size: sm }, blocks: { content: Privée } }
+    indigo: { args: { tone: indigo, size: sm }, blocks: { content: Admin } }

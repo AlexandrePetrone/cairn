@@ -1,0 +1,4 @@
+component: Toast
+variants:
+    center: { args: { delay: 60000 }, blocks: { content: Demande enregistrée } }
+    right: { args: { delay: 60000, position: right }, blocks: { content: 'MD-SPT-128 copié' } }

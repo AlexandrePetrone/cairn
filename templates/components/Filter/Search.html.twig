@@ -1,0 +1,6 @@
+{% props name = 'q', value = '', placeholder = null %}
+{% set filterSearchClasses = html_cva(base: 'flex items-center gap-1.5 h-7 rounded-md border border-gray-200 bg-white px-2 text-gray-400 focus-within:border-indigo-400') %}
+<label class="{{ filterSearchClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
+    <twig:ux:icon name="lucide:search" class="h-3.5 w-3.5" />
+    <input type="search" name="{{ name }}" value="{{ value }}" placeholder="{{ placeholder ?? 'filter.search'|trans }}" class="w-64 border-0 bg-transparent p-0 text-xs text-gray-800 outline-none placeholder:text-gray-400 focus:ring-0">
+</label>

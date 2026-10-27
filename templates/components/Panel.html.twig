@@ -1,0 +1,22 @@
+{# White bordered card. With `title`, a header row with an optional count and link; blocks `header`, `content`, `footer`. #}
+{% props title = null, count = null, href = null, hrefLabel = null, muted = false %}
+{% set panelClasses = html_cva(base: 'rounded-lg border border-gray-200 bg-white') %}
+{% set panelHeaderClasses = html_cva(
+    base: 'flex items-center gap-2 px-4 py-3 border-b border-gray-100',
+    variants: { muted: { true: 'bg-gray-50/60 rounded-t-lg' } },
+) %}
+<section class="{{ panelClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
+    {% if title or block('header') is not empty %}
+        <div class="{{ panelHeaderClasses.apply({ muted: muted }) }}">
+            {% block header %}
+                <h2 class="font-semibold text-gray-900">{{ title }}</h2>
+                {% if count is not null %}<span class="text-xs text-gray-400">{{ count }}</span>{% endif %}
+                {% if href %}<a href="{{ href }}" class="ml-auto text-xs text-indigo-600 hover:underline">{{ hrefLabel ?? 'panel.see_all'|trans }}</a>{% endif %}
+            {% endblock %}
+        </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+    {% if block('footer') is not empty %}
+        <div class="px-4 py-2 text-xs text-gray-400 border-t border-gray-100">{% block footer %}{% endblock %}</div>
+    {% endif %}
+</section>

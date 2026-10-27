@@ -1,0 +1,17 @@
+{# Bordered table whose header hides on small screens, where rows become cards (see Table:Row). #}
+{% props responsive = true %}
+{% set tableClasses = html_cva(base: 'rounded-lg border border-gray-200 bg-white overflow-hidden') %}
+{% set tableHeadClasses = html_cva(
+    base: 'bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500',
+    variants: { responsive: { true: 'hidden sm:table-header-group' } },
+) %}
+<div class="{{ tableClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
+    <table class="w-full text-sm">
+        {% if block('head') is not empty %}
+            <thead class="{{ tableHeadClasses.apply({ responsive: responsive }) }}">
+                <tr>{% block head %}{% endblock %}</tr>
+            </thead>
+        {% endif %}
+        <tbody class="divide-y divide-gray-100">{% block content %}{% endblock %}</tbody>
+    </table>
+</div>

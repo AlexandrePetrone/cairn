@@ -1,0 +1,6 @@
+component: Form:Segmented
+variants:
+    default:
+        args: { name: reproducible, options: { always: 'Oui, systématiquement', sometimes: Parfois, once: Une seule fois } }
+    with_selection:
+        args: { name: type, value: internal, options: { internal: Interne, admin: Administrateur, external: Externe } }

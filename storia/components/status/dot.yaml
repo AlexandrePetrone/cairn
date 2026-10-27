@@ -1,0 +1,6 @@
+component: Status:Dot
+variants:
+    open: { args: { status: open } }
+    in_progress: { args: { status: in_progress } }
+    waiting: { args: { status: waiting } }
+    closed: { args: { status: closed } }

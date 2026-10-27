@@ -92,7 +92,7 @@ src/
   Controller/        grouped by screen: Issue/, Project/, Admin/, Webhook/
   Form/              form types and their data objects
   Security/          voters, AccessControl, RoleResolver, authenticators
-  Twig/Components/   UX Twig and Live components
+  Twig/Components/   PHP-backed Twig components, when a component needs logic
   Config/            instance config pipeline: Definition/, validator, diff,
                      sync, ConfigRegistry; config-only enums
   Workflow/          state machines built from the snapshot (WorkflowFactory,
@@ -143,7 +143,66 @@ Rules:
 - **Templates** follow screens, not PHP namespaces: `templates/issue/show.html.twig`,
   `templates/components/` for UX components.
 
-### Configuration and snapshot
+### Frontend
+
+- Tailwind v4, configured in CSS (`assets/styles/app.css`: `@theme`, `@utility`,
+  `@source`), built by `symfonycasts/tailwind-bundle` (`tailwind:build`,
+  started as a `symfony serve` worker). No `tailwind.config.js`.
+- UI elements are **anonymous Twig components** in `templates/components/`,
+  grouped in folders (`Status/`, `Form/`, `Filter/`…), with `{% props %}`.
+  Classes always go through a CVA recipe (`html_cva`): base classes, one
+  variant group per prop (booleans as `true`/`false` keys; in
+  `compoundVariants` compare with real booleans, `[true]`), and the root
+  element renders
+  `class="{{ recipe.apply({…}, attributes.render('class'))|tailwind_merge }}" {{ attributes }}`
+  so that a class passed by the caller overrides the component's instead
+  of piling up. Inner elements that vary use their own recipe.
+  Props are what changes the look; technical HTML attributes of a form
+  control (`name`, `value`) are not props but plain attributes forwarded to
+  the inner `<input>` with `attributes.only('name', 'value')`, the root
+  getting `attributes.without('name', 'value', 'class')`.
+  Variables a component sets for itself carry its name: the main recipe is
+  `<component>Classes` (`buttonClasses`), an inner element's
+  `<component><Element>Classes` (`dropdownMenuClasses`), other values
+  `<component><Name>` (`avatarInitials`). The content blocks of a component
+  see its variables, so a bare `text` or `item` would shadow the caller's. Keep them small; a PHP
+  class comes only when behaviour needs it, under the same name.
+- A component earns its place with a choice of classes (variants, tones,
+  sizes) or a structure; a single element with fixed classes is not a
+  component, write the classes. Components take scalars as props and
+  **content as blocks**: compose `<twig:Avatar>`s inside `<twig:AvatarStack>`,
+  `<twig:Filter:Option>`s inside `<twig:Filter:Menu>`, rather than passing a
+  list of objects to loop over. A list is acceptable only when the
+  component computes something from it (`StackedBar`).
+- Every component has its view in `storia/components/<group>/<name>.yaml`
+  (a folder is a navigation group: never give a view the same name as a
+  folder, so `Dropdown:Item` lives in `dropdownItem.yaml` next to
+  `dropdown.yaml`)
+  with 2 to 5 meaningful variants. A variant shows one state or mode and is
+  named after it (`default`, `checked`, `with_icon`, `dark`), never after the
+  example content and never two axes at once; a secondary axis such as size
+  is tried in the Controls tab. YAML `blocks` are printed as raw HTML, so
+  a variant that composes other components is a local Twig template next to
+  the YAML (`storia/components/filter/menu.html.twig`). That template holds
+  one composition and takes every value from `args`; it never branches on
+  the variant (no `{% if example == … %}`): what changes between variants
+  belongs in the YAML.
+  Shared data lives in `storia/data/`. The
+  catalogue is at `/storia` (`castor storia` for live reload). Its
+  snapshots in `tests/storia/snapshots/` run with the test suite; review a
+  diff before `bin/console storia:test --update`.
+- Symfony forms will render through a form theme that calls the `Form:*`
+  components, so the look of a field lives in one place.
+- Pages are fragments in `templates/page/` without `extends`, previewed in
+  `storia/pages/` with YAML data and included by controllers inside
+  `base.html.twig` with real data.
+- Icons: `<twig:ux:icon name="lucide:x" />` or `ux_icon('lucide:' ~ name)`,
+  imported locally into `assets/icons/lucide/` with `ux:icons:import`.
+- JavaScript is Stimulus only, one small controller per behaviour in
+  `assets/controllers/` (`dropdown`, `list-filter`, `sidebar`, `drawer`,
+  `toast`, `clipboard`, `toggle`). No inline scripts.
+
+## Configuration and snapshot
 
 Workflows, roles, global permissions, fields and link types live in one PHP
 configuration file outside the repository, loaded from an environment

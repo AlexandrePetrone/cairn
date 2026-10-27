@@ -1,0 +1,19 @@
+{# Boxed note. `tone`: gray for information, amber for signals, blue for hints, danger for the danger zone, private for internal-only sections. `size`: sm for a one-line note, md for a section. #}
+{% props tone = 'gray', size = 'md' %}
+{% set calloutClasses = html_cva(
+    base: 'border',
+    variants: {
+        tone: {
+            gray: 'border-gray-200 bg-gray-50 text-gray-600',
+            amber: 'border-amber-200 bg-amber-50/60 text-amber-900',
+            blue: 'border-blue-100 bg-blue-50 text-blue-800',
+            danger: 'border-red-200 bg-white text-gray-700',
+            private: 'border-amber-200 bg-amber-50/40 private-hatching text-amber-900',
+        },
+        size: {
+            sm: 'rounded-md px-3 py-2 text-xs',
+            md: 'rounded-lg p-4 text-sm',
+        },
+    },
+) %}
+<div class="{{ calloutClasses.apply({ tone: tone, size: size }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>{% block content %}{% endblock %}</div>

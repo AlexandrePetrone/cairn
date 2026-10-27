@@ -1,0 +1,14 @@
+component: Panel
+variants:
+    default:
+        args: { title: Assignées à moi, count: 4, href: '#' }
+        blocks:
+            content: '<ul class="divide-y divide-gray-100"><li class="px-4 py-2">Une ligne</li><li class="px-4 py-2">Une autre</li></ul>'
+    muted_with_footer:
+        args: { title: Hérités de l'espace, muted: true, href: '#', hrefLabel: Modifier dans l'espace }
+        blocks:
+            content: '<div class="p-4 text-sm text-gray-600">Contenu</div>'
+            footer: Un accès direct ne peut qu'élargir un rôle hérité.
+    bare:
+        blocks:
+            content: '<div class="p-4 text-sm">Sans en-tête</div>'

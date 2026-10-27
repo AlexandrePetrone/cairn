@@ -1,0 +1,6 @@
+component: Chip
+variants:
+    gray: { blocks: { content: MD-SPT } }
+    dark: { args: { tone: dark }, blocks: { content: MD-SPT } }
+    white: { args: { tone: white }, blocks: { content: MD } }
+    plain: { args: { tone: plain }, blocks: { content: 2.5.0 } }

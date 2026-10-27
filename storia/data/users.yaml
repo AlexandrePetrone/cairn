@@ -1,0 +1,6 @@
+# Catalogue people. `kind` drives the avatar colour.
+thomas: { name: Thomas Girard, kind: internal, role: Chef de projet }
+nadia: { name: Nadia Benali, kind: internal, role: Développeuse }
+claire: { name: Claire Martin, kind: external, company: Maison Dupont }
+paul: { name: Paul Roussel, kind: external, company: Maison Dupont }
+gitlab: { name: GitLab, kind: system }

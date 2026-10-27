@@ -1,0 +1,5 @@
+component: Tab
+variants:
+    active: { args: { active: true, count: 3 }, blocks: { content: Projets } }
+    inactive: { args: { count: 12 }, blocks: { content: Demandes } }
+    with_icon: { args: { icon: settings, right: true }, blocks: { content: Paramètres } }

@@ -1,0 +1,9 @@
+{# Overlapping avatars given as content; `overflow` adds a "+N" bubble. #}
+{% props overflow = 0 %}
+{% set avatarStackClasses = html_cva(base: 'flex -space-x-1.5 [&>*]:ring-2 [&>*]:ring-white') %}
+<span class="{{ avatarStackClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
+    {% block content %}{% endblock %}
+    {% if overflow > 0 %}
+        <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-[10px] font-medium text-gray-600">+{{ overflow }}</span>
+    {% endif %}
+</span>

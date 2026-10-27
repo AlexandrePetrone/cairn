@@ -1,0 +1,3 @@
+component: Filter:Chip
+variants:
+    default: { args: { dimension: Statut, href: '#' }, blocks: { content: Ouvert } }

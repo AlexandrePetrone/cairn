@@ -1,0 +1,10 @@
+component: Button
+variants:
+    primary: { args: { variant: primary, icon: plus }, blocks: { content: Nouvelle demande } }
+    secondary: { blocks: { content: Modifier } }
+    danger: { args: { variant: danger }, blocks: { content: Refuser } }
+    dark: { args: { variant: dark, type: submit }, blocks: { content: Enregistrer } }
+    success: { args: { variant: success }, blocks: { content: Marquer comme livrée } }
+    ghost: { args: { variant: ghost }, blocks: { content: Annuler } }
+    icon: { args: { variant: icon, icon: ellipsis } }
+    as_link: { args: { href: '#', icon: plus }, blocks: { content: Ajouter } }

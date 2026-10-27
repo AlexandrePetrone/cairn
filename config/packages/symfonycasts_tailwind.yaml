@@ -1,0 +1,3 @@
+symfonycasts_tailwind:
+    # Tailwind v4: the configuration lives in assets/styles/app.css.
+    binary_version: 'v4.3.3'

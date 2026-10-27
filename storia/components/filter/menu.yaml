@@ -1,0 +1,18 @@
+# Composite: rendered by menu.html.twig next to this file.
+variants:
+    default:
+        args:
+            label: Criticité
+            count: 0
+            options:
+                - { value: blocking, label: Bloquante, count: 1 }
+                - { value: high, label: Haute, count: 2 }
+                - { value: normal, label: Normale, count: 9 }
+    with_selection:
+        args:
+            label: Criticité
+            count: 1
+            options:
+                - { value: blocking, label: Bloquante, count: 1, checked: true }
+                - { value: high, label: Haute, count: 2 }
+                - { value: normal, label: Normale, count: 9 }

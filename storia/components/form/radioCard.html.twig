@@ -1,0 +1,3 @@
+<twig:Form:RadioCard :title="title" :description="description" name="choice" value="1" :checked="checked|default(false)" :large="large|default(false)" :dashed="dashed|default(false)">
+    <twig:block name="badge">{% if badge|default(null) %}<twig:Badge tone="amber" icon="lock" size="sm" class="ml-auto">{{ badge }}</twig:Badge>{% endif %}</twig:block>
+</twig:Form:RadioCard>

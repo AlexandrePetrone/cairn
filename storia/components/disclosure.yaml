@@ -1,0 +1,8 @@
+component: Disclosure
+variants:
+    closed:
+        args: { openLabel: Masquer le détail, closedLabel: Voir le détail }
+        blocks: { content: '<p class="text-sm text-gray-600">Le détail.</p>' }
+    open:
+        args: { openLabel: Masquer le détail, closedLabel: Voir le détail, open: true }
+        blocks: { content: '<p class="text-sm text-gray-600">Le détail.</p>' }

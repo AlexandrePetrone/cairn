@@ -1,0 +1,17 @@
+{# Text-like input. `readonly` renders the grey monospace field of frozen values. #}
+{% props type = 'text', readonly = false %}
+{% set inputClasses = html_cva(
+    base: 'mt-1 w-full h-9 rounded-md border border-gray-300 text-sm',
+    variants: {
+        readonly: {
+            true: 'flex items-center bg-gray-50 px-3 font-mono text-gray-500',
+            false: 'px-3 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100',
+        },
+    },
+) %}
+{% set inputClass = inputClasses.apply({ readonly: readonly }, attributes.render('class'))|tailwind_merge %}
+{% if readonly %}
+    <div class="{{ inputClass }}" {{ attributes }}>{% block content %}{% endblock %}</div>
+{% else %}
+    <input type="{{ type }}" class="{{ inputClass }}" {{ attributes }}>
+{% endif %}

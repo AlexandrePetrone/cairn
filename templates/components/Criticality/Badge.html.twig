@@ -1,0 +1,28 @@
+{# ▲ for high and blocking, ● normal, ▽ low. `iconOnly` shows the glyph alone, and only when it matters. #}
+{% props criticality, iconOnly = false %}
+{% set criticalityGlyphs = { blocking: '▲', high: '▲', normal: '●', low: '▽' } %}
+{% set criticalityBadgeClasses = html_cva(
+    base: 'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset',
+    variants: {
+        criticality: {
+            blocking: 'bg-red-50 text-red-700 ring-red-200',
+            high: 'bg-orange-50 text-orange-700 ring-orange-200',
+            normal: 'bg-gray-50 text-gray-600 ring-gray-200',
+            low: 'bg-gray-50 text-gray-400 ring-gray-200',
+        },
+    },
+) %}
+{% set criticalityGlyphClasses = html_cva(
+    base: 'text-[9px]',
+    variants: { criticality: { blocking: 'text-red-600', high: 'text-orange-500' } },
+) %}
+{% if iconOnly %}
+    {% if criticality in ['blocking', 'high'] %}
+        <span class="{{ criticalityGlyphClasses.apply({ criticality: criticality }, attributes.render('class'))|tailwind_merge }}" title="{{ ('criticality.' ~ criticality)|trans }}" {{ attributes }}>{{ criticalityGlyphs[criticality] }}</span>
+    {% endif %}
+{% else %}
+    <span class="{{ criticalityBadgeClasses.apply({ criticality: criticality }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
+        <span class="text-[9px]">{{ criticalityGlyphs[criticality] }}</span>
+        {{ ('criticality.' ~ criticality)|trans }}
+    </span>
+{% endif %}

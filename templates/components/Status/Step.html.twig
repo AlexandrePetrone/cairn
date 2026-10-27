@@ -1,0 +1,8 @@
+{# "Place · Status", as shown in every cross-tracker list. #}
+{% props status, label %}
+{% set statusStepClasses = html_cva(base: 'inline-flex items-center gap-1.5') %}
+<span class="{{ statusStepClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
+    <twig:Status:Dot status="{{ status }}" />
+    <span class="text-gray-800">{{ label }}</span>
+    <span class="hidden lg:inline text-[11px] text-gray-400">· {{ ('status.' ~ status)|trans }}</span>
+</span>

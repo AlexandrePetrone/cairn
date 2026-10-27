@@ -1,0 +1,4 @@
+component: Filter:Search
+variants:
+    empty: {}
+    filled: { args: { value: export } }

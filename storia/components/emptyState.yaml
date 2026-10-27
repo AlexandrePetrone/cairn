@@ -1,0 +1,13 @@
+component: EmptyState
+variants:
+    default:
+        args: { title: Aucune demande ne correspond, icon: search }
+        blocks:
+            content: Essayez d'élargir les filtres ou d'afficher les demandes fermées.
+            actions: '<a href="#" class="inline-flex h-7 items-center rounded-md border border-gray-300 bg-white px-2 text-xs text-gray-700 hover:bg-gray-50">Tout effacer</a>'
+    small_bordered:
+        args: { title: Aucune demande, icon: kanban, size: sm, bordered: true }
+    amber:
+        args: { title: Aucun accès, icon: lock, tone: amber, bordered: true }
+        blocks:
+            content: Cet utilisateur ne voit aucun projet tant qu'on ne lui donne pas un accès à un espace ou à un projet.

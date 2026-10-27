@@ -1,0 +1,64 @@
+import { Controller } from '@hotwired/stimulus';
+
+/*
+ * A menu opened by a trigger, closed by a click outside, Escape or a second
+ * click. Optional `search` target gets the focus when the menu opens.
+ *
+ * <div data-controller="dropdown">
+ *   <button data-action="dropdown#toggle" aria-expanded="false">…</button>
+ *   <div data-dropdown-target="menu" class="hidden">…</div>
+ * </div>
+ */
+export default class extends Controller {
+    static targets = ['menu', 'search'];
+
+    connect() {
+        this.onDocumentClick = (event) => {
+            if (!this.element.contains(event.target)) {
+                this.close();
+            }
+        };
+        this.onKeydown = (event) => {
+            if (event.key === 'Escape') {
+                this.close();
+            }
+        };
+        document.addEventListener('click', this.onDocumentClick);
+        document.addEventListener('keydown', this.onKeydown);
+    }
+
+    disconnect() {
+        document.removeEventListener('click', this.onDocumentClick);
+        document.removeEventListener('keydown', this.onKeydown);
+    }
+
+    toggle() {
+        this.isOpen ? this.close() : this.open();
+    }
+
+    open() {
+        this.menuTarget.classList.remove('hidden');
+        this.trigger?.setAttribute('aria-expanded', 'true');
+        if (this.hasSearchTarget) {
+            this.searchTarget.value = '';
+            this.searchTarget.dispatchEvent(new Event('input', { bubbles: true }));
+            this.searchTarget.focus();
+        }
+    }
+
+    close() {
+        if (!this.isOpen) {
+            return;
+        }
+        this.menuTarget.classList.add('hidden');
+        this.trigger?.setAttribute('aria-expanded', 'false');
+    }
+
+    get isOpen() {
+        return !this.menuTarget.classList.contains('hidden');
+    }
+
+    get trigger() {
+        return this.element.querySelector('[aria-expanded]');
+    }
+}

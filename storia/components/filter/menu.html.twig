@@ -1,0 +1,5 @@
+<twig:Filter:Menu :label="label" :count="count">
+    {% for option in options %}
+        <twig:Filter:Option name="criticality[]" :value="option.value" :count="option.count" :checked="option.checked|default(false)">{{ option.label }}</twig:Filter:Option>
+    {% endfor %}
+</twig:Filter:Menu>

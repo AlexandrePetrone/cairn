@@ -1,0 +1,16 @@
+{# Label, required or optional marker, control (block), help text. `compact` for dense forms. #}
+{% props label, for = null, required = false, optional = false, help = null, compact = false %}
+{% set fieldClasses = html_cva() %}
+{% set fieldLabelClasses = html_cva(
+    base: 'block font-medium',
+    variants: { compact: { true: 'text-xs text-gray-600', false: 'text-sm text-gray-800' } },
+) %}
+<div class="{{ fieldClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
+    <label {% if for %}for="{{ for }}"{% endif %} class="{{ fieldLabelClasses.apply({ compact: compact }) }}">
+        {{ label }}
+        {% if required %}<span class="text-red-500">*</span>{% endif %}
+        {% if optional %}<span class="text-gray-400 font-normal">{{ 'form.optional'|trans }}</span>{% endif %}
+    </label>
+    {% block content %}{% endblock %}
+    {% if help %}<p class="mt-1 text-xs text-gray-400">{{ help }}</p>{% endif %}
+</div>

@@ -1,0 +1,4 @@
+# Composite: rendered by dropdown.html.twig next to this file.
+variants:
+    default: { args: { align: left } }
+    right_aligned: { args: { align: right } }

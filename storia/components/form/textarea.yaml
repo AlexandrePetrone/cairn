@@ -1,0 +1,3 @@
+component: Form:Textarea
+variants:
+    default: { args: { name: description, rows: 3, placeholder: 'Quel problème cette évolution résout-elle ?' } }

@@ -12,6 +12,7 @@ defined('CASTOR_USE_CHDIR') || define('CASTOR_USE_CHDIR', true);
  *   castor cs         fix the code style (--check to only report)
  *   castor phpstan    static analysis
  *   castor test       PHPUnit, extra arguments are passed through
+ *   castor storia     Storia catalogue with live reload
  */
 
 use Castor\Attribute\AsOption;
@@ -41,6 +42,12 @@ function phpstan(): int
     run(['bin/console', 'cache:warmup', '--env=dev'], context: context()->withQuiet());
 
     return tool(['vendor/bin/phpstan', 'analyse', '--memory-limit=512M']);
+}
+
+#[AsTask(description: 'Open the component catalogue with live reload (blocks the terminal)')]
+function storia(): int
+{
+    return tool(['bin/console', 'storia:watch']);
 }
 
 #[AsTask(description: 'Run the test suite with PHPUnit')]

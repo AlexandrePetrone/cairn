@@ -1,0 +1,8 @@
+{# An active filter, removable through `href`. #}
+{% props dimension, href %}
+{% set filterChipClasses = html_cva(base: 'inline-flex items-center gap-1 rounded-full bg-gray-100 pl-2 pr-1 py-0.5 text-xs text-gray-700') %}
+<span class="{{ filterChipClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
+    <span class="text-gray-500">{{ dimension }} :</span>
+    {% block content %}{% endblock %}
+    <a href="{{ href }}" class="rounded-full p-0.5 hover:bg-gray-300 text-gray-500" aria-label="{{ 'action.remove'|trans }}"><twig:ux:icon name="lucide:x" class="h-3 w-3" /></a>
+</span>
