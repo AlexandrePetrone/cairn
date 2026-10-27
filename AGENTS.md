@@ -289,6 +289,12 @@ by default). The journal is never migrated.
   Docker Compose Postgres service is there for testing against a real
   server when needed (`docker compose up -d database`, the Symfony CLI then
   injects its `DATABASE_URL`).
+- `castor fixtures` resets the dev database and loads `src/Story/AppStory`
+  (Foundry): workspaces, projects, trackers, users and issues close to the
+  mockups, created through the real commands under a mocked clock. It
+  applies `config/instance.example.php`, whose workflows it is written for.
+  Every user's password is `cairn`; `admin@cairn.test` is an administrator.
+  Factories live in `src/Factory/` and are also meant for tests.
 - `CAIRN_CONFIG` points to the instance configuration file; `.env` defaults
   to the committed `config/instance.example.php`. After changing it, run
   `symfony console app:config:sync --dry-run`, then without `--dry-run`.

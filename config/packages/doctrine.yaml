@@ -26,6 +26,11 @@ when@test:
         dbal:
             # "TEST_TOKEN" is typically set by ParaTest
             dbname_suffix: '_test%env(default::TEST_TOKEN)%'
+            # Tests run thousands of queries (the development story among
+            # them): keeping each one with its backtrace exhausts memory.
+            profiling_collect_backtrace: false
+            logging: false
+            profiling: false
 
 when@prod:
     doctrine:

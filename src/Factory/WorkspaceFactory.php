@@ -1,0 +1,33 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Factory;
+
+use App\Entity\Workspace;
+use Zenstruck\Foundry\Object\Instantiator;
+use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
+
+/**
+ * @extends PersistentObjectFactory<Workspace>
+ */
+final class WorkspaceFactory extends PersistentObjectFactory
+{
+    public static function class(): string
+    {
+        return Workspace::class;
+    }
+
+    protected function defaults(): array
+    {
+        return [
+            'name' => self::faker()->company(),
+            'key' => strtoupper(self::faker()->unique()->lexify('???')),
+        ];
+    }
+
+    protected function initialize(): static
+    {
+        return $this->instantiateWith(Instantiator::withConstructor()->alwaysForce());
+    }
+}
