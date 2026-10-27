@@ -1,0 +1,5 @@
+form: Symfony\Component\Form\Extension\Core\Type\TextType
+options:
+    label: Titre
+    help: Une phrase qui résume le problème.
+    attr: { placeholder: "L'export CSV des commandes est vide" }

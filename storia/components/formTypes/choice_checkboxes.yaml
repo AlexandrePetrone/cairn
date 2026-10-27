@@ -1,0 +1,7 @@
+form: Symfony\Component\Form\Extension\Core\Type\ChoiceType
+options:
+    label: Navigateurs concernés
+    expanded: true
+    multiple: true
+    required: false
+    choices: { Chrome: chrome, Safari: safari, Firefox: firefox }

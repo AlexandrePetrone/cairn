@@ -1,0 +1,5 @@
+form: Symfony\Component\Form\Extension\Core\Type\CheckboxType
+options:
+    label: Demande privée
+    required: false
+    help: Invisible pour les externes.

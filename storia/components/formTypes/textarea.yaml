@@ -1,0 +1,5 @@
+form: Symfony\Component\Form\Extension\Core\Type\TextareaType
+options:
+    label: Objectif
+    help: Le besoin plutôt que la solution.
+    attr: { rows: 4, placeholder: 'Quel problème cette évolution résout-elle, pour qui ?' }

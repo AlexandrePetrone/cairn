@@ -1,0 +1,4 @@
+form: Symfony\Component\Form\Extension\Core\Type\NumberType
+options:
+    label: Estimation (jours)
+    required: false

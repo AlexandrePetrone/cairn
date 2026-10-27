@@ -4,3 +4,5 @@ variants:
         args: { name: reproducible, options: { always: 'Oui, systématiquement', sometimes: Parfois, once: Une seule fois } }
     with_selection:
         args: { name: type, value: internal, options: { internal: Interne, admin: Administrateur, external: Externe } }
+    disabled:
+        args: { name: type, value: internal, disabled: true, options: { internal: Interne, admin: Administrateur, external: Externe } }

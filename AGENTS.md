@@ -191,8 +191,18 @@ Rules:
   catalogue is at `/storia` (`castor storia` for live reload). Its
   snapshots in `tests/storia/snapshots/` run with the test suite; review a
   diff before `bin/console storia:test --update`.
-- Symfony forms will render through a form theme that calls the `Form:*`
-  components, so the look of a field lives in one place.
+- Symfony forms render through `templates/form/theme.html.twig`, registered
+  globally in `config/packages/twig.yaml`: each block (`form_row`,
+  `form_widget_simple`, `textarea_widget`, `choice_widget_collapsed`,
+  `choice_widget_expanded`, `checkbox_row`, buttons) delegates to a `Form:*`
+  component, so the look of a field lives in one place. Each rendering has a
+  `form:` view in `storia/components/formTypes/` (named after the rendering:
+  `choice_radio`, `choice_checkboxes`), which Storia renders as `default`,
+  `disabled` and `error`. Types the framework lacks live in `src/Form/Type/`
+  with their own block prefix (`ToggleType` → `toggle_row`, `toggle_widget`).
+- Form controls style their disabled state: `disabled:` utilities on the
+  field itself, `has-[:disabled]:` on the label that wraps a checkbox or a
+  radio.
 - Pages are fragments in `templates/page/` without `extends`, previewed in
   `storia/pages/` with YAML data and included by controllers inside
   `base.html.twig` with real data.

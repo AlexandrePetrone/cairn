@@ -1,9 +1,9 @@
-{# A checkbox line of a Filter:Menu; `name` and `value` go to the checkbox (name="criticality[]"). The content is the label, preceded by a dot, an avatar or a chip when relevant. #}
+{# A checkbox line of a Filter:Menu; `name`, `value`, `id`, `required` and `disabled` go to the checkbox (name="criticality[]"). The content is the label, preceded by a dot, an avatar or a chip when relevant. #}
 {% props checked = false, count = null %}
 {% set filterOptionClasses = html_cva(base: 'flex items-center gap-2 px-2.5 py-1.5 text-sm hover:bg-gray-50 cursor-pointer') %}
 {% set filterOptionCountClasses = html_cva(base: 'text-xs text-gray-400 tabular-nums', variants: { empty: { true: 'opacity-40' } }) %}
-<label class="{{ filterOptionClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes.without('name', 'value', 'class') }}>
-    <input type="checkbox" {{ attributes.only('name', 'value') }} {{ checked ? 'checked' }} class="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600">
+<label class="{{ filterOptionClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes.without('name', 'value', 'id', 'required', 'disabled', 'class') }}>
+    <input type="checkbox" {{ attributes.only('name', 'value', 'id', 'required', 'disabled') }} {{ checked ? 'checked' }} class="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600">
     <span class="flex-1 min-w-0 flex items-center gap-2 truncate">{% block content %}{% endblock %}</span>
     {% if count is not null %}<span class="{{ filterOptionCountClasses.apply({ empty: count == 0 }) }}">{{ count }}</span>{% endif %}
 </label>

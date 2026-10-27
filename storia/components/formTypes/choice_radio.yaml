@@ -1,0 +1,7 @@
+form: Symfony\Component\Form\Extension\Core\Type\ChoiceType
+options:
+    label: Reproductible
+    expanded: true
+    required: false
+    placeholder: false
+    choices: { 'Oui, systématiquement': always, Parfois: sometimes, Une seule fois: once }

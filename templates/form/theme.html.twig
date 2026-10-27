@@ -1,0 +1,139 @@
+{#
+ # Application form theme, registered globally in config/packages/twig.yaml.
+ # Every block delegates to a Form:* component, so a field looks the same
+ # whether it is written by hand or rendered by form_row().
+ #}
+{% use 'form_div_layout.html.twig' %}
+
+{# Label, help and errors around the widget. #}
+{% block form_row %}
+    {% set rowLabel = label is same as(false) ? null : (label is empty ? (label_format ? label_format|replace({'%name%': name, '%id%': id}) : name|humanize) : label) %}
+    {% set rowWidgetAttributes = help is not empty ? { attr: attr|merge({ 'aria-describedby': id ~ '_help' }) } : {} %}
+    <twig:Form:Field
+        :label="rowLabel is not null and translation_domain is not same as(false) ? rowLabel|trans(label_translation_parameters, translation_domain) : rowLabel"
+        :for="compound ? null : id"
+        :required="required"
+        :help="help is not empty ? (translation_domain is same as(false) or help_translation_parameters is not defined ? help : help|trans(help_translation_parameters, translation_domain)) : null"
+        :helpId="id ~ '_help'"
+        {{ ...row_attr }}
+    >
+        {{ form_widget(form, rowWidgetAttributes) }}
+        <twig:block name="errors">{{ form_errors(form) }}</twig:block>
+    </twig:Form:Field>
+{% endblock %}
+
+{% block form_errors %}
+    {% if errors|length > 0 %}
+        <ul class="mt-1 space-y-0.5 text-xs text-red-600">
+            {% for error in errors %}<li>{{ error.message }}</li>{% endfor %}
+        </ul>
+    {% endif %}
+{% endblock %}
+
+{% block form_widget_simple %}
+    {% set controlAttributes = { id: id, name: full_name, required: required, disabled: disabled }|merge(attr) %}
+    {% set controlAttributes = type|default('text') == 'file' or value is empty ? controlAttributes : controlAttributes|merge({ value: value }) %}
+    <twig:Form:Input :type="type|default('text')" :invalid="not valid" {{ ...controlAttributes }} />
+{% endblock %}
+
+{% block textarea_widget %}
+    {% set controlAttributes = { id: id, name: full_name, required: required, disabled: disabled }|merge(attr) %}
+    <twig:Form:Textarea :invalid="not valid" {{ ...controlAttributes }}>{{ value }}</twig:Form:Textarea>
+{% endblock %}
+
+{% block choice_widget_collapsed %}
+    {% set controlAttributes = { id: id, name: full_name, required: required, disabled: disabled }|merge(attr) %}
+    {% set controlAttributes = multiple ? controlAttributes|merge({ name: full_name, multiple: true }) : controlAttributes %}
+    {% set selectOptions %}
+        {%- if placeholder is not none -%}
+            <option value=""{% if placeholder_attr|default({}) %}{% with { attr: placeholder_attr } %}{{ block('attributes') }}{% endwith %}{% endif %}{% if required and value is empty %} selected="selected"{% endif %}>{{ placeholder != '' ? (translation_domain is same as(false) ? placeholder : placeholder|trans({}, translation_domain)) }}</option>
+        {%- endif -%}
+        {%- if preferred_choices|length > 0 -%}
+            {% set options = preferred_choices %}
+            {% set render_preferred_choices = true %}
+            {{- block('choice_widget_options') -}}
+            {%- if choices|length > 0 and separator is not none -%}
+                <option disabled="disabled">{{ separator }}</option>
+            {%- endif -%}
+        {%- endif -%}
+        {%- set options = choices -%}
+        {%- set render_preferred_choices = false -%}
+        {{- block('choice_widget_options') -}}
+    {% endset %}
+    <twig:Form:Select :invalid="not valid" {{ ...controlAttributes }}>{{ selectOptions }}</twig:Form:Select>
+{% endblock %}
+
+{# Radios render as segments, checkboxes as a stack of Form:Checkbox. #}
+{% block choice_widget_expanded %}
+    {% if multiple %}
+        <div class="mt-1 space-y-1.5">
+            {% for child in form %}
+                <twig:Form:Checkbox
+                    :label="translation_domain is same as(false) ? child.vars.label : child.vars.label|trans(child.vars.label_translation_parameters, choice_translation_domain)"
+                    :checked="child.vars.checked"
+                    :id="child.vars.id"
+                    :name="child.vars.full_name"
+                    :value="child.vars.value"
+                    :disabled="child.vars.disabled"
+                />
+                {% do child.setRendered %}
+            {% endfor %}
+        </div>
+    {% else %}
+        {% set segmentedOptions = {} %}
+        {% for child in form %}
+            {% set segmentedOptions = segmentedOptions|merge({ (child.vars.value): (choice_translation_domain is same as(false) ? child.vars.label : child.vars.label|trans(child.vars.label_translation_parameters, choice_translation_domain)) }) %}
+            {% do child.setRendered %}
+        {% endfor %}
+        <twig:Form:Segmented :options="segmentedOptions" :value="value" :name="full_name" :required="required" :disabled="disabled" />
+    {% endif %}
+{% endblock %}
+
+{# A single checkbox carries its own label: no separate label above it. #}
+{% block checkbox_row %}
+    <twig:Form:Field :help="help is not empty ? help|trans(help_translation_parameters, translation_domain) : null" :helpId="id ~ '_help'">
+        {{ form_widget(form) }}
+        <twig:block name="errors">{{ form_errors(form) }}</twig:block>
+    </twig:Form:Field>
+{% endblock %}
+
+{% block checkbox_widget %}
+    <twig:Form:Checkbox
+        :label="label is same as(false) ? '' : (translation_domain is same as(false) ? (label ?? name|humanize) : (label ?? name|humanize)|trans(label_translation_parameters, translation_domain))"
+        :checked="checked"
+        :id="id"
+        :name="full_name"
+        :value="value"
+        :required="required"
+        :disabled="disabled"
+    />
+{% endblock %}
+
+{% block button_widget %}
+    <twig:Button :type="type|default('button')" :id="id" :name="full_name" :disabled="disabled">{{ translation_domain is same as(false) ? (label ?? name|humanize) : (label ?? name|humanize)|trans(label_translation_parameters, translation_domain) }}</twig:Button>
+{% endblock %}
+
+{% block submit_widget %}
+    <twig:Button variant="primary" type="submit" :id="id" :name="full_name" :disabled="disabled">{{ translation_domain is same as(false) ? (label ?? name|humanize) : (label ?? name|humanize)|trans(label_translation_parameters, translation_domain) }}</twig:Button>
+{% endblock %}
+
+{% block button_row %}
+    <div class="mt-2">{{ form_widget(form) }}</div>
+{% endblock %}
+
+{# ToggleType: a checkbox drawn as a switch, label included. #}
+{% block toggle_row %}
+    {{ block('checkbox_row') }}
+{% endblock %}
+
+{% block toggle_widget %}
+    <twig:Form:Toggle
+        :label="label is same as(false) ? '' : (translation_domain is same as(false) ? (label ?? name|humanize) : (label ?? name|humanize)|trans(label_translation_parameters, translation_domain))"
+        :checked="checked"
+        :id="id"
+        :name="full_name"
+        :value="value"
+        :required="required"
+        :disabled="disabled"
+    />
+{% endblock %}

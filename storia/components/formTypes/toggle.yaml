@@ -1,0 +1,5 @@
+form: App\Form\Type\ToggleType
+options:
+    label: Commentaire privé
+    required: false
+    help: Invisible pour les externes.

@@ -1,0 +1,6 @@
+form: Symfony\Component\Form\Extension\Core\Type\UrlType
+options:
+    label: URL concernée
+    required: false
+    help: La page où le problème se produit.
+    attr: { placeholder: 'https://…' }

@@ -1,3 +1,7 @@
-{% props rows = 4 %}
-{% set textareaClasses = html_cva(base: 'mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100') %}
-<textarea rows="{{ rows }}" class="{{ textareaClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>{% block content %}{% endblock %}</textarea>
+{# Multi-line text. `invalid` turns the border red. #}
+{% props rows = 4, invalid = false %}
+{% set textareaClasses = html_cva(
+    base: 'mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500',
+    variants: { invalid: { true: 'border-red-400 focus:border-red-400 focus:ring-red-100' } },
+) %}
+<textarea rows="{{ rows }}" class="{{ textareaClasses.apply({ invalid: invalid }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>{% block content %}{% endblock %}</textarea>
