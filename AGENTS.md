@@ -33,8 +33,13 @@ Decisions already taken:
   PostgreSQL. Nothing is ever physically deleted.
 - Interface: server-rendered Twig + Turbo + UX Twig/Live Components, Tailwind
   for styling. The kanban and the rich-text editor are React islands.
-- Auth: SecurityBundle, email + password, invitation of external users by
-  email; agency SSO may come later.
+- Auth: SecurityBundle `form_login` on `/login` (email + password, stateless
+  CSRF, remember me), logout on `/logout`; every other route requires
+  `ROLE_USER`. Emails are stored lowercase and `UserRepository` loads the
+  user. `Security/UserChecker` refuses deactivated accounts. Create
+  accounts with `bin/console app:user:create`, which asks everything
+  interactively. Invitation of external users by email and agency
+  SSO come later.
 - Workflow engine: the Symfony Workflow component, with state machines
   built at runtime from the configuration snapshot stored in database, not
   from YAML (`framework.workflows` stays empty). They enforce structure and

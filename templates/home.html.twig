@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <main class="min-h-screen grid place-items-center px-4">
+        <twig:Panel class="w-full max-w-sm p-6 text-center space-y-3">
+            <twig:Avatar :name="app.user.fullName" :kind="app.user.internal ? 'internal' : 'external'" size="2xl" class="mx-auto" />
+            <p class="text-gray-900">{{ 'home.signed_in_as'|trans({ '%name%': app.user.fullName }) }}</p>
+            <twig:Button href="{{ path('app_logout') }}" icon="log-out">{{ 'auth.logout'|trans }}</twig:Button>
+        </twig:Panel>
+    </main>
+{% endblock %}

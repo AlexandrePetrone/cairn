@@ -1,0 +1,2 @@
+# Messages of authentication failures, merged with Symfony's own security catalogue.
+auth.account_disabled: This account is disabled.

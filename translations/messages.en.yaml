@@ -25,3 +25,15 @@ filter:
 
 form:
     optional: optional
+
+auth:
+    login:
+        title: Sign in
+        email: Email address
+        password: Password
+        remember_me: Keep me signed in
+        submit: Sign in
+    logout: Log out
+
+home:
+    signed_in_as: 'Signed in as %name%.'

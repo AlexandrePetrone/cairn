@@ -92,7 +92,7 @@ final class AppStory extends Story
     private function createUsers(): void
     {
         $people = [
-            'admin' => ['admin@cairn.test', 'Julie', 'Morel', 'admin'],
+            'admin' => ['admin@cairn.test', 'Julien', 'Jacottet', 'admin'],
             'thomas' => ['thomas.girard@cairn.test', 'Thomas', 'Girard', 'internal'],
             'yann' => ['yann.leroy@cairn.test', 'Yann', 'Leroy', 'internal'],
             'nadia' => ['nadia.benali@cairn.test', 'Nadia', 'Benali', 'internal'],

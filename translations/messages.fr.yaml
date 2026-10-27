@@ -25,3 +25,15 @@ filter:
 
 form:
     optional: facultatif
+
+auth:
+    login:
+        title: Connexion
+        email: Adresse e-mail
+        password: Mot de passe
+        remember_me: Rester connecté
+        submit: Se connecter
+    logout: Se déconnecter
+
+home:
+    signed_in_as: 'Connecté en tant que %name%.'
