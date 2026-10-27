@@ -13,6 +13,7 @@ use App\Config\Snapshot\SnapshotCodec;
 use App\Entity\ConfigSnapshot;
 use App\Repository\ConfigSnapshotRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Lock\LockFactory;
 
 /**
@@ -33,6 +34,7 @@ final class ConfigSynchronizer
         private readonly IssuePlaceGateway $issues,
         private readonly LockFactory $lockFactory,
         private readonly ConfigRegistry $registry,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -125,7 +127,7 @@ final class ConfigSynchronizer
                     }
                 }
 
-                $snapshot = new ConfigSnapshot($plan->hash, $plan->encoded, $plan->summary(), $appliedBy);
+                $snapshot = new ConfigSnapshot($plan->hash, $plan->encoded, $plan->summary(), $appliedBy, $this->clock->now());
                 $this->entityManager->persist($snapshot);
 
                 return $snapshot;

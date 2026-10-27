@@ -58,6 +58,11 @@ final readonly class WorkflowDefinition
         return array_keys($this->places);
     }
 
+    public function transition(string $id): TransitionDefinition
+    {
+        return $this->transitions[$id] ?? throw new InvalidDefinitionException(\sprintf('workflows.%s: unknown transition "%s".', $this->id, $id));
+    }
+
     /**
      * Transitions available from a place, in declaration order.
      *

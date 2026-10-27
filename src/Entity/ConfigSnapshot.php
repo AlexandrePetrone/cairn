@@ -40,7 +40,7 @@ class ConfigSnapshot
     /**
      * @param array<string, mixed> $definition
      */
-    public function __construct(string $hash, array $definition, string $summary, ?string $appliedBy, \DateTimeImmutable $appliedAt = new \DateTimeImmutable())
+    public function __construct(string $hash, array $definition, string $summary, ?string $appliedBy, \DateTimeImmutable $appliedAt)
     {
         $this->hash = $hash;
         $this->definition = $definition;

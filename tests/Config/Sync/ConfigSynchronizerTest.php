@@ -20,10 +20,14 @@ use App\Repository\ConfigSnapshotRepository;
 use App\Tests\Config\Fixture\DefinitionFactory;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Clock\ClockInterface;
+use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Lock\LockFactory;
 
 final class ConfigSynchronizerTest extends KernelTestCase
 {
+    use ClockSensitiveTrait;
+
     private ConfigSynchronizer $synchronizer;
     private ConfigSnapshotRepository $snapshots;
     private ConfigRegistry $registry;
@@ -48,6 +52,7 @@ final class ConfigSynchronizerTest extends KernelTestCase
             $this->issues,
             $container->get(LockFactory::class),
             $this->registry,
+            $container->get(ClockInterface::class),
         );
     }
 
@@ -60,6 +65,7 @@ final class ConfigSynchronizerTest extends KernelTestCase
         } catch (NoSnapshotException) {
         }
 
+        self::mockTime('2026-03-03 10:00:00');
         $plan = $this->synchronizer->plan(DefinitionFactory::definition());
 
         self::assertTrue($plan->isValid());
@@ -72,6 +78,7 @@ final class ConfigSynchronizerTest extends KernelTestCase
         self::assertNotNull($snapshot->getId());
         self::assertSame($plan->hash, $snapshot->getHash());
         self::assertSame('tests', $snapshot->getAppliedBy());
+        self::assertSame('2026-03-03 10:00:00', $snapshot->getAppliedAt()->format('Y-m-d H:i:s'), 'dated by the mocked clock');
         self::assertStringContainsString('+ workflows.bug', $snapshot->getSummary());
         self::assertSame($snapshot->getId(), $this->snapshots->findLatest()?->getId());
         self::assertEquals(DefinitionFactory::definition(), $this->registry->definition());

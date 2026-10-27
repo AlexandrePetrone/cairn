@@ -102,6 +102,7 @@ final class DefinitionFactory
             permissions: $permissions ?? [
                 Permission::IssueCreate->value => ['project_manager', 'developer', 'client'],
                 Permission::TrackerManage->value => ['project_manager'],
+                Permission::ProjectCreate->value => ['project_manager'],
             ],
             fields: $fields ?? self::fields(),
             links: [

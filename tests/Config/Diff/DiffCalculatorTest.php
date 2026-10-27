@@ -45,6 +45,7 @@ final class DiffCalculatorTest extends TestCase
             '+ workflows.bug: «Anomalie»',
             '+ migrationPolicy: strict',
             '+ permissions.issue.create: [project_manager, developer, client]',
+            '+ permissions.project.create: [project_manager]',
             '+ permissions.tracker.manage: [project_manager]',
         ], $diff->describe());
     }

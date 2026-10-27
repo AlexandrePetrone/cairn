@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Workflow;
 
-use App\Config\ConfigLoader;
 use App\Config\Definition\InvalidDefinitionException;
 use App\Config\Snapshot\ConfigRegistry;
 use App\Config\Snapshot\NoSnapshotException;
-use App\Config\Sync\ConfigSynchronizer;
+use App\Tests\AppliesConfiguration;
 use App\Tests\Workflow\Fixture\Subject;
 use App\Workflow\WorkflowFactory;
 use App\Workflow\WorkflowProvider;
@@ -17,6 +16,8 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 final class WorkflowProviderTest extends KernelTestCase
 {
+    use AppliesConfiguration;
+
     private WorkflowProvider $provider;
 
     protected function setUp(): void
@@ -40,7 +41,7 @@ final class WorkflowProviderTest extends KernelTestCase
 
     public function testWorkflowsComeFromTheSnapshotInForce(): void
     {
-        $this->applyConfiguration();
+        self::applyConfiguration();
 
         $workflow = $this->provider->get('bug');
 
@@ -55,16 +56,9 @@ final class WorkflowProviderTest extends KernelTestCase
 
     public function testAnUnknownWorkflowIsAnError(): void
     {
-        $this->applyConfiguration();
+        self::applyConfiguration();
 
         $this->expectException(InvalidDefinitionException::class);
         $this->provider->get('ghost');
-    }
-
-    private function applyConfiguration(): void
-    {
-        $container = self::getContainer();
-        $synchronizer = $container->get(ConfigSynchronizer::class);
-        $synchronizer->apply($synchronizer->plan($container->get(ConfigLoader::class)->load()));
     }
 }

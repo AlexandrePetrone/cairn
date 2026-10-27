@@ -65,9 +65,8 @@ keys, see below). Never mix them.
 | Lien           | `Link`           | Related, Duplicates/DuplicatedBy, Blocks/BlockedBy.              |
 | Espace         | `Workspace`      | Group of projects sharing memberships.                           |
 | Projet         | `Project`        |                                                                  |
-| Organisation   | `Organization`   | Client company.                                                  |
 | Rôle           | `Role`           | Defined in configuration.                                        |
-| Accès          | `Membership`     | Role of a user or organisation on a project or workspace.        |
+| Accès          | `Membership`     | Role of a user on a project or a workspace. No organisation entity: a client is a workspace. |
 | Interne/Externe| `internal` flag  | Agency user vs client user.                                      |
 | Privé          | `private`        | Hidden from external users.                                      |
 | Version        | `Release`        | Planned delivery, optional per project.                          |
@@ -121,7 +120,8 @@ Rules:
   `DispatchAfterCurrentBusStamp` so it only leaves after commit.
 - **One authorization service.** `Security/AccessControl` takes the acting
   user as an explicit argument and resolves the effective role (direct
-  membership > organisation > global). Handlers call it directly. Voters are
+  membership, then workspace membership, then global role, the broadest
+  wins). Handlers call it directly. Voters are
   thin adapters over it for `#[IsGranted]` and Twig.
 - **Entities carry intent.** Prefer `moveTo()`, `makePrivate()`, `close()`
   over generic setters. Entities never receive services.
@@ -141,7 +141,7 @@ Rules:
 Workflows, roles, global permissions, fields and link types live in one PHP
 configuration file outside the repository, loaded from an environment
 variable (see `config/instance.example.php`). Trackers, projects,
-organisations, memberships and releases live in database. Criticality
+memberships and releases live in database. Criticality
 levels and statuses are fixed enums in code. Notification rules and GitLab
 settings are not part of the file yet: add them when those features are
 built, shaped by their actual consumer.
@@ -187,6 +187,9 @@ by default). The journal is never migrated.
   - Use the framework before writing infrastructure: Form, Validator,
     Serializer, Messenger, Security voters, `symfony/lock`, Scheduler, Twig
     `path()`/`url()`.
+- Never call `new \DateTime*()`, `date()` or `time()` in application code.
+  Entities use the `Symfony\Component\Clock\now()` function, services inject
+  `ClockInterface`; tests freeze time with `ClockSensitiveTrait::mockTime()`.
 - **No migrations before the first release.** Until then the schema is
   derived from the entities: apply changes with
   `doctrine:schema:update --force` (or drop and recreate), and don't write

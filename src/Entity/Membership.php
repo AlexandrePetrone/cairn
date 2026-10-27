@@ -1,0 +1,105 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Entity;
+
+use App\Repository\MembershipRepository;
+use Doctrine\ORM\Mapping as ORM;
+
+/**
+ * A role granted to a user on a workspace or on a project, exactly one of
+ * the two. The role is an id of the instance configuration. A workspace
+ * membership applies to every project of the workspace; a project
+ * membership may only widen it (see RoleResolver).
+ */
+#[ORM\Entity(repositoryClass: MembershipRepository::class)]
+#[ORM\UniqueConstraint(name: 'uniq_membership_user_workspace', columns: ['user_id', 'workspace_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_membership_user_project', columns: ['user_id', 'project_id'])]
+class Membership
+{
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column]
+    private ?int $id = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: false)]
+    private User $user;
+
+    #[ORM\ManyToOne]
+    private ?Workspace $workspace = null;
+
+    #[ORM\ManyToOne]
+    private ?Project $project = null;
+
+    #[ORM\Column(length: 60)]
+    private string $role;
+
+    private function __construct(User $user, string $role)
+    {
+        $this->user = $user;
+        $this->role = $role;
+    }
+
+    public static function onWorkspace(User $user, Workspace $workspace, string $role): self
+    {
+        $membership = new self($user, $role);
+        $membership->workspace = $workspace;
+
+        return $membership;
+    }
+
+    public static function onProject(User $user, Project $project, string $role): self
+    {
+        $membership = new self($user, $role);
+        $membership->project = $project;
+
+        return $membership;
+    }
+
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function getUser(): User
+    {
+        return $this->user;
+    }
+
+    public function getWorkspace(): ?Workspace
+    {
+        return $this->workspace;
+    }
+
+    public function getProject(): ?Project
+    {
+        return $this->project;
+    }
+
+    public function getRole(): string
+    {
+        return $this->role;
+    }
+
+    public function changeRole(string $role): void
+    {
+        $this->role = $role;
+    }
+
+    /**
+     * Whether the membership gives a role on the project, directly or
+     * through its workspace.
+     */
+    public function appliesTo(Project $project): bool
+    {
+        return (null !== $this->project && $this->project->getId() === $project->getId())
+            || (null !== $this->workspace && $this->workspace->getId() === $project->getWorkspace()->getId());
+    }
+
+    public function isOn(Workspace $workspace): bool
+    {
+        return null !== $this->workspace && $this->workspace->getId() === $workspace->getId();
+    }
+}
