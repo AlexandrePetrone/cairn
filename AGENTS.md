@@ -105,9 +105,16 @@ src/
 Rules:
 
 - **Writes are commands.** Every mutation is a Messenger message in
-  `Message/<Domain>/` handled synchronously by `MessageHandler/<Domain>/`.
-  Controllers, Live components, webhooks and console commands build a
-  command and dispatch it. They contain no business rules.
+  `Message/<Domain>/` (readonly, `#[Assert]` constraints) handled by
+  `MessageHandler/<Domain>/` on the dedicated `command.bus`, whose
+  middlewares validate the command and wrap the handler in a Doctrine
+  transaction (the flush is theirs, handlers only persist). Callers go
+  through `Message/CommandBus::dispatch()`, which returns the handler's
+  result and rethrows the handler's own exception. Controllers, Live
+  components, webhooks and console commands build a command and dispatch
+  it. They contain no business rules. Authorization failures are Symfony's
+  `AccessDeniedException`; business refusals are a domain exception next to
+  the handler (`IssueException`).
 - **Reads are queries.** A repository answers "give me this entity". As soon
   as a read depends on filters, on visibility or spans several entities, it
   is a class in `Query/<Domain>/` with its own filter DTO. Queries never

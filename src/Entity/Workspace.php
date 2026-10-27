@@ -28,7 +28,7 @@ class Workspace
     #[ORM\Column(length: 120)]
     private string $name;
 
-    #[ORM\Column(length: 5, unique: true)]
+    #[ORM\Column(name: '`key`', length: 5, unique: true)]
     private string $key;
 
     /** Internal notes, never shown to external users. */

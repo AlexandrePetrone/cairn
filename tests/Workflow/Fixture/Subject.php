@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Tests\Workflow\Fixture;
 
+use App\Config\Definition\PlaceDefinition;
 use App\Workflow\HasPlace;
 
 /**
- * The smallest thing a workflow can move: a place and the context of the
- * last move.
+ * The smallest thing a workflow can move: a place, and the definition it
+ * was last moved to.
  */
 final class Subject implements HasPlace
 {
-    /** @var array<string, mixed> */
-    public array $lastContext = [];
+    public ?PlaceDefinition $lastPlace = null;
 
     public function __construct(
         private ?string $place = null,
@@ -25,9 +25,9 @@ final class Subject implements HasPlace
         return $this->place;
     }
 
-    public function setPlace(string $place, array $context = []): void
+    public function moveTo(PlaceDefinition $place): void
     {
-        $this->place = $place;
-        $this->lastContext = $context;
+        $this->place = $place->id;
+        $this->lastPlace = $place;
     }
 }

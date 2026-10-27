@@ -53,14 +53,16 @@ final class WorkflowFactoryTest extends TestCase
         self::assertFalse($this->workflow->can($subject, 'start'));
     }
 
-    public function testApplyingATransitionMovesTheSubjectAndPassesTheContext(): void
+    public function testApplyingATransitionHandsTheSubjectTheTargetPlaceDefinition(): void
     {
         $subject = new Subject('new');
 
-        $this->workflow->apply($subject, 'start', ['actor' => 'tests']);
+        $this->workflow->apply($subject, 'start');
 
         self::assertSame('in_progress', $subject->getPlace());
-        self::assertSame('tests', $subject->lastContext['actor']);
+        self::assertNotNull($subject->lastPlace);
+        self::assertSame(PlaceStatus::InProgress, $subject->lastPlace->status);
+        self::assertSame('En cours', $subject->lastPlace->label);
     }
 
     public function testApplyingAnUnavailableTransitionFails(): void

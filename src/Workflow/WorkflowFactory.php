@@ -7,7 +7,6 @@ namespace App\Workflow;
 use App\Config\Definition\WorkflowDefinition;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Workflow\DefinitionBuilder;
-use Symfony\Component\Workflow\MarkingStore\MethodMarkingStore;
 use Symfony\Component\Workflow\StateMachine;
 use Symfony\Component\Workflow\Transition;
 use Symfony\Component\Workflow\WorkflowInterface;
@@ -16,7 +15,8 @@ use Symfony\Component\Workflow\WorkflowInterface;
  * Builds a Symfony state machine from a workflow definition of the instance
  * configuration. The state machine enforces the structure (which transition
  * leaves which place) and dispatches the workflow events; who may trigger a
- * transition is decided by the application, not here.
+ * transition is decided by AccessControl, not here. Subjects implement
+ * HasPlace.
  */
 final class WorkflowFactory
 {
@@ -42,7 +42,7 @@ final class WorkflowFactory
 
         return new StateMachine(
             $builder->build(),
-            new MethodMarkingStore(singleState: true, property: 'place'),
+            new PlaceMarkingStore($definition),
             $this->dispatcher,
             $definition->id,
         );

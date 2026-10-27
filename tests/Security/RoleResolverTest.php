@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Security;
 
 use App\Security\RoleResolver;
-use App\Tests\AppliesConfiguration;
+use App\Tests\KernelHelpers;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -14,7 +14,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 final class RoleResolverTest extends KernelTestCase
 {
-    use AppliesConfiguration;
+    use KernelHelpers;
 
     private RoleResolver $resolver;
     private AccessFixtures $fixtures;

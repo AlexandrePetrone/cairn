@@ -101,6 +101,12 @@ final class DefinitionFactory
             roles: $roles ?? self::roles(),
             permissions: $permissions ?? [
                 Permission::IssueCreate->value => ['project_manager', 'developer', 'client'],
+                Permission::IssueAssign->value => ['project_manager', 'developer'],
+                Permission::IssueSetCriticality->value => ['project_manager', 'developer', 'client'],
+                Permission::IssueSetPrivate->value => ['project_manager', 'developer'],
+                Permission::IssueChangeTracker->value => ['project_manager', 'developer'],
+                Permission::CommentCreate->value => ['project_manager', 'developer', 'client'],
+                Permission::CommentSetPrivate->value => ['project_manager', 'developer'],
                 Permission::TrackerManage->value => ['project_manager'],
                 Permission::ProjectCreate->value => ['project_manager'],
             ],

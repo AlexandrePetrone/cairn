@@ -7,7 +7,7 @@ namespace App\Tests\Workflow;
 use App\Config\Definition\InvalidDefinitionException;
 use App\Config\Snapshot\ConfigRegistry;
 use App\Config\Snapshot\NoSnapshotException;
-use App\Tests\AppliesConfiguration;
+use App\Tests\KernelHelpers;
 use App\Tests\Workflow\Fixture\Subject;
 use App\Workflow\WorkflowFactory;
 use App\Workflow\WorkflowProvider;
@@ -16,7 +16,7 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 final class WorkflowProviderTest extends KernelTestCase
 {
-    use AppliesConfiguration;
+    use KernelHelpers;
 
     private WorkflowProvider $provider;
 

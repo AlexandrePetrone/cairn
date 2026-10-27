@@ -16,6 +16,12 @@ framework:
 
         buses:
             messenger.bus.default: []
+            # Write commands (src/Message/), handled synchronously: each one
+            # is validated, then runs in a Doctrine transaction.
+            command.bus:
+                middleware:
+                    - validation
+                    - doctrine_transaction
 
         routing:
             Symfony\Component\Mailer\Messenger\SendEmailMessage: async

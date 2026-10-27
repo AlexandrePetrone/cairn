@@ -33,7 +33,7 @@ class Project
     #[ORM\Column(length: 120)]
     private string $name;
 
-    #[ORM\Column(length: 5)]
+    #[ORM\Column(name: '`key`', length: 5)]
     private string $key;
 
     /** Shown to client users on the project pages. */
@@ -42,6 +42,10 @@ class Project
 
     #[ORM\Column]
     private bool $archived = false;
+
+    /** Last issue number handed out; numbers are never reused. */
+    #[ORM\Column]
+    private int $issueCounter = 0;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
@@ -99,6 +103,15 @@ class Project
     public function setDescription(?string $description): void
     {
         $this->description = '' === trim((string) $description) ? null : $description;
+    }
+
+    /**
+     * Hands out the next issue number. Callers lock the project row first
+     * so that two concurrent creations cannot draw the same number.
+     */
+    public function allocateIssueNumber(): int
+    {
+        return ++$this->issueCounter;
     }
 
     public function isArchived(): bool

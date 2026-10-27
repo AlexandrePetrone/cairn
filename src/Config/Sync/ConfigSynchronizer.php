@@ -123,7 +123,8 @@ final class ConfigSynchronizer
 
                 foreach ($plan->migrations as $migration) {
                     if ($migration->count > 0) {
-                        $this->issues->movePlace($migration->workflowId, $migration->from, $migration->to);
+                        $target = $plan->definition->workflow($migration->workflowId)->place($migration->to);
+                        $this->issues->movePlace($migration->workflowId, $migration->from, $target);
                     }
                 }
 

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Security;
 
+use App\Config\Definition\TransitionDefinition;
 use App\Config\Snapshot\ConfigRegistry;
+use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\User;
 use App\Entity\Workspace;
@@ -44,5 +46,29 @@ final class AccessControl
         $role = $this->roles->roleOn($user, $scope);
 
         return null !== $role && \in_array($role, $this->config->definition()->rolesGranted($permission), true);
+    }
+
+    /**
+     * An external user sees an issue only if the project is open to them
+     * and neither the issue nor its tracker is private.
+     */
+    public function canSee(User $user, Issue $issue): bool
+    {
+        if ($user->isInternal()) {
+            return true;
+        }
+
+        return !$issue->isPrivate() && $this->canView($user, $issue->getProject());
+    }
+
+    public function canTransition(User $user, TransitionDefinition $transition, Project $project): bool
+    {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        $role = $this->roles->roleOn($user, $project);
+
+        return null !== $role && \in_array($role, $transition->roles, true);
     }
 }
