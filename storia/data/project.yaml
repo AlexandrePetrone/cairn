@@ -1,5 +1,0 @@
-default:
-    key: SPT
-    name: Site e-commerce
-    prefix: MD-SPT
-    workspace: { key: MD, name: Maison Dupont }

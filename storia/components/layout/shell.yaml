@@ -1,0 +1,4 @@
+# Composite: the shell with placeholder blocks, rendered by shell.html.twig next to this file.
+variants:
+    default: { args: { withSidebar: true } }
+    without_sidebar: { args: { withSidebar: false } }

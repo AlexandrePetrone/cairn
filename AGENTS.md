@@ -203,14 +203,20 @@ Rules:
 - Form controls style their disabled state: `disabled:` utilities on the
   field itself, `has-[:disabled]:` on the label that wraps a checkbox or a
   radio.
-- Pages are fragments in `templates/page/` without `extends`, previewed in
-  `storia/pages/` with YAML data and included by controllers inside
-  `base.html.twig` with real data.
+- The shell is `Layout:Shell` (blocks `header`, `sidebar`, `breadcrumb`,
+  content) with `Layout:Sidebar`, `Layout:Sidebar:Section` and
+  `Layout:Sidebar:Item`: low-level pieces without data. The header and the
+  project navigation, which display data, will be PHP-backed components
+  (`#[AsTwigComponent]` in `src/Twig/Components/`) written with their
+  controllers.
+- Storia holds components only. Pages are not mocked in `storia/pages/`:
+  they are built directly as real templates with their controllers.
 - Icons: `<twig:ux:icon name="lucide:x" />` or `ux_icon('lucide:' ~ name)`,
   imported locally into `assets/icons/lucide/` with `ux:icons:import`.
 - JavaScript is Stimulus only, one small controller per behaviour in
-  `assets/controllers/` (`dropdown`, `list-filter`, `sidebar`, `drawer`,
-  `toast`, `clipboard`, `toggle`). No inline scripts.
+  `assets/controllers/` (`dropdown`, `sidebar`, `drawer`,
+  `toast`); write a new one when a component needs it, not before. No
+  inline scripts.
 
 ## Configuration and snapshot
 

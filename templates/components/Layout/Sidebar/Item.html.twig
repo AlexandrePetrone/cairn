@@ -1,0 +1,16 @@
+{# A navigation link of the sidebar: icon, label (content), lock when `locked`, count on the right. #}
+{% props href, icon, active = false, count = null, locked = false %}
+{% set layoutSidebarItemClasses = html_cva(
+    base: 'flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-gray-100',
+    variants: { active: { true: 'bg-indigo-50 text-indigo-700 font-medium' } },
+) %}
+{% set layoutSidebarItemIconClasses = html_cva(
+    base: 'h-4 w-4 shrink-0',
+    variants: { active: { true: 'text-indigo-500', false: 'text-gray-400' } },
+) %}
+<a href="{{ href }}" class="{{ layoutSidebarItemClasses.apply({ active: active }, attributes.render('class'))|tailwind_merge }}" {% if active %}aria-current="page"{% endif %} {{ attributes }}>
+    {{ ux_icon('lucide:' ~ icon, { class: layoutSidebarItemIconClasses.apply({ active: active }) }) }}
+    <span class="truncate">{% block content %}{% endblock %}</span>
+    {% if locked %}<twig:ux:icon name="lucide:lock" class="h-3 w-3 shrink-0 text-gray-400" />{% endif %}
+    {% if count is not null %}<span class="ml-auto text-xs text-gray-400">{{ count }}</span>{% endif %}
+</a>

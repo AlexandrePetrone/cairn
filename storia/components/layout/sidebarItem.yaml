@@ -1,0 +1,5 @@
+component: Layout:Sidebar:Item
+variants:
+    default: { args: { href: '#', icon: list, count: 12 }, blocks: { content: Toutes } }
+    active: { args: { href: '#', icon: list, count: 12, active: true }, blocks: { content: Toutes } }
+    locked: { args: { href: '#', icon: kanban, count: 1, locked: true }, blocks: { content: Tâche interne } }

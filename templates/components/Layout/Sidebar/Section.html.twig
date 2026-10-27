@@ -1,0 +1,8 @@
+{# A group of Layout:Sidebar:Item, with an optional uppercase label. #}
+{% props label = null %}
+{% set layoutSidebarSectionClasses = html_cva() %}
+{% set sectionClass = layoutSidebarSectionClasses.apply({}, attributes.render('class'))|tailwind_merge %}
+<div {% if sectionClass %}class="{{ sectionClass }}"{% endif %} {{ attributes }}>
+    {% if label %}<div class="px-2 mb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">{{ label }}</div>{% endif %}
+    <div class="space-y-0.5">{% block content %}{% endblock %}</div>
+</div>

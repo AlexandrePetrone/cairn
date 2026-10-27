@@ -11,7 +11,6 @@ criticality:
     blocking: Blocking
 
 issue:
-    private: Private
     unassigned: Unassigned
 
 action:
@@ -22,10 +21,7 @@ panel:
     see_all: See all
 
 filter:
-    show_closed: Show closed
     search: Search…
-    no_match: No match
-    clear: Clear all
 
 form:
     optional: optional
