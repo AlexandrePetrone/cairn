@@ -81,17 +81,17 @@ keys, see below). Never mix them.
 
 ## Architecture
 
-Standard Symfony layout plus a light command/query separation. No modules,
-no hexagonal layers, no event sourcing, no query bus. A Symfony developer
-must find their bearings by opening `src/`.
+Standard Symfony layout plus a command/query separation carried by two
+Messenger buses. No modules, no hexagonal layers, no event sourcing. A
+Symfony developer must find their bearings by opening `src/`.
 
 ```
 src/
   Entity/            single flat folder; persisted enums in Entity/Enum/
   Repository/        one per entity: find by id/key and simple finders only
-  Message/           write commands, grouped by domain: Issue/, Project/, …
-  MessageHandler/    exact mirror of Message/, one handler per command
-  Query/             screen reads: filters, visibility, multi-entity queries
+  Message/           Command/<Domain>/ write commands, Query/<Domain>/ screen
+                     reads and their result objects; CommandBus and QueryBus
+  MessageHandler/    exact mirror of Message/, one handler per message
   Event/             domain events: IssueCreated, IssueTransitioned, …
   EventListener/     journal recorder, notification dispatcher, …
   Controller/        grouped by screen: Issue/, Project/, Admin/, Webhook/
@@ -110,8 +110,8 @@ src/
 Rules:
 
 - **Writes are commands.** Every mutation is a Messenger message in
-  `Message/<Domain>/` (readonly, `#[Assert]` constraints) handled by
-  `MessageHandler/<Domain>/` on the dedicated `command.bus`, whose
+  `Message/Command/<Domain>/` (readonly, `#[Assert]` constraints) handled by
+  `MessageHandler/Command/<Domain>/` on the dedicated `command.bus`, whose
   middlewares validate the command and wrap the handler in a Doctrine
   transaction (the flush is theirs, handlers only persist). Callers go
   through `Message/CommandBus::dispatch()`, which returns the handler's
@@ -120,10 +120,28 @@ Rules:
   it. They contain no business rules. Authorization failures are Symfony's
   `AccessDeniedException`; business refusals are a domain exception next to
   the handler (`IssueException`).
-- **Reads are queries.** A repository answers "give me this entity". As soon
-  as a read depends on filters, on visibility or spans several entities, it
-  is a class in `Query/<Domain>/` with its own filter DTO. Queries never
-  mutate; commands never return data beyond the created identifier.
+- **Reads are queries.** A repository answers "give me this entity" (find
+  by id or key, simple finders, bulk updates). As soon as a read depends on
+  filters, on visibility or spans several entities, it is a message in
+  `Message/Query/<Domain>/` implementing `Query<TResult>` (readonly, the
+  filters as public properties, `#[Assert]` constraints) handled by
+  `MessageHandler/Query/<Domain>/` on the `query.bus` (validation only, no
+  transaction). Callers go through `Message/QueryBus::ask()`, typed by the
+  query. The handler holds all of its SQL, query builder included: nothing
+  is split into repositories or helper services until a second handler
+  needs the same piece. Queries never mutate; commands never return data
+  beyond the created identifier.
+- **Issue lists are one query.** `SearchIssues` serves every list. The
+  controller builds it whole: the viewer and the scope (project, workspace,
+  assignee, author) from where it stands, the filters from the request,
+  never the scope from the URL. It returns a
+  `Repository/Pagination` of `Issue` entities with tracker, project,
+  workspace and assignee joined, 50 per page. Place labels come from the
+  configuration through the `issue_place()` Twig function.
+- **Visibility is written twice and tested as one.** `AccessControl::canSee()`
+  decides for one issue, `SearchIssuesHandler::restrictToVisible()` applies
+  the same rule in SQL. Change both together: `SearchIssuesVisibilityTest`
+  compares them for every user of the development dataset.
 - **Side effects go through events.** A handler dispatches a domain event
   with the EventDispatcher inside the transaction. Whatever must be atomic
   with the write, such as the journal, is written in the handler or by a
@@ -142,8 +160,9 @@ Rules:
 - **No catch-all folders.** No `Service/`, no central `Enum/`, no `Dto/`.
   An enum or DTO lives next to what gives it meaning: `Criticality` and
   `PlaceStatus` in `Entity/Enum/` because they are persisted, `FieldType` and
-  `MigrationPolicy` in `Config/`, webhook payloads in `GitLab/`,
-  `IssueFilter` in `Query/Issue/`, form data objects in `Form/`. When an enum
+  `MigrationPolicy` in `Config/`, webhook payloads in `GitLab/`, the
+  generic `Pagination<T>` in `Repository/` because repositories and query
+  handlers both return it, form data objects in `Form/`. When an enum
   has two owners, persistence wins and `Config/` imports from `Entity/Enum/`.
 - **Templates** follow screens, not PHP namespaces: `templates/issue/show.html.twig`,
   `templates/components/` for UX components.
@@ -322,7 +341,7 @@ builds the test schema from the entities and `dama/doctrine-test-bundle`
 rolls every test back. Run `castor test` (arguments are passed to PHPUnit,
 e.g. `castor test --filter Codec`). A feature isn't done until it has a
 test that exercises it the way a caller would: an HTTP request for a
-controller, a dispatched command for a handler, a query call for a query.
+controller, a command or query dispatched on its bus for a handler.
 Not just "it didn't throw".
 
 ## Quality tools

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Entity\User;
+use App\Message\Command\User\CreateUser;
 use App\Message\CommandBus;
-use App\Message\User\CreateUser;
-use App\MessageHandler\User\UserException;
+use App\MessageHandler\Command\User\UserException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;

@@ -9,9 +9,9 @@ use App\Config\Sync\DoctrineIssuePlaceGateway;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
 use App\Entity\Tracker;
-use App\Message\Issue\ApplyTransition;
+use App\Message\Command\Issue\ApplyTransition;
 use App\Tests\KernelHelpers;
-use App\Tests\MessageHandler\Issue\IssueFixtures;
+use App\Tests\MessageHandler\Command\Issue\IssueFixtures;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

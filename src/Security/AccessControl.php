@@ -50,7 +50,8 @@ final class AccessControl
 
     /**
      * An external user sees an issue only if the project is open to them
-     * and neither the issue nor its tracker is private.
+     * and neither the issue nor its tracker is private. SearchIssuesHandler
+     * applies the same rule in SQL; keep them in step.
      */
     public function canSee(User $user, Issue $issue): bool
     {

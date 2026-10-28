@@ -1,0 +1,34 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Twig;
+
+use App\Entity\Issue;
+use App\Workflow\WorkflowProvider;
+use Twig\Attribute\AsTwigFunction;
+
+/**
+ * Labels of workflow places come from the configuration in force, not from
+ * the issue, which only stores the place id.
+ */
+final class PlaceExtension
+{
+    public function __construct(
+        private readonly WorkflowProvider $workflows,
+    ) {
+    }
+
+    /**
+     * The label of the issue's place, or its id when the place no longer
+     * exists in the configuration.
+     */
+    #[AsTwigFunction('issue_place')]
+    public function issuePlace(Issue $issue): string
+    {
+        $workflow = $this->workflows->definition($issue->getTracker()->getWorkflowId());
+        $place = (string) $issue->getPlace();
+
+        return $workflow->hasPlace($place) ? $workflow->place($place)->label : $place;
+    }
+}

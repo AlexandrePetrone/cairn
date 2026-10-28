@@ -21,6 +21,8 @@ use function Symfony\Component\Clock\now;
  */
 #[ORM\Entity(repositoryClass: IssueRepository::class)]
 #[ORM\UniqueConstraint(name: 'uniq_issue_project_number', columns: ['project_id', 'number'])]
+#[ORM\Index(name: 'idx_issue_project_status', columns: ['project_id', 'status'])]
+#[ORM\Index(name: 'idx_issue_assignee_status', columns: ['assignee_id', 'status'])]
 class Issue implements HasPlace
 {
     #[ORM\Id]
