@@ -17,4 +17,19 @@ class ProjectRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Project::class);
     }
+
+    /**
+     * The project behind a URL such as `/MD/SPT/...`.
+     */
+    public function findOneByKeys(string $workspaceKey, string $projectKey): ?Project
+    {
+        return $this->createQueryBuilder('p')
+            ->join('p.workspace', 'w')
+            ->andWhere('w.key = :workspaceKey')
+            ->andWhere('p.key = :projectKey')
+            ->setParameter('workspaceKey', $workspaceKey)
+            ->setParameter('projectKey', $projectKey)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

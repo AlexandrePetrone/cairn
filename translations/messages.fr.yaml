@@ -12,6 +12,24 @@ criticality:
 
 issue:
     unassigned: Non assigné
+    private: Privée
+    list:
+        title:
+            all: Demandes
+            assigned: Demandes assignées à moi
+            created: Demandes créées par moi
+        count: '{0}Aucune demande|{1}1 demande|]1,Inf[ %count% demandes'
+        show_closed: Afficher les fermées
+        empty: Aucune demande ne correspond
+        empty_hint: Élargissez les filtres ou affichez les demandes fermées.
+        column:
+            key: Demande
+            title: Titre
+            tracker: Catégorie
+            place: Étape
+            criticality: Criticité
+            assignee: Assigné
+            updated: Mis à jour
 
 action:
     close: Fermer
@@ -22,6 +40,29 @@ panel:
 
 filter:
     search: Rechercher…
+    status: Statut
+    tracker: Catégorie
+    criticality: Criticité
+    assignee: Assigné
+    clear: Tout effacer
+
+nav:
+    home: Accueil
+    open: Ouvrir la navigation
+    breadcrumb: Fil d'Ariane
+    project:
+        issues: Demandes
+        trackers: Catégories
+    issues:
+        all: Toutes
+        assigned: Assignées à moi
+        created: Créées par moi
+
+pagination:
+    label: Pagination
+    previous: Précédent
+    next: Suivant
+    page_of: 'Page %page% sur %count%'
 
 form:
     optional: facultatif

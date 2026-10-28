@@ -12,6 +12,24 @@ criticality:
 
 issue:
     unassigned: Unassigned
+    private: Private
+    list:
+        title:
+            all: Issues
+            assigned: Issues assigned to me
+            created: Issues created by me
+        count: '{0}No issues|{1}1 issue|]1,Inf[ %count% issues'
+        show_closed: Show closed issues
+        empty: No issue matches
+        empty_hint: Widen the filters or show closed issues.
+        column:
+            key: Issue
+            title: Title
+            tracker: Category
+            place: Step
+            criticality: Criticality
+            assignee: Assignee
+            updated: Updated
 
 action:
     close: Close
@@ -22,6 +40,29 @@ panel:
 
 filter:
     search: Search…
+    status: Status
+    tracker: Category
+    criticality: Criticality
+    assignee: Assignee
+    clear: Clear all
+
+nav:
+    home: Home
+    open: Open the navigation
+    breadcrumb: Breadcrumb
+    project:
+        issues: Issues
+        trackers: Categories
+    issues:
+        all: All
+        assigned: Assigned to me
+        created: Created by me
+
+pagination:
+    label: Pagination
+    previous: Previous
+    next: Next
+    page_of: 'Page %page% of %count%'
 
 form:
     optional: optional

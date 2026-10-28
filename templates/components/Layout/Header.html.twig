@@ -1,0 +1,39 @@
+{# Application level: the logo, the current project when inside one, the user menu. The burger opens the project navigation on mobile through the shell's `sidebar` controller.
+   `this` is read before the nested components, whose blocks see their own `this`. #}
+{% set headerUser = this.user %}
+<header class="sticky top-0 z-50 h-12 bg-slate-900 text-slate-300 flex items-center gap-2 px-3 sm:px-4" {{ attributes }}>
+    {% if project %}
+        <button type="button" data-action="sidebar#open" class="md:hidden -ml-1 p-1.5 rounded-md hover:bg-slate-800" aria-label="{{ 'nav.open'|trans }}">
+            <twig:ux:icon name="lucide:menu" class="h-4 w-4" />
+        </button>
+    {% endif %}
+    <a href="{{ path('app_home') }}" class="flex items-center gap-2 pr-3 mr-1 border-r border-slate-700" title="{{ 'nav.home'|trans }}">
+        <span class="h-6 w-6 rounded bg-indigo-500 grid place-items-center text-white font-bold text-xs">C</span>
+        <span class="hidden sm:inline font-semibold text-white">Cairn</span>
+    </a>
+    {% if project %}
+        <div class="inline-flex h-8 max-w-[60vw] items-center gap-2 rounded-md bg-slate-800 px-2 ring-1 ring-inset ring-slate-700">
+            <twig:Chip tone="dark">{{ project.issuePrefix }}</twig:Chip>
+            <span class="font-medium text-white truncate">{{ project.name }}</span>
+            <span class="hidden lg:inline text-xs text-slate-400 truncate">{{ project.workspace.name }}</span>
+        </div>
+    {% endif %}
+    <twig:Dropdown align="right" class="ml-auto">
+        <twig:block name="trigger">
+            <button type="button" data-action="dropdown#toggle" aria-expanded="false" aria-haspopup="menu" class="flex items-center gap-1.5 rounded-full hover:ring-2 hover:ring-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-400" title="{{ headerUser.fullName }}">
+                <twig:Avatar :name="headerUser.fullName" :kind="headerUser.internal ? 'internal' : 'external'" size="lg" />
+                <twig:ux:icon name="lucide:chevron-down" class="hidden sm:block h-3.5 w-3.5 text-slate-400" />
+            </button>
+        </twig:block>
+        <div class="flex items-center gap-2.5 px-3 py-2.5 border-b border-gray-100">
+            <twig:Avatar :name="headerUser.fullName" :kind="headerUser.internal ? 'internal' : 'external'" size="xl" />
+            <div class="min-w-0 leading-tight">
+                <div class="text-sm font-medium text-gray-900 truncate">{{ headerUser.fullName }}</div>
+                <div class="text-xs text-gray-500 truncate">{{ headerUser.email }}</div>
+            </div>
+        </div>
+        <twig:Dropdown:Item href="{{ path('app_home') }}" icon="home">{{ 'nav.home'|trans }}</twig:Dropdown:Item>
+        <div class="my-1 border-t border-gray-100"></div>
+        <twig:Dropdown:Item href="{{ path('app_logout') }}" icon="log-out">{{ 'auth.logout'|trans }}</twig:Dropdown:Item>
+    </twig:Dropdown>
+</header>

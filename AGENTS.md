@@ -132,6 +132,17 @@ Rules:
   is split into repositories or helper services until a second handler
   needs the same piece. Queries never mutate; commands never return data
   beyond the created identifier.
+- **URLs carry keys, not ids, and one route per need.** A project page is
+  `/MD/SPT/issues`: the workspace key, the project key, then the screen.
+  The controller resolves the project with
+  `#[MapEntity(expr: 'repository.findOneByKeys(...)')]` and guards it with
+  `#[IsGranted('view', subject: 'project')]`. A list with another scope is
+  another route of the same controller (`/issues/assigned`,
+  `/issues/created`, `/issues/tracker/{id}`: trackers have no key), never
+  a query parameter that switches the view: the route fixes the scope and
+  the filters it offers. Filter values are a
+  `Form/` object mapped with `#[MapQueryString]`, so the framework does the
+  typing and refuses unknown values.
 - **Issue lists are one query.** `SearchIssues` serves every list. The
   controller builds it whole: the viewer and the scope (project, workspace,
   assignee, author) from where it stands, the filters from the request,
@@ -230,10 +241,11 @@ Rules:
   radio.
 - The shell is `Layout:Shell` (blocks `header`, `sidebar`, `breadcrumb`,
   content) with `Layout:Sidebar`, `Layout:Sidebar:Section` and
-  `Layout:Sidebar:Item`: low-level pieces without data. The header and the
-  project navigation, which display data, will be PHP-backed components
-  (`#[AsTwigComponent]` in `src/Twig/Components/`) written with their
-  controllers.
+  `Layout:Sidebar:Item`: low-level pieces without data. `Layout:Header`
+  and `Layout:ProjectNav`, which display data, are PHP-backed components
+  (`#[AsTwigComponent]` in `src/Twig/Components/Layout/`). Inside a block
+  passed to a nested component, `this` is that nested component: read your
+  own `this.*` into a variable before opening it.
 - Storia holds components only. Pages are not mocked in `storia/pages/`:
   they are built directly as real templates with their controllers.
 - Icons: `<twig:ux:icon name="lucide:x" />` or `ux_icon('lucide:' ~ name)`,
