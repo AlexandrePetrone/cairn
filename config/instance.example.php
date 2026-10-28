@@ -52,23 +52,12 @@ return new InstanceDefinition(
     // Permissions outside workflows. Administrators hold all of them.
     permissions: [
         Permission::IssueCreate->value => $internalAndClient,
-        Permission::IssueEdit->value => $internalAndClient,
         Permission::IssueChangeTracker->value => $internal,
         Permission::IssueAssign->value => $internal,
         Permission::IssueSetCriticality->value => $internalAndClient,
         Permission::IssueSetPrivate->value => $internal,
-        Permission::IssueLink->value => $internal,
-        Permission::IssueExport->value => $internal,
         Permission::CommentCreate->value => $internalAndClient,
-        Permission::CommentEditOwn->value => $internalAndClient,
-        Permission::CommentEditAny->value => ['project_manager'],
         Permission::CommentSetPrivate->value => $internal,
-        Permission::TrackerManage->value => ['project_manager'],
-        Permission::ReleaseManage->value => ['project_manager'],
-        Permission::ProjectManage->value => ['project_manager'],
-        Permission::ProjectManageMembers->value => ['project_manager'],
-        Permission::ProjectCreate->value => ['project_manager'],
-        Permission::WorkspaceManage->value => [],
     ],
 
     // Global fields; each workflow picks the ones it uses.

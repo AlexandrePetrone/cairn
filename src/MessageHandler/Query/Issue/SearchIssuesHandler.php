@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\Query\Issue;
 
-use App\Config\Snapshot\ConfigRegistry;
+use App\Config\ConfigRegistry;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
 use App\Entity\Membership;

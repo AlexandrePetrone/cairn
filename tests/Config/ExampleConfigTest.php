@@ -7,7 +7,7 @@ namespace App\Tests\Config;
 use App\Config\ConfigLoader;
 use App\Config\ConfigValidator;
 use App\Config\Definition\InstanceDefinition;
-use App\Config\Snapshot\SnapshotCodec;
+use App\Config\SnapshotCodec;
 use PHPUnit\Framework\TestCase;
 
 /**

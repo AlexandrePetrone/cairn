@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Workflow;
 
+use App\Config\ConfigRegistry;
 use App\Config\Definition\WorkflowDefinition;
-use App\Config\Snapshot\ConfigRegistry;
 use Symfony\Component\Workflow\WorkflowInterface;
 
 /**

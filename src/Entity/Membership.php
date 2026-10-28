@@ -11,7 +11,7 @@ use Doctrine\ORM\Mapping as ORM;
  * A role granted to a user on a workspace or on a project, exactly one of
  * the two. The role is an id of the instance configuration. A workspace
  * membership applies to every project of the workspace; a project
- * membership may only widen it (see RoleResolver).
+ * membership may only widen it (see AccessControl).
  */
 #[ORM\Entity(repositoryClass: MembershipRepository::class)]
 #[ORM\UniqueConstraint(name: 'uniq_membership_user_workspace', columns: ['user_id', 'workspace_id'])]
@@ -81,11 +81,6 @@ class Membership
     public function getRole(): string
     {
         return $this->role;
-    }
-
-    public function changeRole(string $role): void
-    {
-        $this->role = $role;
     }
 
     /**

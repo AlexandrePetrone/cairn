@@ -4,56 +4,57 @@ declare(strict_types=1);
 
 namespace App\Tests\Config\Sync;
 
-use App\Config\ConfigValidator;
+use App\Config\ConfigException;
+use App\Config\ConfigRegistry;
 use App\Config\Definition\PlaceDefinition;
 use App\Config\Definition\WorkflowDefinition;
-use App\Config\Diff\DiffCalculator;
 use App\Config\MigrationPolicy;
-use App\Config\Snapshot\ConfigRegistry;
-use App\Config\Snapshot\NoSnapshotException;
-use App\Config\Snapshot\SnapshotCodec;
 use App\Config\Sync\ConfigSynchronizer;
-use App\Config\Sync\MigrationReason;
-use App\Config\Sync\SyncException;
+use App\Config\Sync\PlaceMigration;
 use App\Entity\Enum\PlaceStatus;
+use App\Entity\Tracker;
+use App\Entity\User;
+use App\Factory\TrackerFactory;
+use App\Factory\UserFactory;
 use App\Repository\ConfigSnapshotRepository;
+use App\Repository\IssueRepository;
 use App\Tests\Config\Fixture\DefinitionFactory;
+use App\Tests\MessageHandler\Query\Issue\IssueBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
-use Symfony\Component\Lock\LockFactory;
+use Zenstruck\Foundry\Test\Factories;
 
+/**
+ * Issues are created on a tracker bound to the test `bug` workflow, whose
+ * `to_test` place is the one removed by `bugWorkflow(withToTest: false)`.
+ */
 final class ConfigSynchronizerTest extends KernelTestCase
 {
     use ClockSensitiveTrait;
+    use Factories;
 
     private ConfigSynchronizer $synchronizer;
     private ConfigSnapshotRepository $snapshots;
     private ConfigRegistry $registry;
-    private InMemoryIssuePlaceGateway $issues;
+    private IssueRepository $issues;
+    private IssueBuilder $builder;
+    private Tracker $tracker;
+    private User $author;
 
     protected function setUp(): void
     {
         self::bootKernel();
         $container = self::getContainer();
 
-        $this->issues = new InMemoryIssuePlaceGateway();
+        $this->synchronizer = $container->get(ConfigSynchronizer::class);
         $this->snapshots = $container->get(ConfigSnapshotRepository::class);
         $this->registry = $container->get(ConfigRegistry::class);
         $this->registry->reset();
-
-        $this->synchronizer = new ConfigSynchronizer(
-            new ConfigValidator(),
-            $container->get(SnapshotCodec::class),
-            $container->get(DiffCalculator::class),
-            $this->snapshots,
-            $container->get(EntityManagerInterface::class),
-            $this->issues,
-            $container->get(LockFactory::class),
-            $this->registry,
-            $container->get(ClockInterface::class),
-        );
+        $this->issues = $container->get(IssueRepository::class);
+        $this->builder = new IssueBuilder($container->get(EntityManagerInterface::class));
+        $this->tracker = TrackerFactory::createOne(['workflowId' => 'bug']);
+        $this->author = UserFactory::new()->internal()->create();
     }
 
     public function testFirstSyncCreatesTheSnapshotAndFeedsTheRegistry(): void
@@ -62,7 +63,7 @@ final class ConfigSynchronizerTest extends KernelTestCase
         try {
             $this->registry->definition();
             self::fail('No snapshot yet');
-        } catch (NoSnapshotException) {
+        } catch (ConfigException) {
         }
 
         self::mockTime('2026-03-03 10:00:00');
@@ -91,9 +92,9 @@ final class ConfigSynchronizerTest extends KernelTestCase
         $plan = $this->synchronizer->plan(DefinitionFactory::definition());
 
         self::assertFalse($plan->hasChanges());
-        self::assertTrue($plan->diff->isEmpty());
+        self::assertSame([], $plan->diff);
 
-        $this->expectException(SyncException::class);
+        $this->expectException(ConfigException::class);
         $this->expectExceptionMessage('Nothing to apply');
         $this->synchronizer->apply($plan);
     }
@@ -105,7 +106,7 @@ final class ConfigSynchronizerTest extends KernelTestCase
 
         self::assertFalse($plan->isValid());
 
-        $this->expectException(SyncException::class);
+        $this->expectException(ConfigException::class);
         $this->expectExceptionMessage('violations');
         $this->synchronizer->apply($plan);
     }
@@ -113,7 +114,7 @@ final class ConfigSynchronizerTest extends KernelTestCase
     public function testRemovingAPlaceWithIssuesIsBlockedUnderTheStrictPolicy(): void
     {
         $this->synchronizer->apply($this->synchronizer->plan(DefinitionFactory::definition()));
-        $this->issues->set('bug', 'to_test', 3);
+        $this->issuesOn('to_test', 3);
 
         $plan = $this->synchronizer->plan(DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(withToTest: false)]));
 
@@ -122,7 +123,7 @@ final class ConfigSynchronizerTest extends KernelTestCase
         self::assertCount(1, $plan->orphans);
         self::assertSame(['bug', 'to_test', 3], [$plan->orphans[0]->workflowId, $plan->orphans[0]->placeId, $plan->orphans[0]->count]);
 
-        $this->expectException(SyncException::class);
+        $this->expectException(ConfigException::class);
         $this->expectExceptionMessage('no migration target');
         $this->synchronizer->apply($plan);
     }
@@ -130,6 +131,7 @@ final class ConfigSynchronizerTest extends KernelTestCase
     public function testRemovingAnEmptyPlaceIsNotBlocking(): void
     {
         $this->synchronizer->apply($this->synchronizer->plan(DefinitionFactory::definition()));
+        $this->issuesOn('new', 2);
 
         $plan = $this->synchronizer->plan(DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(withToTest: false)]));
 
@@ -137,25 +139,27 @@ final class ConfigSynchronizerTest extends KernelTestCase
         self::assertSame(0, $plan->orphans[0]->count);
         self::assertFalse($plan->isBlocked());
         self::assertNotNull($this->synchronizer->apply($plan)->getId());
+        self::assertSame(2, $this->issues->countOnPlace('bug', 'new'), 'untouched');
     }
 
     public function testMigrateFromMovesTheIssuesOfARemovedPlace(): void
     {
         $this->synchronizer->apply($this->synchronizer->plan(DefinitionFactory::definition()));
-        $this->issues->set('bug', 'to_test', 3);
+        $this->issuesOn('to_test', 3);
+        $this->issuesOn('in_progress', 1);
 
         $next = DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(withToTest: false, migrateInProgressFrom: ['to_test'])]);
         $plan = $this->synchronizer->plan($next);
 
         self::assertSame([], $plan->orphans);
         self::assertCount(1, $plan->migrations);
-        self::assertSame(MigrationReason::MigrateFrom, $plan->migrations[0]->reason);
+        self::assertSame(PlaceMigration::BY_RULE, $plan->migrations[0]->reason);
         self::assertSame(['bug', 'to_test', 'in_progress', 3], [$plan->migrations[0]->workflowId, $plan->migrations[0]->from, $plan->migrations[0]->to, $plan->migrations[0]->count]);
 
         $snapshot = $this->synchronizer->apply($plan);
 
-        self::assertSame([['bug', 'to_test', 'in_progress', 3]], $this->issues->moves);
-        self::assertSame(0, $this->issues->countByPlace('bug', 'to_test'));
+        self::assertSame(0, $this->issues->countOnPlace('bug', 'to_test'));
+        self::assertSame(4, $this->issues->countOnPlace('bug', 'in_progress'));
         self::assertStringContainsString('3 issue(s) from "to_test" to "in_progress"', $snapshot->getSummary());
         self::assertEquals($next, $this->registry->definition());
     }
@@ -163,7 +167,7 @@ final class ConfigSynchronizerTest extends KernelTestCase
     public function testFallbackPolicyMovesOrphansToTheFallbackPlace(): void
     {
         $this->synchronizer->apply($this->synchronizer->plan(DefinitionFactory::definition()));
-        $this->issues->set('bug', 'to_test', 2);
+        $this->issuesOn('to_test', 2);
 
         $plan = $this->synchronizer->plan(DefinitionFactory::definition(
             workflows: [DefinitionFactory::bugWorkflow(withToTest: false)],
@@ -171,9 +175,13 @@ final class ConfigSynchronizerTest extends KernelTestCase
         ));
 
         self::assertSame([], $plan->orphans);
-        self::assertSame(MigrationReason::Fallback, $plan->migrations[0]->reason);
+        self::assertSame(PlaceMigration::BY_FALLBACK, $plan->migrations[0]->reason);
         self::assertSame('new', $plan->migrations[0]->to);
         self::assertFalse($plan->isBlocked());
+
+        $this->synchronizer->apply($plan);
+
+        self::assertSame(2, $this->issues->countOnPlace('bug', 'new'));
     }
 
     public function testAMigrateFromRuleMatchingNothingIsAWarning(): void
@@ -190,8 +198,15 @@ final class ConfigSynchronizerTest extends KernelTestCase
         $stale = $this->synchronizer->plan(DefinitionFactory::definition());
         $this->synchronizer->apply($this->synchronizer->plan(DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(label: 'Bug')])));
 
-        $this->expectException(SyncException::class);
+        $this->expectException(ConfigException::class);
         $this->expectExceptionMessage('changed since the plan was computed');
         $this->synchronizer->apply($stale);
+    }
+
+    private function issuesOn(string $place, int $count): void
+    {
+        for ($i = 1; $i <= $count; ++$i) {
+            $this->builder->issue($this->tracker, $this->author, "$place $i", $place);
+        }
     }
 }

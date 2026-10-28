@@ -2,15 +2,16 @@
 
 declare(strict_types=1);
 
-namespace App\Config\Diff;
+namespace App\Config;
 
 use App\Config\Definition\InstanceDefinition;
-use App\Config\Snapshot\SnapshotCodec;
 
 /**
  * Compares two definitions through their canonical (encoded) form, walking
  * it recursively: lists of identified items are matched by id, maps key by
- * key, anything else as a value. Paths read like `workflows.bug.places.done`.
+ * key, anything else as a value. The result is one line per added (+),
+ * removed (-) or changed (~) element, with paths such as
+ * `workflows.bug.places.done`.
  */
 final class DiffCalculator
 {
@@ -19,22 +20,25 @@ final class DiffCalculator
     ) {
     }
 
-    public function between(?InstanceDefinition $current, InstanceDefinition $next): ConfigDiff
+    /**
+     * @return list<string>
+     */
+    public function between(?InstanceDefinition $current, InstanceDefinition $next): array
     {
         $before = null === $current ? [] : $this->codec->encode($current);
         $after = $this->codec->encode($next);
         unset($before['format'], $after['format']);
 
-        $entries = [];
-        self::compare('', $before, $after, $entries);
+        $lines = [];
+        self::compare('', $before, $after, $lines);
 
-        return new ConfigDiff($entries);
+        return $lines;
     }
 
     /**
-     * @param list<DiffEntry> $entries
+     * @param list<string> $lines
      */
-    private static function compare(string $path, mixed $before, mixed $after, array &$entries): void
+    private static function compare(string $path, mixed $before, mixed $after, array &$lines): void
     {
         if ($before === $after) {
             return;
@@ -44,7 +48,7 @@ final class DiffCalculator
             $before = array_column($before, null, self::idKey($before));
             $after = array_column($after, null, self::idKey($after));
         } elseif (!self::isMap($before) || !self::isMap($after)) {
-            $entries[] = new DiffEntry(DiffKind::Changed, $path, \sprintf('%s → %s', self::scalar($before), self::scalar($after)));
+            $lines[] = \sprintf('~ %s: %s → %s', $path, self::scalar($before), self::scalar($after));
 
             return;
         }
@@ -52,14 +56,14 @@ final class DiffCalculator
         foreach ($after as $key => $value) {
             $keyPath = '' === $path ? (string) $key : "$path.$key";
             if (!\array_key_exists($key, $before)) {
-                self::report(DiffKind::Added, $keyPath, $value, $entries);
+                self::report('+', $keyPath, $value, $lines);
             } else {
-                self::compare($keyPath, $before[$key], $value, $entries);
+                self::compare($keyPath, $before[$key], $value, $lines);
             }
         }
         foreach ($before as $key => $value) {
             if (!\array_key_exists($key, $after)) {
-                self::report(DiffKind::Removed, '' === $path ? (string) $key : "$path.$key", $value, $entries);
+                self::report('-', '' === $path ? (string) $key : "$path.$key", $value, $lines);
             }
         }
     }
@@ -68,23 +72,23 @@ final class DiffCalculator
      * An added or removed container is reported item by item, an item or a
      * value in one line.
      *
-     * @param list<DiffEntry> $entries
+     * @param list<string> $lines
      */
-    private static function report(DiffKind $kind, string $path, mixed $value, array &$entries): void
+    private static function report(string $symbol, string $path, mixed $value, array &$lines): void
     {
         if ([] === $value) {
             return;
         }
         if (self::isItemList($value)) {
             foreach ($value as $item) {
-                $entries[] = new DiffEntry($kind, $path.'.'.$item[self::idKey($value)], self::summarize($item));
+                $lines[] = \sprintf('%s %s.%s: %s', $symbol, $path, $item[self::idKey($value)], self::summarize($item));
             }
         } elseif (self::isMap($value) && !isset($value['id'])) {
             foreach ($value as $key => $nested) {
-                self::report($kind, "$path.$key", $nested, $entries);
+                self::report($symbol, "$path.$key", $nested, $lines);
             }
         } else {
-            $entries[] = new DiffEntry($kind, $path, self::summarize($value));
+            $lines[] = \sprintf('%s %s: %s', $symbol, $path, self::summarize($value));
         }
     }
 

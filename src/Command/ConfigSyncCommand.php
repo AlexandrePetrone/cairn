@@ -102,7 +102,7 @@ final class ConfigSyncCommand extends Command
     private function describe(SymfonyStyle $io, SyncPlan $plan): void
     {
         $io->section('Changes');
-        $io->listing($plan->diff->describe());
+        $io->listing($plan->diff);
 
         if ([] !== $plan->migrations) {
             $io->section('Data migrations');

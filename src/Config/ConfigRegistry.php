@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Config\Snapshot;
+namespace App\Config;
 
 use App\Config\Definition\InstanceDefinition;
 use App\Repository\ConfigSnapshotRepository;
@@ -26,7 +26,7 @@ final class ConfigRegistry
     {
         if (null === $this->definition) {
             $snapshot = $this->snapshots->findLatest()
-                ?? throw new NoSnapshotException('No configuration snapshot has been applied yet. Run "app:config:sync" first.');
+                ?? throw new ConfigException('No configuration snapshot has been applied yet. Run "app:config:sync" first.');
             $this->definition = $this->codec->decode($snapshot->getDefinition());
         }
 

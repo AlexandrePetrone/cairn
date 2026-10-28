@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-namespace App\Config\Snapshot;
+namespace App\Config;
 
-use App\Config\ConfigException;
 use App\Config\Definition\FieldDefinition;
 use App\Config\Definition\FieldUsage;
 use App\Config\Definition\InstanceDefinition;
@@ -14,9 +13,6 @@ use App\Config\Definition\PlaceDefinition;
 use App\Config\Definition\RoleDefinition;
 use App\Config\Definition\TransitionDefinition;
 use App\Config\Definition\WorkflowDefinition;
-use App\Config\FieldType;
-use App\Config\MigrationPolicy;
-use App\Config\TransitionStyle;
 use App\Entity\Enum\PlaceStatus;
 
 /**

@@ -59,11 +59,6 @@ class Workspace
         return $this->name;
     }
 
-    public function rename(string $name): void
-    {
-        $this->name = trim($name);
-    }
-
     public function getKey(): string
     {
         return $this->key;

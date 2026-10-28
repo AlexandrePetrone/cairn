@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Security;
 
+use App\Config\ConfigRegistry;
 use App\Config\Definition\TransitionDefinition;
-use App\Config\Snapshot\ConfigRegistry;
 use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\User;
 use App\Entity\Workspace;
+use App\Repository\MembershipRepository;
 
 /**
  * The one place that decides what a user may do. Takes the acting user
@@ -22,19 +23,44 @@ use App\Entity\Workspace;
 final class AccessControl
 {
     public function __construct(
-        private readonly RoleResolver $roles,
+        private readonly MembershipRepository $memberships,
         private readonly ConfigRegistry $config,
     ) {
     }
 
+    /**
+     * The effective role of a user on a project or a workspace: the broadest
+     * of the roles granted directly, inherited from the workspace, and, for
+     * internal users, the global roles of the configuration. A grant may only
+     * widen what is inherited, never narrow it. A membership whose role no
+     * longer exists in the configuration grants nothing.
+     */
     public function roleOn(User $user, Project|Workspace $scope): ?string
     {
-        return $this->roles->roleOn($user, $scope);
+        $definition = $this->config->definition();
+        $best = null;
+
+        foreach ($this->memberships->findByUser($user) as $membership) {
+            $applies = $scope instanceof Project ? $membership->appliesTo($scope) : $membership->isOn($scope);
+            if ($applies && $definition->hasRole($membership->getRole())) {
+                $best = self::broadest($definition->roleRank(...), $best, $membership->getRole());
+            }
+        }
+
+        if ($user->isInternal()) {
+            foreach ($definition->roles as $role) {
+                if ($role->global) {
+                    $best = self::broadest($definition->roleRank(...), $best, $role->id);
+                }
+            }
+        }
+
+        return $best;
     }
 
     public function canView(User $user, Project|Workspace $scope): bool
     {
-        return $user->isInternal() || null !== $this->roles->roleOn($user, $scope);
+        return $user->isInternal() || null !== $this->roleOn($user, $scope);
     }
 
     public function isGranted(User $user, Permission $permission, Project|Workspace $scope): bool
@@ -43,7 +69,7 @@ final class AccessControl
             return true;
         }
 
-        $role = $this->roles->roleOn($user, $scope);
+        $role = $this->roleOn($user, $scope);
 
         return null !== $role && \in_array($role, $this->config->definition()->rolesGranted($permission), true);
     }
@@ -68,8 +94,16 @@ final class AccessControl
             return true;
         }
 
-        $role = $this->roles->roleOn($user, $project);
+        $role = $this->roleOn($user, $project);
 
         return null !== $role && \in_array($role, $transition->roles, true);
+    }
+
+    /**
+     * @param callable(string): int $rank 0 is the broadest role
+     */
+    private static function broadest(callable $rank, ?string $current, string $candidate): string
+    {
+        return null === $current || $rank($candidate) < $rank($current) ? $candidate : $current;
     }
 }

@@ -6,7 +6,6 @@ namespace App\Config\Sync;
 
 use App\Config\ConfigViolation;
 use App\Config\Definition\InstanceDefinition;
-use App\Config\Diff\ConfigDiff;
 
 /**
  * Everything the sync would do, computed without side effects so that it
@@ -18,6 +17,7 @@ final readonly class SyncPlan
      * @param array<string, mixed>  $encoded     canonical form of the definition
      * @param string|null           $currentHash hash of the snapshot in force when the plan was computed
      * @param list<ConfigViolation> $violations
+     * @param list<string>          $diff        one line per change against the snapshot in force
      * @param list<PlaceMigration>  $migrations
      * @param list<OrphanPlace>     $orphans
      * @param list<string>          $warnings
@@ -28,7 +28,7 @@ final readonly class SyncPlan
         public string $hash,
         public ?string $currentHash,
         public array $violations,
-        public ConfigDiff $diff,
+        public array $diff,
         public array $migrations,
         public array $orphans,
         public array $warnings,
@@ -63,7 +63,7 @@ final readonly class SyncPlan
     public function summary(): string
     {
         return implode("\n", [
-            ...$this->diff->describe(),
+            ...$this->diff,
             ...array_map(static fn (PlaceMigration $m) => "> $m", $this->migrations),
         ]);
     }

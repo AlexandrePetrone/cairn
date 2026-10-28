@@ -54,8 +54,9 @@ Flex recipe register the bundle and generate its config. Don't hand-edit
 
 ## Vocabulary
 
-Use the English term in code, the French one in the UI (through translation
-keys, see below). Never mix them.
+Use the English term in code, the translated one in the UI (through translation
+keys, see below; the French column is what a French instance shows). Never
+mix them.
 
 | UI (fr)        | Code             | Meaning                                                          |
 |----------------|------------------|------------------------------------------------------------------|
@@ -96,7 +97,7 @@ src/
   EventListener/     journal recorder, notification dispatcher, …
   Controller/        grouped by screen: Issue/, Project/, Admin/, Webhook/
   Form/              form types and their data objects
-  Security/          voters, AccessControl, RoleResolver, authenticators
+  Security/          voters, AccessControl, authenticators
   Twig/Components/   PHP-backed Twig components, when a component needs logic
   Config/            instance config pipeline: Definition/, validator, diff,
                      sync, ConfigRegistry; config-only enums
@@ -273,8 +274,9 @@ by default). The journal is never migrated.
     templates, enum labels such as `PlaceStatus`) go through translation
     keys and `translations/messages.<locale>.yaml`. Keys are named by
     domain (`status.open`, `issue.action.create`), never English sentences.
-    No hardcoded labels in Twig or PHP, even though only French is shipped
-    in V1. `debug:translation fr` lists missing and unused keys.
+    No hardcoded labels in Twig or PHP. English is the default language and
+    French is shipped too; `CAIRN_LOCALE` picks one per instance.
+    `debug:translation fr` lists missing and unused keys.
   - Content written by the agency or the users (configuration labels,
     hints and prompts; project, tracker, issue and comment text) is data in
     the instance language. It is displayed as-is and never passed to the

@@ -2,24 +2,28 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Config\Sync;
+namespace App\Tests\Repository;
 
 use App\Config\Definition\PlaceDefinition;
-use App\Config\Sync\DoctrineIssuePlaceGateway;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
 use App\Entity\Tracker;
 use App\Message\Command\Issue\ApplyTransition;
+use App\Repository\IssueRepository;
 use App\Tests\KernelHelpers;
 use App\Tests\MessageHandler\Command\Issue\IssueFixtures;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-final class DoctrineIssuePlaceGatewayTest extends KernelTestCase
+/**
+ * The bulk operations the configuration sync relies on when a place is
+ * removed from a workflow.
+ */
+final class IssueRepositoryTest extends KernelTestCase
 {
     use KernelHelpers;
 
-    private DoctrineIssuePlaceGateway $gateway;
+    private IssueRepository $issues;
     private EntityManagerInterface $entityManager;
     private IssueFixtures $fixtures;
 
@@ -27,7 +31,7 @@ final class DoctrineIssuePlaceGatewayTest extends KernelTestCase
     {
         self::bootKernel();
         self::applyConfiguration();
-        $this->gateway = self::getContainer()->get(DoctrineIssuePlaceGateway::class);
+        $this->issues = self::getContainer()->get(IssueRepository::class);
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $this->fixtures = new IssueFixtures($this->entityManager, self::commandBus());
     }
@@ -49,29 +53,29 @@ final class DoctrineIssuePlaceGatewayTest extends KernelTestCase
         $this->entityManager->persist($other);
         $this->entityManager->flush();
 
-        self::assertSame(2, $this->gateway->countByPlace('bug', 'new'));
-        self::assertSame(1, $this->gateway->countByPlace('bug', 'in_progress'));
-        self::assertSame(0, $this->gateway->countByPlace('bug', 'done'));
+        self::assertSame(2, $this->issues->countOnPlace('bug', 'new'));
+        self::assertSame(1, $this->issues->countOnPlace('bug', 'in_progress'));
+        self::assertSame(0, $this->issues->countOnPlace('bug', 'done'));
 
-        $moved = $this->gateway->movePlace('bug', 'new', new PlaceDefinition(id: 'done', label: 'Fermée', status: PlaceStatus::Closed));
+        $moved = $this->issues->moveFromPlace('bug', 'new', 'done', PlaceStatus::Closed, new \DateTimeImmutable('2026-03-03 10:00:00'));
 
         self::assertSame(2, $moved);
-        self::assertSame(0, $this->gateway->countByPlace('bug', 'new'));
-        self::assertSame(2, $this->gateway->countByPlace('bug', 'done'));
-        self::assertSame(1, $this->gateway->countByPlace('other_workflow', 'new'));
+        self::assertSame(0, $this->issues->countOnPlace('bug', 'new'));
+        self::assertSame(2, $this->issues->countOnPlace('bug', 'done'));
+        self::assertSame(1, $this->issues->countOnPlace('other_workflow', 'new'));
 
         $this->entityManager->clear();
         $reloaded = $this->entityManager->find(Issue::class, $a->getId());
         self::assertInstanceOf(Issue::class, $reloaded);
         self::assertSame('done', $reloaded->getPlace());
         self::assertSame(PlaceStatus::Closed, $reloaded->getStatus());
-        self::assertNotNull($reloaded->getClosedAt(), 'closed by the migration');
-        self::assertSame($a->getUpdatedAt()->format('Y-m-d H:i:s'), $reloaded->getUpdatedAt()->format('Y-m-d H:i:s'), 'a migration is not an activity');
+        self::assertSame('2026-03-03 10:00:00', $reloaded->getClosedAt()?->format('Y-m-d H:i:s'), 'closed by the move');
+        self::assertSame($a->getUpdatedAt()->format('Y-m-d H:i:s'), $reloaded->getUpdatedAt()->format('Y-m-d H:i:s'), 'a move is not an activity');
 
-        $this->gateway->movePlace('bug', 'done', new PlaceDefinition(id: 'new', label: 'Nouveau', status: PlaceStatus::Open));
+        $this->issues->moveFromPlace('bug', 'done', 'new', PlaceStatus::Open, null);
         $this->entityManager->clear();
         $reopened = $this->entityManager->find(Issue::class, $b->getId());
         self::assertInstanceOf(Issue::class, $reopened);
-        self::assertNull($reopened->getClosedAt(), 'reopened by the migration');
+        self::assertNull($reopened->getClosedAt(), 'reopened by the move');
     }
 }

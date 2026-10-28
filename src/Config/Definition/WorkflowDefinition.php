@@ -74,31 +74,6 @@ final readonly class WorkflowDefinition
     }
 
     /**
-     * The single transition between two places, if any. The kanban relies on
-     * (from, to) pairs being unique, which the validator enforces.
-     */
-    public function transitionBetween(string $from, string $to): ?TransitionDefinition
-    {
-        foreach ($this->transitions as $transition) {
-            if ($transition->to === $to && \in_array($from, $transition->from, true)) {
-                return $transition;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Places reachable in one transition from a place.
-     *
-     * @return list<string>
-     */
-    public function reachableFrom(string $placeId): array
-    {
-        return array_values(array_unique(array_map(static fn (TransitionDefinition $t) => $t->to, $this->transitionsFrom($placeId))));
-    }
-
-    /**
      * The place that declares a removed place in its `migrateFrom`, if any.
      */
     public function migrationTargetFor(string $removedPlaceId): ?string

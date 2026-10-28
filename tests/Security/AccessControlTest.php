@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Security;
 
-use App\Config\Snapshot\ConfigRegistry;
+use App\Config\ConfigRegistry;
 use App\Entity\Issue;
 use App\Entity\Tracker;
 use App\Security\AccessControl;
@@ -17,8 +17,9 @@ use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
- * Test permissions: issue.create for everyone, tracker.manage and
- * project.create for project managers only.
+ * Test roles, broadest first: project_manager, developer (global), client.
+ * Test permissions: issue.create for everyone, issue.set_private for
+ * project managers only.
  */
 final class AccessControlTest extends KernelTestCase
 {
@@ -35,13 +36,59 @@ final class AccessControlTest extends KernelTestCase
         $this->fixtures = new AccessFixtures(self::getContainer()->get(EntityManagerInterface::class));
     }
 
+    public function testAnExternalUserWithoutMembershipHasNoRole(): void
+    {
+        $user = $this->fixtures->user('claire@client.test');
+
+        self::assertNull($this->access->roleOn($user, $this->fixtures->shop));
+        self::assertNull($this->access->roleOn($user, $this->fixtures->workspace));
+    }
+
+    public function testAWorkspaceMembershipAppliesToEveryProjectOfTheWorkspace(): void
+    {
+        $user = $this->fixtures->user('claire@client.test');
+        $this->fixtures->grantOnWorkspace($user, $this->fixtures->workspace, 'client');
+
+        self::assertSame('client', $this->access->roleOn($user, $this->fixtures->workspace));
+        self::assertSame('client', $this->access->roleOn($user, $this->fixtures->shop));
+        self::assertSame('client', $this->access->roleOn($user, $this->fixtures->intranet));
+        self::assertNull($this->access->roleOn($user, $this->fixtures->otherProject));
+    }
+
+    public function testAProjectMembershipOnlyWidensTheInheritedRole(): void
+    {
+        $user = $this->fixtures->user('thomas@agency.test', internal: true);
+        $this->fixtures->grantOnWorkspace($user, $this->fixtures->workspace, 'developer');
+        $this->fixtures->grantOnProject($user, $this->fixtures->shop, 'project_manager');
+        $this->fixtures->grantOnProject($user, $this->fixtures->intranet, 'client');
+
+        self::assertSame('project_manager', $this->access->roleOn($user, $this->fixtures->shop), 'widened on this project');
+        self::assertSame('developer', $this->access->roleOn($user, $this->fixtures->intranet), 'a narrower grant does not apply');
+    }
+
+    public function testInternalUsersHoldTheGlobalRolesEverywhere(): void
+    {
+        $user = $this->fixtures->user('nadia@agency.test', internal: true);
+
+        self::assertSame('developer', $this->access->roleOn($user, $this->fixtures->otherProject));
+        self::assertSame('developer', $this->access->roleOn($user, $this->fixtures->otherWorkspace));
+    }
+
+    public function testAMembershipRoleUnknownToTheConfigurationIsIgnored(): void
+    {
+        $user = $this->fixtures->user('claire@client.test');
+        $this->fixtures->grantOnProject($user, $this->fixtures->shop, 'former_role');
+
+        self::assertNull($this->access->roleOn($user, $this->fixtures->shop));
+    }
+
     public function testAdministratorsMayDoEverything(): void
     {
         $admin = $this->fixtures->user('admin@agency.test', admin: true);
 
         self::assertTrue($this->access->canView($admin, $this->fixtures->otherProject));
-        self::assertTrue($this->access->isGranted($admin, Permission::TrackerManage, $this->fixtures->otherProject));
-        self::assertTrue($this->access->isGranted($admin, Permission::WorkspaceManage, $this->fixtures->otherWorkspace));
+        self::assertTrue($this->access->isGranted($admin, Permission::IssueSetPrivate, $this->fixtures->otherProject));
+        self::assertTrue($this->access->isGranted($admin, Permission::IssueCreate, $this->fixtures->otherWorkspace));
     }
 
     public function testInternalUsersSeeEveryProjectButActThroughTheirRole(): void
@@ -49,9 +96,8 @@ final class AccessControlTest extends KernelTestCase
         $developer = $this->fixtures->user('nadia@agency.test', internal: true);
 
         self::assertTrue($this->access->canView($developer, $this->fixtures->otherProject));
-        self::assertSame('developer', $this->access->roleOn($developer, $this->fixtures->otherProject));
         self::assertTrue($this->access->isGranted($developer, Permission::IssueCreate, $this->fixtures->otherProject));
-        self::assertFalse($this->access->isGranted($developer, Permission::TrackerManage, $this->fixtures->otherProject));
+        self::assertFalse($this->access->isGranted($developer, Permission::IssueSetPrivate, $this->fixtures->otherProject));
     }
 
     public function testExternalUsersNeedAMembership(): void
@@ -108,9 +154,8 @@ final class AccessControlTest extends KernelTestCase
         $checker = self::getContainer()->get(AuthorizationCheckerInterface::class);
 
         self::assertTrue($checker->isGranted('view', $this->fixtures->shop));
-        self::assertTrue($checker->isGranted('tracker.manage', $this->fixtures->shop));
-        self::assertTrue($checker->isGranted('project.create', $this->fixtures->workspace));
-        self::assertFalse($checker->isGranted('tracker.manage', $this->fixtures->otherProject), 'only a developer there');
-        self::assertFalse($checker->isGranted('workspace.manage', $this->fixtures->workspace), 'administrators only');
+        self::assertTrue($checker->isGranted('issue.set_private', $this->fixtures->shop));
+        self::assertTrue($checker->isGranted('issue.create', $this->fixtures->workspace));
+        self::assertFalse($checker->isGranted('issue.set_private', $this->fixtures->otherProject), 'only a developer there');
     }
 }

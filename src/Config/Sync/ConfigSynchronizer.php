@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace App\Config\Sync;
 
+use App\Config\ConfigException;
+use App\Config\ConfigRegistry;
 use App\Config\ConfigValidator;
 use App\Config\Definition\InstanceDefinition;
-use App\Config\Diff\DiffCalculator;
+use App\Config\DiffCalculator;
 use App\Config\MigrationPolicy;
-use App\Config\Snapshot\ConfigRegistry;
-use App\Config\Snapshot\SnapshotCodec;
+use App\Config\SnapshotCodec;
 use App\Entity\ConfigSnapshot;
+use App\Entity\Enum\PlaceStatus;
 use App\Repository\ConfigSnapshotRepository;
+use App\Repository\IssueRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Lock\LockFactory;
@@ -30,8 +33,8 @@ final class ConfigSynchronizer
         private readonly SnapshotCodec $codec,
         private readonly DiffCalculator $diffCalculator,
         private readonly ConfigSnapshotRepository $snapshots,
+        private readonly IssueRepository $issues,
         private readonly EntityManagerInterface $entityManager,
-        private readonly IssuePlaceGateway $issues,
         private readonly LockFactory $lockFactory,
         private readonly ConfigRegistry $registry,
         private readonly ClockInterface $clock,
@@ -55,7 +58,7 @@ final class ConfigSynchronizer
         foreach ($current->workflows ?? [] as $workflowId => $previous) {
             if (!$next->hasWorkflow($workflowId)) {
                 foreach ($previous->placeIds() as $placeId) {
-                    $count = $this->issues->countByPlace($workflowId, $placeId);
+                    $count = $this->issues->countOnPlace($workflowId, $placeId);
                     if ($count > 0) {
                         $orphans[] = new OrphanPlace($workflowId, $placeId, $count, 'the workflow is removed');
                     }
@@ -66,13 +69,13 @@ final class ConfigSynchronizer
             $workflow = $next->workflow($workflowId);
             foreach (array_diff($previous->placeIds(), $workflow->placeIds()) as $placeId) {
                 $removedPlaces[$workflowId][] = $placeId;
-                $count = $this->issues->countByPlace($workflowId, $placeId);
+                $count = $this->issues->countOnPlace($workflowId, $placeId);
                 $target = $workflow->migrationTargetFor($placeId);
 
                 if (null !== $target) {
-                    $migrations[] = new PlaceMigration($workflowId, $placeId, $target, $count, MigrationReason::MigrateFrom);
+                    $migrations[] = new PlaceMigration($workflowId, $placeId, $target, $count, PlaceMigration::BY_RULE);
                 } elseif (MigrationPolicy::Fallback === $next->migrationPolicy && null !== $workflow->fallbackPlace) {
-                    $migrations[] = new PlaceMigration($workflowId, $placeId, $workflow->fallbackPlace, $count, MigrationReason::Fallback);
+                    $migrations[] = new PlaceMigration($workflowId, $placeId, $workflow->fallbackPlace, $count, PlaceMigration::BY_FALLBACK);
                 } else {
                     $orphans[] = new OrphanPlace($workflowId, $placeId, $count, 'no migrateFrom rule targets it');
                 }
@@ -94,37 +97,41 @@ final class ConfigSynchronizer
     }
 
     /**
+     * Moves the issues of removed places in bulk (entering a closed place
+     * closes them, leaving one reopens them) and stores the new snapshot.
+     *
      * @param string|null $appliedBy who applies it, when known (a future back-office)
      *
-     * @throws SyncException when the plan cannot be applied or is stale
+     * @throws ConfigException when the plan cannot be applied or is stale
      */
     public function apply(SyncPlan $plan, ?string $appliedBy = null): ConfigSnapshot
     {
         if (!$plan->isValid()) {
-            throw new SyncException('The definition has violations; fix them before applying.');
+            throw new ConfigException('The definition has violations; fix them before applying.');
         }
         if (!$plan->hasChanges()) {
-            throw new SyncException('Nothing to apply: the definition matches the snapshot in force.');
+            throw new ConfigException('Nothing to apply: the definition matches the snapshot in force.');
         }
         if ($plan->isBlocked()) {
-            throw new SyncException('Some removed places still hold issues and have no migration target.');
+            throw new ConfigException('Some removed places still hold issues and have no migration target.');
         }
 
         $lock = $this->lockFactory->createLock(self::LOCK_NAME, ttl: 300, autoRelease: true);
         if (!$lock->acquire()) {
-            throw new SyncException('Another configuration sync is in progress.');
+            throw new ConfigException('Another configuration sync is in progress.');
         }
 
         try {
             $snapshot = $this->entityManager->wrapInTransaction(function () use ($plan, $appliedBy): ConfigSnapshot {
                 if ($this->snapshots->findLatest()?->getHash() !== $plan->currentHash) {
-                    throw new SyncException('The snapshot in force changed since the plan was computed; compute it again.');
+                    throw new ConfigException('The snapshot in force changed since the plan was computed; compute it again.');
                 }
 
                 foreach ($plan->migrations as $migration) {
                     if ($migration->count > 0) {
                         $target = $plan->definition->workflow($migration->workflowId)->place($migration->to);
-                        $this->issues->movePlace($migration->workflowId, $migration->from, $target);
+                        $closedAt = PlaceStatus::Closed === $target->status ? $this->clock->now() : null;
+                        $this->issues->moveFromPlace($migration->workflowId, $migration->from, $target->id, $target->status, $closedAt);
                     }
                 }
 

@@ -77,11 +77,6 @@ class Project
         return $this->name;
     }
 
-    public function rename(string $name): void
-    {
-        $this->name = trim($name);
-    }
-
     public function getKey(): string
     {
         return $this->key;
@@ -122,11 +117,6 @@ class Project
     public function archive(): void
     {
         $this->archived = true;
-    }
-
-    public function unarchive(): void
-    {
-        $this->archived = false;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

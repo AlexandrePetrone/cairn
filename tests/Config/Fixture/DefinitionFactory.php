@@ -103,12 +103,10 @@ final class DefinitionFactory
                 Permission::IssueCreate->value => ['project_manager', 'developer', 'client'],
                 Permission::IssueAssign->value => ['project_manager', 'developer'],
                 Permission::IssueSetCriticality->value => ['project_manager', 'developer', 'client'],
-                Permission::IssueSetPrivate->value => ['project_manager', 'developer'],
+                Permission::IssueSetPrivate->value => ['project_manager'],
                 Permission::IssueChangeTracker->value => ['project_manager', 'developer'],
                 Permission::CommentCreate->value => ['project_manager', 'developer', 'client'],
                 Permission::CommentSetPrivate->value => ['project_manager', 'developer'],
-                Permission::TrackerManage->value => ['project_manager'],
-                Permission::ProjectCreate->value => ['project_manager'],
             ],
             fields: $fields ?? self::fields(),
             links: [

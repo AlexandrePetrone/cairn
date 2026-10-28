@@ -70,11 +70,6 @@ class Tracker
         return $this->name;
     }
 
-    public function rename(string $name): void
-    {
-        $this->name = trim($name);
-    }
-
     public function getDescription(): ?string
     {
         return $this->description;
@@ -108,11 +103,6 @@ class Tracker
     public function getPosition(): int
     {
         return $this->position;
-    }
-
-    public function moveTo(int $position): void
-    {
-        $this->position = $position;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

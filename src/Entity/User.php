@@ -91,12 +91,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return trim($this->firstName.' '.$this->lastName);
     }
 
-    public function rename(string $firstName, string $lastName): void
-    {
-        $this->firstName = trim($firstName);
-        $this->lastName = trim($lastName);
-    }
-
     public function isInternal(): bool
     {
         return $this->internal;
@@ -130,25 +124,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->internal = true;
         $this->admin = $admin;
-    }
-
-    /**
-     * Makes the user a client user, which drops any administrator status.
-     */
-    public function makeExternal(): void
-    {
-        $this->internal = false;
-        $this->admin = false;
-    }
-
-    public function deactivate(): void
-    {
-        $this->active = false;
-    }
-
-    public function activate(): void
-    {
-        $this->active = true;
     }
 
     public function setPassword(string $hashedPassword): void

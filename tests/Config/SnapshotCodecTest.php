@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Config\Snapshot;
+namespace App\Tests\Config;
 
 use App\Config\ConfigException;
-use App\Config\Snapshot\SnapshotCodec;
+use App\Config\SnapshotCodec;
 use App\Tests\Config\Fixture\DefinitionFactory;
 use PHPUnit\Framework\TestCase;
 

@@ -38,16 +38,4 @@ final class UserTest extends TestCase
         self::assertTrue($user->isAdmin());
         self::assertSame(['ROLE_USER', 'ROLE_INTERNAL', 'ROLE_ADMIN'], $user->getRoles());
     }
-
-    public function testBecomingExternalDropsTheAdministratorStatus(): void
-    {
-        $user = new User('thomas@agency.test', 'Thomas', 'Girard', internal: true);
-        $user->makeInternal(admin: true);
-
-        $user->makeExternal();
-
-        self::assertTrue($user->isExternal());
-        self::assertFalse($user->isAdmin());
-        self::assertSame(['ROLE_USER'], $user->getRoles());
-    }
 }

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Workflow;
 
+use App\Config\ConfigException;
+use App\Config\ConfigRegistry;
 use App\Config\Definition\InvalidDefinitionException;
-use App\Config\Snapshot\ConfigRegistry;
-use App\Config\Snapshot\NoSnapshotException;
 use App\Tests\KernelHelpers;
 use App\Tests\Workflow\Fixture\Subject;
 use App\Workflow\WorkflowFactory;
@@ -35,7 +35,7 @@ final class WorkflowProviderTest extends KernelTestCase
 
     public function testWithoutSnapshotThereIsNoWorkflow(): void
     {
-        $this->expectException(NoSnapshotException::class);
+        $this->expectException(ConfigException::class);
         $this->provider->get('bug');
     }
 

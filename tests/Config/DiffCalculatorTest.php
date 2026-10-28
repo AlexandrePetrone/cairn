@@ -2,17 +2,16 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Config\Diff;
+namespace App\Tests\Config;
 
 use App\Config\Definition\FieldDefinition;
 use App\Config\Definition\PlaceDefinition;
 use App\Config\Definition\TransitionDefinition;
 use App\Config\Definition\WorkflowDefinition;
-use App\Config\Diff\DiffCalculator;
-use App\Config\Diff\DiffKind;
+use App\Config\DiffCalculator;
 use App\Config\FieldType;
 use App\Config\MigrationPolicy;
-use App\Config\Snapshot\SnapshotCodec;
+use App\Config\SnapshotCodec;
 use App\Entity\Enum\PlaceStatus;
 use App\Tests\Config\Fixture\DefinitionFactory;
 use PHPUnit\Framework\TestCase;
@@ -28,12 +27,6 @@ final class DiffCalculatorTest extends TestCase
 
     public function testFirstSyncAddsEverythingItemByItem(): void
     {
-        $diff = $this->calculator->between(null, DefinitionFactory::definition());
-
-        self::assertFalse($diff->isEmpty());
-        foreach ($diff->entries as $entry) {
-            self::assertSame(DiffKind::Added, $entry->kind);
-        }
         self::assertSame([
             '+ roles.project_manager: «Chef de projet»',
             '+ roles.developer: «Développeur»',
@@ -50,15 +43,13 @@ final class DiffCalculatorTest extends TestCase
             '+ permissions.issue.change_tracker: [project_manager, developer]',
             '+ permissions.issue.create: [project_manager, developer, client]',
             '+ permissions.issue.set_criticality: [project_manager, developer, client]',
-            '+ permissions.issue.set_private: [project_manager, developer]',
-            '+ permissions.project.create: [project_manager]',
-            '+ permissions.tracker.manage: [project_manager]',
-        ], $diff->describe());
+            '+ permissions.issue.set_private: [project_manager]',
+        ], $this->calculator->between(null, DefinitionFactory::definition()));
     }
 
     public function testIdenticalDefinitionsHaveAnEmptyDiff(): void
     {
-        self::assertTrue($this->calculator->between(DefinitionFactory::definition(), DefinitionFactory::definition())->isEmpty());
+        self::assertSame([], $this->calculator->between(DefinitionFactory::definition(), DefinitionFactory::definition()));
     }
 
     public function testScalarChangesAreReportedByPath(): void
@@ -71,7 +62,7 @@ final class DiffCalculatorTest extends TestCase
         self::assertSame([
             '~ workflows.bug.label: Anomalie → Bug',
             '~ migrationPolicy: strict → fallback',
-        ], $diff->describe());
+        ], $diff);
     }
 
     public function testRemovedAndAddedItemsAreMatchedById(): void
@@ -87,7 +78,7 @@ final class DiffCalculatorTest extends TestCase
             '- workflows.bug.transitions.deliver: «Livrer»',
             '- workflows.bug.transitions.accept: «Valider»',
             '- workflows.bug.transitions.refuse: «Refuser»',
-        ], $diff->describe());
+        ], $diff);
     }
 
     public function testChangesInsideAnItemAreReportedKeyByKey(): void
@@ -123,7 +114,7 @@ final class DiffCalculatorTest extends TestCase
             '~ workflows.w.places.b.hint: none → Done.',
             '~ workflows.w.transitions.t.roles: [developer] → [developer, client]',
             '~ workflows.w.transitions.t.requiresComment: no → yes',
-        ], $diff->describe());
+        ], $diff);
     }
 
     public function testMapsAndRemovedWorkflows(): void
@@ -134,7 +125,7 @@ final class DiffCalculatorTest extends TestCase
         );
         $after = DefinitionFactory::definition(
             fields: [...DefinitionFactory::fields(), new FieldDefinition(id: 'browser', label: 'Navigateur', type: FieldType::Text)],
-            permissions: ['issue.create' => ['client', 'developer'], 'issue.link' => ['developer']],
+            permissions: ['issue.create' => ['client', 'developer'], 'issue.assign' => ['developer']],
         );
 
         $diff = $this->calculator->between($before, $after);
@@ -142,8 +133,8 @@ final class DiffCalculatorTest extends TestCase
         self::assertSame([
             '+ fields.browser: «Navigateur»',
             '- workflows.task: «Tâche»',
+            '+ permissions.issue.assign: [developer]',
             '~ permissions.issue.create: [client] → [client, developer]',
-            '+ permissions.issue.link: [developer]',
-        ], $diff->describe());
+        ], $diff);
     }
 }

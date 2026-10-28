@@ -37,9 +37,6 @@ class Comment
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
-    #[ORM\Column(nullable: true)]
-    private ?\DateTimeImmutable $editedAt = null;
-
     public function __construct(Issue $issue, User $author, string $body, bool $private = false)
     {
         $this->issue = $issue;
@@ -69,12 +66,6 @@ class Comment
         return $this->body;
     }
 
-    public function edit(string $body): void
-    {
-        $this->body = $body;
-        $this->editedAt = now();
-    }
-
     public function isPrivate(): bool
     {
         return $this->private;
@@ -93,10 +84,5 @@ class Comment
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
-    }
-
-    public function getEditedAt(): ?\DateTimeImmutable
-    {
-        return $this->editedAt;
     }
 }

@@ -9,17 +9,23 @@ namespace App\Config\Sync;
  */
 final readonly class PlaceMigration implements \Stringable
 {
+    public const string BY_RULE = 'migrateFrom rule';
+    public const string BY_FALLBACK = 'fallback place';
+
+    /**
+     * @param string $reason BY_RULE when the target declares the removed place in `migrateFrom`, BY_FALLBACK otherwise
+     */
     public function __construct(
         public string $workflowId,
         public string $from,
         public string $to,
         public int $count,
-        public MigrationReason $reason,
+        public string $reason,
     ) {
     }
 
     public function __toString(): string
     {
-        return \sprintf('workflows.%s: %d issue(s) from "%s" to "%s" (%s)', $this->workflowId, $this->count, $this->from, $this->to, $this->reason->value);
+        return \sprintf('workflows.%s: %d issue(s) from "%s" to "%s" (%s)', $this->workflowId, $this->count, $this->from, $this->to, $this->reason);
     }
 }

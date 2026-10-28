@@ -17,36 +17,4 @@ enum PlaceStatus: string
     case InProgress = 'in_progress';
     case Waiting = 'waiting';
     case Closed = 'closed';
-
-    /**
-     * Default sort order of cross-category views.
-     */
-    public function order(): int
-    {
-        return match ($this) {
-            self::Open => 1,
-            self::InProgress => 2,
-            self::Waiting => 3,
-            self::Closed => 4,
-        };
-    }
-
-    /**
-     * Colour token of the design system. Status colours are fixed and
-     * global; places have no colour of their own.
-     */
-    public function color(): string
-    {
-        return match ($this) {
-            self::Open => 'blue',
-            self::InProgress => 'amber',
-            self::Waiting => 'violet',
-            self::Closed => 'gray',
-        };
-    }
-
-    public function transKey(): string
-    {
-        return 'status.'.$this->value;
-    }
 }

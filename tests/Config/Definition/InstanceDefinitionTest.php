@@ -24,8 +24,8 @@ final class InstanceDefinitionTest extends TestCase
         self::assertSame(0, $definition->roleRank('project_manager'));
         self::assertSame(2, $definition->roleRank('client'));
         self::assertSame(['new', 'in_progress', 'to_test', 'done'], $definition->workflow('bug')->placeIds());
-        self::assertSame(['project_manager'], $definition->rolesGranted(Permission::TrackerManage));
-        self::assertSame([], $definition->rolesGranted(Permission::WorkspaceManage));
+        self::assertSame(['project_manager'], $definition->rolesGranted(Permission::IssueSetPrivate));
+        self::assertSame(['project_manager', 'developer'], $definition->rolesGranted(Permission::IssueAssign));
     }
 
     public function testDuplicateIdentifiersAreRejected(): void
@@ -54,25 +54,11 @@ final class InstanceDefinitionTest extends TestCase
         new PlaceDefinition(id: 'new', label: '  ', status: PlaceStatus::Open);
     }
 
-    public function testLinkInverseLabelFallsBackToLabelWhenSymmetric(): void
-    {
-        $definition = DefinitionFactory::definition();
-
-        self::assertTrue($definition->link('related')->isSymmetric());
-        self::assertNull($definition->link('related')->inverseLabel);
-        self::assertSame('Lié à', $definition->link('related')->labelFromTarget());
-        self::assertFalse($definition->link('blocks')->isSymmetric());
-        self::assertSame('Bloqué par', $definition->link('blocks')->labelFromTarget());
-    }
-
     public function testWorkflowNavigation(): void
     {
         $workflow = DefinitionFactory::bugWorkflow();
 
         self::assertSame(['deliver'], array_map(static fn ($t) => $t->id, $workflow->transitionsFrom('in_progress')));
-        self::assertSame(['done', 'in_progress'], $workflow->reachableFrom('to_test'));
-        self::assertSame('refuse', $workflow->transitionBetween('to_test', 'in_progress')?->id);
-        self::assertNull($workflow->transitionBetween('new', 'done'));
         self::assertSame(['environment', 'url'], array_keys($workflow->fields));
         self::assertTrue($workflow->fields['environment']->required);
         self::assertSame('in_progress', DefinitionFactory::bugWorkflow(withToTest: false, migrateInProgressFrom: ['to_test'])->migrationTargetFor('to_test'));
