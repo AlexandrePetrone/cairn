@@ -30,10 +30,10 @@ final class AccessControl
 
     /**
      * The effective role of a user on a project or a workspace: the broadest
-     * of the roles granted directly, inherited from the workspace, and, for
-     * internal users, the global roles of the configuration. A grant may only
-     * widen what is inherited, never narrow it. A membership whose role no
-     * longer exists in the configuration grants nothing.
+     * of the roles granted directly and inherited from the workspace. A grant
+     * may only widen what is inherited, never narrow it. A membership whose
+     * role no longer exists in the configuration grants nothing. Being
+     * internal grants no role: it only opens every project to reading.
      */
     public function roleOn(User $user, Project|Workspace $scope): ?string
     {
@@ -44,14 +44,6 @@ final class AccessControl
             $applies = $scope instanceof Project ? $membership->appliesTo($scope) : $membership->isOn($scope);
             if ($applies && $definition->hasRole($membership->getRole())) {
                 $best = self::broadest($definition->roleRank(...), $best, $membership->getRole());
-            }
-        }
-
-        if ($user->isInternal()) {
-            foreach ($definition->roles as $role) {
-                if ($role->global) {
-                    $best = self::broadest($definition->roleRank(...), $best, $role->id);
-                }
             }
         }
 

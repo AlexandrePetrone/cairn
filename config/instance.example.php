@@ -41,10 +41,11 @@ return new InstanceDefinition(
 
     // Broadest role first: a direct grant on a project may only widen a role
     // inherited from the workspace. `internalOnly` roles cannot be granted
-    // to external users; `global` roles apply to every project.
+    // to external users. Internal users without a role see everything but
+    // act nowhere.
     roles: [
         new RoleDefinition(id: 'project_manager', label: 'Chef de projet', internalOnly: true),
-        new RoleDefinition(id: 'developer', label: 'Développeur', internalOnly: true, global: true),
+        new RoleDefinition(id: 'developer', label: 'Développeur', internalOnly: true),
         new RoleDefinition(id: 'client', label: 'Client'),
         new RoleDefinition(id: 'client_readonly', label: 'Client (lecture)'),
     ],

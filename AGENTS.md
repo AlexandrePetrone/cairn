@@ -162,8 +162,8 @@ Rules:
   `DispatchAfterCurrentBusStamp` so it only leaves after commit.
 - **One authorization service.** `Security/AccessControl` takes the acting
   user as an explicit argument and resolves the effective role (direct
-  membership, then workspace membership, then global role, the broadest
-  wins). Handlers call it directly. Voters are
+  membership or workspace membership, the broadest wins; being internal
+  opens every project to reading but grants no role). Handlers call it directly. Voters are
   thin adapters over it for `#[IsGranted]` and Twig.
 - **Entities carry intent.** Prefer `moveTo()`, `makePrivate()`, `close()`
   over generic setters. Entities never receive services.

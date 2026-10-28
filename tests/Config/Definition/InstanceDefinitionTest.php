@@ -80,13 +80,6 @@ final class InstanceDefinitionTest extends TestCase
         new TransitionDefinition(id: 'refuse', label: 'Refuser', from: ['new'], to: 'done', roles: ['client'], commentPrompt: 'Pourquoi ?');
     }
 
-    public function testGlobalRoleMustBeInternal(): void
-    {
-        $this->expectException(InvalidDefinitionException::class);
-
-        new RoleDefinition(id: 'everyone', label: 'Tout le monde', global: true);
-    }
-
     public function testUnknownPlaceLookupThrows(): void
     {
         $workflow = new WorkflowDefinition(id: 'w', label: 'W', initial: 'a', places: [new PlaceDefinition(id: 'a', label: 'A', status: PlaceStatus::Open)], transitions: []);

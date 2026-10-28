@@ -119,13 +119,14 @@ final class AppStory extends Story
      */
     private function projects(): iterable
     {
+        // Managers and clients hold their role on the workspace, developers on each project.
         $dupont = $this->workspace('Maison Dupont', 'MD', notes: 'Contact principal : Claire Martin (direction e-commerce). Paul Roussel (compta) ne valide pas les recettes : lecture seule.', manager: 'thomas', clients: ['claire' => 'client', 'paul' => 'client_readonly']);
         $vallier = $this->workspace('Groupe Vallier', 'GV', notes: 'Deux projets, un seul interlocuteur DSI.', manager: 'thomas', clients: ['ines' => 'client']);
         $natura = $this->workspace('Natura Cosmétiques', 'NC', notes: 'Refonte livrée en novembre, back-office en TMA.', manager: 'yann', clients: ['remi' => 'client']);
         $travelia = $this->workspace('Travelia', 'TR', notes: 'Contrat terminé en août 2026.', manager: 'yann', clients: ['sophie' => 'client']);
 
         // [tracker, title, target place, criticality, assignee, private]
-        yield ['project' => $this->project($dupont, 'Site e-commerce', 'SPT', 'Boutique en ligne et tunnel de commande.'), 'people' => ['manager' => 'thomas', 'developers' => ['nadia', 'lea'], 'client' => 'claire'], 'issues' => [
+        yield ['project' => $this->project($dupont, 'Site e-commerce', 'SPT', 'Boutique en ligne et tunnel de commande.', developers: ['nadia', 'lea']), 'people' => ['manager' => 'thomas', 'developers' => ['nadia', 'lea'], 'client' => 'claire'], 'issues' => [
             ['bug', 'Spinner infini sur la page panier', 'new', Criticality::Blocking],
             ['bug', 'Le code promo n\'est pas appliqué aux produits soldés', 'qualified', Criticality::High, 'lea'],
             ['bug', 'Typo dans le pied de page', 'new', Criticality::Low],
@@ -145,14 +146,14 @@ final class AppStory extends Story
             ['task', 'Purger le cache Varnish après déploiement', 'done', Criticality::Low, 'lea'],
             ['task', 'Revoir les index de la table des commandes', 'todo', Criticality::Normal],
         ]];
-        yield ['project' => $this->project($dupont, 'Intranet', 'INT', 'Outil interne des magasins.'), 'people' => ['manager' => 'thomas', 'developers' => ['marc'], 'client' => 'claire'], 'issues' => [
+        yield ['project' => $this->project($dupont, 'Intranet', 'INT', 'Outil interne des magasins.', developers: ['marc']), 'people' => ['manager' => 'thomas', 'developers' => ['marc'], 'client' => 'claire'], 'issues' => [
             ['bug', 'Le planning n\'affiche pas les jours fériés', 'qualified', Criticality::Normal, 'marc'],
             ['bug', 'Connexion impossible depuis le magasin de Lyon', 'in_progress', Criticality::Blocking, 'marc'],
             ['evolution', 'Annuaire des collaborateurs', 'to_estimate', Criticality::Low],
             ['evolution', 'Demandes de congés en ligne', 'delivered', Criticality::Normal, 'marc'],
             ['task', 'Renouveler le certificat TLS', 'done', Criticality::High, 'marc'],
         ]];
-        yield ['project' => $this->project($vallier, 'Portail fournisseurs', 'PRT', 'Dépôt et suivi des factures fournisseurs.'), 'people' => ['manager' => 'thomas', 'developers' => ['lea', 'marc'], 'client' => 'ines'], 'issues' => [
+        yield ['project' => $this->project($vallier, 'Portail fournisseurs', 'PRT', 'Dépôt et suivi des factures fournisseurs.', developers: ['lea', 'marc']), 'people' => ['manager' => 'thomas', 'developers' => ['lea', 'marc'], 'client' => 'ines'], 'issues' => [
             ['bug', 'Le dépôt de facture échoue au-delà de 5 Mo', 'to_test', Criticality::High, 'marc'],
             ['bug', 'Mauvais format de date dans l\'export', 'new', Criticality::Normal],
             ['bug', 'Le mot de passe oublié n\'envoie pas de mail', 'done', Criticality::Blocking, 'lea'],
@@ -161,13 +162,13 @@ final class AppStory extends Story
             ['evolution', 'Relance automatique des factures en retard', 'new', Criticality::Normal],
             ['task', 'Migrer le stockage vers S3', 'doing', Criticality::Normal, 'marc'],
         ]];
-        yield ['project' => $this->project($vallier, 'Application mobile', 'APP', 'Application des commerciaux terrain.'), 'people' => ['manager' => 'thomas', 'developers' => ['nadia'], 'client' => 'ines'], 'issues' => [
+        yield ['project' => $this->project($vallier, 'Application mobile', 'APP', 'Application des commerciaux terrain.', developers: ['nadia']), 'people' => ['manager' => 'thomas', 'developers' => ['nadia'], 'client' => 'ines'], 'issues' => [
             ['bug', 'Crash au démarrage sur Android 12', 'qualified', Criticality::Blocking, 'nadia'],
             ['bug', 'La synchronisation hors ligne perd les notes', 'in_progress', Criticality::High, 'nadia'],
             ['evolution', 'Mode sombre', 'to_estimate', Criticality::Low],
             ['evolution', 'Scanner de codes-barres', 'to_test', Criticality::Normal, 'nadia'],
         ]];
-        yield ['project' => $this->project($natura, 'Back-office', 'BO', 'Gestion du catalogue et des commandes.'), 'people' => ['manager' => 'yann', 'developers' => ['lea'], 'client' => 'remi'], 'issues' => [
+        yield ['project' => $this->project($natura, 'Back-office', 'BO', 'Gestion du catalogue et des commandes.', developers: ['lea']), 'people' => ['manager' => 'yann', 'developers' => ['lea'], 'client' => 'remi'], 'issues' => [
             ['bug', 'Les variantes de couleur se dupliquent à l\'import', 'in_progress', Criticality::High, 'lea'],
             ['bug', 'Le tri par date de commande est inversé', 'to_test', Criticality::Normal, 'lea'],
             ['bug', 'Libellé tronqué dans la fiche client', 'new', Criticality::Low],
@@ -175,7 +176,7 @@ final class AppStory extends Story
             ['evolution', 'Historique des prix', 'to_estimate', Criticality::Normal],
             ['task', 'Supprimer les comptes de test', 'todo', Criticality::Low, 'lea', true],
         ]];
-        yield ['project' => $this->project($travelia, 'Site de réservation', 'RES', 'Réservation de séjours.'), 'people' => ['manager' => 'yann', 'developers' => ['marc'], 'client' => 'sophie'], 'archived' => true, 'issues' => [
+        yield ['project' => $this->project($travelia, 'Site de réservation', 'RES', 'Réservation de séjours.', developers: ['marc']), 'people' => ['manager' => 'yann', 'developers' => ['marc'], 'client' => 'sophie'], 'archived' => true, 'issues' => [
             ['bug', 'Double réservation possible sur le dernier créneau', 'done', Criticality::Blocking, 'marc'],
             ['evolution', 'Paiement en plusieurs devises', 'delivered', Criticality::Normal, 'marc'],
             ['evolution', 'Comparateur de séjours', 'declined', Criticality::Low],
@@ -196,9 +197,17 @@ final class AppStory extends Story
         return $workspace;
     }
 
-    private function project(Workspace $workspace, string $name, string $key, string $description): Project
+    /**
+     * @param list<string> $developers user keys granted the developer role on the project
+     */
+    private function project(Workspace $workspace, string $name, string $key, string $description, array $developers): Project
     {
-        return ProjectFactory::createOne(['workspace' => $workspace, 'name' => $name, 'key' => $key, 'description' => $description]);
+        $project = ProjectFactory::createOne(['workspace' => $workspace, 'name' => $name, 'key' => $key, 'description' => $description]);
+        foreach ($developers as $developer) {
+            MembershipFactory::createOne(['user' => $this->users[$developer], 'project' => $project, 'role' => 'developer']);
+        }
+
+        return $project;
     }
 
     /**

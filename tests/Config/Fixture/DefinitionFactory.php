@@ -30,7 +30,7 @@ final class DefinitionFactory
     {
         return [
             new RoleDefinition(id: 'project_manager', label: 'Chef de projet', internalOnly: true),
-            new RoleDefinition(id: 'developer', label: 'Développeur', internalOnly: true, global: true),
+            new RoleDefinition(id: 'developer', label: 'Développeur', internalOnly: true),
             new RoleDefinition(id: 'client', label: 'Client'),
         ];
     }

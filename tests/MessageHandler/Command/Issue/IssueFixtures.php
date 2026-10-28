@@ -41,6 +41,7 @@ final class IssueFixtures
         $this->manager = $this->access->user('thomas@agency.test', internal: true);
         $this->access->grantOnWorkspace($this->manager, $this->access->workspace, 'project_manager');
         $this->developer = $this->access->user('nadia@agency.test', internal: true);
+        $this->access->grantOnWorkspace($this->developer, $this->access->workspace, 'developer');
         $this->client = $this->access->user('claire@client.test');
         $this->access->grantOnWorkspace($this->client, $this->access->workspace, 'client');
     }

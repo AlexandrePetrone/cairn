@@ -71,6 +71,11 @@ final class IssueListTest extends WebTestCase
         self::assertSelectorTextContains('tbody', 'Spinner infini sur la page panier');
         self::assertSelectorTextNotContains('tbody', 'Les frais de port ne s\'affichent pas en Corse', 'assigned to Nadia');
 
+        $nadia = self::getContainer()->get(UserRepository::class)->findOneBy(['email' => 'nadia.benali@cairn.test']);
+        $this->client->request('GET', '/MD/SPT/issues?assignee[]='.$nadia?->getId());
+        self::assertSelectorTextContains('tbody', 'Les frais de port ne s\'affichent pas en Corse');
+        self::assertSelectorTextNotContains('tbody', 'Spinner infini sur la page panier');
+
         $this->client->request('GET', '/MD/SPT/issues?status[]=nonsense');
         self::assertResponseStatusCodeSame(404, 'a value outside the enum');
 
@@ -84,6 +89,10 @@ final class IssueListTest extends WebTestCase
 
         $this->client->request('GET', '/MD/SPT/issues');
         self::assertSelectorTextContains('form', 'Assigné');
+        self::assertSelectorTextContains('form', 'Nadia Benali', 'developer on the shop');
+        self::assertSelectorTextContains('form', 'Claire Martin', 'client of the workspace');
+        self::assertSelectorTextNotContains('form', 'Sophie Bernard', 'client of another workspace');
+        self::assertSelectorTextNotContains('form', 'Marc Petit', 'developer of the intranet only');
 
         $this->client->request('GET', '/MD/SPT/issues/assigned');
         self::assertSelectorTextContains('h1', 'Demandes assignées à moi');

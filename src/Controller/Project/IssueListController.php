@@ -11,6 +11,7 @@ use App\Entity\Tracker;
 use App\Entity\User;
 use App\Form\IssueFilters;
 use App\Message\Query\Issue\SearchIssues;
+use App\Message\Query\Project\ListProjectMembers;
 use App\Message\QueryBus;
 use App\Repository\TrackerRepository;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
@@ -110,6 +111,7 @@ final class IssueListController extends AbstractController
             'filters' => $filters,
             'issues' => $this->queries->ask($query),
             'trackers' => $this->trackers->findByProject($project, includePrivate: $query->viewer->isInternal()),
+            'members' => \in_array('assignee', $dimensions, true) ? $this->queries->ask(new ListProjectMembers($project)) : [],
             'statuses' => PlaceStatus::cases(),
             'criticalities' => Criticality::cases(),
         ]);

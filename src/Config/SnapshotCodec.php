@@ -26,7 +26,7 @@ use App\Entity\Enum\PlaceStatus;
  */
 final class SnapshotCodec
 {
-    public const int FORMAT = 5;
+    public const int FORMAT = 6;
 
     /**
      * @return array<string, mixed>

@@ -56,12 +56,17 @@
                     </twig:Filter:Menu>
                 {% endif %}
                 {% if 'assignee' in dimensions %}
-                    {# The people of the project will join the unassigned option with the members query. #}
                     <twig:Filter:Menu :label="'filter.assignee'|trans" :count="filters.assignee|length">
                         <twig:Filter:Option name="assignee[]" value="0" :checked="0 in filters.assignee">
                             <twig:Avatar size="xs" />
                             {{ 'issue.unassigned'|trans }}
                         </twig:Filter:Option>
+                        {% for member in members %}
+                            <twig:Filter:Option name="assignee[]" :value="member.id" :checked="member.id in filters.assignee">
+                                <twig:Avatar size="xs" :name="member.fullName" :kind="member.internal ? 'internal' : 'external'" />
+                                {{ member.fullName }}
+                            </twig:Filter:Option>
+                        {% endfor %}
                     </twig:Filter:Menu>
                 {% endif %}
                 <twig:Filter:Search :value="filters.q" />
