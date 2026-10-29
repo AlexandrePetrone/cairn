@@ -93,7 +93,8 @@ src/
   MessageHandler/    exact mirror of Message/, one handler per message
   Event/             domain events: IssueCreated, IssueTransitioned, …
   EventListener/     journal recorder, notification dispatcher, …
-  Controller/        grouped by screen: Issue/, Project/, Admin/, Webhook/
+  Controller/        one folder per zone of the application (Project/, Admin/,
+                     Security/, Webhook/), application-level pages at the root
   Form/              form types and their data objects
   Security/          voters, AccessControl, authenticators
   Twig/Components/   PHP-backed Twig components, when a component needs logic
@@ -145,9 +146,12 @@ Rules:
   beyond the created identifier.
 - **URLs carry keys, not ids, and one route per need.** A project page is
   `/MD/SPT/issues`: the workspace key, the project key, then the screen.
-  The controller resolves the project with
-  `#[MapEntity(expr: 'repository.findOneByKeys(...)')]` and guards it with
-  `#[IsGranted('view', subject: 'project')]`. A list with another scope is
+  An action receives it as `#[CurrentProject] Project $project`, resolved
+  by `Controller/Project/CurrentProjectResolver` from the two route
+  parameters (404 when unknown), and the controller class carries
+  `#[IsGranted('view', subject: 'project')]`. Archived projects are
+  refused by `AccessControl` for every permission, so no controller
+  checks it. A list with another scope is
   another route of the same controller (`/issues/assigned`,
   `/issues/created`, `/issues/tracker/{id}`: trackers have no key), never
   a query parameter that switches the view: the route fixes the scope and
@@ -187,8 +191,23 @@ Rules:
   generic `Pagination<T>` in `Repository/` because repositories and query
   handlers both return it, form data objects in `Form/`. When an enum
   has two owners, persistence wins and `Config/` imports from `Entity/Enum/`.
-- **Templates** follow screens, not PHP namespaces: `templates/issue/show.html.twig`,
-  `templates/components/` for UX components.
+- **Controllers and templates are grouped by zone.** A zone is a part of
+  the application with its own URL prefix and its own shell:
+
+  | Zone        | URL                                    | Shell                       | Controllers            | Templates              |
+  |-------------|----------------------------------------|-----------------------------|------------------------|------------------------|
+  | application | `/`, `/issues/…`, `/workspaces`, `/MD` | header only                 | `Controller/` root     | `templates/` root      |
+  | project     | `/MD/SPT/…`                            | header + project navigation | `Controller/Project/`  | `templates/project/`   |
+  | admin       | `/admin/…`                             | header + admin navigation   | `Controller/Admin/`    | `templates/admin/`     |
+  | security    | `/login`                               | none                        | `Controller/Security/` | `templates/security/`  |
+
+  Each zone has its base template in `templates/layout/<zone>.html.twig`
+  (`project.html.twig`, `app.html.twig`), which renders the shell and
+  exposes the `page_title` and `content` blocks; a page extends it and
+  fills them. The root of `Controller/` holds application-level pages
+  only, never a controller that found no home. Components are not
+  grouped by zone but by what they display (`Layout/`, `Issue/`,
+  `Project/`): a component serving two zones must not lie about either.
 
 ### Frontend
 

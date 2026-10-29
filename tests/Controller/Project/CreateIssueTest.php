@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Controller\Issue;
+namespace App\Tests\Controller\Project;
 
 use App\Repository\UserRepository;
 use App\Story\AppStory;

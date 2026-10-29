@@ -19,7 +19,7 @@
         </div>
     {% endif %}
     <div class="ml-auto flex items-center gap-2">
-    {% if project and is_granted('issue.create', project) and not project.archived %}
+    {% if project and is_granted('issue.create', project) %}
         <twig:Button variant="primary" icon="plus" href="{{ path('app_issue_new', { workspaceKey: project.workspace.key, projectKey: project.key }) }}" class="bg-indigo-500 hover:bg-indigo-400">
             <span class="hidden sm:inline">{{ 'issue.create.title'|trans }}</span>
         </twig:Button>

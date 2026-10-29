@@ -91,6 +91,16 @@ final class AccessControlTest extends KernelTestCase
         self::assertTrue($this->access->isGranted($admin, Permission::IssueCreate, $this->fixtures->otherWorkspace));
     }
 
+    public function testAnArchivedProjectStaysReadableButGrantsNothing(): void
+    {
+        $admin = $this->fixtures->user('admin@agency.test', admin: true);
+        $this->fixtures->shop->archive();
+
+        self::assertTrue($this->access->canView($admin, $this->fixtures->shop));
+        self::assertFalse($this->access->isGranted($admin, Permission::IssueCreate, $this->fixtures->shop), 'not even an administrator');
+        self::assertTrue($this->access->isGranted($admin, Permission::IssueCreate, $this->fixtures->intranet));
+    }
+
     public function testInternalUsersSeeEveryProjectButActThroughTheirRole(): void
     {
         $developer = $this->fixtures->user('nadia@agency.test', internal: true);

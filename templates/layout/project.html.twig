@@ -1,0 +1,25 @@
+{# Base of every page of a project (`/MD/SPT/…`): the shell with the header and the project navigation, a breadcrumb ending with the page title.
+   Pages extend it with `project` in their context and fill `page_title` and `content`. The blocks are captured before the shell component, whose own blocks would otherwise hide them. #}
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ block('page_title') }} · {{ project.name }} · Cairn{% endblock %}
+
+{% block body %}
+    {% set layoutRoute = { workspaceKey: project.workspace.key, projectKey: project.key } %}
+    {% set layoutPageTitle %}{% block page_title %}{% endblock %}{% endset %}
+    {% set layoutPageContent %}{% block content %}{% endblock %}{% endset %}
+    <twig:Layout:Shell>
+        <twig:block name="header"><twig:Layout:Header :project="project" /></twig:block>
+        <twig:block name="sidebar"><twig:Layout:ProjectNav :project="project" /></twig:block>
+        <twig:block name="breadcrumb">
+            <nav class="flex items-center gap-1.5 px-4 sm:px-6 h-10 text-xs text-gray-500 border-b border-gray-200 bg-white/60" aria-label="{{ 'nav.breadcrumb'|trans }}">
+                <span>{{ project.workspace.name }}</span>
+                <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-gray-300 shrink-0" />
+                <a href="{{ path('app_project_issues', layoutRoute) }}" class="hover:text-gray-900">{{ project.name }}</a>
+                <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-gray-300 shrink-0" />
+                <span class="text-gray-900 font-medium truncate">{{ layoutPageTitle }}</span>
+            </nav>
+        </twig:block>
+        {{ layoutPageContent }}
+    </twig:Layout:Shell>
+{% endblock %}

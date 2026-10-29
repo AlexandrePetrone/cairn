@@ -40,7 +40,7 @@ final class IssueListController extends AbstractController
 
     #[Route('', name: 'app_project_issues', methods: ['GET'])]
     public function all(
-        #[MapEntity(expr: 'repository.findOneByKeys(workspaceKey, projectKey)')]
+        #[CurrentProject]
         Project $project,
         #[CurrentUser]
         User $viewer,
@@ -52,7 +52,7 @@ final class IssueListController extends AbstractController
 
     #[Route('/assigned', name: 'app_project_issues_assigned', methods: ['GET'])]
     public function assigned(
-        #[MapEntity(expr: 'repository.findOneByKeys(workspaceKey, projectKey)')]
+        #[CurrentProject]
         Project $project,
         #[CurrentUser]
         User $viewer,
@@ -64,7 +64,7 @@ final class IssueListController extends AbstractController
 
     #[Route('/created', name: 'app_project_issues_created', methods: ['GET'])]
     public function created(
-        #[MapEntity(expr: 'repository.findOneByKeys(workspaceKey, projectKey)')]
+        #[CurrentProject]
         Project $project,
         #[CurrentUser]
         User $viewer,
@@ -81,7 +81,7 @@ final class IssueListController extends AbstractController
      */
     #[Route('/tracker/{tracker}', name: 'app_project_issues_tracker', requirements: ['tracker' => '\\d+'], methods: ['GET'])]
     public function tracker(
-        #[MapEntity(expr: 'repository.findOneByKeys(workspaceKey, projectKey)')]
+        #[CurrentProject]
         Project $project,
         #[MapEntity]
         Tracker $tracker,

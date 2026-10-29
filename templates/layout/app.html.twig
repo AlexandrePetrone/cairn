@@ -1,0 +1,12 @@
+{# Base of the application-level pages (home, my issues, workspaces): the shell with the header alone. Pages fill `page_title` and `content`. #}
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ block('page_title') }} · Cairn{% endblock %}
+
+{% block body %}
+    {% set layoutPageContent %}{% block content %}{% endblock %}{% endset %}
+    <twig:Layout:Shell>
+        <twig:block name="header"><twig:Layout:Header /></twig:block>
+        {{ layoutPageContent }}
+    </twig:Layout:Shell>
+{% endblock %}

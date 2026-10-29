@@ -2,10 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Controller\Issue;
+namespace App\Controller\Project;
 
 use App\Entity\Project;
-use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -13,7 +12,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
  * The new issue page. The screen itself, tracker choice and form, is the
- * Issue:CreateForm live component, which dispatches the command.
+ * Issue:CreateForm live component, which dispatches the command. The
+ * voter refuses archived projects, which take no new issues.
  */
 final class CreateIssueController extends AbstractController
 {
@@ -25,13 +25,9 @@ final class CreateIssueController extends AbstractController
     )]
     #[IsGranted('issue.create', subject: 'project')]
     public function __invoke(
-        #[MapEntity(expr: 'repository.findOneByKeys(workspaceKey, projectKey)')]
+        #[CurrentProject]
         Project $project,
     ): Response {
-        if ($project->isArchived()) {
-            throw $this->createAccessDeniedException('Archived projects take no new issues.');
-        }
-
-        return $this->render('issue/new.html.twig', ['project' => $project]);
+        return $this->render('project/issue_new.html.twig', ['project' => $project]);
     }
 }
