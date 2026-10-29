@@ -1,0 +1,4 @@
+component: Ui:Toaster
+variants:
+    empty: { args: { message: null } }
+    with_flash: { args: { message: 'MD-SPT-128 créée.' } }

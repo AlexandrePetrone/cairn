@@ -1,0 +1,7 @@
+{# The one place toasts appear: the content is the toasts the page starts with (flash messages), and the `toaster` controller adds one for every `toast:show` browser event, which live components send with dispatchBrowserEvent('toast:show', { message }). #}
+{% set toasterClasses = html_cva() %}
+{% set toasterClass = toasterClasses.apply({}, attributes.render('class'))|tailwind_merge %}
+<div {% if toasterClass %}class="{{ toasterClass }}"{% endif %} data-controller="toaster" data-action="toast:show@window->toaster#show" {{ attributes }}>
+    {% block content %}{% endblock %}
+    <template data-toaster-target="template"><twig:Ui:Toast><span data-toaster-message></span></twig:Ui:Toast></template>
+</div>

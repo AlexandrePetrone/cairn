@@ -10,36 +10,42 @@ use App\Entity\User;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\CommandBus;
+use App\Message\Query\Issue\IssueDetail;
+use App\Message\Query\Issue\ShowIssue;
+use App\Message\QueryBus;
 use App\MessageHandler\Command\Issue\IssueException;
 use App\Security\AccessControl;
 use App\Security\Permission;
 use App\Workflow\WorkflowProvider;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
+use Symfony\UX\LiveComponent\Attribute\LiveListener;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
- * What the viewer may do on an issue: comment, and apply the workflow
- * actions their role allows from the current place, the comment going
- * with the action. A success reloads the issue page, whose header, panel
- * and thread all change.
+ * Description, thread and editor of the issue page: comment, and apply the
+ * workflow actions of the viewer's role, the comment going with the
+ * action. A success redraws the thread in place, tells the other
+ * components of the page (`issue:changed`) and shows a toast; the comment
+ * being written survives what the other components do.
  */
-#[AsLiveComponent('Issue:Actions')]
-final class Actions extends AbstractController
+#[AsLiveComponent('Issue:Activity')]
+final class Activity extends AbstractController
 {
+    use ComponentToolsTrait;
     use DefaultActionTrait;
 
     #[LiveProp]
     public Issue $issue;
 
-    #[LiveProp(writable: true)]
     /** The comment being written; not `comment`, which canComment() would read. */
+    #[LiveProp(writable: true)]
     public string $body = '';
 
     #[LiveProp(writable: true)]
@@ -51,8 +57,15 @@ final class Actions extends AbstractController
     public function __construct(
         private readonly WorkflowProvider $workflows,
         private readonly AccessControl $access,
+        private readonly QueryBus $queries,
         private readonly TranslatorInterface $translator,
     ) {
+    }
+
+    public function getDetail(): IssueDetail
+    {
+        return $this->queries->ask(new ShowIssue($this->viewer(), (int) $this->issue->getProject()->getId(), $this->issue->getNumber()))
+            ?? throw $this->createNotFoundException('The issue is no longer visible.');
     }
 
     /**
@@ -80,22 +93,22 @@ final class Actions extends AbstractController
     }
 
     #[LiveAction]
-    public function postComment(CommandBus $commands): ?Response
+    public function postComment(CommandBus $commands): void
     {
         if ('' === trim($this->body)) {
             $this->error = $this->translator->trans('issue.comment.empty');
 
-            return null;
+            return;
         }
 
-        return $this->run(
+        $this->run(
             fn () => $commands->dispatch(new AddComment((int) $this->viewer()->getId(), $this->issue->getKey(), $this->body, $this->private && $this->canMakePrivate())),
             $this->translator->trans('issue.comment.added'),
         );
     }
 
     #[LiveAction]
-    public function apply(CommandBus $commands, #[LiveArg] string $transition): ?Response
+    public function apply(CommandBus $commands, #[LiveArg] string $transition): void
     {
         $definition = null;
         foreach ($this->getTransitions() as $available) {
@@ -104,43 +117,49 @@ final class Actions extends AbstractController
             }
         }
         if (null === $definition) {
-            return null;
+            return;
         }
         if ($definition->requiresComment && '' === trim($this->body)) {
             $this->error = $definition->commentPrompt ?? $this->translator->trans('issue.transition.comment_required');
 
-            return null;
+            return;
         }
 
-        return $this->run(
+        $this->run(
             fn () => $commands->dispatch(new ApplyTransition((int) $this->viewer()->getId(), $this->issue->getKey(), $definition->id, '' === trim($this->body) ? null : $this->body, $this->private && $this->canMakePrivate())),
             $this->translator->trans('issue.transition.applied', ['%key%' => $this->issue->getKey(), '%transition%' => $definition->label]),
         );
     }
 
-    private function run(\Closure $dispatch, string $success): ?Response
+    /**
+     * Redraws with the issue as another component left it; the comment
+     * being written is kept.
+     */
+    #[LiveListener('issue:changed')]
+    public function refresh(): void
+    {
+    }
+
+    private function run(\Closure $dispatch, string $success): void
     {
         try {
             $dispatch();
         } catch (IssueException|AccessDeniedException) {
             $this->error = $this->translator->trans('issue.transition.refused');
 
-            return null;
+            return;
         }
 
-        $this->addFlash('success', $success);
-
-        return $this->redirectToRoute('app_issue_show', [
-            'workspaceKey' => $this->issue->getProject()->getWorkspace()->getKey(),
-            'projectKey' => $this->issue->getProject()->getKey(),
-            'number' => $this->issue->getNumber(),
-        ]);
+        $this->body = '';
+        $this->private = false;
+        $this->emit('issue:changed');
+        $this->dispatchBrowserEvent('toast:show', ['message' => $success]);
     }
 
     private function viewer(): User
     {
         $user = $this->getUser();
 
-        return $user instanceof User ? $user : throw new \LogicException('Issue actions are only rendered for signed-in users.');
+        return $user instanceof User ? $user : throw new \LogicException('The issue activity is only rendered for signed-in users.');
     }
 }

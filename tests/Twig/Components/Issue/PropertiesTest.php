@@ -6,6 +6,8 @@ namespace App\Tests\Twig\Components\Issue;
 
 use App\Entity\Issue;
 use App\Entity\User;
+use App\Message\Command\Issue\ApplyTransition;
+use App\Message\CommandBus;
 use App\Repository\IssueRepository;
 use App\Repository\UserRepository;
 use App\Story\AppStory;
@@ -53,10 +55,23 @@ final class PropertiesTest extends KernelTestCase
         $component = $this->properties('thomas.girard@cairn.test');
 
         $component->set('assigneeId', $lea->getId())->call('change', ['property' => 'assignee']);
+        $render = $component->render();
 
-        self::assertSame(302, $component->response()->getStatusCode());
-        self::assertSame('/MD/SPT/issues/4', $component->response()->headers->get('Location'));
+        self::assertSame(200, $component->response()->getStatusCode(), 'no redirect');
+        self::assertNotNull($component->getEmittedEvent($render, 'issue:changed'));
+        self::assertNotNull($component->getDispatchedBrowserEvent($render, 'toast:show'));
         self::assertSame('lea.fontaine@cairn.test', $this->reloaded()->getAssignee()?->getEmail());
+    }
+
+    public function testThePanelFollowsAChangeMadeElsewhere(): void
+    {
+        $component = $this->properties('thomas.girard@cairn.test');
+        $claire = $this->user('claire.martin@maison-dupont.test');
+        self::getContainer()->get(CommandBus::class)->dispatch(new ApplyTransition((int) $claire->getId(), 'MD-SPT-4', 'accept'));
+
+        $component->emit('issue:changed');
+
+        self::assertStringContainsString('Fermée', (string) $component->render());
     }
 
     public function testSomeoneOutsideTheProjectCannotBeAssigned(): void

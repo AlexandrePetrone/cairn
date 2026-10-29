@@ -1,0 +1,20 @@
+{# The top of the issue page: key, tracker, author, privacy, title and the hint of the current place. Redrawn on `issue:changed`. #}
+{% set headerPlace = this.place %}
+<div {{ attributes }}>
+    <div>
+        <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+            <twig:Ui:IssueKey :key="issue.key" size="lg" />
+            <span class="text-gray-300">·</span>
+            <span>{{ issue.tracker.name }}</span>
+            <span class="text-gray-300">·</span>
+            <span>{{ 'issue.show.created_by'|trans({ '%name%': issue.author.fullName, '%date%': issue.createdAt|date('d/m/Y') }) }}</span>
+            {% if issue.private %}<twig:Ui:Badge tone="amber" size="sm" icon="lock">{{ 'issue.private'|trans }}</twig:Ui:Badge>{% endif %}
+        </div>
+        <h1 class="mt-1 text-xl font-semibold text-gray-900 leading-snug">{{ issue.title }}</h1>
+    </div>
+
+    {% if headerPlace and headerPlace.hint %}
+        <twig:Ui:Callout tone="blue" size="sm" class="mt-4">{{ headerPlace.hint }}</twig:Ui:Callout>
+    {% endif %}
+
+</div>

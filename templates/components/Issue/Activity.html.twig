@@ -1,0 +1,89 @@
+{# Description, thread and editor of the issue page. The comment being written is the `body` prop, kept across every redraw, including those `issue:changed` triggers.
+   The controls are plain HTML: a data-model attribute on a nested component would bind that component instead. #}
+{% set activityDetail = this.detail %}
+{% set activityTransitions = this.transitions %}
+{% set activityCanComment = this.canComment %}
+<div {{ attributes }}>
+    <section class="mt-5 rounded-lg border border-gray-200 bg-white p-5 text-gray-800 leading-relaxed">
+        {% if issue.description is not empty %}{{ issue.description|nl2br }}{% else %}<span class="text-gray-400">{{ 'issue.show.no_description'|trans }}</span>{% endif %}
+    </section>
+
+    <section class="mt-8">
+        <h2 class="font-semibold text-gray-900 mb-3">{{ 'issue.show.activity'|trans }}</h2>
+        <ol class="relative border-l border-gray-200 ml-3 space-y-4">
+            {% for entry in activityDetail.timeline %}
+                {% set entryComment = entry.event ? entry.event.comment : entry.comment %}
+                {% if entry.event %}
+                    {% set event = entry.event %}
+                    {% set eventData = event.data %}
+                    <li class="relative pl-6">
+                        <span class="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-gray-300 ring-2 ring-gray-50"></span>
+                        <div class="text-xs text-gray-500">
+                            <span class="font-medium text-gray-700">{{ event.author ? event.author.fullName : 'issue.show.system'|trans }}</span>
+                            {% if event.type.value == 'created' %}
+                                {{ 'issue.event.created'|trans }}
+                            {% elseif event.type.value == 'transitioned' %}
+                                {{ 'issue.event.transitioned'|trans({ '%transition%': eventData.transition, '%from%': eventData.from, '%to%': eventData.to }) }}
+                            {% elseif event.type.value == 'changed' %}
+                                {% set changeValues = [eventData.from, eventData.to]|map(value => value is null ? 'issue.show.nobody'|trans : (eventData.field == 'criticality' ? ('criticality.' ~ value)|trans : (eventData.field == 'visibility' ? ('issue.show.' ~ (value == 'private' ? 'hidden' : 'visible') ~ '_externals')|trans : value))) %}
+                                {{ ('issue.event.changed.' ~ eventData.field)|trans({ '%from%': changeValues[0], '%to%': changeValues[1] }) }}
+                            {% elseif event.type.value == 'tracker_changed' %}
+                                {{ 'issue.event.tracker_changed'|trans({ '%from_tracker%': eventData.from_tracker, '%to_tracker%': eventData.to_tracker, '%to%': eventData.to }) }}
+                            {% endif %}
+                            <span class="text-gray-400">· {{ event.at|date('d/m/Y H:i') }}</span>
+                        </div>
+                    </li>
+                {% endif %}
+                {% if entryComment %}
+                    <li class="relative pl-6">
+                        <span class="absolute -left-3 top-1"><twig:Ui:Avatar :name="entryComment.author.fullName" :kind="entryComment.author.internal ? 'internal' : 'external'" /></span>
+                        <div class="rounded-lg border p-3 {{ entryComment.private ? 'border-amber-200 border-l-4 border-l-amber-400 bg-amber-50/70 private-hatching' : 'border-gray-200 bg-white' }}">
+                            <div class="flex items-center gap-2 text-xs">
+                                <span class="font-medium text-gray-900">{{ entryComment.author.fullName }}</span>
+                                <span class="text-gray-400">{{ entryComment.createdAt|date('d/m/Y H:i') }}</span>
+                                {% if entryComment.private %}<twig:Ui:Badge tone="amber" size="sm" icon="lock" class="ml-auto">{{ 'issue.comment.private_badge'|trans }}</twig:Ui:Badge>{% endif %}
+                            </div>
+                            <p class="mt-1.5 text-gray-800 leading-relaxed">{{ entryComment.body|nl2br }}</p>
+                        </div>
+                    </li>
+                {% endif %}
+            {% endfor %}
+        </ol>
+        <div class="mt-6">
+            {% if activityTransitions is not empty or activityCanComment %}
+                {% if error %}
+                    <twig:Ui:Callout tone="danger" size="sm" role="alert" class="mb-2">{{ error }}</twig:Ui:Callout>
+                {% endif %}
+                <div class="rounded-lg border border-gray-300 bg-white shadow-sm focus-within:border-indigo-400 {{ private ? 'border-amber-400 bg-amber-50 private-hatching' }}">
+                    {% if activityCanComment %}
+                        <textarea data-model="norender|body" rows="3" class="w-full bg-transparent p-3 text-sm outline-none resize-y border-0 focus:ring-0" placeholder="{{ 'issue.comment.placeholder'|trans }}">{{ body }}</textarea>
+                    {% endif %}
+                    <div class="flex flex-wrap items-center gap-2 border-t border-gray-200 px-3 py-2">
+                        {% if activityCanComment and this.canMakePrivate %}
+                            <label class="inline-flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
+                                <input type="checkbox" data-model="private" {{ private ? 'checked' }} class="h-3.5 w-3.5 rounded border-gray-300 text-amber-600">
+                                <twig:ux:icon name="lucide:lock" class="h-3 w-3" />
+                                {{ 'issue.comment.private'|trans }}
+                            </label>
+                        {% endif %}
+                        <div class="ml-auto flex flex-wrap items-center gap-2">
+                            {% if activityCanComment %}
+                                <twig:Ui:Button data-action="live#action" data-live-action-param="postComment" data-loading="addAttribute(disabled)">{{ (private ? 'issue.comment.submit_private' : 'issue.comment.submit')|trans }}</twig:Ui:Button>
+                            {% endif %}
+                            {% if activityCanComment and activityTransitions is not empty %}<span class="h-5 w-px bg-gray-200"></span>{% endif %}
+                            {% for transition in activityTransitions %}
+                                <twig:Ui:Button :variant="transition.style.value == 'default' ? 'secondary' : transition.style.value" data-action="live#action" data-live-action-param="apply" data-live-transition-param="{{ transition.id }}" data-loading="addAttribute(disabled)">{{ transition.label }}</twig:Ui:Button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% if activityTransitions is not empty %}
+                        <div class="flex items-center gap-2 border-t border-gray-100 bg-gray-50 px-3 py-1.5 text-xs text-gray-500 rounded-b-lg">
+                            <twig:Ui:Status:Dot :status="issue.status.value" />
+                            {{ 'issue.transition.hint'|trans({ '%place%': issue_place(issue) }) }}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </section>
+</div>

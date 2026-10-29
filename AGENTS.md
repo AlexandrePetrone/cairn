@@ -294,9 +294,19 @@ Rules:
   they are built directly as real templates with their controllers.
 - Icons: `<twig:ux:icon name="lucide:x" />` or `ux_icon('lucide:' ~ name)`,
   imported locally into `assets/icons/lucide/` with `ux:icons:import`.
+- **Components of one page keep each other up to date through a domain
+  event.** An action that changed the data dispatches its command, redraws
+  in place and emits it (`issue:changed`); every component of the page
+  listens with a `#[LiveListener]` that just redraws. No redirect from a
+  live action when other components hold state worth keeping (a comment
+  being written).
+- **Toasts have one host.** `Ui:Toaster`, placed once in `base.html.twig`,
+  shows the flash messages the page starts with and adds a toast for every
+  `toast:show` browser event; a live component sends one with
+  `dispatchBrowserEvent('toast:show', ['message' => …])`.
 - JavaScript is Stimulus only, one small controller per behaviour in
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`,
-  `toast`); write a new one when a component needs it, not before. No
+  `toast`, `toaster`); write a new one when a component needs it, not before. No
   inline scripts.
 
 ## Configuration and snapshot

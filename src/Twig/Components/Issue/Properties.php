@@ -17,23 +17,27 @@ use App\MessageHandler\Command\Issue\IssueException;
 use App\Security\AccessControl;
 use App\Security\Permission;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
+use Symfony\UX\LiveComponent\Attribute\LiveListener;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
  * The properties of an issue in the side panel of its page: assignee,
  * criticality and visibility become choices for whoever may change them.
- * A change is its own command, then the page reloads.
+ * A change is its own command; the other components of the page are told
+ * (`issue:changed`), and this one follows their changes (a transition
+ * moves the issue to another place).
  */
 #[AsLiveComponent('Issue:Properties')]
 final class Properties extends AbstractController
 {
+    use ComponentToolsTrait;
     use DefaultActionTrait;
 
     #[LiveProp]
@@ -65,9 +69,18 @@ final class Properties extends AbstractController
     public function mount(Issue $issue): void
     {
         $this->issue = $issue;
-        $this->assigneeId = $issue->getAssignee()?->getId();
-        $this->criticality = $issue->getCriticality();
-        $this->visibility = $issue->isPrivate() ? 'private' : 'public';
+        $this->refresh();
+    }
+
+    /**
+     * Aligns the choices with the issue as another component left it.
+     */
+    #[LiveListener('issue:changed')]
+    public function refresh(): void
+    {
+        $this->assigneeId = $this->issue->getAssignee()?->getId();
+        $this->criticality = $this->issue->getCriticality();
+        $this->visibility = $this->issue->isPrivate() ? 'private' : 'public';
     }
 
     public function canAssign(): bool
@@ -98,7 +111,7 @@ final class Properties extends AbstractController
     }
 
     #[LiveAction]
-    public function change(CommandBus $commands, #[LiveArg] string $property): ?Response
+    public function change(CommandBus $commands, #[LiveArg] string $property): void
     {
         $actorId = (int) $this->viewer()->getId();
         $key = $this->issue->getKey();
@@ -109,24 +122,20 @@ final class Properties extends AbstractController
             default => null,
         };
         if (null === $command) {
-            return null;
+            return;
         }
 
         try {
             $commands->dispatch($command);
         } catch (IssueException|AccessDeniedException) {
             $this->error = $this->translator->trans('issue.change.refused');
+            $this->refresh();
 
-            return null;
+            return;
         }
 
-        $this->addFlash('success', $this->translator->trans('issue.change.done', ['%key%' => $key]));
-
-        return $this->redirectToRoute('app_issue_show', [
-            'workspaceKey' => $this->issue->getProject()->getWorkspace()->getKey(),
-            'projectKey' => $this->issue->getProject()->getKey(),
-            'number' => $this->issue->getNumber(),
-        ]);
+        $this->emit('issue:changed');
+        $this->dispatchBrowserEvent('toast:show', ['message' => $this->translator->trans('issue.change.done', ['%key%' => $key])]);
     }
 
     private function viewer(): User
