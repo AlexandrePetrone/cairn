@@ -1,4 +1,4 @@
-component: Table
+component: Ui:Table
 variants:
     default:
         blocks:

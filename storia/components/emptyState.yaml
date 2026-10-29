@@ -1,4 +1,4 @@
-component: EmptyState
+component: Ui:EmptyState
 variants:
     default:
         args: { title: Aucune demande ne correspond, icon: search }

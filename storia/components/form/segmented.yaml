@@ -1,4 +1,4 @@
-component: Form:Segmented
+component: Ui:Form:Segmented
 variants:
     default:
         args: { name: reproducible, options: { always: 'Oui, systématiquement', sometimes: Parfois, once: Une seule fois } }

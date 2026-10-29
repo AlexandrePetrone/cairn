@@ -221,8 +221,15 @@ Rules:
 - Tailwind v4, configured in CSS (`assets/styles/app.css`: `@theme`, `@utility`,
   `@source`), built by `symfonycasts/tailwind-bundle` (`tailwind:build`,
   started as a `symfony serve` worker). No `tailwind.config.js`.
-- UI elements are **anonymous Twig components** in `templates/components/`,
-  grouped in folders (`Status/`, `Form/`, `Filter/`…), with `{% props %}`.
+- UI elements are **anonymous Twig components** in `templates/components/Ui/`,
+  grouped in folders (`Status/`, `Form/`, `Filter/`…), with `{% props %}`,
+  and used with the `Ui:` prefix (`<twig:Ui:Button>`, `<twig:Ui:Form:Input>`).
+  This is the UI kit, and exactly what Storia catalogues. Components with a
+  PHP class (`#[AsTwigComponent]`, `#[AsLiveComponent]` in
+  `src/Twig/Components/`) keep their template beside the kit, in
+  `templates/components/<Group>/`, and carry no `Ui:` prefix
+  (`<twig:Issue:Actions>`, `<twig:Layout:Header>`): the prefix alone tells
+  a building block from a component that reads data or acts.
   Classes always go through a CVA recipe (`html_cva`): base classes, one
   variant group per prop (booleans as `true`/`false` keys; in
   `compoundVariants` compare with real booleans, `[true]`), and the root
@@ -243,13 +250,13 @@ Rules:
 - A component earns its place with a choice of classes (variants, tones,
   sizes) or a structure; a single element with fixed classes is not a
   component, write the classes. Components take scalars as props and
-  **content as blocks**: compose `<twig:Avatar>`s inside `<twig:AvatarStack>`,
-  `<twig:Filter:Option>`s inside `<twig:Filter:Menu>`, rather than passing a
+  **content as blocks**: compose `<twig:Ui:Avatar>`s inside `<twig:Ui:AvatarStack>`,
+  `<twig:Ui:Filter:Option>`s inside `<twig:Ui:Filter:Menu>`, rather than passing a
   list of objects to loop over. A list is acceptable only when the
   component computes something from it (`StackedBar`).
 - Every component has its view in `storia/components/<group>/<name>.yaml`
   (a folder is a navigation group: never give a view the same name as a
-  folder, so `Dropdown:Item` lives in `dropdownItem.yaml` next to
+  folder, so `Ui:Dropdown:Item` lives in `dropdownItem.yaml` next to
   `dropdown.yaml`)
   with 2 to 5 meaningful variants. A variant shows one state or mode and is
   named after it (`default`, `checked`, `with_icon`, `dark`), never after the
@@ -267,7 +274,7 @@ Rules:
 - Symfony forms render through `templates/form/theme.html.twig`, registered
   globally in `config/packages/twig.yaml`: each block (`form_row`,
   `form_widget_simple`, `textarea_widget`, `choice_widget_collapsed`,
-  `choice_widget_expanded`, `checkbox_row`, buttons) delegates to a `Form:*`
+  `choice_widget_expanded`, `checkbox_row`, buttons) delegates to a `Ui:Form:*`
   component, so the look of a field lives in one place. Each rendering has a
   `form:` view in `storia/components/formTypes/` (named after the rendering:
   `choice_radio`, `choice_checkboxes`), which Storia renders as `default`,
@@ -276,9 +283,9 @@ Rules:
 - Form controls style their disabled state: `disabled:` utilities on the
   field itself, `has-[:disabled]:` on the label that wraps a checkbox or a
   radio.
-- The shell is `Layout:Shell` (blocks `header`, `sidebar`, `breadcrumb`,
-  content) with `Layout:Sidebar`, `Layout:Sidebar:Section` and
-  `Layout:Sidebar:Item`: low-level pieces without data. `Layout:Header`
+- The shell is `Ui:Layout:Shell` (blocks `header`, `sidebar`, `breadcrumb`,
+  content) with `Ui:Layout:Sidebar`, `Ui:Layout:Sidebar:Section` and
+  `Ui:Layout:Sidebar:Item`: low-level pieces without data. `Layout:Header`
   and `Layout:ProjectNav`, which display data, are PHP-backed components
   (`#[AsTwigComponent]` in `src/Twig/Components/Layout/`). Inside a block
   passed to a nested component, `this` is that nested component: read your

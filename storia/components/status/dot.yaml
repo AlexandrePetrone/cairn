@@ -1,4 +1,4 @@
-component: Status:Dot
+component: Ui:Status:Dot
 variants:
     open: { args: { status: open } }
     in_progress: { args: { status: in_progress } }

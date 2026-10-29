@@ -1,4 +1,4 @@
-component: Layout:Sidebar:Item
+component: Ui:Layout:Sidebar:Item
 variants:
     default: { args: { href: '#', icon: list, count: 12 }, blocks: { content: Toutes } }
     active: { args: { href: '#', icon: list, count: 12, active: true }, blocks: { content: Toutes } }

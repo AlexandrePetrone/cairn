@@ -13,34 +13,34 @@
     </a>
     {% if project %}
         <div class="inline-flex h-8 max-w-[60vw] items-center gap-2 rounded-md bg-slate-800 px-2 ring-1 ring-inset ring-slate-700">
-            <twig:Chip tone="dark">{{ project.issuePrefix }}</twig:Chip>
+            <twig:Ui:Chip tone="dark">{{ project.issuePrefix }}</twig:Ui:Chip>
             <span class="font-medium text-white truncate">{{ project.name }}</span>
             <span class="hidden lg:inline text-xs text-slate-400 truncate">{{ project.workspace.name }}</span>
         </div>
     {% endif %}
     <div class="ml-auto flex items-center gap-2">
     {% if project and is_granted('issue.create', project) %}
-        <twig:Button variant="primary" icon="plus" href="{{ path('app_issue_new', { workspaceKey: project.workspace.key, projectKey: project.key }) }}" class="bg-indigo-500 hover:bg-indigo-400">
+        <twig:Ui:Button variant="primary" icon="plus" href="{{ path('app_issue_new', { workspaceKey: project.workspace.key, projectKey: project.key }) }}" class="bg-indigo-500 hover:bg-indigo-400">
             <span class="hidden sm:inline">{{ 'issue.create.title'|trans }}</span>
-        </twig:Button>
+        </twig:Ui:Button>
     {% endif %}
-    <twig:Dropdown align="right">
+    <twig:Ui:Dropdown align="right">
         <twig:block name="trigger">
             <button type="button" data-action="dropdown#toggle" aria-expanded="false" aria-haspopup="menu" class="flex items-center gap-1.5 rounded-full hover:ring-2 hover:ring-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-400" title="{{ headerUser.fullName }}">
-                <twig:Avatar :name="headerUser.fullName" :kind="headerUser.internal ? 'internal' : 'external'" size="lg" />
+                <twig:Ui:Avatar :name="headerUser.fullName" :kind="headerUser.internal ? 'internal' : 'external'" size="lg" />
                 <twig:ux:icon name="lucide:chevron-down" class="hidden sm:block h-3.5 w-3.5 text-slate-400" />
             </button>
         </twig:block>
         <div class="flex items-center gap-2.5 px-3 py-2.5 border-b border-gray-100">
-            <twig:Avatar :name="headerUser.fullName" :kind="headerUser.internal ? 'internal' : 'external'" size="xl" />
+            <twig:Ui:Avatar :name="headerUser.fullName" :kind="headerUser.internal ? 'internal' : 'external'" size="xl" />
             <div class="min-w-0 leading-tight">
                 <div class="text-sm font-medium text-gray-900 truncate">{{ headerUser.fullName }}</div>
                 <div class="text-xs text-gray-500 truncate">{{ headerUser.email }}</div>
             </div>
         </div>
-        <twig:Dropdown:Item href="{{ path('app_home') }}" icon="home">{{ 'nav.home'|trans }}</twig:Dropdown:Item>
+        <twig:Ui:Dropdown:Item href="{{ path('app_home') }}" icon="home">{{ 'nav.home'|trans }}</twig:Ui:Dropdown:Item>
         <div class="my-1 border-t border-gray-100"></div>
-        <twig:Dropdown:Item href="{{ path('app_logout') }}" icon="log-out">{{ 'auth.logout'|trans }}</twig:Dropdown:Item>
-    </twig:Dropdown>
+        <twig:Ui:Dropdown:Item href="{{ path('app_logout') }}" icon="log-out">{{ 'auth.logout'|trans }}</twig:Ui:Dropdown:Item>
+    </twig:Ui:Dropdown>
     </div>
 </header>

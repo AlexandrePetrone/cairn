@@ -1,4 +1,4 @@
-component: Panel
+component: Ui:Panel
 variants:
     default:
         args: { title: Assignées à moi, count: 4, href: '#' }

@@ -1,4 +1,4 @@
-component: Disclosure
+component: Ui:Disclosure
 variants:
     closed:
         args: { openLabel: Masquer le détail, closedLabel: Voir le détail }

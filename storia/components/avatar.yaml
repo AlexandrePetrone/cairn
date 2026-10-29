@@ -1,4 +1,4 @@
-component: Avatar
+component: Ui:Avatar
 variants:
     internal: { args: { name: Thomas Girard } }
     external: { args: { name: Claire Martin, kind: external } }

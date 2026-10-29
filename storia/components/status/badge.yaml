@@ -1,4 +1,4 @@
-component: Status:Badge
+component: Ui:Status:Badge
 variants:
     open: { args: { status: open } }
     in_progress: { args: { status: in_progress } }

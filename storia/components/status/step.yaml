@@ -1,4 +1,4 @@
-component: Status:Step
+component: Ui:Status:Step
 variants:
     default: { args: { status: waiting, label: À recetter } }
     closed: { args: { status: closed, label: Fermée } }

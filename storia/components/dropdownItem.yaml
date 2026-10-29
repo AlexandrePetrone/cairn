@@ -1,4 +1,4 @@
-component: Dropdown:Item
+component: Ui:Dropdown:Item
 variants:
     default: { args: { icon: inbox }, blocks: { content: Mes demandes } }
     active: { args: { icon: home, active: true }, blocks: { content: Accueil } }

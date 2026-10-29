@@ -1,4 +1,4 @@
-component: Callout
+component: Ui:Callout
 variants:
     gray: { blocks: { content: 'Le préfixe ne peut plus changer : des demandes existent.' } }
     amber: { args: { tone: amber }, blocks: { content: '<h2 class="font-semibold">À regarder en premier</h2>' } }

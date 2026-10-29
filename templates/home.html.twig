@@ -4,9 +4,9 @@
 
 {% block content %}
     <div class="px-4 sm:px-6 py-10 grid place-items-center">
-        <twig:Panel class="w-full max-w-sm p-6 text-center space-y-3">
-            <twig:Avatar :name="app.user.fullName" :kind="app.user.internal ? 'internal' : 'external'" size="2xl" class="mx-auto" />
+        <twig:Ui:Panel class="w-full max-w-sm p-6 text-center space-y-3">
+            <twig:Ui:Avatar :name="app.user.fullName" :kind="app.user.internal ? 'internal' : 'external'" size="2xl" class="mx-auto" />
             <p class="text-gray-900">{{ 'home.signed_in_as'|trans({ '%name%': app.user.fullName }) }}</p>
-        </twig:Panel>
+        </twig:Ui:Panel>
     </div>
 {% endblock %}

@@ -1,4 +1,4 @@
-component: Button
+component: Ui:Button
 variants:
     primary: { args: { variant: primary, icon: plus }, blocks: { content: Nouvelle demande } }
     secondary: { blocks: { content: Modifier } }

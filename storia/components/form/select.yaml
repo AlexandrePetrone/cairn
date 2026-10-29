@@ -1,4 +1,4 @@
-component: Form:Select
+component: Ui:Form:Select
 variants:
     default: { args: { name: environment }, blocks: { content: '<option>Choisir…</option><option>Production</option><option>Préproduction</option>' } }
     disabled: { args: { name: workflow, disabled: true }, blocks: { content: '<option selected>Anomalie</option>' } }

@@ -10,18 +10,18 @@
         <div class="flex-1 min-w-0">
             <div>
                 <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                    <twig:IssueKey :key="issue.key" size="lg" />
+                    <twig:Ui:IssueKey :key="issue.key" size="lg" />
                     <span class="text-gray-300">·</span>
                     <span>{{ issue.tracker.name }}</span>
                     <span class="text-gray-300">·</span>
                     <span>{{ 'issue.show.created_by'|trans({ '%name%': issue.author.fullName, '%date%': issue.createdAt|date('d/m/Y') }) }}</span>
-                    {% if issue.private %}<twig:Badge tone="amber" size="sm" icon="lock">{{ 'issue.private'|trans }}</twig:Badge>{% endif %}
+                    {% if issue.private %}<twig:Ui:Badge tone="amber" size="sm" icon="lock">{{ 'issue.private'|trans }}</twig:Ui:Badge>{% endif %}
                 </div>
                 <h1 class="mt-1 text-xl font-semibold text-gray-900 leading-snug">{{ issue.title }}</h1>
             </div>
 
             {% if detail.place and detail.place.hint %}
-                <twig:Callout tone="blue" size="sm" class="mt-4">{{ detail.place.hint }}</twig:Callout>
+                <twig:Ui:Callout tone="blue" size="sm" class="mt-4">{{ detail.place.hint }}</twig:Ui:Callout>
             {% endif %}
 
             <section class="mt-5 rounded-lg border border-gray-200 bg-white p-5 text-gray-800 leading-relaxed">
@@ -53,12 +53,12 @@
                         {% endif %}
                         {% if entryComment %}
                             <li class="relative pl-6">
-                                <span class="absolute -left-3 top-1"><twig:Avatar :name="entryComment.author.fullName" :kind="entryComment.author.internal ? 'internal' : 'external'" /></span>
+                                <span class="absolute -left-3 top-1"><twig:Ui:Avatar :name="entryComment.author.fullName" :kind="entryComment.author.internal ? 'internal' : 'external'" /></span>
                                 <div class="rounded-lg border p-3 {{ entryComment.private ? 'border-amber-200 border-l-4 border-l-amber-400 bg-amber-50/70 private-hatching' : 'border-gray-200 bg-white' }}">
                                     <div class="flex items-center gap-2 text-xs">
                                         <span class="font-medium text-gray-900">{{ entryComment.author.fullName }}</span>
                                         <span class="text-gray-400">{{ entryComment.createdAt|date('d/m/Y H:i') }}</span>
-                                        {% if entryComment.private %}<twig:Badge tone="amber" size="sm" icon="lock" class="ml-auto">{{ 'issue.comment.private_badge'|trans }}</twig:Badge>{% endif %}
+                                        {% if entryComment.private %}<twig:Ui:Badge tone="amber" size="sm" icon="lock" class="ml-auto">{{ 'issue.comment.private_badge'|trans }}</twig:Ui:Badge>{% endif %}
                                     </div>
                                     <p class="mt-1.5 text-gray-800 leading-relaxed">{{ entryComment.body|nl2br }}</p>
                                 </div>
@@ -76,12 +76,12 @@
             <div class="lg:sticky lg:top-16 rounded-lg border border-gray-200 bg-white divide-y divide-gray-100">
                 <dl class="p-3 space-y-2.5 text-sm">
                     <div class="flex items-center gap-2"><dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.tracker'|trans }}</dt><dd>{{ issue.tracker.name }}</dd></div>
-                    <div class="flex items-center gap-2"><dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.place'|trans }}</dt><dd><twig:Status:Step :status="issue.status.value" :label="issue_place(issue)" /></dd></div>
-                    <div class="flex items-center gap-2"><dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.criticality'|trans }}</dt><dd><twig:Criticality:Badge :criticality="issue.criticality.value" /></dd></div>
+                    <div class="flex items-center gap-2"><dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.place'|trans }}</dt><dd><twig:Ui:Status:Step :status="issue.status.value" :label="issue_place(issue)" /></dd></div>
+                    <div class="flex items-center gap-2"><dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.criticality'|trans }}</dt><dd><twig:Ui:Criticality:Badge :criticality="issue.criticality.value" /></dd></div>
                     <div class="flex items-center gap-2">
                         <dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.assignee'|trans }}</dt>
                         <dd class="flex items-center gap-1.5">
-                            <twig:Avatar :name="issue.assignee ? issue.assignee.fullName : null" :kind="issue.assignee and issue.assignee.internal ? 'internal' : 'external'" size="sm" />
+                            <twig:Ui:Avatar :name="issue.assignee ? issue.assignee.fullName : null" :kind="issue.assignee and issue.assignee.internal ? 'internal' : 'external'" size="sm" />
                             {{ issue.assignee ? issue.assignee.fullName : 'issue.show.nobody'|trans }}
                         </dd>
                     </div>

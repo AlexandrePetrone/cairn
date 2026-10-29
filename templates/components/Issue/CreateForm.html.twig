@@ -9,9 +9,9 @@
         </div>
         <div class="grid sm:grid-cols-3 gap-3" data-loading="addClass(opacity-60)">
             {% for tracker in createTrackers %}
-                <twig:Form:RadioCard large name="tracker" :value="tracker.id" :checked="tracker.id == trackerId" :dashed="tracker.private" :title="tracker.name" :description="tracker.description" model="trackerId">
-                    <twig:block name="badge">{% if tracker.private %}<twig:Badge tone="amber" size="sm" icon="lock" class="ml-auto">{{ 'issue.create.internal'|trans }}</twig:Badge>{% endif %}</twig:block>
-                </twig:Form:RadioCard>
+                <twig:Ui:Form:RadioCard large name="tracker" :value="tracker.id" :checked="tracker.id == trackerId" :dashed="tracker.private" :title="tracker.name" :description="tracker.description" model="trackerId">
+                    <twig:block name="badge">{% if tracker.private %}<twig:Ui:Badge tone="amber" size="sm" icon="lock" class="ml-auto">{{ 'issue.create.internal'|trans }}</twig:Ui:Badge>{% endif %}</twig:block>
+                </twig:Ui:Form:RadioCard>
             {% endfor %}
         </div>
     </section>
@@ -19,7 +19,7 @@
     {% if createTracker %}
         {{ form_start(form, { attr: form.vars.attr|merge({ 'data-action': 'live#action:prevent', 'data-live-action-param': 'save', class: 'space-y-6' }) }) }}
             {% if failure %}
-                <twig:Callout tone="danger" size="sm" role="alert">{{ failure }}</twig:Callout>
+                <twig:Ui:Callout tone="danger" size="sm" role="alert">{{ failure }}</twig:Ui:Callout>
             {% endif %}
 
             <section>
@@ -44,7 +44,7 @@
                 <section>
                     <div class="flex items-baseline gap-2 mb-2">
                         <h2 class="font-semibold text-gray-900">{{ 'issue.create.qualification'|trans }}</h2>
-                        <twig:Badge tone="amber" size="sm" icon="lock">{{ 'issue.create.internal'|trans }}</twig:Badge>
+                        <twig:Ui:Badge tone="amber" size="sm" icon="lock">{{ 'issue.create.internal'|trans }}</twig:Ui:Badge>
                         <span class="text-xs text-gray-400">{{ 'issue.create.qualification_hint'|trans }}</span>
                     </div>
                     <div class="rounded-lg border border-amber-200 bg-amber-50/40 private-hatching p-4 grid sm:grid-cols-3 gap-4">
@@ -55,8 +55,8 @@
             {% endif %}
 
             <div class="sticky bottom-0 border-t border-gray-200 bg-white/95 backdrop-blur py-3 flex items-center gap-3">
-                <twig:Button variant="primary" size="lg" type="submit" data-loading="addAttribute(disabled)">{{ 'issue.create.submit'|trans }}</twig:Button>
-                <twig:Button variant="ghost" size="lg" href="{{ path('app_project_issues', { workspaceKey: project.workspace.key, projectKey: project.key }) }}">{{ 'issue.create.cancel'|trans }}</twig:Button>
+                <twig:Ui:Button variant="primary" size="lg" type="submit" data-loading="addAttribute(disabled)">{{ 'issue.create.submit'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button variant="ghost" size="lg" href="{{ path('app_project_issues', { workspaceKey: project.workspace.key, projectKey: project.key }) }}">{{ 'issue.create.cancel'|trans }}</twig:Ui:Button>
             </div>
         {{ form_end(form) }}
     {% endif %}

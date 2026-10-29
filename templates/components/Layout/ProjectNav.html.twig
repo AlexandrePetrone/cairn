@@ -1,17 +1,17 @@
 {# Project level: the issue lists, then the trackers the viewer may see. #}
 {% set route = { workspaceKey: project.workspace.key, projectKey: project.key } %}
 {% set navTrackers = this.trackers %}
-<twig:Layout:Sidebar :title="project.name">
-    <twig:Layout:Sidebar:Section :label="'nav.project.issues'|trans">
-        <twig:Layout:Sidebar:Item href="{{ path('app_project_issues', route) }}" icon="list" :active="app.current_route == 'app_project_issues'">{{ 'nav.issues.all'|trans }}</twig:Layout:Sidebar:Item>
-        <twig:Layout:Sidebar:Item href="{{ path('app_project_issues_assigned', route) }}" icon="user" :active="app.current_route == 'app_project_issues_assigned'">{{ 'nav.issues.assigned'|trans }}</twig:Layout:Sidebar:Item>
-        <twig:Layout:Sidebar:Item href="{{ path('app_project_issues_created', route) }}" icon="pencil" :active="app.current_route == 'app_project_issues_created'">{{ 'nav.issues.created'|trans }}</twig:Layout:Sidebar:Item>
-    </twig:Layout:Sidebar:Section>
+<twig:Ui:Layout:Sidebar :title="project.name">
+    <twig:Ui:Layout:Sidebar:Section :label="'nav.project.issues'|trans">
+        <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_issues', route) }}" icon="list" :active="app.current_route == 'app_project_issues'">{{ 'nav.issues.all'|trans }}</twig:Ui:Layout:Sidebar:Item>
+        <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_issues_assigned', route) }}" icon="user" :active="app.current_route == 'app_project_issues_assigned'">{{ 'nav.issues.assigned'|trans }}</twig:Ui:Layout:Sidebar:Item>
+        <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_issues_created', route) }}" icon="pencil" :active="app.current_route == 'app_project_issues_created'">{{ 'nav.issues.created'|trans }}</twig:Ui:Layout:Sidebar:Item>
+    </twig:Ui:Layout:Sidebar:Section>
     {% if navTrackers is not empty %}
-        <twig:Layout:Sidebar:Section :label="'nav.project.trackers'|trans">
+        <twig:Ui:Layout:Sidebar:Section :label="'nav.project.trackers'|trans">
             {% for tracker in navTrackers %}
-                <twig:Layout:Sidebar:Item href="{{ path('app_project_issues_tracker', route|merge({ tracker: tracker.id })) }}" icon="kanban" :locked="tracker.private" :active="app.current_route == 'app_project_issues_tracker' and app.current_route_parameters.tracker == tracker.id">{{ tracker.name }}</twig:Layout:Sidebar:Item>
+                <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_issues_tracker', route|merge({ tracker: tracker.id })) }}" icon="kanban" :locked="tracker.private" :active="app.current_route == 'app_project_issues_tracker' and app.current_route_parameters.tracker == tracker.id">{{ tracker.name }}</twig:Ui:Layout:Sidebar:Item>
             {% endfor %}
-        </twig:Layout:Sidebar:Section>
+        </twig:Ui:Layout:Sidebar:Section>
     {% endif %}
-</twig:Layout:Sidebar>
+</twig:Ui:Layout:Sidebar>

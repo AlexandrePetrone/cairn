@@ -11,6 +11,6 @@
     },
 ) %}
 <span class="{{ statusBadgeClasses.apply({ status: status }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
-    <twig:Status:Dot status="{{ status }}" />
+    <twig:Ui:Status:Dot status="{{ status }}" />
     {{ ('status.' ~ status)|trans }}
 </span>

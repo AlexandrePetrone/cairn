@@ -1,4 +1,4 @@
-component: Filter:Option
+component: Ui:Filter:Option
 variants:
     default: { args: {  count: 2 }, blocks: { content: Haute } }
     checked: { args: { count: 2, checked: true }, blocks: { content: Haute } }

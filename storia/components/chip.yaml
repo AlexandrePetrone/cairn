@@ -1,4 +1,4 @@
-component: Chip
+component: Ui:Chip
 variants:
     gray: { blocks: { content: MD-SPT } }
     dark: { args: { tone: dark }, blocks: { content: MD-SPT } }

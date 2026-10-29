@@ -5,8 +5,8 @@
 
 {% block body %}
     {% set layoutPageContent %}{% block content %}{% endblock %}{% endset %}
-    <twig:Layout:Shell>
+    <twig:Ui:Layout:Shell>
         <twig:block name="header"><twig:Layout:Header /></twig:block>
         {{ layoutPageContent }}
-    </twig:Layout:Shell>
+    </twig:Ui:Layout:Shell>
 {% endblock %}

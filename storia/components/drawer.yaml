@@ -1,4 +1,4 @@
-component: Drawer
+component: Ui:Drawer
 variants:
     default:
         args: { title: Inviter des utilisateurs }

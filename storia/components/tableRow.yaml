@@ -1,4 +1,4 @@
-component: Table:Row
+component: Ui:Table:Row
 variants:
     open:
         blocks:

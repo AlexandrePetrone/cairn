@@ -1,4 +1,4 @@
-component: Form:Field
+component: Ui:Form:Field
 variants:
     required:
         args: { label: URL concernée, for: url, required: true }

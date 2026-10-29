@@ -2,7 +2,7 @@
 {% set statTileClasses = html_cva(base: 'rounded-lg border border-gray-200 bg-white p-4 hover:border-indigo-300 transition') %}
 <div class="{{ statTileClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
     <div class="flex items-center gap-1.5 text-xs text-gray-500">
-        {% if status %}<twig:Status:Dot status="{{ status }}" size="md" />{% endif %}
+        {% if status %}<twig:Ui:Status:Dot status="{{ status }}" size="md" />{% endif %}
         {{ label }}
     </div>
     <div class="mt-1 text-3xl font-semibold tabular-nums text-gray-900">{{ value }}</div>

@@ -14,24 +14,24 @@
                 <h1 class="text-base font-semibold text-gray-900">{{ 'auth.login.title'|trans }}</h1>
 
                 {% if error %}
-                    <twig:Callout tone="danger" size="sm" class="border-red-200 bg-red-50 text-red-700" role="alert">
+                    <twig:Ui:Callout tone="danger" size="sm" class="border-red-200 bg-red-50 text-red-700" role="alert">
                         {{ error.messageKey|trans(error.messageData, 'security') }}
-                    </twig:Callout>
+                    </twig:Ui:Callout>
                 {% endif %}
 
-                <twig:Form:Field :label="'auth.login.email'|trans" for="email" required>
-                    <twig:Form:Input type="email" id="email" name="email" :value="lastEmail" autocomplete="email" required autofocus />
-                </twig:Form:Field>
+                <twig:Ui:Form:Field :label="'auth.login.email'|trans" for="email" required>
+                    <twig:Ui:Form:Input type="email" id="email" name="email" :value="lastEmail" autocomplete="email" required autofocus />
+                </twig:Ui:Form:Field>
 
-                <twig:Form:Field :label="'auth.login.password'|trans" for="password" required>
-                    <twig:Form:Input type="password" id="password" name="password" autocomplete="current-password" required />
-                </twig:Form:Field>
+                <twig:Ui:Form:Field :label="'auth.login.password'|trans" for="password" required>
+                    <twig:Ui:Form:Input type="password" id="password" name="password" autocomplete="current-password" required />
+                </twig:Ui:Form:Field>
 
-                <twig:Form:Checkbox name="_remember_me" :label="'auth.login.remember_me'|trans" />
+                <twig:Ui:Form:Checkbox name="_remember_me" :label="'auth.login.remember_me'|trans" />
 
                 <input type="hidden" name="_csrf_token" data-controller="csrf-protection" value="{{ csrf_token('authenticate') }}">
 
-                <twig:Button variant="primary" size="lg" type="submit" class="w-full">{{ 'auth.login.submit'|trans }}</twig:Button>
+                <twig:Ui:Button variant="primary" size="lg" type="submit" class="w-full">{{ 'auth.login.submit'|trans }}</twig:Ui:Button>
             </form>
         </div>
     </main>

@@ -1,4 +1,4 @@
-component: Form:Toggle
+component: Ui:Form:Toggle
 variants:
     off: { args: { name: private, label: Commentaire privé } }
     on: { args: { name: private, label: Commentaire privé, checked: true } }

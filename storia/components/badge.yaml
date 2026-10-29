@@ -1,4 +1,4 @@
-component: Badge
+component: Ui:Badge
 variants:
     gray: { blocks: { content: Désactivé } }
     emerald: { args: { tone: emerald }, blocks: { content: Actif } }

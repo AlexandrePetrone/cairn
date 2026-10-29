@@ -1,4 +1,4 @@
-component: StatTile
+component: Ui:StatTile
 variants:
     new: { args: { label: Nouvelles, value: 7, caption: à qualifier, status: open } }
     testing: { args: { label: En recette, value: 3, caption: chez le client, status: waiting } }

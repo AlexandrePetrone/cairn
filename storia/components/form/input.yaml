@@ -1,4 +1,4 @@
-component: Form:Input
+component: Ui:Form:Input
 variants:
     text: { args: { name: title, placeholder: Décrivez le problème en une phrase } }
     readonly: { args: { readonly: true }, blocks: { content: MD-SPT } }
