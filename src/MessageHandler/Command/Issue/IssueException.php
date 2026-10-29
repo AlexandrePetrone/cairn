@@ -55,6 +55,16 @@ final class IssueException extends \DomainException
         return new self(\sprintf('Place "%s" does not exist in workflow "%s".', $placeId, $workflowId));
     }
 
+    public static function notAMember(string $userName, string $projectName): self
+    {
+        return new self(\sprintf('%s holds no role on project "%s".', $userName, $projectName));
+    }
+
+    public static function privateTracker(string $trackerName): self
+    {
+        return new self(\sprintf('Issues of tracker "%s" are private.', $trackerName));
+    }
+
     public static function sameTracker(string $trackerName): self
     {
         return new self(\sprintf('The issue is already in tracker "%s".', $trackerName));

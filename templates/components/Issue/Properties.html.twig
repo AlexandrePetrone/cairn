@@ -1,0 +1,56 @@
+{# The properties of the issue page's side panel. A property the viewer may change is a select bound to its prop, applied on change; the controls are plain HTML because a data-model attribute on a nested component would bind that component instead. #}
+{% set propertiesSelectClasses = 'h-8 w-full rounded-md border border-gray-200 bg-white py-0 pl-2 text-sm hover:border-gray-300 focus:border-indigo-400 focus:outline-none focus:ring-0' %}
+{% set propertiesMembers = this.canAssign ? this.members : [] %}
+<dl {{ attributes }} class="p-3 space-y-2.5 text-sm" data-loading="addClass(opacity-60)">
+    {% if error %}
+        <twig:Ui:Callout tone="danger" size="sm" role="alert">{{ error }}</twig:Ui:Callout>
+    {% endif %}
+    <div class="flex items-center gap-2"><dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.tracker'|trans }}</dt><dd>{{ issue.tracker.name }}</dd></div>
+    <div class="flex items-center gap-2"><dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.place'|trans }}</dt><dd><twig:Ui:Status:Step :status="issue.status.value" :label="issue_place(issue)" /></dd></div>
+    <div class="flex items-center gap-2">
+        <dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.criticality'|trans }}</dt>
+        <dd class="flex-1 min-w-0">
+            {% if this.canSetCriticality %}
+                <select data-model="norender|criticality" data-action="change->live#action" data-live-action-param="change" data-live-property-param="criticality" aria-label="{{ 'issue.show.criticality'|trans }}" class="{{ propertiesSelectClasses }}">
+                    {% for level in ['blocking', 'high', 'normal', 'low'] %}
+                        <option value="{{ level }}" {{ criticality.value == level ? 'selected' }}>{{ ('criticality.' ~ level)|trans }}</option>
+                    {% endfor %}
+                </select>
+            {% else %}
+                <twig:Ui:Criticality:Badge :criticality="issue.criticality.value" />
+            {% endif %}
+        </dd>
+    </div>
+    <div class="flex items-center gap-2">
+        <dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.assignee'|trans }}</dt>
+        <dd class="flex-1 min-w-0 flex items-center gap-1.5">
+            {% if this.canAssign %}
+                <select data-model="norender|assigneeId" data-action="change->live#action" data-live-action-param="change" data-live-property-param="assignee" aria-label="{{ 'issue.show.assignee'|trans }}" class="{{ propertiesSelectClasses }}">
+                    <option value="" {{ assigneeId is null ? 'selected' }}>{{ 'issue.show.nobody'|trans }}</option>
+                    {% for member in propertiesMembers %}
+                        <option value="{{ member.id }}" {{ member.id == assigneeId ? 'selected' }}>{{ member.fullName }}</option>
+                    {% endfor %}
+                </select>
+            {% else %}
+                <twig:Ui:Avatar :name="issue.assignee ? issue.assignee.fullName : null" :kind="issue.assignee and issue.assignee.internal ? 'internal' : 'external'" size="sm" />
+                {{ issue.assignee ? issue.assignee.fullName : 'issue.show.nobody'|trans }}
+            {% endif %}
+        </dd>
+    </div>
+    {# Visibility is an agency matter: external users only ever see what is visible to them. #}
+    {% if app.user.internal %}
+        <div class="flex items-center gap-2">
+            <dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.visibility'|trans }}</dt>
+            <dd class="flex-1 min-w-0 text-gray-700">
+                {% if this.canSetVisibility %}
+                    <select data-model="norender|visibility" data-action="change->live#action" data-live-action-param="change" data-live-property-param="visibility" aria-label="{{ 'issue.show.visibility'|trans }}" class="{{ propertiesSelectClasses }}">
+                        <option value="public" {{ visibility == 'public' ? 'selected' }}>{{ 'issue.show.visible_externals'|trans }}</option>
+                        <option value="private" {{ visibility == 'private' ? 'selected' }}>{{ 'issue.show.hidden_externals'|trans }}</option>
+                    </select>
+                {% else %}
+                    {{ (issue.private ? 'issue.show.hidden_externals' : 'issue.show.visible_externals')|trans }}
+                {% endif %}
+            </dd>
+        </div>
+    {% endif %}
+</dl>

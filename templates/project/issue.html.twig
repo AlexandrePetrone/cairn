@@ -44,6 +44,9 @@
                                         {{ 'issue.event.created'|trans }}
                                     {% elseif event.type.value == 'transitioned' %}
                                         {{ 'issue.event.transitioned'|trans({ '%transition%': eventData.transition, '%from%': eventData.from, '%to%': eventData.to }) }}
+                                    {% elseif event.type.value == 'changed' %}
+                                        {% set changeValues = [eventData.from, eventData.to]|map(value => value is null ? 'issue.show.nobody'|trans : (eventData.field == 'criticality' ? ('criticality.' ~ value)|trans : (eventData.field == 'visibility' ? ('issue.show.' ~ (value == 'private' ? 'hidden' : 'visible') ~ '_externals')|trans : value))) %}
+                                        {{ ('issue.event.changed.' ~ eventData.field)|trans({ '%from%': changeValues[0], '%to%': changeValues[1] }) }}
                                     {% elseif event.type.value == 'tracker_changed' %}
                                         {{ 'issue.event.tracker_changed'|trans({ '%from_tracker%': eventData.from_tracker, '%to_tracker%': eventData.to_tracker, '%to%': eventData.to }) }}
                                     {% endif %}
@@ -74,19 +77,7 @@
 
         <aside class="mt-8 lg:mt-0 lg:w-72 shrink-0">
             <div class="lg:sticky lg:top-16 rounded-lg border border-gray-200 bg-white divide-y divide-gray-100">
-                <dl class="p-3 space-y-2.5 text-sm">
-                    <div class="flex items-center gap-2"><dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.tracker'|trans }}</dt><dd>{{ issue.tracker.name }}</dd></div>
-                    <div class="flex items-center gap-2"><dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.place'|trans }}</dt><dd><twig:Ui:Status:Step :status="issue.status.value" :label="issue_place(issue)" /></dd></div>
-                    <div class="flex items-center gap-2"><dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.criticality'|trans }}</dt><dd><twig:Ui:Criticality:Badge :criticality="issue.criticality.value" /></dd></div>
-                    <div class="flex items-center gap-2">
-                        <dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.assignee'|trans }}</dt>
-                        <dd class="flex items-center gap-1.5">
-                            <twig:Ui:Avatar :name="issue.assignee ? issue.assignee.fullName : null" :kind="issue.assignee and issue.assignee.internal ? 'internal' : 'external'" size="sm" />
-                            {{ issue.assignee ? issue.assignee.fullName : 'issue.show.nobody'|trans }}
-                        </dd>
-                    </div>
-                    <div class="flex items-center gap-2"><dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.visibility'|trans }}</dt><dd class="text-gray-700">{{ (issue.private ? 'issue.show.hidden_externals' : 'issue.show.visible_externals')|trans }}</dd></div>
-                </dl>
+                <twig:Issue:Properties :issue="issue" />
                 {% if detail.fields is not empty %}
                     <dl class="p-3 space-y-2.5">
                         <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{{ 'issue.show.fields'|trans({ '%tracker%': issue.tracker.name }) }}</div>

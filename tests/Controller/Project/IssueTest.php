@@ -42,6 +42,7 @@ final class IssueTest extends WebTestCase
         self::assertSelectorTextContains('main', 'Valider');
         self::assertSelectorTextContains('main', 'Refuser');
         self::assertSelectorTextContains('main', 'a créé la demande');
+        self::assertSelectorTextContains('main', 'a changé l\'assigné : Personne → Nadia Benali', 'assigned through the command in the fixtures');
     }
 
     public function testPrivateCommentsAreForInternalsOnly(): void

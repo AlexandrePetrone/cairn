@@ -94,6 +94,19 @@ class JournalEntry
         ]);
     }
 
+    /**
+     * A property of the issue changed: `assignee` (full names), `criticality`
+     * (enum values) or `visibility` (`public`, `private`). Null is "none".
+     */
+    public static function changed(Issue $issue, User $author, string $field, ?string $from, ?string $to): self
+    {
+        return new self($issue, $author, JournalEntryType::Changed, [
+            'field' => $field,
+            'from' => $from,
+            'to' => $to,
+        ]);
+    }
+
     public function getId(): ?int
     {
         return $this->id;

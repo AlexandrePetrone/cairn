@@ -29,6 +29,10 @@ issue:
         'false': Non
     event:
         created: a créé la demande
+        changed:
+            assignee: 'a changé l''assigné : %from% → %to%'
+            criticality: 'a changé la criticité : %from% → %to%'
+            visibility: 'a changé la visibilité : %from% → %to%'
         transitioned: 'a appliqué « %transition% » : %from% → %to%'
         tracker_changed: 'a changé la catégorie : %from_tracker% → %to_tracker% (%to%)'
     comment:
@@ -39,6 +43,9 @@ issue:
         private_badge: Privé · invisible pour les externes
         empty: Le commentaire est vide.
         added: Commentaire ajouté.
+    change:
+        done: '%key% mise à jour.'
+        refused: La modification n'a pas pu être appliquée.
     transition:
         hint: 'Étape %place% · votre commentaire accompagne l''action.'
         comment_required: Cette action demande un commentaire.

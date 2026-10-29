@@ -21,6 +21,7 @@ use App\Factory\UserFactory;
 use App\Factory\WorkspaceFactory;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
+use App\Message\Command\Issue\AssignIssue;
 use App\Message\Command\Issue\CreateIssue;
 use App\Message\CommandBus;
 use App\Security\AccessControl;
@@ -250,8 +251,7 @@ final class AppStory extends Story
         \assert($issue instanceof Issue);
 
         if (null !== $assignee) {
-            $issue->assignTo($this->users[$assignee]);
-            $this->entityManager->flush();
+            $this->commands->dispatch(new AssignIssue((int) $this->users[$people['manager']]->getId(), $issue->getKey(), $this->users[$assignee]->getId()));
         }
 
         if (mt_rand(0, 2) > 0) {
