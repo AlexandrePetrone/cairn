@@ -11,6 +11,39 @@ criticality:
     blocking: Bloquante
 
 issue:
+    show:
+        created_by: 'créée par %name% le %date%'
+        no_description: Aucune description.
+        activity: Activité
+        tracker: Catégorie
+        place: Étape
+        criticality: Criticité
+        assignee: Assigné
+        nobody: Personne
+        visibility: Visibilité
+        visible_externals: Visible par les externes
+        hidden_externals: Invisible pour les externes
+        fields: 'Champs %tracker%'
+        system: Cairn
+        'true': Oui
+        'false': Non
+    event:
+        created: a créé la demande
+        transitioned: 'a appliqué « %transition% » : %from% → %to%'
+        tracker_changed: 'a changé la catégorie : %from_tracker% → %to_tracker% (%to%)'
+    comment:
+        placeholder: Écrire un commentaire…
+        submit: Commenter
+        submit_private: Commenter en privé
+        private: Privé
+        private_badge: Privé · invisible pour les externes
+        empty: Le commentaire est vide.
+        added: Commentaire ajouté.
+    transition:
+        hint: 'Étape %place% · votre commentaire accompagne l''action.'
+        comment_required: Cette action demande un commentaire.
+        applied: '%key% : « %transition% » appliquée.'
+        refused: L'action n'a pas pu être appliquée.
     unassigned: Non assigné
     private: Privée
     create:

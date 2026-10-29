@@ -17,6 +17,8 @@ use App\Message\Query\Project\ListProjectMembers;
 use App\Message\QueryBus;
 use App\MessageHandler\Command\Issue\IssueException;
 use App\Repository\TrackerRepository;
+use App\Security\AccessControl;
+use App\Security\Permission;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\Form\FormFactoryInterface;
@@ -32,7 +34,7 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 /**
  * The new issue screen in one page: the tracker first, then the form built
  * for its workflow and for what the viewer may qualify. A valid submission
- * is a CreateIssue command, then a redirect to the list.
+ * is a CreateIssue command, then a redirect to the new issue.
  */
 #[AsLiveComponent('Issue:CreateForm')]
 final class CreateForm extends AbstractController
@@ -54,6 +56,7 @@ final class CreateForm extends AbstractController
         private readonly ConfigRegistry $config,
         private readonly QueryBus $queries,
         private readonly FormFactoryInterface $forms,
+        private readonly AccessControl $access,
     ) {
     }
 
@@ -123,9 +126,10 @@ final class CreateForm extends AbstractController
 
         $this->addFlash('success', $translator->trans('issue.create.created', ['%key%' => $issue->getKey()]));
 
-        return $this->redirectToRoute('app_project_issues', [
+        return $this->redirectToRoute('app_issue_show', [
             'workspaceKey' => $this->project->getWorkspace()->getKey(),
             'projectKey' => $this->project->getKey(),
+            'number' => $issue->getNumber(),
         ]);
     }
 
@@ -152,10 +156,10 @@ final class CreateForm extends AbstractController
             'workflow' => $definition->workflow($tracker->getWorkflowId()),
             'definition' => $definition,
             'internal' => $viewer->isInternal(),
-            'criticality' => $this->isGranted('issue.set_criticality', $this->project),
-            'members' => $this->isGranted('issue.assign', $this->project) ? $this->queries->ask(new ListProjectMembers($this->project)) : null,
+            'criticality' => $this->access->isGranted($viewer, Permission::IssueSetCriticality, $this->project),
+            'members' => $this->access->isGranted($viewer, Permission::IssueAssign, $this->project) ? $this->queries->ask(new ListProjectMembers($this->project)) : null,
             // Issues of a private tracker are private whatever one chooses.
-            'private' => !$tracker->isPrivate() && $this->isGranted('issue.set_private', $this->project),
+            'private' => !$tracker->isPrivate() && $this->access->isGranted($viewer, Permission::IssueSetPrivate, $this->project),
             'csrf_protection' => false,
         ]);
     }

@@ -81,9 +81,9 @@
                 {% for issue in issues.items %}
                     {% set closed = issue.status.value == 'closed' %}
                     <twig:Table:Row :closed="closed">
-                        <td class="sm:px-3 sm:py-2.5 order-1 whitespace-nowrap"><twig:IssueKey :key="issue.key" /></td>
+                        <td class="sm:px-3 sm:py-2.5 order-1 whitespace-nowrap"><twig:IssueKey :key="issue.key" href="{{ path('app_issue_show', route|merge({ number: issue.number })) }}" /></td>
                         <td class="sm:px-3 sm:py-2.5 order-4 basis-full sm:basis-auto {{ closed ? 'text-gray-500' : 'text-gray-900' }}">
-                            {{ issue.title }}
+                            <a href="{{ path('app_issue_show', route|merge({ number: issue.number })) }}" class="hover:text-indigo-700">{{ issue.title }}</a>
                             {% if issue.private %}<twig:Badge tone="amber" size="sm" icon="lock">{{ 'issue.private'|trans }}</twig:Badge>{% endif %}
                         </td>
                         <td class="sm:px-3 sm:py-2.5 order-5 whitespace-nowrap text-xs text-gray-600">{{ issue.tracker.name }}</td>

@@ -6,6 +6,7 @@ namespace App\Security;
 
 use App\Config\ConfigRegistry;
 use App\Config\Definition\TransitionDefinition;
+use App\Entity\Comment;
 use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\User;
@@ -84,6 +85,15 @@ final class AccessControl
         }
 
         return !$issue->isPrivate() && $this->canView($user, $issue->getProject());
+    }
+
+    /**
+     * Private comments are for internal users only. ShowIssueHandler
+     * applies the same rule in SQL; keep them in step.
+     */
+    public function canSeeComment(User $user, Comment $comment): bool
+    {
+        return $this->canSee($user, $comment->getIssue()) && ($user->isInternal() || !$comment->isPrivate());
     }
 
     public function canTransition(User $user, TransitionDefinition $transition, Project $project): bool

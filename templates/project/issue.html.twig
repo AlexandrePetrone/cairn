@@ -1,0 +1,114 @@
+{% extends 'layout/project.html.twig' %}
+
+{% set issue = detail.issue %}
+{% set issueAuthorKind = issue.author.internal ? 'internal' : 'external' %}
+
+{% block page_title %}{{ issue.key }}{% endblock %}
+
+{% block content %}
+    <div class="px-4 sm:px-6 py-5 max-w-screen-2xl lg:flex lg:gap-8">
+        <div class="flex-1 min-w-0">
+            <div>
+                <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                    <twig:IssueKey :key="issue.key" size="lg" />
+                    <span class="text-gray-300">·</span>
+                    <span>{{ issue.tracker.name }}</span>
+                    <span class="text-gray-300">·</span>
+                    <span>{{ 'issue.show.created_by'|trans({ '%name%': issue.author.fullName, '%date%': issue.createdAt|date('d/m/Y') }) }}</span>
+                    {% if issue.private %}<twig:Badge tone="amber" size="sm" icon="lock">{{ 'issue.private'|trans }}</twig:Badge>{% endif %}
+                </div>
+                <h1 class="mt-1 text-xl font-semibold text-gray-900 leading-snug">{{ issue.title }}</h1>
+            </div>
+
+            {% if detail.place and detail.place.hint %}
+                <twig:Callout tone="blue" size="sm" class="mt-4">{{ detail.place.hint }}</twig:Callout>
+            {% endif %}
+
+            <section class="mt-5 rounded-lg border border-gray-200 bg-white p-5 text-gray-800 leading-relaxed">
+                {% if issue.description is not empty %}{{ issue.description|nl2br }}{% else %}<span class="text-gray-400">{{ 'issue.show.no_description'|trans }}</span>{% endif %}
+            </section>
+
+            <section class="mt-8">
+                <h2 class="font-semibold text-gray-900 mb-3">{{ 'issue.show.activity'|trans }}</h2>
+                <ol class="relative border-l border-gray-200 ml-3 space-y-4">
+                    {% for entry in detail.timeline %}
+                        {% set entryComment = entry.event ? entry.event.comment : entry.comment %}
+                        {% if entry.event %}
+                            {% set event = entry.event %}
+                            {% set eventData = event.data %}
+                            <li class="relative pl-6">
+                                <span class="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-gray-300 ring-2 ring-gray-50"></span>
+                                <div class="text-xs text-gray-500">
+                                    <span class="font-medium text-gray-700">{{ event.author ? event.author.fullName : 'issue.show.system'|trans }}</span>
+                                    {% if event.type.value == 'created' %}
+                                        {{ 'issue.event.created'|trans }}
+                                    {% elseif event.type.value == 'transitioned' %}
+                                        {{ 'issue.event.transitioned'|trans({ '%transition%': eventData.transition, '%from%': eventData.from, '%to%': eventData.to }) }}
+                                    {% elseif event.type.value == 'tracker_changed' %}
+                                        {{ 'issue.event.tracker_changed'|trans({ '%from_tracker%': eventData.from_tracker, '%to_tracker%': eventData.to_tracker, '%to%': eventData.to }) }}
+                                    {% endif %}
+                                    <span class="text-gray-400">· {{ event.at|date('d/m/Y H:i') }}</span>
+                                </div>
+                            </li>
+                        {% endif %}
+                        {% if entryComment %}
+                            <li class="relative pl-6">
+                                <span class="absolute -left-3 top-1"><twig:Avatar :name="entryComment.author.fullName" :kind="entryComment.author.internal ? 'internal' : 'external'" /></span>
+                                <div class="rounded-lg border p-3 {{ entryComment.private ? 'border-amber-200 border-l-4 border-l-amber-400 bg-amber-50/70 private-hatching' : 'border-gray-200 bg-white' }}">
+                                    <div class="flex items-center gap-2 text-xs">
+                                        <span class="font-medium text-gray-900">{{ entryComment.author.fullName }}</span>
+                                        <span class="text-gray-400">{{ entryComment.createdAt|date('d/m/Y H:i') }}</span>
+                                        {% if entryComment.private %}<twig:Badge tone="amber" size="sm" icon="lock" class="ml-auto">{{ 'issue.comment.private_badge'|trans }}</twig:Badge>{% endif %}
+                                    </div>
+                                    <p class="mt-1.5 text-gray-800 leading-relaxed">{{ entryComment.body|nl2br }}</p>
+                                </div>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                </ol>
+                <div class="mt-6">
+                    <twig:Issue:Actions :issue="issue" />
+                </div>
+            </section>
+        </div>
+
+        <aside class="mt-8 lg:mt-0 lg:w-72 shrink-0">
+            <div class="lg:sticky lg:top-16 rounded-lg border border-gray-200 bg-white divide-y divide-gray-100">
+                <dl class="p-3 space-y-2.5 text-sm">
+                    <div class="flex items-center gap-2"><dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.tracker'|trans }}</dt><dd>{{ issue.tracker.name }}</dd></div>
+                    <div class="flex items-center gap-2"><dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.place'|trans }}</dt><dd><twig:Status:Step :status="issue.status.value" :label="issue_place(issue)" /></dd></div>
+                    <div class="flex items-center gap-2"><dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.criticality'|trans }}</dt><dd><twig:Criticality:Badge :criticality="issue.criticality.value" /></dd></div>
+                    <div class="flex items-center gap-2">
+                        <dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.assignee'|trans }}</dt>
+                        <dd class="flex items-center gap-1.5">
+                            <twig:Avatar :name="issue.assignee ? issue.assignee.fullName : null" :kind="issue.assignee and issue.assignee.internal ? 'internal' : 'external'" size="sm" />
+                            {{ issue.assignee ? issue.assignee.fullName : 'issue.show.nobody'|trans }}
+                        </dd>
+                    </div>
+                    <div class="flex items-center gap-2"><dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.visibility'|trans }}</dt><dd class="text-gray-700">{{ (issue.private ? 'issue.show.hidden_externals' : 'issue.show.visible_externals')|trans }}</dd></div>
+                </dl>
+                {% if detail.fields is not empty %}
+                    <dl class="p-3 space-y-2.5">
+                        <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{{ 'issue.show.fields'|trans({ '%tracker%': issue.tracker.name }) }}</div>
+                        {% for field in detail.fields %}
+                            <div class="flex items-start gap-2">
+                                <dt class="w-20 shrink-0 text-xs text-gray-500 pt-0.5">{{ field.label }}</dt>
+                                <dd class="flex-1 min-w-0 text-sm text-gray-800 break-words">
+                                    {% if field.type.value == 'url' %}
+                                        <a href="{{ field.value }}" class="text-indigo-600 hover:underline break-all" rel="noopener noreferrer" target="_blank">{{ field.value|replace({ 'https://': '', 'http://': '' }) }}</a>
+                                    {% elseif field.type.value == 'date' %}
+                                        {{ field.value|date('d/m/Y') }}
+                                    {% elseif field.type.value == 'bool' %}
+                                        {{ (field.value ? 'issue.show.true' : 'issue.show.false')|trans }}
+                                    {% else %}
+                                        {{ field.value|nl2br }}
+                                    {% endif %}
+                                </dd>
+                            </div>
+                        {% endfor %}
+                    </dl>
+                {% endif %}
+            </div>
+        </aside>
+    </div>
+{% endblock %}

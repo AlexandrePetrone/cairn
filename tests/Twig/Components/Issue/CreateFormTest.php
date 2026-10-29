@@ -70,7 +70,7 @@ final class CreateFormTest extends KernelTestCase
 
         $response = $component->response();
         self::assertSame(302, $response->getStatusCode(), $response->getContent() ?: '');
-        self::assertSame('/MD/SPT/issues', $response->headers->get('Location'));
+        self::assertSame('/MD/SPT/issues/19', $response->headers->get('Location'));
 
         $issue = $this->issue('MD-SPT-19');
         self::assertSame('Le panier se vide tout seul', $issue->getTitle());

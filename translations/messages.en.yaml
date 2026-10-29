@@ -11,6 +11,39 @@ criticality:
     blocking: Blocking
 
 issue:
+    show:
+        created_by: 'created by %name% on %date%'
+        no_description: No description.
+        activity: Activity
+        tracker: Category
+        place: Step
+        criticality: Criticality
+        assignee: Assignee
+        nobody: Nobody
+        visibility: Visibility
+        visible_externals: Visible to external users
+        hidden_externals: Hidden from external users
+        fields: '%tracker% fields'
+        system: Cairn
+        'true': Yes
+        'false': No
+    event:
+        created: created the issue
+        transitioned: 'applied "%transition%": %from% → %to%'
+        tracker_changed: 'changed the category: %from_tracker% → %to_tracker% (%to%)'
+    comment:
+        placeholder: Write a comment…
+        submit: Comment
+        submit_private: Comment privately
+        private: Private
+        private_badge: Private · hidden from external users
+        empty: The comment is empty.
+        added: Comment added.
+    transition:
+        hint: 'Step %place% · your comment goes with the action.'
+        comment_required: This action needs a comment.
+        applied: '%key%: "%transition%" applied.'
+        refused: The action could not be applied.
     unassigned: Unassigned
     private: Private
     create:

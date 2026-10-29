@@ -144,6 +144,11 @@ Rules:
   is split into repositories or helper services until a second handler
   needs the same piece. Queries never mutate; commands never return data
   beyond the created identifier.
+  A query returns entities. It returns a result object next to it only
+  when the screen needs what no entity carries (a merge of several
+  tables, values resolved from the configuration), and that object
+  carries the entities instead of copying their fields: `IssueDetail`
+  holds the `Issue` plus its timeline and fields.
 - **URLs carry keys, not ids, and one route per need.** A project page is
   `/MD/SPT/issues`: the workspace key, the project key, then the screen.
   An action receives it as `#[CurrentProject] Project $project`, resolved
@@ -169,6 +174,8 @@ Rules:
   decides for one issue, `SearchIssuesHandler::restrictToVisible()` applies
   the same rule in SQL. Change both together: `SearchIssuesVisibilityTest`
   compares them for every user of the development dataset.
+  The same holds for private comments: `AccessControl::canSeeComment()`
+  in PHP, `ShowIssueHandler` in SQL, compared by `ShowIssueVisibilityTest`.
 - **Side effects go through events.** A handler dispatches a domain event
   with the EventDispatcher inside the transaction. Whatever must be atomic
   with the write, such as the journal, is written in the handler or by a

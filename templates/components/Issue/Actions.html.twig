@@ -1,0 +1,38 @@
+{# The editor of the issue page: comment, private flag for internals, and the workflow actions of the viewer's role on the right of "Comment".
+   The controls are plain HTML: a data-model attribute on a nested component would bind that component instead. #}
+{% set actionsTransitions = this.transitions %}
+{% set actionsCanComment = this.canComment %}
+<div {{ attributes }} class="{{ actionsTransitions is empty and not actionsCanComment ? 'hidden' }}">
+    {% if error %}
+        <twig:Callout tone="danger" size="sm" role="alert" class="mb-2">{{ error }}</twig:Callout>
+    {% endif %}
+    <div class="rounded-lg border border-gray-300 bg-white shadow-sm focus-within:border-indigo-400 {{ private ? 'border-amber-400 bg-amber-50 private-hatching' }}">
+        {% if actionsCanComment %}
+            <textarea data-model="norender|body" rows="3" class="w-full bg-transparent p-3 text-sm outline-none resize-y border-0 focus:ring-0" placeholder="{{ 'issue.comment.placeholder'|trans }}">{{ body }}</textarea>
+        {% endif %}
+        <div class="flex flex-wrap items-center gap-2 border-t border-gray-200 px-3 py-2">
+            {% if actionsCanComment and this.canMakePrivate %}
+                <label class="inline-flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
+                    <input type="checkbox" data-model="private" {{ private ? 'checked' }} class="h-3.5 w-3.5 rounded border-gray-300 text-amber-600">
+                    <twig:ux:icon name="lucide:lock" class="h-3 w-3" />
+                    {{ 'issue.comment.private'|trans }}
+                </label>
+            {% endif %}
+            <div class="ml-auto flex flex-wrap items-center gap-2">
+                {% if actionsCanComment %}
+                    <twig:Button data-action="live#action" data-live-action-param="postComment" data-loading="addAttribute(disabled)">{{ (private ? 'issue.comment.submit_private' : 'issue.comment.submit')|trans }}</twig:Button>
+                {% endif %}
+                {% if actionsCanComment and actionsTransitions is not empty %}<span class="h-5 w-px bg-gray-200"></span>{% endif %}
+                {% for transition in actionsTransitions %}
+                    <twig:Button :variant="transition.style.value == 'default' ? 'secondary' : transition.style.value" data-action="live#action" data-live-action-param="apply" data-live-transition-param="{{ transition.id }}" data-loading="addAttribute(disabled)">{{ transition.label }}</twig:Button>
+                {% endfor %}
+            </div>
+        </div>
+        {% if actionsTransitions is not empty %}
+            <div class="flex items-center gap-2 border-t border-gray-100 bg-gray-50 px-3 py-1.5 text-xs text-gray-500 rounded-b-lg">
+                <twig:Status:Dot :status="issue.status.value" />
+                {{ 'issue.transition.hint'|trans({ '%place%': issue_place(issue) }) }}
+            </div>
+        {% endif %}
+    </div>
+</div>

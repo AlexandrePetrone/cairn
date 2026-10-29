@@ -1,0 +1,136 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\MessageHandler\Query\Issue;
+
+use App\Config\ConfigRegistry;
+use App\Entity\Comment;
+use App\Entity\Issue;
+use App\Entity\JournalEntry;
+use App\Message\Query\Issue\IssueDetail;
+use App\Message\Query\Issue\ShowIssue;
+use App\Security\AccessControl;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+
+/**
+ * The issue is checked with AccessControl::canSee(). Its comments and
+ * journal entries are filtered in SQL: externals never get private ones,
+ * the SQL side of AccessControl::canSeeComment(), which
+ * ShowIssueVisibilityTest compares on the development dataset.
+ */
+#[AsMessageHandler(bus: 'query.bus')]
+final class ShowIssueHandler
+{
+    public function __construct(
+        private readonly EntityManagerInterface $entityManager,
+        private readonly AccessControl $access,
+        private readonly ConfigRegistry $config,
+    ) {
+    }
+
+    public function __invoke(ShowIssue $query): ?IssueDetail
+    {
+        $issue = $this->entityManager->createQueryBuilder()
+            ->select('i', 't', 'p', 'w', 'au', 'a')
+            ->from(Issue::class, 'i')
+            ->join('i.tracker', 't')
+            ->join('i.project', 'p')
+            ->join('p.workspace', 'w')
+            ->join('i.author', 'au')
+            ->leftJoin('i.assignee', 'a')
+            ->where('p.id = :project')
+            ->andWhere('i.number = :number')
+            ->setParameter('project', $query->projectId)
+            ->setParameter('number', $query->number)
+            ->getQuery()
+            ->getOneOrNullResult();
+        if (!$issue instanceof Issue || !$this->access->canSee($query->viewer, $issue)) {
+            return null;
+        }
+
+        $publicOnly = !$query->viewer->isInternal();
+        $events = $this->list(JournalEntry::class, 'e', $issue, $publicOnly, ['ea' => 'e.author', 'ec' => 'e.comment'], 'e.at');
+        $comments = $this->list(Comment::class, 'c', $issue, $publicOnly, ['ca' => 'c.author'], 'c.createdAt');
+
+        $attached = [];
+        $timeline = [];
+        foreach ($events as $event) {
+            $timeline[] = ['at' => $event->getAt(), 'comment' => null, 'event' => $event];
+            if (null !== $event->getComment()) {
+                $attached[$event->getComment()->getId()] = true;
+            }
+        }
+        foreach ($comments as $comment) {
+            if (!isset($attached[$comment->getId()])) {
+                $timeline[] = ['at' => $comment->getCreatedAt(), 'comment' => $comment, 'event' => null];
+            }
+        }
+        usort($timeline, static fn (array $a, array $b): int => $a['at'] <=> $b['at']);
+
+        $workflow = $this->config->definition()->workflow($issue->getTracker()->getWorkflowId());
+        $place = (string) $issue->getPlace();
+
+        return new IssueDetail($issue, $workflow->hasPlace($place) ? $workflow->place($place) : null, $timeline, $this->fields($issue, $query->viewer->isInternal()));
+    }
+
+    /**
+     * Comments or journal entries of the issue, oldest first, with what
+     * the page shows of them joined.
+     *
+     * @template T of Comment|JournalEntry
+     *
+     * @param class-string<T>       $class
+     * @param array<string, string> $joins alias => association
+     *
+     * @return list<T>
+     */
+    private function list(string $class, string $alias, Issue $issue, bool $publicOnly, array $joins, string $orderBy): array
+    {
+        $queryBuilder = $this->entityManager->createQueryBuilder()
+            ->select($alias, ...array_keys($joins))
+            ->from($class, $alias)
+            ->where("$alias.issue = :issue")
+            ->setParameter('issue', $issue)
+            ->orderBy($orderBy)
+            ->addOrderBy("$alias.id");
+        foreach ($joins as $joinAlias => $association) {
+            $queryBuilder->leftJoin($association, $joinAlias);
+        }
+        if ($publicOnly) {
+            $queryBuilder->andWhere("$alias.private = false");
+        }
+
+        $rows = $queryBuilder->getQuery()->getResult();
+        if (!\is_array($rows)) {
+            throw new \LogicException('An object hydration query returns a list.');
+        }
+
+        return array_values(array_filter($rows, static fn (mixed $row): bool => $row instanceof $class));
+    }
+
+    /**
+     * @return list<array{label: string, type: \App\Config\FieldType, value: mixed}>
+     */
+    private function fields(Issue $issue, bool $internal): array
+    {
+        $definition = $this->config->definition();
+        $values = $issue->getFieldValues();
+        $fields = [];
+        foreach ($definition->workflow($issue->getTracker()->getWorkflowId())->fields as $usage) {
+            $field = $definition->fields[$usage->field];
+            $value = $values[$field->id] ?? null;
+            if (null === $value || '' === $value || ($field->internalOnly && !$internal)) {
+                continue;
+            }
+            $fields[] = [
+                'label' => $field->label,
+                'type' => $field->type,
+                'value' => $field->type->hasOptions() && \is_string($value) ? ($field->options[$value] ?? $value) : $value,
+            ];
+        }
+
+        return $fields;
+    }
+}
