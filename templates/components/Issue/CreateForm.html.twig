@@ -1,0 +1,63 @@
+{# One page: pick the tracker (cards bound to `trackerId`), then the form built for it. `this` is read before any nested component. #}
+{% set createTrackers = this.trackers %}
+{% set createTracker = this.tracker %}
+<div {{ attributes }} class="space-y-6">
+    <section>
+        <div class="flex items-baseline gap-2 mb-2">
+            <h2 class="font-semibold text-gray-900">{{ 'issue.create.choose'|trans }}</h2>
+            <span class="text-xs text-gray-400">{{ 'issue.create.choose_hint'|trans }}</span>
+        </div>
+        <div class="grid sm:grid-cols-3 gap-3" data-loading="addClass(opacity-60)">
+            {% for tracker in createTrackers %}
+                <twig:Form:RadioCard large name="tracker" :value="tracker.id" :checked="tracker.id == trackerId" :dashed="tracker.private" :title="tracker.name" :description="tracker.description" model="trackerId">
+                    <twig:block name="badge">{% if tracker.private %}<twig:Badge tone="amber" size="sm" icon="lock" class="ml-auto">{{ 'issue.create.internal'|trans }}</twig:Badge>{% endif %}</twig:block>
+                </twig:Form:RadioCard>
+            {% endfor %}
+        </div>
+    </section>
+
+    {% if createTracker %}
+        {{ form_start(form, { attr: form.vars.attr|merge({ 'data-action': 'live#action:prevent', 'data-live-action-param': 'save', class: 'space-y-6' }) }) }}
+            {% if failure %}
+                <twig:Callout tone="danger" size="sm" role="alert">{{ failure }}</twig:Callout>
+            {% endif %}
+
+            <section>
+                <h2 class="font-semibold text-gray-900 mb-2">{{ 'issue.create.describe'|trans }}</h2>
+                <div class="rounded-lg border border-gray-200 bg-white divide-y divide-gray-100">
+                    <div class="p-4">{{ form_row(form.title) }}</div>
+                    <div class="p-4">{{ form_row(form.description) }}</div>
+                    {% if form.fields|length > 0 %}
+                        <div class="p-4 grid sm:grid-cols-2 gap-4">
+                            {% for field in form.fields %}
+                                {{ form_row(field, { row_attr: { class: field.vars.block_prefixes[field.vars.block_prefixes|length - 2] in ['textarea', 'url'] ? 'sm:col-span-2' : '' } }) }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    {% if form.criticality is defined %}
+                        <div class="p-4">{{ form_row(form.criticality) }}</div>
+                    {% endif %}
+                </div>
+            </section>
+
+            {% if form.assignee is defined or form.private is defined %}
+                <section>
+                    <div class="flex items-baseline gap-2 mb-2">
+                        <h2 class="font-semibold text-gray-900">{{ 'issue.create.qualification'|trans }}</h2>
+                        <twig:Badge tone="amber" size="sm" icon="lock">{{ 'issue.create.internal'|trans }}</twig:Badge>
+                        <span class="text-xs text-gray-400">{{ 'issue.create.qualification_hint'|trans }}</span>
+                    </div>
+                    <div class="rounded-lg border border-amber-200 bg-amber-50/40 private-hatching p-4 grid sm:grid-cols-3 gap-4">
+                        {% if form.assignee is defined %}{{ form_row(form.assignee) }}{% endif %}
+                        {% if form.private is defined %}{{ form_row(form.private, { row_attr: { class: 'self-end' } }) }}{% endif %}
+                    </div>
+                </section>
+            {% endif %}
+
+            <div class="sticky bottom-0 border-t border-gray-200 bg-white/95 backdrop-blur py-3 flex items-center gap-3">
+                <twig:Button variant="primary" size="lg" type="submit" data-loading="addAttribute(disabled)">{{ 'issue.create.submit'|trans }}</twig:Button>
+                <twig:Button variant="ghost" size="lg" href="{{ path('app_project_issues', { workspaceKey: project.workspace.key, projectKey: project.key }) }}">{{ 'issue.create.cancel'|trans }}</twig:Button>
+            </div>
+        {{ form_end(form) }}
+    {% endif %}
+</div>

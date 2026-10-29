@@ -13,6 +13,28 @@ criticality:
 issue:
     unassigned: Unassigned
     private: Private
+    create:
+        title: New issue
+        choose: What is it about?
+        choose_hint: Each category has its own workflow.
+        internal: Internal
+        describe: Describe the issue
+        qualification: Qualification
+        qualification_hint: 'Optional: everything can be done after creation.'
+        submit: Create the issue
+        cancel: Cancel
+        created: '%key% created.'
+        refused: The issue could not be created.
+    field:
+        title: Title
+        title_placeholder: 'One sentence that sums it up: "The orders CSV export no longer responds"'
+        description: Description
+        description_placeholder: What happens, what you expected, and how to reproduce it if it is a bug.
+        criticality: Criticality
+        assignee: Assignee
+        assignee_none: Nobody
+        private: Private issue
+        private_help: Hidden from external users.
     list:
         title:
             all: Issues
@@ -66,6 +88,7 @@ pagination:
 
 form:
     optional: optional
+    choose: Choose…
 
 auth:
     login:

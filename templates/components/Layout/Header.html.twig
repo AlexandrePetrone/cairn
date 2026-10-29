@@ -18,7 +18,13 @@
             <span class="hidden lg:inline text-xs text-slate-400 truncate">{{ project.workspace.name }}</span>
         </div>
     {% endif %}
-    <twig:Dropdown align="right" class="ml-auto">
+    <div class="ml-auto flex items-center gap-2">
+    {% if project and is_granted('issue.create', project) and not project.archived %}
+        <twig:Button variant="primary" icon="plus" href="{{ path('app_issue_new', { workspaceKey: project.workspace.key, projectKey: project.key }) }}" class="bg-indigo-500 hover:bg-indigo-400">
+            <span class="hidden sm:inline">{{ 'issue.create.title'|trans }}</span>
+        </twig:Button>
+    {% endif %}
+    <twig:Dropdown align="right">
         <twig:block name="trigger">
             <button type="button" data-action="dropdown#toggle" aria-expanded="false" aria-haspopup="menu" class="flex items-center gap-1.5 rounded-full hover:ring-2 hover:ring-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-400" title="{{ headerUser.fullName }}">
                 <twig:Avatar :name="headerUser.fullName" :kind="headerUser.internal ? 'internal' : 'external'" size="lg" />
@@ -36,4 +42,5 @@
         <div class="my-1 border-t border-gray-100"></div>
         <twig:Dropdown:Item href="{{ path('app_logout') }}" icon="log-out">{{ 'auth.logout'|trans }}</twig:Dropdown:Item>
     </twig:Dropdown>
+    </div>
 </header>

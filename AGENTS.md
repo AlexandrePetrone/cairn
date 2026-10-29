@@ -48,9 +48,7 @@ Decisions already taken:
 
 Install missing capabilities with `composer require <package>` and let the
 Flex recipe register the bundle and generate its config. Don't hand-edit
-`config/bundles.php` or hand-write a bundle's base config. Planned additions:
-`symfony/workflow`, `symfony/ux-twig-component`, `symfony/ux-live-component`,
-`symfony/lock`, `symfony/scheduler`.
+`config/bundles.php` or hand-write a bundle's base config. Planned additions: `symfony/scheduler`.
 
 ## Vocabulary
 
@@ -121,6 +119,19 @@ Rules:
   it. They contain no business rules. Authorization failures are Symfony's
   `AccessDeniedException`; business refusals are a domain exception next to
   the handler (`IssueException`).
+- **Forms feed commands.** A form binds to a mutable data object in
+  `Form/` (`IssueData`) that carries the input constraints; the controller
+  turns a valid submission into the readonly command and dispatches it.
+  The command keeps its own constraints as the guard of the bus. A
+  submitted, invalid form is rendered with status 422, which Turbo needs.
+  Fields driven by the configuration are built in the form type from the
+  definitions with `translation_domain: false`: their labels are content.
+  When the shape of the form depends on a choice made on the same page
+  (the tracker of a new issue), a Live component hosts it
+  (`#[AsLiveComponent]` in `src/Twig/Components/`, `ComponentWithFormTrait`)
+  and dispatches the command from its `LiveAction`; the controller only
+  renders the page. Such a form carries no CSRF token: the live endpoint
+  requires a custom header that keeps cross-origin requests out.
 - **Reads are queries.** A repository answers "give me this entity" (find
   by id or key, simple finders, bulk updates). As soon as a read depends on
   filters, on visibility or spans several entities, it is a message in

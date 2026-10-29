@@ -1,5 +1,6 @@
-{# A selectable card; `name`, `value`, `id`, `required` and `disabled` go to the radio input (category choice, criticality). `large` for category cards, `dashed` marks internal-only choices. #}
-{% props title, description = null, checked = false, dashed = false, large = false %}
+{# A selectable card; `name`, `value`, `id`, `required` and `disabled` go to the radio input (category choice, criticality). `large` for category cards, `dashed` marks internal-only choices.
+   `model` becomes the input's `data-model` inside a live component: passed as a plain `data-model` attribute, Live would bind the card's `value` to the parent instead. #}
+{% props title, description = null, checked = false, dashed = false, large = false, model = null %}
 {% set radioCardClasses = html_cva(
     base: 'block cursor-pointer bg-white has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/40 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60',
     variants: {
@@ -8,7 +9,7 @@
     },
 ) %}
 <label class="{{ radioCardClasses.apply({ large: large, dashed: dashed }, attributes.render('class'))|tailwind_merge }}" {{ attributes.without('name', 'value', 'id', 'required', 'disabled', 'class') }}>
-    <input type="radio" {{ attributes.only('name', 'value', 'id', 'required', 'disabled') }} {{ checked ? 'checked' }} class="sr-only">
+    <input type="radio" {{ attributes.only('name', 'value', 'id', 'required', 'disabled') }} {% if model %}data-model="{{ model }}"{% endif %} {{ checked ? 'checked' }} class="sr-only">
     <div class="flex items-center gap-2">
         <span class="font-medium text-gray-900">{{ title }}</span>
         {% block badge %}{% endblock %}

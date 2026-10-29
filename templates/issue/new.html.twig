@@ -1,0 +1,26 @@
+{% extends 'base.html.twig' %}
+
+{% set route = { workspaceKey: project.workspace.key, projectKey: project.key } %}
+
+{% block title %}{{ 'issue.create.title'|trans }} · {{ project.name }} · Cairn{% endblock %}
+
+{% block body %}
+    <twig:Layout:Shell>
+        <twig:block name="header"><twig:Layout:Header :project="project" /></twig:block>
+        <twig:block name="sidebar"><twig:Layout:ProjectNav :project="project" /></twig:block>
+        <twig:block name="breadcrumb">
+            <nav class="flex items-center gap-1.5 px-4 sm:px-6 h-10 text-xs text-gray-500 border-b border-gray-200 bg-white/60" aria-label="{{ 'nav.breadcrumb'|trans }}">
+                <span>{{ project.workspace.name }}</span>
+                <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-gray-300 shrink-0" />
+                <a href="{{ path('app_project_issues', route) }}" class="hover:text-gray-900">{{ project.name }}</a>
+                <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-gray-300 shrink-0" />
+                <span class="text-gray-900 font-medium truncate">{{ 'issue.create.title'|trans }}</span>
+            </nav>
+        </twig:block>
+
+        <div class="px-4 sm:px-6 py-5 max-w-5xl space-y-5">
+            <h1 class="text-xl font-semibold text-gray-900">{{ 'issue.create.title'|trans }}</h1>
+            <twig:Issue:CreateForm :project="project" />
+        </div>
+    </twig:Layout:Shell>
+{% endblock %}

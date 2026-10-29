@@ -13,6 +13,28 @@ criticality:
 issue:
     unassigned: Non assigné
     private: Privée
+    create:
+        title: Nouvelle demande
+        choose: De quoi s'agit-il ?
+        choose_hint: Chaque catégorie a son propre circuit de traitement.
+        internal: Interne
+        describe: Décrivez la demande
+        qualification: Qualification
+        qualification_hint: 'Facultatif : tout peut se faire après la création.'
+        submit: Créer la demande
+        cancel: Annuler
+        created: '%key% créée.'
+        refused: La demande n'a pas pu être créée.
+    field:
+        title: Titre
+        title_placeholder: 'Une phrase qui résume : « L''export CSV des commandes ne répond plus »'
+        description: Description
+        description_placeholder: Ce qui se passe, ce que vous attendiez, et comment le reproduire si c'est un bug.
+        criticality: Criticité
+        assignee: Assigné
+        assignee_none: Personne
+        private: Demande privée
+        private_help: Invisible pour les externes.
     list:
         title:
             all: Demandes
@@ -66,6 +88,7 @@ pagination:
 
 form:
     optional: facultatif
+    choose: Choisir…
 
 auth:
     login:

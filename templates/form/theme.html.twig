@@ -32,12 +32,14 @@
 
 {% block form_widget_simple %}
     {% set controlAttributes = { id: id, name: full_name, required: required, disabled: disabled }|merge(attr) %}
+    {% if attr.placeholder is defined and translation_domain is not same as(false) %}{% set controlAttributes = controlAttributes|merge({ placeholder: attr.placeholder|trans({}, translation_domain) }) %}{% endif %}
     {% set controlAttributes = type|default('text') == 'file' or value is empty ? controlAttributes : controlAttributes|merge({ value: value }) %}
     <twig:Form:Input :type="type|default('text')" :invalid="not valid" {{ ...controlAttributes }} />
 {% endblock %}
 
 {% block textarea_widget %}
     {% set controlAttributes = { id: id, name: full_name, required: required, disabled: disabled }|merge(attr) %}
+    {% if attr.placeholder is defined and translation_domain is not same as(false) %}{% set controlAttributes = controlAttributes|merge({ placeholder: attr.placeholder|trans({}, translation_domain) }) %}{% endif %}
     <twig:Form:Textarea :invalid="not valid" {{ ...controlAttributes }}>{{ value }}</twig:Form:Textarea>
 {% endblock %}
 
