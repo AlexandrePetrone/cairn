@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\Command\Issue;
 
+use App\Config\Definition\WorkflowDefinition;
 use App\Entity\Issue;
 use App\Entity\User;
 use App\Repository\IssueRepository;
@@ -40,6 +41,26 @@ final class IssueHandlerSupport
         }
 
         return $issue;
+    }
+
+    /**
+     * The values belong to the workflow and fill its required fields.
+     *
+     * @param array<string, mixed> $values
+     */
+    public function checkFields(WorkflowDefinition $workflow, array $values): void
+    {
+        foreach (array_keys($values) as $fieldId) {
+            if (!isset($workflow->fields[$fieldId])) {
+                throw IssueException::unknownField((string) $fieldId, $workflow->id);
+            }
+        }
+        foreach ($workflow->fields as $usage) {
+            $value = $values[$usage->field] ?? null;
+            if ($usage->required && (null === $value || (\is_string($value) && '' === trim($value)))) {
+                throw IssueException::missingField($usage->field);
+            }
+        }
     }
 
     public function denyUnless(bool $granted, string $what): void

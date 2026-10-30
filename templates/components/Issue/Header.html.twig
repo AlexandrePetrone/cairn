@@ -10,7 +10,21 @@
             <span>{{ 'issue.show.created_by'|trans({ '%name%': issue.author.fullName, '%date%': issue.createdAt|date('d/m/Y') }) }}</span>
             {% if issue.private %}<twig:Ui:Badge tone="amber" size="sm" icon="lock">{{ 'issue.private'|trans }}</twig:Ui:Badge>{% endif %}
         </div>
-        <h1 class="mt-1 text-xl font-semibold text-gray-900 leading-snug">{{ issue.title }}</h1>
+        {% if editingTitle %}
+            <form class="mt-1" data-action="live#action:prevent" data-live-action-param="saveTitle">
+                <input type="text" data-model="norender|title" value="{{ title }}" maxlength="200" required aria-label="{{ 'issue.field.title'|trans }}"
+                       data-controller="autofocus" data-action="keydown.esc->live#action" data-live-action-param="cancelTitle"
+                       class="-mx-2 w-[calc(100%+1rem)] rounded-md border-0 bg-white px-2 py-0.5 text-xl font-semibold leading-snug text-gray-900 ring-2 ring-indigo-200 focus:outline-none focus:ring-indigo-400">
+                <p class="mt-1 text-xs text-gray-400">{{ 'issue.edit.title_hint'|trans }}</p>
+            </form>
+            {% if error %}<twig:Ui:Callout tone="danger" size="sm" role="alert" class="mt-2">{{ error }}</twig:Ui:Callout>{% endif %}
+        {% elseif this.canEdit %}
+            <h1 role="button" tabindex="0" title="{{ 'issue.edit.click_to_edit'|trans }}"
+                data-action="click->live#action keydown.enter->live#action" data-live-action-param="editTitle"
+                class="-mx-2 mt-1 rounded-md px-2 py-0.5 text-xl font-semibold leading-snug text-gray-900 cursor-text transition-colors hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200">{{ issue.title }}</h1>
+        {% else %}
+            <h1 class="mt-1 py-0.5 text-xl font-semibold leading-snug text-gray-900">{{ issue.title }}</h1>
+        {% endif %}
     </div>
 
     {% if headerPlace and headerPlace.hint %}

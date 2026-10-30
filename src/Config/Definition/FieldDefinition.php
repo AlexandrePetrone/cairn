@@ -40,4 +40,13 @@ final readonly class FieldDefinition
             }
         }
     }
+
+    /**
+     * What a stored value looks like: the label of an option, the value
+     * itself otherwise.
+     */
+    public function display(mixed $value): mixed
+    {
+        return $this->type->hasOptions() && \is_string($value) ? ($this->options[$value] ?? $value) : $value;
+    }
 }

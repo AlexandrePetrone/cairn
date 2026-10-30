@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\Command\Issue;
 
-use App\Config\Definition\WorkflowDefinition;
 use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
 use App\Entity\JournalEntry;
@@ -51,7 +50,7 @@ final class CreateIssueHandler
         $this->support->denyUnless(Criticality::DEFAULT === $command->criticality || $this->access->isGranted($actor, Permission::IssueSetCriticality, $project), 'set the criticality');
 
         $workflow = $this->workflows->definition($tracker->getWorkflowId());
-        self::checkFields($workflow, $command->fields);
+        $this->support->checkFields($workflow, $command->fields);
 
         $assignee = null === $command->assigneeId
             ? null
@@ -73,22 +72,5 @@ final class CreateIssueHandler
         $this->entityManager->persist(JournalEntry::created($issue, $actor));
 
         return $issue;
-    }
-
-    /**
-     * @param array<string, mixed> $values
-     */
-    private static function checkFields(WorkflowDefinition $workflow, array $values): void
-    {
-        foreach (array_keys($values) as $fieldId) {
-            if (!isset($workflow->fields[$fieldId])) {
-                throw IssueException::unknownField((string) $fieldId, $workflow->id);
-            }
-        }
-        foreach ($workflow->fields as $usage) {
-            if ($usage->required && ('' === trim((string) ($values[$usage->field] ?? '')))) {
-                throw IssueException::missingField($usage->field);
-            }
-        }
     }
 }

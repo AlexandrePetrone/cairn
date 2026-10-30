@@ -53,6 +53,7 @@ return new InstanceDefinition(
     // Permissions outside workflows. Administrators hold all of them.
     permissions: [
         Permission::IssueCreate->value => $internalAndClient,
+        Permission::IssueEdit->value => $internalAndClient,
         Permission::IssueChangeTracker->value => $internal,
         Permission::IssueAssign->value => $internal,
         Permission::IssueSetCriticality->value => $internalAndClient,

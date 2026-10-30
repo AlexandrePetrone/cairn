@@ -227,6 +227,36 @@ class Issue implements HasPlace
         $this->touch();
     }
 
+    /**
+     * Merges changed values: null empties a field. Values of fields the
+     * workflow no longer uses are kept.
+     *
+     * @param array<string, mixed> $changes field id => new value or null
+     */
+    public function changeFieldValues(array $changes): void
+    {
+        foreach ($changes as $fieldId => $value) {
+            if (null === $value) {
+                unset($this->fieldValues[$fieldId]);
+            } else {
+                $this->fieldValues[$fieldId] = $value;
+            }
+        }
+        $this->touch();
+    }
+
+    public function retitle(string $title): void
+    {
+        $this->title = trim($title);
+        $this->touch();
+    }
+
+    public function describe(string $description): void
+    {
+        $this->description = $description;
+        $this->touch();
+    }
+
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;

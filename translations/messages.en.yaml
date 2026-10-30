@@ -33,8 +33,11 @@ issue:
             assignee: 'changed the assignee: %from% → %to%'
             criticality: 'changed the criticality: %from% → %to%'
             visibility: 'changed the visibility: %from% → %to%'
+            title: 'changed the title: "%from%" → "%to%"'
+            description: rewrote the description
         transitioned: 'applied "%transition%": %from% → %to%'
         tracker_changed: 'changed the category: %from_tracker% → %to_tracker% (%to%)'
+        field_changed: 'changed "%field%": %from% → %to%'
     comment:
         placeholder: Write a comment…
         submit: Comment
@@ -43,6 +46,17 @@ issue:
         private_badge: Private · hidden from external users
         empty: The comment is empty.
         added: Comment added.
+    edit:
+        click_to_edit: Click to edit
+        add_description: Add a description…
+        title_hint: Enter to save · Esc to cancel
+        description_hint: ⌘ Enter to save · Esc to cancel
+        edit: Edit
+        save: Save
+        cancel: Cancel
+        done: '%key% updated.'
+        refused: The change could not be saved.
+        title_invalid: The title is required and is at most 200 characters long.
     change:
         done: '%key% updated.'
         refused: The change could not be applied.

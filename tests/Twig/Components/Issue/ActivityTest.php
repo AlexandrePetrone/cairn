@@ -105,6 +105,19 @@ final class ActivityTest extends KernelTestCase
         self::assertStringContainsString('Brouillon en cours', (string) $component->render());
     }
 
+    public function testTheDescriptionIsRewrittenWithoutLosingTheComment(): void
+    {
+        $component = $this->activity('claire.martin@maison-dupont.test');
+        $component->set('body', 'Brouillon en cours');
+
+        $component->call('editDescription')->set('description', 'Le fichier ne contient que l\'en-tête.')->call('saveDescription');
+        $render = (string) $component->render();
+
+        self::assertStringContainsString('Le fichier ne contient que l&#039;en-tête.', $render);
+        self::assertStringContainsString('a modifié la description', $render);
+        self::assertStringContainsString('Brouillon en cours', $render);
+    }
+
     private function activity(string $email): TestLiveComponent
     {
         $user = self::getContainer()->get(UserRepository::class)->findOneBy(['email' => $email]);

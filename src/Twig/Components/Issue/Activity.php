@@ -9,6 +9,7 @@ use App\Entity\Issue;
 use App\Entity\User;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
+use App\Message\Command\Issue\ChangeDescription;
 use App\Message\CommandBus;
 use App\Message\Query\Issue\IssueDetail;
 use App\Message\Query\Issue\ShowIssue;
@@ -51,6 +52,13 @@ final class Activity extends AbstractController
     #[LiveProp(writable: true)]
     public bool $private = false;
 
+    #[LiveProp(writable: true)]
+    public bool $editingDescription = false;
+
+    /** The description being rewritten. */
+    #[LiveProp(writable: true)]
+    public string $description = '';
+
     /** Why the last action did not go through, shown above the editor. */
     public ?string $error = null;
 
@@ -85,6 +93,11 @@ final class Activity extends AbstractController
     public function canComment(): bool
     {
         return $this->access->isGranted($this->viewer(), Permission::CommentCreate, $this->issue->getProject());
+    }
+
+    public function canEdit(): bool
+    {
+        return $this->access->isGranted($this->viewer(), Permission::IssueEdit, $this->issue->getProject());
     }
 
     public function canMakePrivate(): bool
@@ -129,6 +142,35 @@ final class Activity extends AbstractController
             fn () => $commands->dispatch(new ApplyTransition((int) $this->viewer()->getId(), $this->issue->getKey(), $definition->id, '' === trim($this->body) ? null : $this->body, $this->private && $this->canMakePrivate())),
             $this->translator->trans('issue.transition.applied', ['%key%' => $this->issue->getKey(), '%transition%' => $definition->label]),
         );
+    }
+
+    #[LiveAction]
+    public function editDescription(): void
+    {
+        $this->editingDescription = $this->canEdit();
+        $this->description = $this->issue->getDescription();
+    }
+
+    #[LiveAction]
+    public function cancelDescription(): void
+    {
+        $this->editingDescription = false;
+    }
+
+    #[LiveAction]
+    public function saveDescription(CommandBus $commands): void
+    {
+        try {
+            $commands->dispatch(new ChangeDescription((int) $this->viewer()->getId(), $this->issue->getKey(), $this->description));
+        } catch (IssueException|AccessDeniedException) {
+            $this->error = $this->translator->trans('issue.edit.refused');
+
+            return;
+        }
+
+        $this->editingDescription = false;
+        $this->emit('issue:changed');
+        $this->dispatchBrowserEvent('toast:show', ['message' => $this->translator->trans('issue.edit.done', ['%key%' => $this->issue->getKey()])]);
     }
 
     /**

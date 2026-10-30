@@ -12,6 +12,7 @@ namespace App\Security;
 enum Permission: string
 {
     case IssueCreate = 'issue.create';
+    case IssueEdit = 'issue.edit';
     case IssueChangeTracker = 'issue.change_tracker';
     case IssueAssign = 'issue.assign';
     case IssueSetCriticality = 'issue.set_criticality';

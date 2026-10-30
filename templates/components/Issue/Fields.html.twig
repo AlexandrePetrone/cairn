@@ -1,0 +1,43 @@
+{# The fields of the issue's workflow in the side panel: read, or edited as one form by whoever may edit the issue. #}
+{% set fieldsCanEdit = this.canEdit %}
+<div {{ attributes }}>
+    {% if editing %}
+        {{ form_start(form, { attr: form.vars.attr|merge({ 'data-action': 'live#action:prevent', 'data-live-action-param': 'save', class: 'p-3 space-y-3' }) }) }}
+            <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{{ 'issue.show.fields'|trans({ '%tracker%': issue.tracker.name }) }}</div>
+            {% if error %}<twig:Ui:Callout tone="danger" size="sm" role="alert">{{ error }}</twig:Ui:Callout>{% endif %}
+            {% for field in form %}{{ form_row(field) }}{% endfor %}
+            <div class="flex items-center gap-2">
+                <twig:Ui:Button variant="primary" size="sm" type="submit" data-loading="addAttribute(disabled)">{{ 'issue.edit.save'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button variant="ghost" size="sm" data-action="live#action" data-live-action-param="cancel">{{ 'issue.edit.cancel'|trans }}</twig:Ui:Button>
+            </div>
+        {{ form_end(form) }}
+    {% else %}
+        {% set fieldsDetail = this.detail %}
+        {% if fieldsDetail.fields is not empty or fieldsCanEdit %}
+            <dl class="p-3 space-y-2.5">
+                <div class="flex items-center gap-2">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{{ 'issue.show.fields'|trans({ '%tracker%': issue.tracker.name }) }}</span>
+                    {% if fieldsCanEdit %}
+                        <button type="button" data-action="live#action" data-live-action-param="edit" class="ml-auto text-xs text-indigo-600 hover:underline">{{ 'issue.edit.edit'|trans }}</button>
+                    {% endif %}
+                </div>
+                {% for field in fieldsDetail.fields %}
+                    <div class="flex items-start gap-2">
+                        <dt class="w-20 shrink-0 text-xs text-gray-500 pt-0.5">{{ field.label }}</dt>
+                        <dd class="flex-1 min-w-0 text-sm text-gray-800 break-words">
+                            {% if field.type.value == 'url' %}
+                                <a href="{{ field.value }}" class="text-indigo-600 hover:underline break-all" rel="noopener noreferrer" target="_blank">{{ field.value|replace({ 'https://': '', 'http://': '' }) }}</a>
+                            {% elseif field.type.value == 'date' %}
+                                {{ field.value|date('d/m/Y') }}
+                            {% elseif field.type.value == 'bool' %}
+                                {{ (field.value ? 'issue.show.true' : 'issue.show.false')|trans }}
+                            {% else %}
+                                {{ field.value|nl2br }}
+                            {% endif %}
+                        </dd>
+                    </div>
+                {% endfor %}
+            </dl>
+        {% endif %}
+    {% endif %}
+</div>

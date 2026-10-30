@@ -4,8 +4,30 @@
 {% set activityTransitions = this.transitions %}
 {% set activityCanComment = this.canComment %}
 <div {{ attributes }}>
-    <section class="mt-5 rounded-lg border border-gray-200 bg-white p-5 text-gray-800 leading-relaxed">
-        {% if issue.description is not empty %}{{ issue.description|nl2br }}{% else %}<span class="text-gray-400">{{ 'issue.show.no_description'|trans }}</span>{% endif %}
+    <section class="mt-5 rounded-lg border border-gray-200 bg-white p-3 text-gray-800 leading-relaxed">
+        {% if editingDescription %}
+            {# ⌘/Ctrl Enter submits the form (autosubmit), Esc cancels: live actions of one element share one action parameter. #}
+            <form data-controller="autosubmit" data-action="live#action:prevent" data-live-action-param="saveDescription">
+                <textarea data-model="norender|description" rows="8" aria-label="{{ 'issue.field.description'|trans }}"
+                          data-controller="autofocus"
+                          data-action="keydown.esc->live#action:prevent keydown.meta+enter->autosubmit#submit:prevent keydown.ctrl+enter->autosubmit#submit:prevent"
+                          data-live-action-param="cancelDescription"
+                          class="block w-full resize-y rounded-md border-0 bg-white p-2 text-sm leading-relaxed text-gray-800 ring-2 ring-indigo-200 focus:outline-none focus:ring-indigo-400">{{ description }}</textarea>
+                <div class="mt-2 flex items-center gap-2">
+                    <twig:Ui:Button variant="primary" size="sm" type="submit" data-loading="addAttribute(disabled)">{{ 'issue.edit.save'|trans }}</twig:Ui:Button>
+                    <twig:Ui:Button variant="ghost" size="sm" data-action="live#action" data-live-action-param="cancelDescription">{{ 'issue.edit.cancel'|trans }}</twig:Ui:Button>
+                    <span class="ml-auto text-xs text-gray-400">{{ 'issue.edit.description_hint'|trans }}</span>
+                </div>
+            </form>
+        {% elseif this.canEdit %}
+            <div role="button" tabindex="0" title="{{ 'issue.edit.click_to_edit'|trans }}"
+                 data-action="click->live#action keydown.enter->live#action" data-live-action-param="editDescription"
+                 class="rounded-md p-2 cursor-text transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200">
+                {% if issue.description is not empty %}{{ issue.description|nl2br }}{% else %}<span class="text-gray-400">{{ 'issue.edit.add_description'|trans }}</span>{% endif %}
+            </div>
+        {% else %}
+            <div class="p-2">{% if issue.description is not empty %}{{ issue.description|nl2br }}{% else %}<span class="text-gray-400">{{ 'issue.show.no_description'|trans }}</span>{% endif %}</div>
+        {% endif %}
     </section>
 
     <section class="mt-8">
@@ -24,6 +46,10 @@
                                 {{ 'issue.event.created'|trans }}
                             {% elseif event.type.value == 'transitioned' %}
                                 {{ 'issue.event.transitioned'|trans({ '%transition%': eventData.transition, '%from%': eventData.from, '%to%': eventData.to }) }}
+                            {% elseif event.type.value == 'field_changed' %}
+                                {{ 'issue.event.field_changed'|trans({ '%field%': eventData.label, '%from%': eventData.from ?? '—', '%to%': eventData.to ?? '—' }) }}
+                            {% elseif event.type.value == 'changed' and eventData.field == 'description' %}
+                                {{ 'issue.event.changed.description'|trans }}
                             {% elseif event.type.value == 'changed' %}
                                 {% set changeValues = [eventData.from, eventData.to]|map(value => value is null ? 'issue.show.nobody'|trans : (eventData.field == 'criticality' ? ('criticality.' ~ value)|trans : (eventData.field == 'visibility' ? ('issue.show.' ~ (value == 'private' ? 'hidden' : 'visible') ~ '_externals')|trans : value))) %}
                                 {{ ('issue.event.changed.' ~ eventData.field)|trans({ '%from%': changeValues[0], '%to%': changeValues[1] }) }}

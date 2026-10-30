@@ -35,4 +35,21 @@ final class HeaderTest extends KernelTestCase
 
         self::assertStringContainsString('Privée', (string) $component->render());
     }
+
+    public function testTheTitleIsEditedInPlace(): void
+    {
+        self::bootKernel();
+        AppStory::load();
+        $issue = self::getContainer()->get(IssueRepository::class)->findOneByKey('MD-SPT-4') ?? self::fail('no MD-SPT-4');
+        $claire = self::getContainer()->get(UserRepository::class)->findOneBy(['email' => 'claire.martin@maison-dupont.test']) ?? self::fail('no Claire');
+        $component = $this->createLiveComponent('Issue:Header', ['issue' => $issue])->actingAs($claire);
+
+        $component->call('editTitle')->set('title', '')->call('saveTitle');
+        self::assertStringContainsString('Le titre est obligatoire', (string) $component->render());
+
+        $component->set('title', 'L\'export CSV des commandes est vide depuis lundi')->call('saveTitle');
+        $render = $component->render();
+        self::assertStringContainsString('depuis lundi</h1>', (string) $render);
+        self::assertNotNull($component->getEmittedEvent($render, 'issue:changed'));
+    }
 }

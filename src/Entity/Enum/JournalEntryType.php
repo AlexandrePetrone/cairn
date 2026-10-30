@@ -14,4 +14,5 @@ enum JournalEntryType: string
     case Transitioned = 'transitioned';
     case TrackerChanged = 'tracker_changed';
     case Changed = 'changed';
+    case FieldChanged = 'field_changed';
 }

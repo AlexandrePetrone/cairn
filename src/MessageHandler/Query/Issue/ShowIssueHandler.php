@@ -127,7 +127,7 @@ final class ShowIssueHandler
             $fields[] = [
                 'label' => $field->label,
                 'type' => $field->type,
-                'value' => $field->type->hasOptions() && \is_string($value) ? ($field->options[$value] ?? $value) : $value,
+                'value' => $field->display($value),
             ];
         }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Config\Definition\FieldDefinition;
 use App\Config\Definition\PlaceDefinition;
 use App\Entity\Enum\JournalEntryType;
 use Doctrine\DBAL\Types\Types;
@@ -96,7 +97,8 @@ class JournalEntry
 
     /**
      * A property of the issue changed: `assignee` (full names), `criticality`
-     * (enum values) or `visibility` (`public`, `private`). Null is "none".
+     * (enum values), `visibility` (`public`, `private`), `title` (the
+     * titles) or `description` (no values). Null is "none".
      */
     public static function changed(Issue $issue, User $author, string $field, ?string $from, ?string $to): self
     {
@@ -105,6 +107,30 @@ class JournalEntry
             'from' => $from,
             'to' => $to,
         ]);
+    }
+
+    /**
+     * A field of the workflow changed, with its label and the values as
+     * they were displayed. Private when the field is for internal users only.
+     */
+    public static function fieldChanged(Issue $issue, User $author, FieldDefinition $field, mixed $from, mixed $to): self
+    {
+        return new self($issue, $author, JournalEntryType::FieldChanged, [
+            'field' => $field->id,
+            'label' => $field->label,
+            'from' => self::scalar($field->display($from)),
+            'to' => self::scalar($field->display($to)),
+        ], $field->internalOnly);
+    }
+
+    private static function scalar(mixed $value): ?string
+    {
+        return match (true) {
+            null === $value, '' === $value => null,
+            \is_bool($value) => $value ? 'true' : 'false',
+            \is_scalar($value) => (string) $value,
+            default => json_encode($value, \JSON_THROW_ON_ERROR),
+        };
     }
 
     public function getId(): ?int

@@ -14,27 +14,7 @@
         <aside class="mt-8 lg:mt-0 lg:w-72 shrink-0">
             <div class="lg:sticky lg:top-16 rounded-lg border border-gray-200 bg-white divide-y divide-gray-100">
                 <twig:Issue:Properties :issue="issue" />
-                {% if detail.fields is not empty %}
-                    <dl class="p-3 space-y-2.5">
-                        <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{{ 'issue.show.fields'|trans({ '%tracker%': issue.tracker.name }) }}</div>
-                        {% for field in detail.fields %}
-                            <div class="flex items-start gap-2">
-                                <dt class="w-20 shrink-0 text-xs text-gray-500 pt-0.5">{{ field.label }}</dt>
-                                <dd class="flex-1 min-w-0 text-sm text-gray-800 break-words">
-                                    {% if field.type.value == 'url' %}
-                                        <a href="{{ field.value }}" class="text-indigo-600 hover:underline break-all" rel="noopener noreferrer" target="_blank">{{ field.value|replace({ 'https://': '', 'http://': '' }) }}</a>
-                                    {% elseif field.type.value == 'date' %}
-                                        {{ field.value|date('d/m/Y') }}
-                                    {% elseif field.type.value == 'bool' %}
-                                        {{ (field.value ? 'issue.show.true' : 'issue.show.false')|trans }}
-                                    {% else %}
-                                        {{ field.value|nl2br }}
-                                    {% endif %}
-                                </dd>
-                            </div>
-                        {% endfor %}
-                    </dl>
-                {% endif %}
+                <twig:Issue:Fields :issue="issue" />
             </div>
         </aside>
     </div>

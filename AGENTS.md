@@ -306,7 +306,7 @@ Rules:
   `dispatchBrowserEvent('toast:show', ['message' => …])`.
 - JavaScript is Stimulus only, one small controller per behaviour in
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`,
-  `toast`, `toaster`); write a new one when a component needs it, not before. No
+  `toast`, `toaster`, `autosubmit`, `autofocus`); write a new one when a component needs it, not before. No
   inline scripts.
 
 ## Configuration and snapshot
