@@ -7,12 +7,13 @@ namespace App\Form;
 use App\Config\Definition\InstanceDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use App\Entity\Enum\Criticality;
+use App\Entity\Project;
 use App\Entity\User;
+use App\Form\Type\MarkdownType;
 use App\Form\Type\ToggleType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
-use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -37,9 +38,10 @@ final class IssueType extends AbstractType
                 'label' => 'issue.field.title',
                 'attr' => ['placeholder' => 'issue.field.title_placeholder', 'autofocus' => true],
             ])
-            ->add('description', TextareaType::class, [
+            ->add('description', MarkdownType::class, [
                 'label' => 'issue.field.description',
                 'attr' => ['placeholder' => 'issue.field.description_placeholder', 'rows' => 8],
+                'project' => $options['project'],
             ]);
 
         $builder->add('fields', IssueFieldsType::class, [
@@ -86,6 +88,7 @@ final class IssueType extends AbstractType
                 'criticality' => true,
                 'members' => null,
                 'private' => false,
+                'project' => null,
             ])
             ->setRequired(['workflow', 'definition'])
             ->setAllowedTypes('workflow', WorkflowDefinition::class)
@@ -94,8 +97,10 @@ final class IssueType extends AbstractType
             ->setAllowedTypes('criticality', 'bool')
             ->setAllowedTypes('members', ['null', User::class.'[]'])
             ->setAllowedTypes('private', 'bool')
+            ->setAllowedTypes('project', ['null', Project::class])
             ->setInfo('internal', 'whether internal-only fields are shown')
             ->setInfo('members', 'the people the issue may be assigned to, null when the viewer may not assign')
-            ->setInfo('private', 'whether the viewer may make the issue private');
+            ->setInfo('private', 'whether the viewer may make the issue private')
+            ->setInfo('project', 'where the description editor suggests issues and people and sends images');
     }
 }

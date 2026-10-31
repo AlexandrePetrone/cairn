@@ -155,3 +155,17 @@ auth:
 
 home:
     signed_in_as: 'Signed in as %name%.'
+
+editor:
+    bold: Bold
+    italic: Italic
+    strike: Strikethrough
+    code: Code
+    bulletList: Bulleted list
+    orderedList: Numbered list
+    blockquote: Quote
+    link: Link
+    link_prompt: 'Link address:'
+    upload_failed: The image could not be sent.
+    upload_refused: You cannot send an image here.
+    images_only: Only images can be pasted here.

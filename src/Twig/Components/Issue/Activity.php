@@ -195,6 +195,8 @@ final class Activity extends AbstractController
         $this->body = '';
         $this->private = false;
         $this->emit('issue:changed');
+        // The editor sits outside the morph (data-live-ignore): it is told to empty itself.
+        $this->dispatchBrowserEvent('editor:reset');
         $this->dispatchBrowserEvent('toast:show', ['message' => $success]);
     }
 

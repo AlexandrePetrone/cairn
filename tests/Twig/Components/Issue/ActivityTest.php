@@ -86,6 +86,17 @@ final class ActivityTest extends KernelTestCase
         self::assertFalse($comment->isPrivate());
     }
 
+    public function testACommentIsWrittenInMarkdownAndTheEditorIsToldToReset(): void
+    {
+        $component = $this->activity('claire.martin@maison-dupont.test');
+
+        $component->set('body', 'Toujours **vide**, comme #MD-SPT-2.')->call('postComment');
+        $render = $component->render();
+
+        self::assertStringContainsString('Toujours <strong>vide</strong>, comme <a class="issue-reference" href="/MD/SPT/issues/2"', (string) $render);
+        self::assertNotNull($component->getDispatchedBrowserEvent($render, 'editor:reset'), 'the editor, outside the morph, empties itself');
+    }
+
     public function testAnEmptyCommentIsRefused(): void
     {
         $component = $this->activity('nadia.benali@cairn.test');
@@ -113,7 +124,7 @@ final class ActivityTest extends KernelTestCase
         $component->call('editDescription')->set('description', 'Le fichier ne contient que l\'en-tête.')->call('saveDescription');
         $render = (string) $component->render();
 
-        self::assertStringContainsString('Le fichier ne contient que l&#039;en-tête.', $render);
+        self::assertStringContainsString('<p>Le fichier ne contient que l\'en-tête.</p>', $render);
         self::assertStringContainsString('a modifié la description', $render);
         self::assertStringContainsString('Brouillon en cours', $render);
     }

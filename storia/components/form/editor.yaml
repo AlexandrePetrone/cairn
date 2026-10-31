@@ -1,0 +1,5 @@
+component: Ui:Form:Editor
+variants:
+    default: { args: { name: description, rows: 4, placeholder: 'Ce qui se passe, ce que vous attendiez…' } }
+    with_content: { args: { name: description, rows: 4 }, blocks: { content: "**Bloquant** depuis lundi :\n\n- export vide\n- comme #MD-SPT-2" } }
+    invalid: { args: { name: description, rows: 4, invalid: true } }

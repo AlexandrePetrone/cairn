@@ -1,0 +1,67 @@
+<form name="field" method="post" rows="6" placeholder="Ce qui se passe, ce que vous attendiez…">
+                <div  >
+            <label for="field" class="block font-medium text-sm text-gray-800">
+            Description
+            <span class="text-red-500">*</span>                    </label>
+                <div class="mt-1 w-full rounded-md border border-gray-300 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100 cursor-not-allowed bg-gray-50 text-gray-500"
+     data-controller="editor"
+     data-editor-issues-url-value=""
+     data-editor-users-url-value=""
+     data-editor-upload-url-value=""
+     data-editor-issue-value=""
+     data-editor-placeholder-value="Ce qui se passe, ce que vous attendiez…"
+     data-editor-link-prompt-value="Adresse du lien :"
+     data-editor-upload-failed-value="L&#039;image n&#039;a pas pu être envoyée."
+     data-editor-images-only-value="Seules les images peuvent être collées ici."
+     data-editor-autofocus-value="false"
+     data-editor-editable-value="false"
+      id="field" aria-describedby="field_help">
+    <div class="flex flex-wrap items-center gap-0.5 border-b border-gray-200 px-1.5 py-1" role="toolbar" data-live-ignore>
+                    <button type="button" disabled title="Gras" aria-label="Gras" aria-pressed="false"
+                    data-editor-target="button" data-action="editor#run" data-editor-command-param="bold"
+                    class="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 disabled:pointer-events-none disabled:opacity-50 aria-pressed:bg-indigo-50 aria-pressed:text-indigo-700">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" height="1em" width="1em" class="h-4 w-4" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8"></path></svg>
+            </button>
+                    <button type="button" disabled title="Italique" aria-label="Italique" aria-pressed="false"
+                    data-editor-target="button" data-action="editor#run" data-editor-command-param="italic"
+                    class="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 disabled:pointer-events-none disabled:opacity-50 aria-pressed:bg-indigo-50 aria-pressed:text-indigo-700">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" height="1em" width="1em" class="h-4 w-4" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 4h-9m4 16H5M15 4L9 20"></path></svg>
+            </button>
+                    <button type="button" disabled title="Barré" aria-label="Barré" aria-pressed="false"
+                    data-editor-target="button" data-action="editor#run" data-editor-command-param="strike"
+                    class="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 disabled:pointer-events-none disabled:opacity-50 aria-pressed:bg-indigo-50 aria-pressed:text-indigo-700">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" height="1em" width="1em" class="h-4 w-4" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 4H9a3 3 0 0 0-2.83 4M14 12a4 4 0 0 1 0 8H6m-2-8h16"></path></svg>
+            </button>
+                    <button type="button" disabled title="Code" aria-label="Code" aria-pressed="false"
+                    data-editor-target="button" data-action="editor#run" data-editor-command-param="code"
+                    class="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 disabled:pointer-events-none disabled:opacity-50 aria-pressed:bg-indigo-50 aria-pressed:text-indigo-700">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" height="1em" width="1em" class="h-4 w-4" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16 18l6-6l-6-6M8 6l-6 6l6 6"></path></svg>
+            </button>
+                    <button type="button" disabled title="Liste à puces" aria-label="Liste à puces" aria-pressed="false"
+                    data-editor-target="button" data-action="editor#run" data-editor-command-param="bulletList"
+                    class="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 disabled:pointer-events-none disabled:opacity-50 aria-pressed:bg-indigo-50 aria-pressed:text-indigo-700">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" height="1em" width="1em" class="h-4 w-4" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h.01M3 12h.01M3 19h.01M8 5h13M8 12h13M8 19h13"></path></svg>
+            </button>
+                    <button type="button" disabled title="Liste numérotée" aria-label="Liste numérotée" aria-pressed="false"
+                    data-editor-target="button" data-action="editor#run" data-editor-command-param="orderedList"
+                    class="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 disabled:pointer-events-none disabled:opacity-50 aria-pressed:bg-indigo-50 aria-pressed:text-indigo-700">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" height="1em" width="1em" class="h-4 w-4" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h10m-10 7h10m-10 7h10M4 4h1v5M4 9h2m.5 11H3.4c0-1 2.6-1.925 2.6-3.5a1.5 1.5 0 0 0-2.6-1.02"></path></svg>
+            </button>
+                    <button type="button" disabled title="Citation" aria-label="Citation" aria-pressed="false"
+                    data-editor-target="button" data-action="editor#run" data-editor-command-param="blockquote"
+                    class="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 disabled:pointer-events-none disabled:opacity-50 aria-pressed:bg-indigo-50 aria-pressed:text-indigo-700">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" height="1em" width="1em" class="h-4 w-4" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2a1 1 0 0 1 1 1v1a2 2 0 0 1-2 2a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1a6 6 0 0 0 6-6V5a2 2 0 0 0-2-2zM5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2a1 1 0 0 1 1 1v1a2 2 0 0 1-2 2a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1a6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"></path></svg>
+            </button>
+                    <button type="button" disabled title="Lien" aria-label="Lien" aria-pressed="false"
+                    data-editor-target="button" data-action="editor#run" data-editor-command-param="link"
+                    class="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 disabled:pointer-events-none disabled:opacity-50 aria-pressed:bg-indigo-50 aria-pressed:text-indigo-700">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" height="1em" width="1em" class="h-4 w-4" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></g></svg>
+            </button>
+            </div>
+    <div data-editor-target="content" data-live-ignore class="cursor-text px-3 py-2" style="min-height: 10rem"></div>
+    <textarea data-editor-target="input" hidden  name="field" ></textarea>
+</div>
+
+            <p id="field_help" class="mt-1 text-xs text-gray-400">Mise en forme,</p>        </div>
+
+</form>

@@ -160,6 +160,7 @@ final class CreateForm extends AbstractController
             'members' => $this->access->isGranted($viewer, Permission::IssueAssign, $this->project) ? $this->queries->ask(new ListProjectMembers($this->project)) : null,
             // Issues of a private tracker are private whatever one chooses.
             'private' => !$tracker->isPrivate() && $this->access->isGranted($viewer, Permission::IssueSetPrivate, $this->project),
+            'project' => $this->project,
             'csrf_protection' => false,
         ]);
     }

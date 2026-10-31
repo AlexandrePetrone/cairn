@@ -26,6 +26,7 @@ final readonly class SearchIssues implements Query
      * @param list<int>         $tracker
      * @param list<int>         $assignee    user ids, 0 for unassigned
      * @param list<Criticality> $criticality
+     * @param ?string           $q           words of the title, a full key, or the start of a number
      * @param bool              $closed      list closed issues too (implied when `status` names closed)
      */
     public function __construct(

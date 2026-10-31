@@ -123,6 +123,25 @@
     <div class="mt-2">{{ form_widget(form) }}</div>
 {% endblock %}
 
+{# MarkdownType: the rich editor over a hidden textarea. #}
+{% block markdown_widget %}
+    {% set editorPlaceholder = attr.placeholder is defined ? (translation_domain is same as(false) ? attr.placeholder : attr.placeholder|trans({}, translation_domain)) : '' %}
+    <twig:Ui:Form:Editor
+        :id="id"
+        :name="full_name"
+        :required="required"
+        :invalid="not valid"
+        :disabled="disabled"
+        :rows="attr.rows ?? 4"
+        :placeholder="editorPlaceholder"
+        :issue="editor_issue"
+        :issuesUrl="editor_urls.issues"
+        :usersUrl="editor_urls.users"
+        :uploadUrl="editor_urls.upload"
+        {{ ...attr|filter((value, key) => key not in ['placeholder', 'rows']) }}
+    >{{ value }}</twig:Ui:Form:Editor>
+{% endblock %}
+
 {# ToggleType: a checkbox drawn as a switch, label included. #}
 {% block toggle_row %}
     {{ block('checkbox_row') }}

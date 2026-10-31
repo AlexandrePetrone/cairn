@@ -155,3 +155,17 @@ auth:
 
 home:
     signed_in_as: 'Connecté en tant que %name%.'
+
+editor:
+    bold: Gras
+    italic: Italique
+    strike: Barré
+    code: Code
+    bulletList: Liste à puces
+    orderedList: Liste numérotée
+    blockquote: Citation
+    link: Lien
+    link_prompt: 'Adresse du lien :'
+    upload_failed: L'image n'a pas pu être envoyée.
+    upload_refused: Vous ne pouvez pas envoyer d'image ici.
+    images_only: Seules les images peuvent être collées ici.

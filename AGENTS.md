@@ -32,7 +32,8 @@ Decisions already taken:
 - Persistence: Doctrine ORM, schema compatible with both MariaDB and
   PostgreSQL. Nothing is ever physically deleted.
 - Interface: server-rendered Twig + Turbo + UX Twig/Live Components, Tailwind
-  for styling. The kanban and the rich-text editor are React islands.
+  for styling. The kanban is a React island; the rich-text editor is
+  TipTap driven by a Stimulus controller, no framework.
 - Auth: SecurityBundle `form_login` on `/login` (email + password, stateless
   CSRF, remember me), logout on `/logout`; every other route requires
   `ROLE_USER`. Emails are stored lowercase and `UserRepository` loads the
@@ -104,6 +105,8 @@ src/
                      WorkflowProvider), HasPlace for the objects they move
   Notification/      subscription rules, mail builders, digest
   GitLab/            webhook payload, reference parser, related enums
+  Markdown/          rendering of the text users write, references resolved
+  Attachment/        where attachment files live (AttachmentStorage)
   Command/           console commands (app:config:sync, digest, …)
 ```
 
@@ -304,9 +307,30 @@ Rules:
   shows the flash messages the page starts with and adds a toast for every
   `toast:show` browser event; a live component sends one with
   `dispatchBrowserEvent('toast:show', ['message' => …])`.
+- **Text users write is markdown.** Descriptions and comments are stored
+  as CommonMark and edited in `Ui:Form:Editor` (the `editor` controller,
+  TipTap through the importmap), bound to a hidden textarea: a form
+  field is `Form/Type/MarkdownType`, a live component passes `model`.
+  They are displayed with the `markdown` Twig filter
+  (`Markdown/MarkdownRenderer`), never raw: HTML is escaped, unsafe
+  links dropped. Two references are written in the text itself:
+  `#MD-SPT-12` links an issue, but only for a reader who may see it
+  (text otherwise), and `@[Claire Martin](user:12)` mentions a person
+  with their current name. The editor suggests both from
+  `Controller/Project/SuggestController`, which reuses `SearchIssues`
+  and `ListProjectMembers` so that visibility stays written once.
+- **Pasted images are attachments.** The editor sends them to
+  `/{ws}/{p}/attachments` (`UploadAttachment`: raster images only, no
+  SVG; sending goes with the right to create, edit or comment). The file
+  lives under `ATTACHMENTS_DIR`, outside `public/`, and
+  `/attachments/{uuid}/{filename}` serves it to whoever sees its issue.
+  An image pasted in a new issue waits for its uploader until
+  `CreateIssue` claims it from the description.
 - JavaScript is Stimulus only, one small controller per behaviour in
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`,
-  `toast`, `toaster`, `autosubmit`, `autofocus`); write a new one when a component needs it, not before. No
+  `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`); a heavy one
+  is marked `/* stimulusFetch: 'lazy' */` (`editor`) so that its imports
+  are only fetched on a page that uses it; write a new one when a component needs it, not before. No
   inline scripts.
 
 ## Configuration and snapshot

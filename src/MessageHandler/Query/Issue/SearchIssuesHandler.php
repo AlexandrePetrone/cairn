@@ -115,7 +115,13 @@ final class SearchIssuesHandler
         }
 
         $text = trim((string) $query->q);
-        if ('' !== $text) {
+        if (ctype_digit($text)) {
+            // A number starts the issue numbers it prefixes: 12 finds 12, 120…
+            $queryBuilder
+                ->andWhere('LOWER(i.title) LIKE :text OR i.key LIKE :number')
+                ->setParameter('text', '%'.$text.'%')
+                ->setParameter('number', '%-'.$text.'%');
+        } elseif ('' !== $text) {
             $queryBuilder
                 ->andWhere('LOWER(i.title) LIKE :text OR i.key = :key')
                 ->setParameter('text', '%'.addcslashes(mb_strtolower($text), '%_').'%')
