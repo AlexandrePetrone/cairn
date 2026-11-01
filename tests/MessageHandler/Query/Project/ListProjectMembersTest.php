@@ -37,7 +37,7 @@ final class ListProjectMembersTest extends KernelTestCase
         self::assertNotEmpty($projects);
 
         foreach ($projects as $project) {
-            $expected = self::ids(...array_filter($users, static fn (User $user): bool => null !== $access->roleOn($user, $project)));
+            $expected = self::ids(...array_filter($users, static fn (User $user): bool => $user->isActive() && null !== $access->roleOn($user, $project)));
 
             self::assertSame($expected, self::ids(...self::queryBus()->ask(new ListProjectMembers($project))), $project->getIssuePrefix());
             self::assertGreaterThanOrEqual(3, \count($expected), $project->getIssuePrefix().' has a manager, a developer and a client');
@@ -62,6 +62,8 @@ final class ListProjectMembersTest extends KernelTestCase
         MembershipFactory::createOne(['user' => $former, 'project' => $project, 'role' => 'role_removed_from_configuration']);
         $elsewhere = UserFactory::createOne();
         MembershipFactory::createOne(['user' => $elsewhere, 'project' => ProjectFactory::createOne(), 'role' => 'client']);
+        $deactivated = UserFactory::createOne(['active' => false]);
+        MembershipFactory::createOne(['user' => $deactivated, 'project' => $project, 'role' => 'client']);
         UserFactory::new()->internal()->create();
 
         $members = self::queryBus()->ask(new ListProjectMembers($project));

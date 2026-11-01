@@ -64,6 +64,17 @@ final class IssuePropertyHandlersTest extends KernelTestCase
         $this->commands->dispatch(new AssignIssue((int) $this->fixtures->manager->getId(), $issue->getKey(), $outsider->getId()));
     }
 
+    public function testADeactivatedMemberMayNotBeAssigned(): void
+    {
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+        $this->fixtures->developer->deactivate();
+        $this->entityManager->flush();
+
+        $this->expectException(IssueException::class);
+        $this->expectExceptionMessage('is deactivated');
+        $this->commands->dispatch(new AssignIssue((int) $this->fixtures->manager->getId(), $issue->getKey(), $this->fixtures->developer->getId()));
+    }
+
     public function testAClientMayNotAssign(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);

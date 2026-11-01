@@ -40,7 +40,9 @@ Decisions already taken:
 - Auth: SecurityBundle `form_login` on `/login` (email + password, stateless
   CSRF, remember me), logout on `/logout`; every other route requires
   `ROLE_USER`. Emails are stored lowercase and `UserRepository` loads the
-  user. `Security/UserChecker` refuses deactivated accounts. Create
+  user. `Security/UserChecker` refuses deactivated accounts and
+  `User::isEqualTo()` ends their open sessions; `login_throttling` blocks
+  an email or an address after five failures. Create
   accounts with `bin/console app:user:create`, which asks everything
   interactively. Invitation of external users by email and agency
   SSO come later.
@@ -453,7 +455,8 @@ by default). The journal is never migrated.
   injects its `DATABASE_URL`).
 - `castor fixtures` resets the dev database and loads `src/Story/AppStory`
   (Foundry): workspaces, projects, trackers, users and issues close to the
-  mockups, created through the real commands under a mocked clock. It
+  mockups, created through the real commands under a mocked clock, with
+  nothing drawn at random: two loads give the same database. It
   applies `config/instance.example.php`, whose workflows it is written for.
   Every user's password is `cairn`; `admin@cairn.test` is an administrator.
   Factories live in `src/Factory/` and are also meant for tests.

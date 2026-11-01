@@ -52,9 +52,7 @@ final class CreateIssueHandler
         $workflow = $this->workflows->definition($tracker->getWorkflowId());
         $this->support->checkFields($workflow, $command->fields);
 
-        $assignee = null === $command->assigneeId
-            ? null
-            : $this->support->actor($command->assigneeId);
+        $assignee = $this->support->assignee($command->assigneeId, $project);
 
         // Lock the project row so that concurrent creations draw distinct numbers.
         $this->entityManager->lock($project, LockMode::PESSIMISTIC_WRITE);

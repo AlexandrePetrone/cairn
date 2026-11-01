@@ -74,6 +74,22 @@ final class CreateIssueHandlerTest extends KernelTestCase
         self::assertTrue($issue->isPrivate());
     }
 
+    public function testOnlyAMemberOfTheProjectMayBeAssignedAtCreation(): void
+    {
+        $outsider = $this->fixtures->access->user('paul@other.test');
+
+        $this->expectException(IssueException::class);
+        $this->expectExceptionMessage('holds no role');
+        $this->commands->dispatch(new CreateIssue(
+            actorId: (int) $this->fixtures->manager->getId(),
+            projectId: (int) $this->fixtures->access->shop->getId(),
+            trackerId: (int) $this->fixtures->bugs->getId(),
+            title: 'Pour un inconnu',
+            assigneeId: $outsider->getId(),
+            fields: ['environment' => 'prod'],
+        ));
+    }
+
     public function testIssuesOfAPrivateTrackerArePrivateAndClosedToExternals(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->developer, $this->fixtures->tasks);

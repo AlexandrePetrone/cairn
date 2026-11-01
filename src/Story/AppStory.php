@@ -45,7 +45,10 @@ use Zenstruck\Foundry\Story;
  * Load it with `castor fixtures`. It applies config/instance.example.php,
  * whose workflows it is written for, and creates issues through the real
  * commands under a mocked clock, so numbering, journal and dates are
- * consistent. Every user's password is `cairn`.
+ * consistent. Nothing is drawn at random: the variety (who comments,
+ * delays, field values) follows the index of the issue in its project, so
+ * that two loads give the same database and tests can rely on it. Every
+ * user's password is `cairn`.
  */
 #[AsFixture(name: 'main')]
 final class AppStory extends Story
@@ -69,7 +72,6 @@ final class AppStory extends Story
 
     public function build(): void
     {
-        mt_srand(20261028);
         $this->synchronizer->apply($this->synchronizer->plan((new ConfigLoader($this->configPath))->load()), 'fixtures');
 
         $this->createUsers();
@@ -249,7 +251,7 @@ final class AppStory extends Story
             description: 'Constaté par '.$author->getFullName().'. Voir les détails ci-dessous.',
             criticality: $criticality,
             private: $definition[5] ?? false,
-            fields: self::fieldsFor($workflow),
+            fields: self::fieldsFor($workflow, $index),
         ));
         \assert($issue instanceof Issue);
 
@@ -257,12 +259,13 @@ final class AppStory extends Story
             $this->commands->dispatch(new AssignIssue((int) $this->users[$people['manager']]->getId(), $issue->getKey(), $this->users[$assignee]->getId()));
         }
 
-        if (mt_rand(0, 2) > 0) {
-            $this->comment($issue, $people, $clock);
+        // Two issues out of three get a thread.
+        if (2 !== $index % 3) {
+            $this->comment($issue, $people, $clock, $index);
         }
 
-        foreach ($this->pathTo($workflow, $targetPlace) as $transition) {
-            $clock->modify(\sprintf('+%d hours +%d minutes', mt_rand(2, 40), mt_rand(0, 59)));
+        foreach ($this->pathTo($workflow, $targetPlace) as $step => $transition) {
+            $clock->modify(\sprintf('+%d hours +%d minutes', 2 + ($index * 7 + $step * 11) % 38, ($index * 13) % 60));
             if ($clock->now() > $now) {
                 $clock = new MockClock($now->modify('-1 hour'));
                 Clock::set($clock);
@@ -279,20 +282,21 @@ final class AppStory extends Story
     /**
      * @param array{manager: string, developers: list<string>, client: ?string} $people
      */
-    private function comment(Issue $issue, array $people, MockClock $clock): void
+    private function comment(Issue $issue, array $people, MockClock $clock, int $index): void
     {
-        $clock->modify(\sprintf('+%d hours +%d minutes', mt_rand(1, 6), mt_rand(0, 59)));
-        $developer = $people['developers'][mt_rand(0, \count($people['developers']) - 1)];
+        $clock->modify(\sprintf('+%d hours +%d minutes', 1 + $index % 6, ($index * 17) % 60));
+        $developer = $people['developers'][$index % \count($people['developers'])];
         $this->commands->dispatch(new AddComment((int) $this->users[$developer]->getId(), $issue->getKey(), 'Je regarde, je reviens vers vous dans la journée.', attachments: [$this->upload($this->users[$developer], $issue, 'trace.log')]));
 
         if (null !== $people['client'] && !$issue->isPrivate()) {
-            $clock->modify(\sprintf('+%d hours +%d minutes', mt_rand(1, 6), mt_rand(0, 59)));
+            $clock->modify(\sprintf('+%d hours +%d minutes', 1 + ($index * 5) % 6, ($index * 23) % 60));
             $this->commands->dispatch(new AddComment((int) $this->users[$people['client']]->getId(), $issue->getKey(), 'Merci, c\'est bloquant pour nos équipes.'));
             if ($issue->getAuthor() === $this->users[$people['client']]) {
                 $this->upload($issue->getAuthor(), $issue, 'capture.png', toIssue: true);
             }
         }
-        if (0 === mt_rand(0, 2)) {
+        // One thread out of three ends with a private note of the manager.
+        if (0 === $index % 3) {
             $manager = $this->users[$people['manager']];
             $this->commands->dispatch(new AddComment((int) $manager->getId(), $issue->getKey(), 'À chiffrer avant de s\'engager sur une date.', private: true, attachments: [$this->upload($manager, $issue, 'chiffrage.pdf')]));
         }
@@ -318,17 +322,22 @@ final class AppStory extends Story
     }
 
     /**
-     * Creation dates within the history, oldest first, so that issue
-     * numbers follow the calendar.
+     * Creation dates spread over the history, oldest first, so that issue
+     * numbers follow the calendar: evenly spaced, each one shifted by a few
+     * hours so that the spacing does not look mechanical.
      *
      * @return list<\DateTimeImmutable>
      */
     private static function creationDates(\DateTimeImmutable $now, int $count): array
     {
-        $minutesAgo = array_map(static fn (): int => mt_rand(3 * 24 * 60, self::HISTORY_DAYS * 24 * 60), range(1, $count));
-        rsort($minutesAgo);
+        $span = (self::HISTORY_DAYS - 3) * 24 * 60;
+        $dates = [];
+        for ($index = 0; $index < $count; ++$index) {
+            $minutesAgo = 3 * 24 * 60 + intdiv($span * ($count - $index), $count + 1) + ($index * 97) % 600;
+            $dates[] = $now->modify("-{$minutesAgo} minutes");
+        }
 
-        return array_map(static fn (int $minutes): \DateTimeImmutable => $now->modify("-{$minutes} minutes"), $minutesAgo);
+        return $dates;
     }
 
     /**
@@ -379,12 +388,12 @@ final class AppStory extends Story
      *
      * @return array<string, mixed>
      */
-    private static function fieldsFor(WorkflowDefinition $workflow): array
+    private static function fieldsFor(WorkflowDefinition $workflow, int $index): array
     {
         $values = [
-            'environment' => ['prod', 'preprod', 'staging'][mt_rand(0, 2)],
-            'url' => 'https://www.example.test/'.['panier', 'compte', 'catalogue', 'commande'][mt_rand(0, 3)],
-            'browser' => ['Chrome 130 sur macOS', 'Safari sur iPhone', 'Firefox sur Windows'][mt_rand(0, 2)],
+            'environment' => ['prod', 'preprod', 'staging'][$index % 3],
+            'url' => 'https://www.example.test/'.['panier', 'compte', 'catalogue', 'commande'][$index % 4],
+            'browser' => ['Chrome 130 sur macOS', 'Safari sur iPhone', 'Firefox sur Windows'][($index + 1) % 3],
             'goal' => 'Faire gagner du temps aux équipes qui traitent les commandes au quotidien.',
             'due_date' => '2026-12-15',
         ];

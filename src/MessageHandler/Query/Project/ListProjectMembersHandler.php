@@ -12,10 +12,11 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
- * The SQL side of AccessControl::roleOn(): a user is a member when a
- * membership on the project or on its workspace carries a role that still
- * exists in the configuration in force. ListProjectMembersTest compares
- * both on the development dataset.
+ * The SQL side of AccessControl::roleOn(), for active users: a user is a
+ * member when a membership on the project or on its workspace carries a
+ * role that still exists in the configuration in force. A deactivated
+ * account keeps its memberships but is offered to nobody.
+ * ListProjectMembersTest compares both on the development dataset.
  */
 #[AsMessageHandler(bus: 'query.bus')]
 final class ListProjectMembersHandler
@@ -37,6 +38,7 @@ final class ListProjectMembersHandler
             ->join(Membership::class, 'm', 'WITH', 'm.user = u')
             ->where('m.project = :project OR m.workspace = :workspace')
             ->andWhere('m.role IN (:roles)')
+            ->andWhere('u.active = true')
             ->orderBy('u.lastName')
             ->addOrderBy('u.firstName')
             ->setParameter('project', $query->project)

@@ -29,10 +29,7 @@ final class AssignIssueHandler
 
         $this->support->denyUnless($this->access->isGranted($actor, Permission::IssueAssign, $project), 'assign issues');
 
-        $assignee = null === $command->assigneeId ? null : $this->support->actor($command->assigneeId);
-        if (null !== $assignee && null === $this->access->roleOn($assignee, $project)) {
-            throw IssueException::notAMember($assignee->getFullName(), $project->getName());
-        }
+        $assignee = $this->support->assignee($command->assigneeId, $project);
 
         $previous = $issue->getAssignee();
         if ($previous?->getId() === $assignee?->getId()) {

@@ -6,6 +6,7 @@ namespace App\Entity;
 
 use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\EquatableInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
@@ -14,11 +15,13 @@ use function Symfony\Component\Clock\now;
 /**
  * Someone who signs in. `internal` tells agency users from client users and
  * drives what is private; `admin` is an internal user who also manages
- * workspaces, users and memberships, and holds every permission.
+ * workspaces, users and memberships, and holds every permission. A
+ * deactivated account cannot sign in (Security/UserChecker) and loses its
+ * open sessions at the next request (isEqualTo).
  */
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'app_user')]
-class User implements UserInterface, PasswordAuthenticatedUserInterface
+class User implements UserInterface, PasswordAuthenticatedUserInterface, EquatableInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -111,6 +114,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->active;
     }
 
+    public function deactivate(): void
+    {
+        $this->active = false;
+    }
+
+    public function reactivate(): void
+    {
+        $this->active = true;
+    }
+
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
@@ -140,6 +153,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getUserIdentifier(): string
     {
         return '' !== $this->email ? $this->email : throw new \LogicException('A user always has an email address.');
+    }
+
+    /**
+     * Whether the user of an open session is still the one in database.
+     * Symfony compares password, identifier and roles on its own; `active`
+     * is added so that deactivating an account ends its sessions.
+     */
+    public function isEqualTo(UserInterface $user): bool
+    {
+        return $user instanceof self
+            && $user->getId() === $this->getId()
+            && $user->email === $this->email
+            && $user->password === $this->password
+            && $user->active === $this->active
+            && $user->getRoles() === $this->getRoles();
     }
 
     /**

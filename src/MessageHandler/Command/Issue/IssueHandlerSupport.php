@@ -8,6 +8,7 @@ use App\Config\Definition\WorkflowDefinition;
 use App\Entity\Attachment;
 use App\Entity\Comment;
 use App\Entity\Issue;
+use App\Entity\Project;
 use App\Entity\User;
 use App\Repository\AttachmentRepository;
 use App\Repository\CommentRepository;
@@ -49,6 +50,26 @@ final class IssueHandlerSupport
         }
 
         return $issue;
+    }
+
+    /**
+     * The person an issue is given to: an active member of the project, or
+     * nobody. The same rule at creation and on reassignment.
+     */
+    public function assignee(?int $assigneeId, Project $project): ?User
+    {
+        if (null === $assigneeId) {
+            return null;
+        }
+        $assignee = $this->actor($assigneeId);
+        if (!$assignee->isActive()) {
+            throw IssueException::deactivatedUser($assignee->getFullName());
+        }
+        if (null === $this->access->roleOn($assignee, $project)) {
+            throw IssueException::notAMember($assignee->getFullName(), $project->getName());
+        }
+
+        return $assignee;
     }
 
     /**
