@@ -38,6 +38,19 @@ class AttachmentRepository extends ServiceEntityRepository
     }
 
     /**
+     * The uuids of every attachment, as the files are named on disk.
+     *
+     * @return list<string>
+     */
+    public function findAllUuids(): array
+    {
+        // Array hydration converts the column through UuidType; scalar hydration would hand back the raw bytes.
+        $rows = $this->createQueryBuilder('a')->select('a.uuid')->getQuery()->getArrayResult();
+
+        return array_values(array_map(static fn (array $row): string => (string) $row['uuid'], $rows));
+    }
+
+    /**
      * Pending attachments sent before a date: abandoned with their draft.
      *
      * @return list<Attachment>

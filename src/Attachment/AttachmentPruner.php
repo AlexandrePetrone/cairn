@@ -7,9 +7,7 @@ namespace App\Attachment;
 use App\Repository\AttachmentRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Clock\ClockInterface;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Scheduler\Attribute\AsPeriodicTask;
-use Symfony\Component\Uid\Uuid;
 
 /**
  * Removes what no text ever took: pending attachments older than a day
@@ -25,8 +23,6 @@ final class AttachmentPruner
         private readonly AttachmentStorage $storage,
         private readonly EntityManagerInterface $entityManager,
         private readonly ClockInterface $clock,
-        #[Autowire('%env(resolve:ATTACHMENTS_DIR)%')]
-        private readonly string $directory,
     ) {
     }
 
@@ -49,24 +45,23 @@ final class AttachmentPruner
             $this->entityManager->flush();
         }
 
+        // One query, then the rows and the files are compared in memory.
+        $known = array_fill_keys($this->attachments->findAllUuids(), true);
+        $present = [];
         $files = [];
-        foreach (glob($this->directory.'/*') ?: [] as $path) {
-            $name = basename($path);
-            if (!Uuid::isValid($name) || filemtime($path) >= $before->getTimestamp() || null !== $this->attachments->findOneByUuid(Uuid::fromString($name))) {
+        foreach ($this->storage->storedUuids() as $uuid) {
+            $name = $uuid->toRfc4122();
+            $present[$name] = true;
+            if (isset($known[$name]) || filemtime($this->storage->pathOf($uuid)) >= $before->getTimestamp()) {
                 continue;
             }
             $files[] = $name;
             if (!$dryRun) {
-                unlink($path);
+                unlink($this->storage->pathOf($uuid));
             }
         }
 
-        $missing = [];
-        foreach ($this->attachments->findAll() as $attachment) {
-            if (!is_file($this->storage->path($attachment))) {
-                $missing[] = $attachment->getUuid()->toRfc4122();
-            }
-        }
+        $missing = array_values(array_filter(array_keys($known), static fn (string $name): bool => !isset($present[$name])));
 
         return ['rows' => $rows, 'files' => $files, 'missing' => $missing];
     }

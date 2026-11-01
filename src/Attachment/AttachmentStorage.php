@@ -7,6 +7,7 @@ namespace App\Attachment;
 use App\Entity\Attachment;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Where attachment files live: `ATTACHMENTS_DIR`, outside `public/`, one
@@ -36,7 +37,30 @@ final class AttachmentStorage
 
     public function path(Attachment $attachment): string
     {
-        return $this->directory.'/'.$this->name($attachment);
+        return $this->pathOf($attachment->getUuid());
+    }
+
+    public function pathOf(Uuid $uuid): string
+    {
+        return $this->directory.'/'.$uuid->toRfc4122();
+    }
+
+    /**
+     * The uuids of the files present, whatever rows exist for them.
+     *
+     * @return list<Uuid>
+     */
+    public function storedUuids(): array
+    {
+        $uuids = [];
+        foreach (glob($this->directory.'/*') ?: [] as $path) {
+            $name = basename($path);
+            if (Uuid::isValid($name)) {
+                $uuids[] = Uuid::fromString($name);
+            }
+        }
+
+        return $uuids;
     }
 
     private function name(Attachment $attachment): string

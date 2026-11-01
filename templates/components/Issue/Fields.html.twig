@@ -12,8 +12,8 @@
             </div>
         {{ form_end(form) }}
     {% else %}
-        {% set fieldsDetail = this.detail %}
-        {% if fieldsDetail.fields is not empty or fieldsCanEdit %}
+        {% set fieldsValues = this.values %}
+        {% if fieldsValues is not empty or fieldsCanEdit %}
             <dl class="p-3 space-y-2.5">
                 <div class="flex items-center gap-2">
                     <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{{ 'issue.show.fields'|trans({ '%tracker%': issue.tracker.name }) }}</span>
@@ -21,18 +21,18 @@
                         <button type="button" data-action="live#action" data-live-action-param="edit" class="ml-auto text-xs text-indigo-600 hover:underline">{{ 'issue.edit.edit'|trans }}</button>
                     {% endif %}
                 </div>
-                {% for field in fieldsDetail.fields %}
+                {% for fieldValue in fieldsValues %}
                     <div class="flex items-start gap-2">
-                        <dt class="w-20 shrink-0 text-xs text-gray-500 pt-0.5">{{ field.label }}</dt>
+                        <dt class="w-20 shrink-0 text-xs text-gray-500 pt-0.5">{{ fieldValue.field.label }}</dt>
                         <dd class="flex-1 min-w-0 text-sm text-gray-800 break-words">
-                            {% if field.type.value == 'url' %}
-                                <a href="{{ field.value }}" class="text-indigo-600 hover:underline break-all" rel="noopener noreferrer" target="_blank">{{ field.value|replace({ 'https://': '', 'http://': '' }) }}</a>
-                            {% elseif field.type.value == 'date' %}
-                                {{ field.value|date('d/m/Y') }}
-                            {% elseif field.type.value == 'bool' %}
-                                {{ (field.value ? 'issue.show.true' : 'issue.show.false')|trans }}
+                            {% if fieldValue.field.type.value == 'url' %}
+                                <a href="{{ fieldValue.value }}" class="text-indigo-600 hover:underline break-all" rel="noopener noreferrer" target="_blank">{{ fieldValue.value|replace({ 'https://': '', 'http://': '' }) }}</a>
+                            {% elseif fieldValue.field.type.value == 'date' %}
+                                {{ fieldValue.value|date('d/m/Y') }}
+                            {% elseif fieldValue.field.type.value == 'bool' %}
+                                {{ (fieldValue.value ? 'issue.show.true' : 'issue.show.false')|trans }}
                             {% else %}
-                                {{ field.value|nl2br }}
+                                {{ fieldValue.value|nl2br }}
                             {% endif %}
                         </dd>
                     </div>

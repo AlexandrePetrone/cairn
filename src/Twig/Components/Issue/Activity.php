@@ -82,6 +82,9 @@ final class Activity extends AbstractController
     /** Why the last action did not go through, shown above the editor. */
     public ?string $error = null;
 
+    /** The detail, read once per request; forgotten after an action changed the issue. */
+    private ?IssueDetail $detail = null;
+
     public function __construct(
         private readonly WorkflowProvider $workflows,
         private readonly AccessControl $access,
@@ -127,7 +130,7 @@ final class Activity extends AbstractController
 
     public function getDetail(): IssueDetail
     {
-        return $this->queries->ask(new ShowIssue($this->viewer(), (int) $this->issue->getProject()->getId(), $this->issue->getNumber()))
+        return $this->detail ??= $this->queries->ask(new ShowIssue($this->viewer(), (int) $this->issue->getProject()->getId(), $this->issue->getNumber()))
             ?? throw $this->createNotFoundException('The issue is no longer visible.');
     }
 
@@ -279,6 +282,7 @@ final class Activity extends AbstractController
             return;
         }
 
+        $this->detail = null;
         $this->editingCommentId = null;
         $this->editPending = [];
         $this->emit('issue:changed');
@@ -312,6 +316,7 @@ final class Activity extends AbstractController
             return;
         }
 
+        $this->detail = null;
         if ($this->editingCommentId === $this->deletingCommentId) {
             $this->cancelComment();
         }
@@ -339,6 +344,7 @@ final class Activity extends AbstractController
     {
         $this->error = $this->removeFile($commands, $this->viewer(), $uuid);
         if (null === $this->error) {
+            $this->detail = null;
             $this->emit('issue:changed');
             $this->dispatchBrowserEvent('toast:show', ['message' => $this->translator->trans('attachment.removed', ['%name%' => $name])]);
         }
@@ -363,6 +369,7 @@ final class Activity extends AbstractController
             return;
         }
 
+        $this->detail = null;
         $this->body = '';
         $this->private = false;
         $this->pending = [];

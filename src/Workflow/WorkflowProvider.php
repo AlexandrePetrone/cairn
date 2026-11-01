@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Workflow;
 
 use App\Config\ConfigRegistry;
+use App\Config\Definition\PlaceDefinition;
 use App\Config\Definition\WorkflowDefinition;
+use App\Entity\Issue;
 use Symfony\Component\Workflow\WorkflowInterface;
 
 /**
@@ -31,5 +33,14 @@ final class WorkflowProvider
     public function definition(string $workflowId): WorkflowDefinition
     {
         return $this->registry->definition()->workflow($workflowId);
+    }
+
+    /**
+     * The place an issue sits on, null when the configuration no longer
+     * has it.
+     */
+    public function placeOf(Issue $issue): ?PlaceDefinition
+    {
+        return $this->definition($issue->getTracker()->getWorkflowId())->findPlace((string) $issue->getPlace());
     }
 }

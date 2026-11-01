@@ -56,10 +56,7 @@ final class Header extends AbstractController
 
     public function getPlace(): ?PlaceDefinition
     {
-        $workflow = $this->workflows->definition($this->issue->getTracker()->getWorkflowId());
-        $place = (string) $this->issue->getPlace();
-
-        return $workflow->hasPlace($place) ? $workflow->place($place) : null;
+        return $this->workflows->placeOf($this->issue);
     }
 
     public function canEdit(): bool

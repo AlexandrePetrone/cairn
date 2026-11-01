@@ -47,6 +47,15 @@ final readonly class WorkflowDefinition
         return isset($this->places[$id]);
     }
 
+    /**
+     * The place, or null when it left the configuration (an issue may
+     * still sit on it until the sync migrates it).
+     */
+    public function findPlace(string $id): ?PlaceDefinition
+    {
+        return $this->places[$id] ?? null;
+    }
+
     public function place(string $id): PlaceDefinition
     {
         return $this->places[$id] ?? throw new InvalidDefinitionException(\sprintf('workflows.%s: unknown place "%s".', $this->id, $id));

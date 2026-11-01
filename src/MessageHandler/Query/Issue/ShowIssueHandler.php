@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\Query\Issue;
 
-use App\Config\ConfigRegistry;
 use App\Entity\Attachment;
 use App\Entity\Comment;
 use App\Entity\Issue;
@@ -12,6 +11,7 @@ use App\Entity\JournalEntry;
 use App\Message\Query\Issue\IssueDetail;
 use App\Message\Query\Issue\ShowIssue;
 use App\Security\AccessControl;
+use App\Workflow\WorkflowProvider;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -28,7 +28,7 @@ final class ShowIssueHandler
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly AccessControl $access,
-        private readonly ConfigRegistry $config,
+        private readonly WorkflowProvider $workflows,
     ) {
     }
 
@@ -71,14 +71,10 @@ final class ShowIssueHandler
         }
         usort($timeline, static fn (array $a, array $b): int => $a['at'] <=> $b['at']);
 
-        $workflow = $this->config->definition()->workflow($issue->getTracker()->getWorkflowId());
-        $place = (string) $issue->getPlace();
-
         return new IssueDetail(
             $issue,
-            $workflow->hasPlace($place) ? $workflow->place($place) : null,
+            $this->workflows->placeOf($issue),
             $timeline,
-            $this->fields($issue, $query->viewer->isInternal()),
             $this->attachments($issue, $publicOnly),
         );
     }
@@ -145,29 +141,5 @@ final class ShowIssueHandler
         }
 
         return array_values(array_filter($rows, static fn (mixed $row): bool => $row instanceof $class));
-    }
-
-    /**
-     * @return list<array{label: string, type: \App\Config\FieldType, value: mixed}>
-     */
-    private function fields(Issue $issue, bool $internal): array
-    {
-        $definition = $this->config->definition();
-        $values = $issue->getFieldValues();
-        $fields = [];
-        foreach ($definition->workflow($issue->getTracker()->getWorkflowId())->fields as $usage) {
-            $field = $definition->fields[$usage->field];
-            $value = $values[$field->id] ?? null;
-            if (null === $value || '' === $value || ($field->internalOnly && !$internal)) {
-                continue;
-            }
-            $fields[] = [
-                'label' => $field->label,
-                'type' => $field->type,
-                'value' => $field->display($value),
-            ];
-        }
-
-        return $fields;
     }
 }

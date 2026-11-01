@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Config\Definition;
 
+use App\Config\FieldValue;
 use App\Config\MigrationPolicy;
 use App\Security\Permission;
 
@@ -108,6 +109,30 @@ final readonly class InstanceDefinition
     public function link(string $id): LinkTypeDefinition
     {
         return $this->links[$id] ?? throw new InvalidDefinitionException(\sprintf('Unknown link type "%s".', $id));
+    }
+
+    /**
+     * The filled-in fields of a workflow, in its order, as a reader sees
+     * them: empty ones left out, internal-only ones kept for internal
+     * readers, option values replaced by their labels.
+     *
+     * @param array<string, mixed> $values field id => stored value
+     *
+     * @return list<FieldValue>
+     */
+    public function fieldValues(WorkflowDefinition $workflow, array $values, bool $internal): array
+    {
+        $fields = [];
+        foreach ($workflow->fields as $usage) {
+            $field = $this->field($usage->field);
+            $value = $values[$field->id] ?? null;
+            if (null === $value || '' === $value || ($field->internalOnly && !$internal)) {
+                continue;
+            }
+            $fields[] = new FieldValue($field, $field->display($value));
+        }
+
+        return $fields;
     }
 
     public function hasWorkflow(string $id): bool

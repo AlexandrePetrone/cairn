@@ -9,10 +9,12 @@ use App\Config\Definition\TransitionDefinition;
 use App\Entity\Attachment;
 use App\Entity\Comment;
 use App\Entity\Issue;
+use App\Entity\Membership;
 use App\Entity\Project;
 use App\Entity\User;
 use App\Entity\Workspace;
 use App\Repository\MembershipRepository;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * The one place that decides what a user may do. Takes the acting user
@@ -24,11 +26,19 @@ use App\Repository\MembershipRepository;
  * An archived project stays readable but grants no permission at all, to
  * anyone: when a permission to manage projects exists, it will be the one
  * exception, so that a project can be unarchived.
+ *
+ * A page asks dozens of decisions about the same user: their memberships
+ * are loaded once per request. reset() forgets them: the kernel calls it
+ * between requests, EventListener/AccessControlResetter when a membership
+ * is written.
  */
-final class AccessControl
+final class AccessControl implements ResetInterface
 {
+    /** @var array<int, list<Membership>> user id => memberships */
+    private array $memberships = [];
+
     public function __construct(
-        private readonly MembershipRepository $memberships,
+        private readonly MembershipRepository $membershipRepository,
         private readonly ConfigRegistry $config,
     ) {
     }
@@ -45,7 +55,7 @@ final class AccessControl
         $definition = $this->config->definition();
         $best = null;
 
-        foreach ($this->memberships->findByUser($user) as $membership) {
+        foreach ($this->membershipsOf($user) as $membership) {
             $applies = $scope instanceof Project ? $membership->appliesTo($scope) : $membership->isOn($scope);
             if ($applies && $definition->hasRole($membership->getRole())) {
                 $best = self::broadest($definition->roleRank(...), $best, $membership->getRole());
@@ -152,6 +162,19 @@ final class AccessControl
         $role = $this->roleOn($user, $project);
 
         return null !== $role && \in_array($role, $transition->roles, true);
+    }
+
+    public function reset(): void
+    {
+        $this->memberships = [];
+    }
+
+    /**
+     * @return list<Membership>
+     */
+    private function membershipsOf(User $user): array
+    {
+        return $this->memberships[(int) $user->getId()] ??= $this->membershipRepository->findByUser($user);
     }
 
     /**

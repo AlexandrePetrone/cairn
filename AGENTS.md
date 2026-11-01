@@ -156,7 +156,9 @@ Rules:
   when the screen needs what no entity carries (a merge of several
   tables, values resolved from the configuration), and that object
   carries the entities instead of copying their fields: `IssueDetail`
-  holds the `Issue` plus its timeline and fields.
+  holds the `Issue` plus its timeline and attachments. What only the
+  configuration resolves (the labels of an issue's field values,
+  `InstanceDefinition::fieldValues()`) is not a query: components call it.
 - **URLs carry keys, not ids, and one route per need.** A project page is
   `/MD/SPT/issues`: the workspace key, the project key, then the screen.
   An action receives it as `#[CurrentProject] Project $project`, resolved

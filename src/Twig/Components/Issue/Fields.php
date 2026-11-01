@@ -5,14 +5,12 @@ declare(strict_types=1);
 namespace App\Twig\Components\Issue;
 
 use App\Config\ConfigRegistry;
+use App\Config\FieldValue;
 use App\Entity\Issue;
 use App\Entity\User;
 use App\Form\IssueFieldsType;
 use App\Message\Command\Issue\ChangeFields;
 use App\Message\CommandBus;
-use App\Message\Query\Issue\IssueDetail;
-use App\Message\Query\Issue\ShowIssue;
-use App\Message\QueryBus;
 use App\MessageHandler\Command\Issue\IssueException;
 use App\Security\AccessControl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -51,16 +49,21 @@ final class Fields extends AbstractController
     public function __construct(
         private readonly AccessControl $access,
         private readonly ConfigRegistry $config,
-        private readonly QueryBus $queries,
         private readonly FormFactoryInterface $forms,
         private readonly TranslatorInterface $translator,
     ) {
     }
 
-    public function getDetail(): IssueDetail
+    /**
+     * The filled-in fields, as the viewer may see them.
+     *
+     * @return list<FieldValue>
+     */
+    public function getValues(): array
     {
-        return $this->queries->ask(new ShowIssue($this->viewer(), (int) $this->issue->getProject()->getId(), $this->issue->getNumber()))
-            ?? throw $this->createNotFoundException('The issue is no longer visible.');
+        $definition = $this->config->definition();
+
+        return $definition->fieldValues($definition->workflow($this->issue->getTracker()->getWorkflowId()), $this->issue->getFieldValues(), $this->viewer()->isInternal());
     }
 
     public function canEdit(): bool
