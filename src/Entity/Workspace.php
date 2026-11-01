@@ -13,7 +13,8 @@ use function Symfony\Component\Clock\now;
 /**
  * A group of projects, typically one per client. Memberships granted on a
  * workspace apply to every project in it. Its key is the first part of an
- * issue identifier (`MD-SPT-128`).
+ * issue identifier (`MD-SPT-128`) and never changes. Archiving a workspace
+ * makes all of its projects read-only, as if each one were archived.
  */
 #[ORM\Entity(repositoryClass: WorkspaceRepository::class)]
 class Workspace
@@ -34,6 +35,9 @@ class Workspace
     /** Internal notes, never shown to external users. */
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $notes = null;
+
+    #[ORM\Column]
+    private bool $archived = false;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
@@ -59,6 +63,11 @@ class Workspace
         return $this->name;
     }
 
+    public function rename(string $name): void
+    {
+        $this->name = trim($name);
+    }
+
     public function getKey(): string
     {
         return $this->key;
@@ -72,6 +81,21 @@ class Workspace
     public function setNotes(?string $notes): void
     {
         $this->notes = '' === trim((string) $notes) ? null : $notes;
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archived;
+    }
+
+    public function archive(): void
+    {
+        $this->archived = true;
+    }
+
+    public function unarchive(): void
+    {
+        $this->archived = false;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

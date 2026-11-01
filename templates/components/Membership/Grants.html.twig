@@ -1,0 +1,88 @@
+{# The memberships of a workspace (one row per person) or of a user (one row per workspace or project). The role of a row is a select bound to `roles`, applied on change; removing a row asks for a confirmation in place. The add form closes the list. #}
+{% set grantsSelectClasses = 'h-8 rounded-md border border-gray-300 bg-white py-0 pl-2 pr-8 text-sm text-gray-700 focus:border-indigo-400 focus:outline-none focus:ring-0' %}
+{% set grantsMemberships = this.memberships %}
+<div {{ attributes }} class="rounded-lg border border-gray-200 bg-white" data-loading="addClass(opacity-60)">
+    {% if error %}
+        <twig:Ui:Callout tone="danger" size="sm" role="alert" class="m-3">{{ error }}</twig:Ui:Callout>
+    {% endif %}
+    {% if grantsMemberships is empty %}
+        <p class="px-4 py-6 text-center text-sm text-gray-400">{{ (workspace ? 'admin.access.empty_workspace' : 'admin.access.empty_user')|trans }}</p>
+    {% else %}
+        <ul class="divide-y divide-gray-100">
+            {% for membership in grantsMemberships %}
+                {% set grantsUser = membership.user %}
+                <li class="group px-4 py-2">
+                    <div class="flex flex-wrap items-center gap-3">
+                        {% if workspace %}
+                            <twig:Ui:Avatar :name="grantsUser.fullName" :kind="grantsUser.internal ? 'internal' : 'external'" size="lg" />
+                            <div class="min-w-0 flex-1 leading-tight">
+                                <a href="{{ path('app_admin_user', { id: grantsUser.id }) }}" class="block text-sm text-gray-900 hover:text-indigo-700 truncate">{{ grantsUser.fullName }}</a>
+                                <span class="block text-xs text-gray-500 truncate">{{ grantsUser.email }} · {{ (grantsUser.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</span>
+                            </div>
+                        {% else %}
+                            <div class="min-w-0 flex-1 flex items-center gap-2 text-sm">
+                                {% if membership.project %}
+                                    <twig:Ui:Chip>{{ membership.project.issuePrefix }}</twig:Ui:Chip>
+                                    <span class="text-gray-900 truncate">{{ membership.project.name }}</span>
+                                {% else %}
+                                    <twig:Ui:Chip>{{ membership.workspace.key }}</twig:Ui:Chip>
+                                    <a href="{{ path('app_admin_workspace_access', { key: membership.workspace.key }) }}" class="text-gray-900 hover:text-indigo-700 truncate">{{ 'admin.access.whole_workspace'|trans({ '%name%': membership.workspace.name }) }}</a>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        <select data-model="norender|roles.{{ membership.id }}" data-action="change->live#action" data-live-action-param="changeRole" data-live-membership-param="{{ membership.id }}" aria-label="{{ 'admin.access.role'|trans }}" class="{{ grantsSelectClasses }}">
+                            {% for roleId, roleLabel in this.rolesFor(grantsUser) %}
+                                <option value="{{ roleId }}" {{ roles[membership.id] is defined and roles[membership.id] == roleId ? 'selected' }}>{{ roleLabel }}</option>
+                            {% endfor %}
+                            {% if this.rolesFor(grantsUser)[membership.role] is not defined %}
+                                <option value="{{ membership.role }}" selected disabled>{{ this.roleLabel(membership.role) }}</option>
+                            {% endif %}
+                        </select>
+                        <span class="hover-actions">
+                            <twig:Ui:IconButton icon="x" tone="danger" :label="'admin.access.revoke'|trans" data-action="live#action" data-live-action-param="confirmRevoke" data-live-membership-param="{{ membership.id }}" />
+                        </span>
+                    </div>
+                    {% if revoking == membership.id %}
+                        <div class="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alertdialog">
+                            <span>{{ 'admin.access.revoke_confirm'|trans }}</span>
+                            <span class="ml-auto flex items-center gap-2">
+                                <twig:Ui:Button variant="danger" size="sm" data-action="live#action" data-live-action-param="revoke" data-loading="addAttribute(disabled)">{{ 'admin.access.revoke'|trans }}</twig:Ui:Button>
+                                <twig:Ui:Button variant="ghost" size="sm" data-action="live#action" data-live-action-param="cancelRevoke">{{ 'admin.cancel'|trans }}</twig:Ui:Button>
+                            </span>
+                        </div>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    <form class="flex flex-wrap items-center gap-2 border-t border-gray-100 bg-gray-50/60 px-4 py-3 rounded-b-lg" data-action="live#action:prevent" data-live-action-param="grant">
+        {% if workspace %}
+            <select data-model="newUserId" aria-label="{{ 'admin.access.user'|trans }}" class="{{ grantsSelectClasses }} min-w-0 flex-1">
+                <option value="">{{ 'admin.access.choose_user'|trans }}</option>
+                {% for candidate in this.candidates %}
+                    <option value="{{ candidate.id }}" {{ candidate.id == newUserId ? 'selected' }}>{{ candidate.fullName }} · {{ (candidate.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</option>
+                {% endfor %}
+            </select>
+            {% set grantsRoles = this.rolesFor(this.newUser) %}
+        {% else %}
+            <select data-model="newTarget" aria-label="{{ 'admin.access.target'|trans }}" class="{{ grantsSelectClasses }} min-w-0 flex-1">
+                <option value="">{{ 'admin.access.choose_target'|trans }}</option>
+                {% for workspaceName, targets in this.targets %}
+                    <optgroup label="{{ workspaceName }}">
+                        {% for target, label in targets %}
+                            <option value="{{ target }}" {{ target == newTarget ? 'selected' }}>{{ label }}</option>
+                        {% endfor %}
+                    </optgroup>
+                {% endfor %}
+            </select>
+            {% set grantsRoles = this.rolesFor(user) %}
+        {% endif %}
+        <select data-model="newRole" aria-label="{{ 'admin.access.role'|trans }}" class="{{ grantsSelectClasses }}">
+            <option value="">{{ 'admin.access.choose_role'|trans }}</option>
+            {% for roleId, roleLabel in grantsRoles %}
+                <option value="{{ roleId }}" {{ roleId == newRole ? 'selected' }}>{{ roleLabel }}</option>
+            {% endfor %}
+        </select>
+        <twig:Ui:Button type="submit" variant="primary" icon="plus" data-loading="addAttribute(disabled)">{{ 'admin.access.grant'|trans }}</twig:Ui:Button>
+    </form>
+</div>

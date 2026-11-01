@@ -83,6 +83,11 @@ class Membership
         return $this->role;
     }
 
+    public function changeRole(string $role): void
+    {
+        $this->role = $role;
+    }
+
     /**
      * Whether the membership gives a role on the project, directly or
      * through its workspace.

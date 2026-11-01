@@ -1,8 +1,13 @@
-{# Application level: the logo, the current project when inside one, the user menu. The burger opens the project navigation on mobile through the shell's `sidebar` controller.
+{# Application level: the logo, the current project when inside one, the administration link for administrators, the user menu. The burger opens the sidebar on mobile through the shell's `sidebar` controller.
+   In the administration (`admin`): an amber rule and badge, a way back to the application, no project.
    `this` is read before the nested components, whose blocks see their own `this`. #}
 {% set headerUser = this.user %}
-<header class="sticky top-0 z-50 h-12 bg-slate-900 text-slate-300 flex items-center gap-2 px-3 sm:px-4" {{ attributes }}>
-    {% if project %}
+{% set headerClasses = html_cva(
+    base: 'sticky top-0 z-50 h-12 bg-slate-900 text-slate-300 flex items-center gap-2 px-3 sm:px-4',
+    variants: { admin: { true: 'border-b-2 border-amber-400' } },
+) %}
+<header class="{{ headerClasses.apply({ admin: admin }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
+    {% if project or admin %}
         <button type="button" data-action="sidebar#open" class="md:hidden -ml-1 p-1.5 rounded-md hover:bg-slate-800" aria-label="{{ 'nav.open'|trans }}">
             <twig:ux:icon name="lucide:menu" class="h-4 w-4" />
         </button>
@@ -11,7 +16,12 @@
         <span class="h-6 w-6 rounded bg-indigo-500 grid place-items-center text-white font-bold text-xs">C</span>
         <span class="hidden sm:inline font-semibold text-white">Cairn</span>
     </a>
-    {% if project %}
+    {% if admin %}
+        <span class="inline-flex items-center gap-1.5 rounded-md bg-amber-400/15 px-2 py-1 text-xs font-semibold uppercase tracking-wider text-amber-300 ring-1 ring-inset ring-amber-400/30">
+            <twig:ux:icon name="lucide:settings" class="h-3.5 w-3.5" />{{ 'admin.title'|trans }}
+        </span>
+        <a href="{{ path('app_home') }}" class="ml-2 hidden sm:inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">{{ 'admin.back'|trans }}</a>
+    {% elseif project %}
         <div class="inline-flex h-8 max-w-[60vw] items-center gap-2 rounded-md bg-slate-800 px-2 ring-1 ring-inset ring-slate-700">
             <twig:Ui:Chip tone="dark">{{ project.issuePrefix }}</twig:Ui:Chip>
             <span class="font-medium text-white truncate">{{ project.name }}</span>
@@ -19,10 +29,15 @@
         </div>
     {% endif %}
     <div class="ml-auto flex items-center gap-2">
-    {% if project and is_granted('issue.create', project) %}
+    {% if project and not admin and is_granted('issue.create', project) %}
         <twig:Ui:Button variant="primary" icon="plus" href="{{ path('app_issue_new', { workspaceKey: project.workspace.key, projectKey: project.key }) }}" class="bg-indigo-500 hover:bg-indigo-400">
             <span class="hidden sm:inline">{{ 'issue.create.title'|trans }}</span>
         </twig:Ui:Button>
+    {% endif %}
+    {% if headerUser.admin and not admin %}
+        <a href="{{ path('app_admin') }}" class="grid h-8 w-8 place-items-center rounded-md text-slate-400 hover:bg-slate-800 hover:text-white" title="{{ 'admin.title'|trans }}" aria-label="{{ 'admin.title'|trans }}">
+            <twig:ux:icon name="lucide:settings" class="h-4 w-4" />
+        </a>
     {% endif %}
     <twig:Ui:Dropdown align="right">
         <twig:block name="trigger">

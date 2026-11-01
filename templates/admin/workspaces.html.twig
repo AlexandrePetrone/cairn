@@ -1,0 +1,57 @@
+{% extends 'layout/admin.html.twig' %}
+
+{% block page_title %}{{ 'admin.nav.workspaces'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 space-y-4">
+        <div class="flex flex-wrap items-center gap-3">
+            <div>
+                <h1 class="text-xl font-semibold text-gray-900">{{ 'admin.nav.workspaces'|trans }}</h1>
+                <p class="text-xs text-gray-500">{{ 'admin.workspace.intro'|trans }}</p>
+            </div>
+            <twig:Ui:Button variant="primary" icon="plus" href="{{ path('app_admin_workspace_new') }}" class="ml-auto">{{ 'admin.workspace.new'|trans }}</twig:Ui:Button>
+        </div>
+
+        <form method="get" action="{{ path('app_admin_workspaces') }}" class="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3">
+            <twig:Ui:Filter:Search :value="q" :placeholder="'admin.workspace.search'|trans" />
+            {% if q is not empty %}
+                <a href="{{ path('app_admin_workspaces') }}" class="text-xs text-indigo-600 hover:underline">{{ 'filter.clear'|trans }}</a>
+            {% endif %}
+        </form>
+
+        {% if workspaces is empty %}
+            <twig:Ui:EmptyState :title="'admin.workspace.empty'|trans" bordered />
+        {% else %}
+            <twig:Ui:Table>
+                <twig:block name="head">
+                    <th class="px-4 py-2 text-left font-medium w-56">{{ 'admin.workspace.column.name'|trans }}</th>
+                    <th class="px-3 py-2 text-left font-medium w-20">{{ 'admin.workspace.column.key'|trans }}</th>
+                    <th class="px-4 py-2 text-left font-medium">{{ 'admin.workspace.column.projects'|trans }}</th>
+                    <th class="px-3 py-2 text-left font-medium w-24">{{ 'admin.workspace.column.state'|trans }}</th>
+                </twig:block>
+                {% for workspace in workspaces %}
+                    <twig:Ui:Table:Row :closed="workspace.archived">
+                        <td class="sm:px-4 sm:py-2.5 order-1 basis-full sm:basis-auto"><a href="{{ path('app_admin_workspace', { key: workspace.key }) }}" class="font-medium {{ workspace.archived ? 'text-gray-500' : 'text-gray-900' }} hover:text-amber-800">{{ workspace.name }}</a></td>
+                        <td class="sm:px-3 sm:py-2.5 order-2"><twig:Ui:Chip>{{ workspace.key }}</twig:Ui:Chip></td>
+                        <td class="sm:px-4 sm:py-2.5 order-3 basis-full sm:basis-auto">
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                {% for project in projects[workspace.key] ?? [] %}
+                                    <span class="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 pl-1 pr-2 py-0.5 text-xs {{ project.archived ? 'opacity-60' }}"><span class="font-mono text-[10px] font-medium text-gray-500 bg-white rounded px-1">{{ project.key }}</span><span class="text-gray-700">{{ project.name }}</span></span>
+                                {% else %}
+                                    <span class="text-xs text-gray-400">{{ 'admin.workspace.no_project'|trans }}</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td class="sm:px-3 sm:py-2.5 order-4">
+                            {% if workspace.archived %}
+                                <twig:Ui:Badge>{{ 'admin.workspace.archived_badge'|trans }}</twig:Ui:Badge>
+                            {% else %}
+                                <twig:Ui:Badge tone="emerald">{{ 'admin.workspace.active_badge'|trans }}</twig:Ui:Badge>
+                            {% endif %}
+                        </td>
+                    </twig:Ui:Table:Row>
+                {% endfor %}
+            </twig:Ui:Table>
+        {% endif %}
+    </div>
+{% endblock %}

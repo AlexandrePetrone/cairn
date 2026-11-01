@@ -11,6 +11,7 @@ use App\Entity\Membership;
 use App\Entity\User;
 use App\Message\Query\Issue\SearchIssues;
 use App\Repository\Pagination;
+use App\Repository\SearchText;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -122,10 +123,9 @@ final class SearchIssuesHandler
                 ->setParameter('text', '%'.$text.'%')
                 ->setParameter('number', '%-'.$text.'%');
         } elseif ('' !== $text) {
-            // `!` escapes the wildcards: a backslash would be quoted differently by MySQL, PostgreSQL and SQLite.
             $queryBuilder
                 ->andWhere("LOWER(i.title) LIKE :text ESCAPE '!' OR i.key = :key")
-                ->setParameter('text', '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($text)).'%')
+                ->setParameter('text', SearchText::containing($text))
                 ->setParameter('key', mb_strtoupper($text));
         }
 

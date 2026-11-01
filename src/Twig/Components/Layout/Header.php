@@ -11,12 +11,16 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 
 /**
  * The application header: the logo, the project the page belongs to when
- * there is one, and the menu of the signed-in user.
+ * there is one, the way into the administration for administrators, and
+ * the menu of the signed-in user. In the administration (`admin`) it
+ * changes colour and leads back to the application instead.
  */
 #[AsTwigComponent('Layout:Header')]
 final class Header
 {
     public ?Project $project = null;
+
+    public bool $admin = false;
 
     public function __construct(
         private readonly Viewer $viewer,

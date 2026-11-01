@@ -37,7 +37,7 @@ final class CreateIssueHandler
         $tracker = $this->trackers->find($command->trackerId) ?? throw IssueException::notFound('Tracker', $command->trackerId);
 
         // Refused by the permission check too; this one names the reason.
-        if ($project->isArchived()) {
+        if ($project->isReadOnly()) {
             throw IssueException::archivedProject($project->getName());
         }
         if ($tracker->getProject()->getId() !== $project->getId()) {

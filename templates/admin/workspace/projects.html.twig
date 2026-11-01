@@ -1,0 +1,13 @@
+{% extends 'admin/workspace/base.html.twig' %}
+
+{% block workspace_content %}
+    {% if projects is empty %}
+        <twig:Ui:EmptyState :title="'admin.workspace.no_project'|trans" bordered />
+    {% else %}
+        <twig:Ui:Table>
+            {% for project in projects %}
+                {{ include('admin/_project_row.html.twig') }}
+            {% endfor %}
+        </twig:Ui:Table>
+    {% endif %}
+{% endblock %}

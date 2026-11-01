@@ -203,3 +203,122 @@ attachment:
         b: '%size% o'
         kb: '%size% Ko'
         mb: '%size% Mo'
+
+admin:
+    title: Administration
+    back: ← Retour à Cairn
+    save: Enregistrer
+    saved: Modifications enregistrées.
+    create: Créer
+    cancel: Annuler
+    created_on: 'créé le %date%'
+    nav:
+        projects: Projets
+        workspaces: Espaces
+        users: Utilisateurs
+    filter:
+        state: État
+        type: Type
+    project:
+        count: '{0}Aucun projet|{1}1 projet|]1,Inf[ %count% projets'
+        new: Nouveau projet
+        created: 'Projet « %name% » créé.'
+        archive: Archiver
+        unarchive: Désarchiver
+        archived: 'Projet « %name% » archivé : il passe en lecture seule.'
+        unarchived: 'Projet « %name% » désarchivé.'
+        archived_badge: Archivé
+        search: Projet, code ou espace…
+        empty: Aucun projet ne correspond.
+        workspace: Espace
+        name: Nom du projet
+        key: Code
+        key_help: 2 à 5 lettres, unique dans l'espace. Il ne change plus ensuite.
+        state:
+            active: Actif
+            archived: Archivé
+    workspace:
+        label: Espace
+        new: Nouvel espace
+        created: 'Espace « %name% » créé.'
+        intro: Un espace regroupe des projets et donne son code à leurs identifiants.
+        manage: Gérer l'espace →
+        search: Nom ou code de l'espace, nom d'un projet…
+        empty: Aucun espace ne correspond.
+        no_project: Aucun projet dans cet espace.
+        name: Nom de l'espace
+        key: Code
+        key_help: 2 à 5 lettres, unique. Il préfixe les identifiants des demandes et ne change plus ensuite.
+        key_fixed: 'Le code %key% fait partie des identifiants des demandes : il ne change pas.'
+        archived_label: Archivé
+        archive_help: Tous ses projets passent en lecture seule. Réversible.
+        archived_badge: Espace archivé
+        active_badge: Actif
+        column:
+            name: Espace
+            key: Code
+            projects: Projets
+            state: État
+        tab:
+            projects: Projets
+            access: Accès
+            settings: Paramètres
+    access:
+        workspace_intro: Un accès à l'espace vaut sur tous ses projets. Un accès direct à un projet, donné depuis la fiche d'une personne, ne peut qu'élargir ce rôle.
+        user_intro: Un accès à un espace vaut sur tous ses projets ; un accès direct à un projet ne peut qu'élargir le rôle hérité de son espace.
+        empty_workspace: Personne n'a encore d'accès à cet espace.
+        empty_user: Aucun accès pour l'instant. Cette personne peut se connecter mais ne voit aucun projet.
+        whole_workspace: 'Tout l''espace %name%'
+        user: Personne
+        target: Espace ou projet
+        role: Rôle
+        choose_user: Choisir une personne…
+        choose_target: Choisir un espace ou un projet…
+        choose_role: Choisir un rôle…
+        grant: Ajouter un accès
+        incomplete: Choisissez à qui ou où donner l'accès, et le rôle.
+        granted: Accès ajouté.
+        changed: Rôle modifié.
+        revoke: Retirer l'accès
+        revoke_confirm: Retirer cet accès ?
+        revoked: Accès retiré.
+    user:
+        count: '{0}Aucun compte|{1}1 compte|]1,Inf[ %count% comptes'
+        new: Nouvel utilisateur
+        created: 'Compte de %name% créé. Transmettez-lui son mot de passe.'
+        search: Nom ou adresse…
+        empty: Aucun utilisateur ne correspond.
+        admin_badge: Admin
+        first_name: Prénom
+        last_name: Nom
+        email: Adresse e-mail
+        password: Mot de passe
+        password_help: 8 caractères au moins. À transmettre à la personne, qui ne peut pas encore le changer elle-même.
+        new_password: Nouveau mot de passe
+        new_password_help: Laissez vide pour garder le mot de passe actuel.
+        active_label: Compte actif
+        active_help: Un compte désactivé ne peut plus se connecter. Ses accès, son historique et ses mentions sont conservés.
+        column:
+            user: Utilisateur
+            type: Type
+            state: État
+        type:
+            label: Type
+            help: Un interne voit tout ce qui est privé ; un administrateur est un interne qui gère aussi les projets, les espaces et les utilisateurs.
+            internal: Interne
+            admin: Administrateur
+            external: Externe
+        state:
+            active: Actif
+            deactivated: Désactivé
+    refused:
+        not_found: Introuvable.
+        workspace_key_taken: 'Un espace utilise déjà le code %key%.'
+        project_key_taken: 'Un projet de %workspace% utilise déjà le code %key%.'
+        archived_workspace: 'L''espace %workspace% est archivé : il ne reçoit pas de nouveau projet.'
+        unknown_role: 'Le rôle « %role% » n''existe pas dans la configuration.'
+        internal_only_role: '%name% est externe : le rôle « %role% » est réservé aux internes.'
+        not_wider: 'Le rôle « %role% » n''élargit pas le rôle « %inherited% » hérité de l''espace.'
+        email_taken: 'Un compte utilise déjà l''adresse %email%.'
+        last_admin: Il doit rester au moins un administrateur actif.
+        holds_internal_roles: '%name% a des rôles réservés aux internes (%where%) : retirez-les avant de passer cette personne en externe.'

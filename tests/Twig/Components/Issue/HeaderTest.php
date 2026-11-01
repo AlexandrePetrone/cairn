@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Twig\Components\Issue;
 
 use App\Entity\Issue;
-use App\Message\Command\Issue\ChangeVisibility;
+use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
 use App\Tests\Scene\ShopScene;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -38,7 +38,7 @@ final class HeaderTest extends KernelTestCase
         self::assertStringContainsString('La correction est en préproduction', $before, 'the hint of « À recetter »');
         self::assertStringNotContainsString('Privée', $before);
 
-        self::getContainer()->get(CommandBus::class)->dispatch(new ChangeVisibility((int) $thomas->getId(), 'MD-SPT-4', true));
+        self::getContainer()->get(CommandBus::class)->dispatch(new UpdateIssue((int) $thomas->getId(), 'MD-SPT-4', private: true));
         $component->emit('issue:changed');
 
         self::assertStringContainsString('Privée', (string) $component->render());

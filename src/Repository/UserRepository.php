@@ -26,4 +26,12 @@ class UserRepository extends ServiceEntityRepository implements UserLoaderInterf
     {
         return $this->findOneBy(['email' => mb_strtolower(trim($identifier))]);
     }
+
+    /**
+     * Who may still administer the instance: at least one must remain.
+     */
+    public function countActiveAdministrators(): int
+    {
+        return $this->count(['admin' => true, 'active' => true]);
+    }
 }

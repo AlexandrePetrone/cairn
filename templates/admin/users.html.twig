@@ -1,0 +1,82 @@
+{% extends 'layout/admin.html.twig' %}
+
+{% block page_title %}{{ 'admin.nav.users'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 space-y-4">
+        <div class="flex flex-wrap items-center gap-3">
+            <div>
+                <h1 class="text-xl font-semibold text-gray-900">{{ 'admin.nav.users'|trans }}</h1>
+                <p class="text-xs text-gray-500">{{ 'admin.user.count'|trans({ '%count%': users.total }) }}</p>
+            </div>
+            <twig:Ui:Button variant="primary" icon="plus" href="{{ path('app_admin_user_new') }}" class="ml-auto">{{ 'admin.user.new'|trans }}</twig:Ui:Button>
+        </div>
+
+        <form method="get" action="{{ path('app_admin_users') }}" class="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3" data-controller="autosubmit" data-action="change->autosubmit#submit">
+            <twig:Ui:Filter:Menu :label="'admin.filter.type'|trans" :count="filters.type|length">
+                {% for type in ['internal', 'external'] %}
+                    <twig:Ui:Filter:Option name="type[]" :value="type" :checked="type in filters.type">{{ ('admin.user.type.' ~ type)|trans }}</twig:Ui:Filter:Option>
+                {% endfor %}
+            </twig:Ui:Filter:Menu>
+            <twig:Ui:Filter:Menu :label="'admin.filter.state'|trans" :count="filters.state|length">
+                {% for state in ['active', 'deactivated'] %}
+                    <twig:Ui:Filter:Option name="state[]" :value="state" :checked="state in filters.state">{{ ('admin.user.state.' ~ state)|trans }}</twig:Ui:Filter:Option>
+                {% endfor %}
+            </twig:Ui:Filter:Menu>
+            <twig:Ui:Filter:Search :value="filters.q" :placeholder="'admin.user.search'|trans" />
+            {% if not filters.isEmpty %}
+                <a href="{{ path('app_admin_users') }}" class="text-xs text-indigo-600 hover:underline">{{ 'filter.clear'|trans }}</a>
+            {% endif %}
+        </form>
+
+        {% if users.items is empty %}
+            <twig:Ui:EmptyState :title="'admin.user.empty'|trans" bordered />
+        {% else %}
+            <twig:Ui:Table>
+                <twig:block name="head">
+                    <th class="px-4 py-2 text-left font-medium">{{ 'admin.user.column.user'|trans }}</th>
+                    <th class="px-3 py-2 text-left font-medium w-28">{{ 'admin.user.column.type'|trans }}</th>
+                    <th class="px-4 py-2 text-left font-medium w-28">{{ 'admin.user.column.state'|trans }}</th>
+                </twig:block>
+                {% for user in users.items %}
+                    <twig:Ui:Table:Row :closed="not user.active">
+                        <td class="sm:px-4 sm:py-2.5 order-1 basis-full sm:basis-auto">
+                            <a href="{{ path('app_admin_user', { id: user.id }) }}" class="flex items-center gap-2.5">
+                                <twig:Ui:Avatar :name="user.fullName" :kind="user.internal ? 'internal' : 'external'" size="lg" />
+                                <span class="min-w-0 leading-tight">
+                                    <span class="block text-gray-900 group-hover:text-indigo-700 truncate">
+                                        {{ user.fullName }}
+                                        {% if user.admin %}<twig:Ui:Badge tone="indigo" size="sm">{{ 'admin.user.admin_badge'|trans }}</twig:Ui:Badge>{% endif %}
+                                    </span>
+                                    <span class="block text-xs text-gray-500 truncate">{{ user.email }}</span>
+                                </span>
+                            </a>
+                        </td>
+                        <td class="sm:px-3 sm:py-2.5 order-2 text-xs {{ user.internal ? 'text-gray-700' : 'text-gray-500' }}">{{ (user.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</td>
+                        <td class="sm:px-4 sm:py-2.5 order-3 ml-auto sm:ml-0">
+                            {% if user.active %}
+                                <twig:Ui:Badge tone="emerald">{{ 'admin.user.state.active'|trans }}</twig:Ui:Badge>
+                            {% else %}
+                                <twig:Ui:Badge>{{ 'admin.user.state.deactivated'|trans }}</twig:Ui:Badge>
+                            {% endif %}
+                        </td>
+                    </twig:Ui:Table:Row>
+                {% endfor %}
+            </twig:Ui:Table>
+        {% endif %}
+
+        {% if users.pageCount > 1 %}
+            <nav class="flex items-center justify-between text-xs text-gray-500" aria-label="{{ 'pagination.label'|trans }}">
+                <span>{{ 'pagination.page_of'|trans({ '%page%': users.page, '%count%': users.pageCount }) }}</span>
+                <div class="flex items-center gap-2">
+                    {% if users.page > 1 %}
+                        <twig:Ui:Button size="sm" href="{{ path('app_admin_users', app.request.query.all|merge({ page: users.page - 1 })) }}">{{ 'pagination.previous'|trans }}</twig:Ui:Button>
+                    {% endif %}
+                    {% if users.page < users.pageCount %}
+                        <twig:Ui:Button size="sm" href="{{ path('app_admin_users', app.request.query.all|merge({ page: users.page + 1 })) }}">{{ 'pagination.next'|trans }}</twig:Ui:Button>
+                    {% endif %}
+                </div>
+            </nav>
+        {% endif %}
+    </div>
+{% endblock %}

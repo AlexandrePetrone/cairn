@@ -1,0 +1,11 @@
+{% extends 'admin/workspace/base.html.twig' %}
+
+{% block workspace_content %}
+    {{ form_start(form, { attr: { class: 'max-w-2xl rounded-lg border border-gray-200 bg-white p-4 space-y-4' } }) }}
+        {{ form_errors(form) }}
+        {{ form_row(form.name) }}
+        <p class="text-xs text-gray-500">{{ 'admin.workspace.key_fixed'|trans({ '%key%': workspace.key }) }}</p>
+        {{ form_row(form.archived) }}
+        <twig:Ui:Button type="submit" variant="primary" size="lg">{{ 'admin.save'|trans }}</twig:Ui:Button>
+    {{ form_end(form) }}
+{% endblock %}

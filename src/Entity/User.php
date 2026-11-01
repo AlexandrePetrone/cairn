@@ -134,6 +134,34 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Equatab
         $this->admin = $admin;
     }
 
+    /**
+     * A client user: neither internal nor administrator.
+     */
+    public function makeExternal(): void
+    {
+        $this->internal = false;
+        $this->admin = false;
+    }
+
+    public function rename(string $firstName, string $lastName): void
+    {
+        $this->firstName = trim($firstName);
+        $this->lastName = trim($lastName);
+    }
+
+    /**
+     * Stored lowercase, as the sign-in looks it up.
+     */
+    public function changeEmail(string $email): void
+    {
+        $email = mb_strtolower(trim($email));
+        if ('' === $email) {
+            throw new \InvalidArgumentException('An email address is required.');
+        }
+
+        $this->email = $email;
+    }
+
     public function setPassword(string $hashedPassword): void
     {
         $this->password = $hashedPassword;

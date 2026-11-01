@@ -1,0 +1,103 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controller\Admin;
+
+use App\Entity\User;
+use App\Form\UserData;
+use App\Form\UserFilters;
+use App\Form\UserType;
+use App\Message\Command\User\CreateUser;
+use App\Message\Command\User\UpdateUser;
+use App\Message\CommandBus;
+use App\Message\Query\User\SearchUsers;
+use App\Message\QueryBus;
+use App\MessageHandler\Command\User\UserException;
+use Symfony\Bridge\Doctrine\Attribute\MapEntity;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapQueryString;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
+
+/**
+ * The accounts. Until people are invited by email, an administrator
+ * creates the account with a first password and hands it over. The page
+ * of an account is one form, turned into one UpdateUser.
+ */
+#[IsGranted('ROLE_ADMIN')]
+#[Route('/admin/users')]
+final class UserController extends AbstractController
+{
+    public function __construct(
+        private readonly CommandBus $commands,
+        private readonly QueryBus $queries,
+        private readonly TranslatorInterface $translator,
+    ) {
+    }
+
+    #[Route('', name: 'app_admin_users', methods: ['GET'])]
+    public function list(
+        #[MapQueryString]
+        UserFilters $filters = new UserFilters(),
+    ): Response {
+        return $this->render('admin/users.html.twig', [
+            'filters' => $filters,
+            'users' => $this->queries->ask(new SearchUsers($filters->q, $filters->type, $filters->state, $filters->page)),
+        ]);
+    }
+
+    #[Route('/new', name: 'app_admin_user_new', methods: ['GET', 'POST'])]
+    public function new(Request $request): Response
+    {
+        $data = new UserData();
+        $form = $this->createForm(UserType::class, $data, ['creation' => true]);
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            try {
+                $user = $this->commands->dispatch(new CreateUser((string) $data->email, (string) $data->firstName, (string) $data->lastName, (string) $data->password, $data->isInternal(), $data->isAdmin()));
+                \assert($user instanceof User);
+                $this->addFlash('success', $this->translator->trans('admin.user.created', ['%name%' => $user->getFullName()]));
+
+                return $this->redirectToRoute('app_admin_user', ['id' => $user->getId()]);
+            } catch (UserException $e) {
+                $form->addError(new FormError($e->trans($this->translator)));
+            }
+        }
+
+        return $this->render('admin/user_new.html.twig', ['form' => $form], new Response(null, $form->isSubmitted() ? 422 : 200));
+    }
+
+    #[Route('/{id}', name: 'app_admin_user', requirements: ['id' => '\\d+'], methods: ['GET', 'POST'])]
+    public function edit(#[MapEntity] User $user, Request $request): Response
+    {
+        $data = UserData::fromUser($user);
+        $form = $this->createForm(UserType::class, $data);
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            try {
+                $this->commands->dispatch(new UpdateUser(
+                    userId: (int) $user->getId(),
+                    email: $data->email,
+                    firstName: $data->firstName,
+                    lastName: $data->lastName,
+                    internal: $data->isInternal(),
+                    admin: $data->isAdmin(),
+                    active: $data->active,
+                    plainPassword: '' === (string) $data->password ? null : $data->password,
+                ));
+                $this->addFlash('success', $this->translator->trans('admin.saved'));
+
+                return $this->redirectToRoute('app_admin_user', ['id' => $user->getId()]);
+            } catch (UserException $e) {
+                $form->addError(new FormError($e->trans($this->translator)));
+            }
+        }
+
+        return $this->render('admin/user.html.twig', ['user' => $user, 'form' => $form], new Response(null, $form->isSubmitted() ? 422 : 200));
+    }
+}

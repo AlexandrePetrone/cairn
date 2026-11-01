@@ -1,0 +1,9 @@
+{# Archives the project, or brings it back, then returns to the current page. Expects `project`. A project of an archived workspace is brought back with its workspace. #}
+{% if not project.workspace.archived %}
+    <form method="post" action="{{ path('app_admin_project_update', { workspaceKey: project.workspace.key, projectKey: project.key }) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token('submit') }}" data-controller="csrf-protection">
+        <input type="hidden" name="archived" value="{{ project.archived ? 0 : 1 }}">
+        <input type="hidden" name="back" value="{{ app.request.requestUri }}">
+        <twig:Ui:Button type="submit" size="sm" variant="ghost" :icon="project.archived ? 'archive-restore' : 'archive'">{{ (project.archived ? 'admin.project.unarchive' : 'admin.project.archive')|trans }}</twig:Ui:Button>
+    </form>
+{% endif %}

@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Twig\Components;
 
 use App\Message\CommandBus;
-use App\MessageHandler\Command\Issue\IssueException;
 use Symfony\Component\Messenger\Exception\ValidationFailedException;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use Symfony\Contracts\Translation\TranslatableInterface;
 
 /**
- * For the live components of the issue page, whose actions are commands:
- * a refusal becomes `$error`, which the component shows, and a success is
+ * For the live components whose actions are commands: a refusal becomes
+ * `$error`, which the component shows, and on the issue page a success is
  * announced to the other components (`issue:changed`) with a toast. Needs
  * ComponentToolsTrait and a `translator`.
  */
@@ -22,7 +22,8 @@ trait DispatchesCommands
 
     /**
      * Dispatches the command. A refusal, whether a domain rule, a missing
-     * right or an invalid command, is told to the user, never raised.
+     * right or an invalid command, is told to the user, never raised: in
+     * its own words when the domain exception can be translated.
      *
      * @param string|null $invalidMessage what to say when the command is invalid, when the generic refusal would not help
      *
@@ -36,8 +37,8 @@ trait DispatchesCommands
             $this->error = $invalidMessage ?? $this->translator->trans('issue.action.refused');
 
             return false;
-        } catch (IssueException|AccessDeniedException) {
-            $this->error = $this->translator->trans('issue.action.refused');
+        } catch (\DomainException|AccessDeniedException $e) {
+            $this->error = $e instanceof TranslatableInterface ? $e->trans($this->translator) : $this->translator->trans('issue.action.refused');
 
             return false;
         }

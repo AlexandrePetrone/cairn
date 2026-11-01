@@ -8,7 +8,7 @@ use App\Config\ConfigRegistry;
 use App\Config\FieldValue;
 use App\Entity\Issue;
 use App\Form\IssueFieldsType;
-use App\Message\Command\Issue\ChangeFields;
+use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
 use App\Security\AccessControl;
 use App\Security\Viewer;
@@ -89,7 +89,7 @@ final class Fields
         $values = $this->getForm()->getData();
         \assert(\is_array($values));
 
-        if (!$this->tryCommand($commands, new ChangeFields((int) $this->viewer->get()->getId(), $this->issue->getKey(), $values))) {
+        if (!$this->tryCommand($commands, new UpdateIssue((int) $this->viewer->get()->getId(), $this->issue->getKey(), fields: $values))) {
             return;
         }
 

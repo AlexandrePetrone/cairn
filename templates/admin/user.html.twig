@@ -1,0 +1,49 @@
+{% extends 'layout/admin.html.twig' %}
+
+{% block page_title %}{{ user.fullName }}{% endblock %}
+
+{% block breadcrumb %}
+    <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-gray-300 shrink-0" />
+    <a href="{{ path('app_admin_users') }}" class="hover:text-gray-900">{{ 'admin.nav.users'|trans }}</a>
+{% endblock %}
+
+{% block content %}
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-5 space-y-5">
+        <div class="flex flex-wrap items-center gap-4">
+            <twig:Ui:Avatar :name="user.fullName" :kind="user.internal ? 'internal' : 'external'" size="2xl" />
+            <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                    <h1 class="text-xl font-semibold text-gray-900">{{ user.fullName }}</h1>
+                    {% if user.active %}
+                        <twig:Ui:Badge tone="emerald">{{ 'admin.user.state.active'|trans }}</twig:Ui:Badge>
+                    {% else %}
+                        <twig:Ui:Badge>{{ 'admin.user.state.deactivated'|trans }}</twig:Ui:Badge>
+                    {% endif %}
+                    {% if user.admin %}<twig:Ui:Badge tone="indigo">{{ 'admin.user.type.admin'|trans }}</twig:Ui:Badge>{% endif %}
+                </div>
+                <p class="mt-0.5 text-sm text-gray-500">{{ user.email }} · {{ (user.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</p>
+            </div>
+        </div>
+
+        {{ form_start(form, { attr: { class: 'rounded-lg border border-gray-200 bg-white p-4 sm:p-5 space-y-4' } }) }}
+            {{ form_errors(form) }}
+            <div class="grid sm:grid-cols-2 gap-4">
+                {{ form_row(form.firstName) }}
+                {{ form_row(form.lastName) }}
+            </div>
+            <div class="grid sm:grid-cols-2 gap-4">
+                {{ form_row(form.email) }}
+                {{ form_row(form.password) }}
+            </div>
+            {{ form_row(form.type) }}
+            {{ form_row(form.active) }}
+            <twig:Ui:Button type="submit" variant="primary" size="lg">{{ 'admin.save'|trans }}</twig:Ui:Button>
+        {{ form_end(form) }}
+
+        <section class="space-y-2">
+            <h2 class="font-semibold text-gray-900">{{ 'admin.workspace.tab.access'|trans }}</h2>
+            <p class="text-xs text-gray-500">{{ 'admin.access.user_intro'|trans }}</p>
+            <twig:Membership:Grants :user="user" />
+        </section>
+    </div>
+{% endblock %}

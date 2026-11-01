@@ -7,9 +7,7 @@ namespace App\Twig\Components\Issue;
 use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
 use App\Entity\User;
-use App\Message\Command\Issue\AssignIssue;
-use App\Message\Command\Issue\ChangeCriticality;
-use App\Message\Command\Issue\ChangeVisibility;
+use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
 use App\Message\Query\Project\ListProjectMembers;
 use App\Message\QueryBus;
@@ -114,9 +112,9 @@ final class Properties
         $actorId = (int) $this->viewer->get()->getId();
         $key = $this->issue->getKey();
         $command = match ($property) {
-            'assignee' => new AssignIssue($actorId, $key, $this->assigneeId),
-            'criticality' => new ChangeCriticality($actorId, $key, $this->criticality),
-            'visibility' => new ChangeVisibility($actorId, $key, 'private' === $this->visibility),
+            'assignee' => new UpdateIssue($actorId, $key, assigneeId: $this->assigneeId ?? UpdateIssue::NOBODY),
+            'criticality' => new UpdateIssue($actorId, $key, criticality: $this->criticality),
+            'visibility' => new UpdateIssue($actorId, $key, private: 'private' === $this->visibility),
             default => null,
         };
         if (null === $command) {

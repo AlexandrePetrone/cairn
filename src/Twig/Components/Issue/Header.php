@@ -6,7 +6,7 @@ namespace App\Twig\Components\Issue;
 
 use App\Config\Definition\PlaceDefinition;
 use App\Entity\Issue;
-use App\Message\Command\Issue\ChangeTitle;
+use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
 use App\Security\AccessControl;
 use App\Security\Viewer;
@@ -76,7 +76,7 @@ final class Header
     #[LiveAction]
     public function saveTitle(CommandBus $commands): void
     {
-        $command = new ChangeTitle((int) $this->viewer->get()->getId(), $this->issue->getKey(), $this->title);
+        $command = new UpdateIssue((int) $this->viewer->get()->getId(), $this->issue->getKey(), title: $this->title);
         if (!$this->tryCommand($commands, $command, $this->translator->trans('issue.edit.title_invalid'))) {
             return;
         }

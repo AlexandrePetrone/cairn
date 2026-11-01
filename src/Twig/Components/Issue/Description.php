@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Twig\Components\Issue;
 
 use App\Entity\Issue;
-use App\Message\Command\Issue\ChangeDescription;
+use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
 use App\Security\AccessControl;
 use App\Security\Viewer;
@@ -68,7 +68,7 @@ final class Description
     #[LiveAction]
     public function saveDescription(CommandBus $commands): void
     {
-        if (!$this->tryCommand($commands, new ChangeDescription((int) $this->viewer->get()->getId(), $this->issue->getKey(), $this->description))) {
+        if (!$this->tryCommand($commands, new UpdateIssue((int) $this->viewer->get()->getId(), $this->issue->getKey(), description: $this->description))) {
             return;
         }
 

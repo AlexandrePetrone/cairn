@@ -203,3 +203,122 @@ attachment:
         b: '%size% B'
         kb: '%size% KB'
         mb: '%size% MB'
+
+admin:
+    title: Administration
+    back: ← Back to Cairn
+    save: Save
+    saved: Changes saved.
+    create: Create
+    cancel: Cancel
+    created_on: 'created on %date%'
+    nav:
+        projects: Projects
+        workspaces: Workspaces
+        users: Users
+    filter:
+        state: State
+        type: Type
+    project:
+        count: '{0}No projects|{1}1 project|]1,Inf[ %count% projects'
+        new: New project
+        created: 'Project "%name%" created.'
+        archive: Archive
+        unarchive: Unarchive
+        archived: 'Project "%name%" archived: it is now read-only.'
+        unarchived: 'Project "%name%" unarchived.'
+        archived_badge: Archived
+        search: Project, key or workspace…
+        empty: No project matches.
+        workspace: Workspace
+        name: Project name
+        key: Key
+        key_help: 2 to 5 letters, unique within the workspace. It never changes afterwards.
+        state:
+            active: Active
+            archived: Archived
+    workspace:
+        label: Workspace
+        new: New workspace
+        created: 'Workspace "%name%" created.'
+        intro: A workspace groups projects and gives its key to their identifiers.
+        manage: Manage the workspace →
+        search: Workspace name or key, project name…
+        empty: No workspace matches.
+        no_project: No project in this workspace.
+        name: Workspace name
+        key: Key
+        key_help: 2 to 5 letters, unique. It prefixes issue identifiers and never changes afterwards.
+        key_fixed: 'The key %key% is part of the issue identifiers: it does not change.'
+        archived_label: Archived
+        archive_help: All of its projects become read-only. Reversible.
+        archived_badge: Workspace archived
+        active_badge: Active
+        column:
+            name: Workspace
+            key: Key
+            projects: Projects
+            state: State
+        tab:
+            projects: Projects
+            access: Access
+            settings: Settings
+    access:
+        workspace_intro: Access to the workspace applies to all of its projects. Direct access to a project, granted from a person's page, may only widen that role.
+        user_intro: Access to a workspace applies to all of its projects; direct access to a project may only widen the role inherited from its workspace.
+        empty_workspace: Nobody has access to this workspace yet.
+        empty_user: No access yet. This person can sign in but sees no project.
+        whole_workspace: 'The whole %name% workspace'
+        user: Person
+        target: Workspace or project
+        role: Role
+        choose_user: Choose a person…
+        choose_target: Choose a workspace or a project…
+        choose_role: Choose a role…
+        grant: Grant access
+        incomplete: Choose who or where to grant access to, and the role.
+        granted: Access granted.
+        changed: Role changed.
+        revoke: Revoke access
+        revoke_confirm: Revoke this access?
+        revoked: Access revoked.
+    user:
+        count: '{0}No accounts|{1}1 account|]1,Inf[ %count% accounts'
+        new: New user
+        created: 'Account of %name% created. Hand them their password.'
+        search: Name or email…
+        empty: No user matches.
+        admin_badge: Admin
+        first_name: First name
+        last_name: Last name
+        email: Email address
+        password: Password
+        password_help: At least 8 characters. Hand it to the person, who cannot change it themselves yet.
+        new_password: New password
+        new_password_help: Leave empty to keep the current password.
+        active_label: Active account
+        active_help: A deactivated account can no longer sign in. Its access, history and mentions are kept.
+        column:
+            user: User
+            type: Type
+            state: State
+        type:
+            label: Type
+            help: Internal users see everything private; an administrator is an internal user who also manages projects, workspaces and users.
+            internal: Internal
+            admin: Administrator
+            external: External
+        state:
+            active: Active
+            deactivated: Deactivated
+    refused:
+        not_found: Not found.
+        workspace_key_taken: 'A workspace already uses the key %key%.'
+        project_key_taken: 'A project of %workspace% already uses the key %key%.'
+        archived_workspace: 'The workspace %workspace% is archived: it takes no new project.'
+        unknown_role: 'The role "%role%" does not exist in the configuration.'
+        internal_only_role: '%name% is external: the role "%role%" is for internal users only.'
+        not_wider: 'The role "%role%" does not widen the role "%inherited%" inherited from the workspace.'
+        email_taken: 'An account already uses %email%.'
+        last_admin: At least one active administrator must remain.
+        holds_internal_roles: '%name% holds roles for internal users only (%where%): revoke them before making this person external.'

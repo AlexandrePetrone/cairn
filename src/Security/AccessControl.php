@@ -23,9 +23,9 @@ use Symfony\Contracts\Service\ResetInterface;
  *
  * Administrators may do everything. Internal users may view every project.
  * Everything else comes from the effective role and the configuration.
- * An archived project stays readable but grants no permission at all, to
- * anyone: when a permission to manage projects exists, it will be the one
- * exception, so that a project can be unarchived.
+ * An archived project, or a project of an archived workspace, stays
+ * readable but grants no permission at all, to anyone: administrators
+ * unarchive them from the administration, which permissions do not govern.
  *
  * A page asks dozens of decisions about the same user: their memberships
  * are loaded once per request. reset() forgets them: the kernel calls it
@@ -72,7 +72,7 @@ final class AccessControl implements ResetInterface
 
     public function isGranted(User $user, Permission $permission, Project|Workspace $scope): bool
     {
-        if ($scope instanceof Project && $scope->isArchived()) {
+        if ($scope instanceof Project ? $scope->isReadOnly() : $scope->isArchived()) {
             return false;
         }
         if ($user->isAdmin()) {

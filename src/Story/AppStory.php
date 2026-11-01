@@ -24,8 +24,8 @@ use App\Message\Command\Attachment\AddAttachment;
 use App\Message\Command\Attachment\UploadAttachment;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
-use App\Message\Command\Issue\AssignIssue;
 use App\Message\Command\Issue\CreateIssue;
+use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
 use App\Security\AccessControl;
 use App\Workflow\WorkflowProvider;
@@ -257,7 +257,7 @@ final class AppStory extends Story
         \assert($issue instanceof Issue);
 
         if (null !== $assignee) {
-            $this->commands->dispatch(new AssignIssue((int) $this->users[$people['manager']]->getId(), $issue->getKey(), $this->users[$assignee]->getId()));
+            $this->commands->dispatch(new UpdateIssue((int) $this->users[$people['manager']]->getId(), $issue->getKey(), assigneeId: $this->users[$assignee]->getId()));
         }
 
         // Two issues out of three get a thread.

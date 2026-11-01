@@ -1,0 +1,50 @@
+{% extends 'layout/admin.html.twig' %}
+
+{% block page_title %}{{ 'admin.nav.projects'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 space-y-4">
+        <div class="flex flex-wrap items-center gap-3">
+            <div>
+                <h1 class="text-xl font-semibold text-gray-900">{{ 'admin.nav.projects'|trans }}</h1>
+                <p class="text-xs text-gray-500">{{ 'admin.project.count'|trans({ '%count%': groups|reduce((count, group) => count + group|length, 0) }) }}</p>
+            </div>
+            <div class="ml-auto flex items-center gap-2">
+                <twig:Ui:Button icon="plus" href="{{ path('app_admin_workspace_new') }}">{{ 'admin.workspace.new'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button variant="primary" icon="plus" href="{{ path('app_admin_project_new') }}">{{ 'admin.project.new'|trans }}</twig:Ui:Button>
+            </div>
+        </div>
+
+        <form method="get" action="{{ path('app_admin_projects') }}" class="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3" data-controller="autosubmit" data-action="change->autosubmit#submit">
+            <twig:Ui:Filter:Menu :label="'admin.filter.state'|trans" :count="filters.state|length">
+                {% for state in ['active', 'archived'] %}
+                    <twig:Ui:Filter:Option name="state[]" :value="state" :checked="state in filters.state">{{ ('admin.project.state.' ~ state)|trans }}</twig:Ui:Filter:Option>
+                {% endfor %}
+            </twig:Ui:Filter:Menu>
+            <twig:Ui:Filter:Search :value="filters.q" :placeholder="'admin.project.search'|trans" />
+            {% if not filters.isEmpty %}
+                <a href="{{ path('app_admin_projects') }}" class="text-xs text-indigo-600 hover:underline">{{ 'filter.clear'|trans }}</a>
+            {% endif %}
+        </form>
+
+        {% if groups is empty %}
+            <twig:Ui:EmptyState :title="'admin.project.empty'|trans" bordered />
+        {% endif %}
+        {% for workspaceProjects in groups %}
+            {% set groupWorkspace = (workspaceProjects|first).workspace %}
+            <section class="space-y-0">
+                <header class="flex flex-wrap items-center gap-x-3 gap-y-1 px-1 pb-2">
+                    <a href="{{ path('app_admin_workspace', { key: groupWorkspace.key }) }}" class="font-semibold text-gray-900 hover:text-amber-800">{{ groupWorkspace.name }}</a>
+                    <twig:Ui:Chip>{{ groupWorkspace.key }}</twig:Ui:Chip>
+                    {% if groupWorkspace.archived %}<twig:Ui:Badge size="sm">{{ 'admin.workspace.archived_badge'|trans }}</twig:Ui:Badge>{% endif %}
+                    <a href="{{ path('app_admin_workspace', { key: groupWorkspace.key }) }}" class="ml-auto text-xs text-gray-600 hover:text-gray-900">{{ 'admin.workspace.manage'|trans }}</a>
+                </header>
+                <twig:Ui:Table>
+                    {% for project in workspaceProjects %}
+                        {{ include('admin/_project_row.html.twig') }}
+                    {% endfor %}
+                </twig:Ui:Table>
+            </section>
+        {% endfor %}
+    </div>
+{% endblock %}

@@ -16,8 +16,11 @@ with its own workflow. It replaces Redmine with a client-centred tool.
 > - `../tickets.config.php`: commented schema of the instance configuration
 >   file (roles, permissions, fields, links, workflows). Its identifiers still
 >   use `ticket.*` and `relations`; the code uses `issue.*` and `links`.
-> - `../mockup/`: throwaway PHP + Tailwind mockups of every screen, plus
->   `brief-ux-demandes.md` (UX brief) and `_data.php` (sample data).
+> - `../mockup-2/`: throwaway PHP + Tailwind mockups of every screen, plus
+>   `brief-ux-demandes.md` (UX brief) and `_data.php` (sample data). They
+>   are quick graphic sketches: they give the layout and the look, never
+>   the model or the business rules, which come from the code and the
+>   decisions recorded here.
 
 ## Stack
 
@@ -30,10 +33,11 @@ AssetMapper, Stimulus, Turbo, Scheduler.
 Decisions already taken:
 
 - Persistence: Doctrine ORM, schema compatible with both MariaDB and
-  PostgreSQL. Nothing is ever physically deleted, with two exceptions
-  the journal covers: a removed attachment (file and row, the journal
-  keeps its name) and a deleted comment (row and files, the journal
-  keeps its text, author and date).
+  PostgreSQL. Nothing is ever physically deleted, with three exceptions:
+  a removed attachment (file and row, the journal keeps its name), a
+  deleted comment (row and files, the journal keeps its text, author and
+  date), and a revoked membership (memberships are the current state of
+  access, not its history).
 - Interface: server-rendered Twig + Turbo + UX Twig/Live Components, Tailwind
   for styling. The kanban is a React island; the rich-text editor is
   TipTap driven by a Stimulus controller, no framework.
@@ -42,10 +46,10 @@ Decisions already taken:
   `ROLE_USER`. Emails are stored lowercase and `UserRepository` loads the
   user. `Security/UserChecker` refuses deactivated accounts and
   `User::isEqualTo()` ends their open sessions; `login_throttling` blocks
-  an email or an address after five failures. Create
-  accounts with `bin/console app:user:create`, which asks everything
-  interactively. Invitation of external users by email and agency
-  SSO come later.
+  an email or an address after five failures. Administrators create
+  accounts in the administration with a first password they hand over;
+  `bin/console app:user:create` (interactive) creates the first
+  administrator. Invitation by email and agency SSO come later.
 - Workflow engine: the Symfony Workflow component, with state machines
   built at runtime from the configuration snapshot stored in database, not
   from YAML (`framework.workflows` stays empty). They enforce structure and
@@ -127,7 +131,23 @@ Rules:
   components, webhooks and console commands build a command and dispatch
   it. They contain no business rules. Authorization failures are Symfony's
   `AccessDeniedException`; business refusals are a domain exception next to
-  the handler (`IssueException`).
+  the handler (`IssueException`). The refusals the administration shows
+  as they are (`WorkspaceException`, `ProjectException`,
+  `MembershipException`, `UserException`) implement
+  `TranslatableInterface`: the message is for the logs, `trans()` gives
+  the reason to the user, in a form error or a live component's `error`.
+- **One message to create a resource, one to change it.** `CreateX`
+  creates, `UpdateX` changes, PATCH style: a property left null keeps
+  its value (`UpdateIssue`, `UpdateUser`, `UpdateWorkspace`,
+  `UpdateProject`; `UpdateIssue::NOBODY` unassigns). The handler checks
+  every change against its own rule before applying any, so one refusal
+  refuses them all, then journals each change. A screen sends the
+  properties it edits, an API will expose one PATCH per resource; states
+  such as archived or active are properties, not actions. A message of
+  its own is kept for what is not a change of state: a business action
+  (`ApplyTransition`, `ChangeTracker`), a sub-resource (comments, files,
+  `GrantMembership` / `RevokeMembership`). Don't split an `UpdateX` per
+  property or per form: a page edits a resource with one form.
 - **Forms feed commands.** A form binds to a mutable data object in
   `Form/` (`IssueData`) that carries the input constraints; the controller
   turns a valid submission into the readonly command and dispatches it.
@@ -164,7 +184,8 @@ Rules:
   An action receives it as `#[CurrentProject] Project $project`, resolved
   by `Controller/Project/CurrentProjectResolver` from the two route
   parameters (404 when unknown), and the controller class carries
-  `#[IsGranted('view', subject: 'project')]`. Archived projects are
+  `#[IsGranted('view', subject: 'project')]`. Archived projects, and the
+  projects of an archived workspace (`Project::isReadOnly()`), are
   refused by `AccessControl` for every permission, so no controller
   checks it. A list with another scope is
   another route of the same controller (`/issues/assigned`,
@@ -210,6 +231,18 @@ Rules:
   transaction. Whatever may fail independently, such as mail, is then
   re-dispatched as an asynchronous Messenger message with
   `DispatchAfterCurrentBusStamp` so it only leaves after commit.
+- **The administration is guarded at its door.** Everything under
+  `/admin` requires `ROLE_ADMIN` (`access_control` in `security.yaml`,
+  and `#[IsGranted('ROLE_ADMIN')]` on each `Controller/Admin/`
+  controller). Its commands (workspaces, projects, memberships,
+  accounts) carry no actor, like `CreateUser` which the console
+  dispatches with nobody signed in; their handlers enforce the rules of
+  the data: a role exists in the configuration, an `internalOnly` role
+  never goes to an external user (who cannot become external while they
+  hold one), a role granted on a project widens the one inherited from
+  its workspace, the last active administrator stays one. Keys never
+  change once created. Project configuration and memberships seen from
+  a project belong to its manager, in the project zone, not here.
 - **One authorization service.** `Security/AccessControl` takes the acting
   user as an explicit argument and resolves the effective role (direct
   membership or workspace membership, the broadest wins; being internal
@@ -233,11 +266,11 @@ Rules:
   |-------------|----------------------------------------|-----------------------------|------------------------|------------------------|
   | application | `/`, `/issues/…`, `/workspaces`, `/MD` | header only                 | `Controller/` root     | `templates/` root      |
   | project     | `/MD/SPT/…`                            | header + project navigation | `Controller/Project/`  | `templates/project/`   |
-  | admin       | `/admin/…`                             | header + admin navigation   | `Controller/Admin/`    | `templates/admin/`     |
+  | admin       | `/admin/…`                             | amber header + admin navigation (`Layout:AdminNav`) | `Controller/Admin/`    | `templates/admin/`     |
   | security    | `/login`                               | none                        | `Controller/Security/` | `templates/security/`  |
 
   Each zone has its base template in `templates/layout/<zone>.html.twig`
-  (`project.html.twig`, `app.html.twig`), which renders the shell and
+  (`project.html.twig`, `app.html.twig`, `admin.html.twig`), which renders the shell and
   exposes the `page_title` and `content` blocks; a page extends it and
   fills them. The root of `Controller/` holds application-level pages
   only, never a controller that found no home. Components are not
@@ -313,8 +346,8 @@ Rules:
   radio.
 - The shell is `Ui:Layout:Shell` (blocks `header`, `sidebar`, `breadcrumb`,
   content) with `Ui:Layout:Sidebar`, `Ui:Layout:Sidebar:Section` and
-  `Ui:Layout:Sidebar:Item`: low-level pieces without data. `Layout:Header`
-  and `Layout:ProjectNav`, which display data, are PHP-backed components
+  `Ui:Layout:Sidebar:Item`: low-level pieces without data. `Layout:Header`,
+  `Layout:ProjectNav` and `Layout:AdminNav`, which display data, are PHP-backed components
   (`#[AsTwigComponent]` in `src/Twig/Components/Layout/`). Inside a block
   passed to a nested component, `this` is that nested component: read your
   own `this.*` into a variable before opening it.
@@ -329,8 +362,9 @@ Rules:
   live action when other components hold state worth keeping (a comment
   being written). The components share `Twig/Components/DispatchesCommands`:
   `tryCommand()` dispatches and turns a refusal (domain, access,
-  validation) into the `error` the component shows, `announce()` emits
-  the event with a toast. They read the signed-in user from
+  validation) into the `error` the component shows, in its own words
+  when the exception is translatable, `announce()` emits the event with
+  a toast. They read the signed-in user from
   `Security/Viewer`, as do the layout components and the Twig extensions;
   a live component extends `AbstractController` only when it redirects
   (`Issue:CreateForm`).
@@ -365,7 +399,7 @@ Rules:
   live action). Only its uploader sees it. The command that saves the
   text claims it (`IssueHandlerSupport::claimAttachments()`): the files
   sent along and those its markdown points to. `CreateIssue` and
-  `ChangeDescription` give them to the issue, `AddComment` and
+  `UpdateIssue` (its description) give them to the issue, `AddComment` and
   `ApplyTransition` to the comment, so the files of a private comment are
   private. The Files block (`Issue:Files`) adds to the issue directly
   (`AddAttachment`), journaled. A file follows

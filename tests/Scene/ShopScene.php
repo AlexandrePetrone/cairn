@@ -15,8 +15,8 @@ use App\Entity\User;
 use App\Entity\Workspace;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
-use App\Message\Command\Issue\AssignIssue;
 use App\Message\Command\Issue\CreateIssue;
+use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
 use App\Security\AccessControl;
 use App\Workflow\WorkflowProvider;
@@ -30,7 +30,8 @@ use Symfony\Component\DependencyInjection\Container;
  * screens are written for). Thomas manages the workspace, Nadia and Léa
  * develop on the shop and Marc on the intranet only, Claire is the
  * client, Paul only reads, Sophie is the client of another workspace
- * whose project is archived.
+ * whose project is archived. Julie administers the instance and holds no
+ * role anywhere.
  *
  * Ten issues on the shop, numbered in this order: MD-SPT-1 and 2 are new
  * bugs, 3 is in progress, 4 waits for Claire's acceptance with a thread
@@ -105,6 +106,9 @@ final class ShopScene
             $this->users[$email] = new User($email, $firstName, $lastName, $internal);
             $this->entityManager->persist($this->users[$email]);
         }
+        $this->users['julie.admin@cairn.test'] = new User('julie.admin@cairn.test', 'Julie', 'Admin');
+        $this->users['julie.admin@cairn.test']->makeInternal(admin: true);
+        $this->entityManager->persist($this->users['julie.admin@cairn.test']);
     }
 
     private function places(): void
@@ -167,7 +171,7 @@ final class ShopScene
             $this->issues[$issue->getKey()] = $issue;
 
             if (null !== $assignee) {
-                $this->commands->dispatch(new AssignIssue((int) $thomas->getId(), $issue->getKey(), $this->user($assignee)->getId()));
+                $this->commands->dispatch(new UpdateIssue((int) $thomas->getId(), $issue->getKey(), assigneeId: $this->user($assignee)->getId()));
             }
             if ('MD-SPT-4' === $issue->getKey()) {
                 $this->thread($issue);

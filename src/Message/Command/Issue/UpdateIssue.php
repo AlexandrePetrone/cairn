@@ -1,0 +1,38 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Message\Command\Issue;
+
+use App\Entity\Enum\Criticality;
+use Symfony\Component\Validator\Constraints as Assert;
+
+/**
+ * Changes the properties of an issue, PATCH style: a property left null
+ * keeps its value. Each change is checked against its own right and
+ * journaled; one refusal refuses them all. Handled by UpdateIssueHandler.
+ */
+final readonly class UpdateIssue
+{
+    public const int NOBODY = 0;
+
+    /**
+     * @param array<string, mixed>|null $fields     field id => new value, null to empty it; the fields not listed keep their value
+     * @param int|null                  $assigneeId the new assignee, NOBODY to unassign
+     */
+    public function __construct(
+        public int $actorId,
+        #[Assert\NotBlank(normalizer: 'trim')]
+        public string $issueKey,
+        #[Assert\NotBlank(normalizer: 'trim', allowNull: true)]
+        #[Assert\Length(max: 200)]
+        public ?string $title = null,
+        public ?string $description = null,
+        public ?array $fields = null,
+        #[Assert\PositiveOrZero]
+        public ?int $assigneeId = null,
+        public ?Criticality $criticality = null,
+        public ?bool $private = null,
+    ) {
+    }
+}

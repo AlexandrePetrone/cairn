@@ -15,8 +15,8 @@ use App\Message\Command\Attachment\AddAttachment;
 use App\Message\Command\Attachment\RemoveAttachment;
 use App\Message\Command\Attachment\UploadAttachment;
 use App\Message\Command\Issue\AddComment;
-use App\Message\Command\Issue\ChangeDescription;
 use App\Message\Command\Issue\CreateIssue;
+use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
 use App\MessageHandler\Command\Issue\IssueException;
 use App\Repository\AttachmentRepository;
@@ -161,7 +161,7 @@ final class AttachmentHandlersTest extends KernelTestCase
         self::assertSame($issue, $sent->getIssue());
 
         $pasted = $this->upload($client, $this->file('capture.png', self::png()));
-        $this->commands->dispatch(new ChangeDescription((int) $client->getId(), $issue->getKey(), \sprintf('![capture](/attachments/%s/capture.png)', $pasted->getUuid()->toRfc4122())));
+        $this->commands->dispatch(new UpdateIssue((int) $client->getId(), $issue->getKey(), description: \sprintf('![capture](/attachments/%s/capture.png)', $pasted->getUuid()->toRfc4122())));
         self::assertSame($issue, $pasted->getIssue());
         self::assertNull($pasted->getComment());
     }
