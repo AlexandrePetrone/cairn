@@ -216,6 +216,7 @@ admin:
         projects: Projets
         workspaces: Espaces
         users: Utilisateurs
+        configuration: Configuration
     filter:
         state: État
         type: Type
@@ -311,6 +312,79 @@ admin:
         state:
             active: Actif
             deactivated: Désactivé
+    configuration:
+        intro: 'Lecture seule : la configuration se change dans le fichier d''instance, puis s''applique avec app:config:sync.'
+        nav:
+            roles: Rôles et droits
+            workflows: Workflows
+            fields: Champs et liens
+            history: Historique
+        roles:
+            title: Rôles
+            intro: Du plus large au plus étroit. Un accès direct sur un projet ne peut qu'élargir le rôle hérité de l'espace.
+            role: Rôle
+            who: Pour qui
+            memberships: Accès
+            anyone: Internes et externes
+            internal_only: Internes seulement
+            membership_count: '{0}aucun accès|{1}1 accès|]1,Inf[ %count% accès'
+            orphan: '%count% accès portent le rôle « %role% », absent de la configuration : ils ne donnent plus aucun droit.'
+        permissions:
+            title: Droits hors workflow
+            intro: Les droits que la configuration donne à chaque rôle. Les actions des workflows ont leurs propres rôles, détaillés plus bas.
+            permission: Droit
+        workflows:
+            intro: Chaque catégorie choisit un workflow à sa création et le garde. Pour chacun, ses étapes (les colonnes du kanban), les champs qu'il demande et les actions qui font passer d'une étape à l'autre, avec les rôles qui peuvent les déclencher. Un administrateur peut toutes les déclencher.
+            graph: Étapes et passages
+            details: Étapes détaillées et utilisation →
+            actions: Actions et qui peut les déclencher
+            action: Action
+            from: Depuis
+            to: Vers
+            tracker_count: '{0}aucune catégorie|{1}1 catégorie|]1,Inf[ %count% catégories'
+        diagram:
+            dotted: 'Pointillés : retour à une étape précédente'
+            comment: '💬 : commentaire obligatoire'
+        workflow:
+            initial: 'Une nouvelle demande commence à l''étape « %place% ».'
+            fallback: 'Étape de repli : « %place% ».'
+            steps: Étapes et actions
+            steps_intro: 'Dans l''ordre du kanban. Sous chaque étape, les actions qui en partent et les rôles qui peuvent les déclencher.'
+            initial_badge: Initiale
+            final_badge: Finale
+            comment_required: Commentaire obligatoire
+            fields: Champs
+            no_field: Aucun champ.
+            usage: Utilisation
+            unused: Aucune catégorie n'utilise ce workflow.
+            tracker: Catégorie
+            total: Total
+        fields:
+            title: Champs
+            intro: Les champs sont communs à toute l'instance ; chaque workflow choisit ceux qu'il utilise.
+            field: Champ
+            type: Type
+            filling: Saisie
+            visibility: Visibilité
+            required: Obligatoire
+            optional: Facultatif
+            everyone: Tous
+            internal_only: Internes seulement
+            used_by: 'Utilisé par :'
+            unused: Utilisé par aucun workflow.
+        links:
+            title: Types de liens
+            intro: Les liens possibles entre deux demandes.
+            inverse: 'vu depuis l''autre demande : « %label% »'
+            symmetric: symétrique
+        history:
+            policy: Politique de migration
+            title: Synchronisations
+            intro: Chaque synchronisation enregistre la configuration appliquée et ce qui a changé.
+            current: En vigueur
+            by: 'par %name%'
+            show_changes: '{1}Voir le changement|]1,Inf[ Voir les %count% changements'
+            hide_changes: Masquer les changements
     refused:
         not_found: Introuvable.
         workspace_key_taken: 'Un espace utilise déjà le code %key%.'
@@ -322,3 +396,53 @@ admin:
         email_taken: 'Un compte utilise déjà l''adresse %email%.'
         last_admin: Il doit rester au moins un administrateur actif.
         holds_internal_roles: '%name% a des rôles réservés aux internes (%where%) : retirez-les avant de passer cette personne en externe.'
+
+permission:
+    issue:
+        create:
+            label: Créer des demandes
+            help: Ouvrir une demande dans les catégories qui lui sont visibles.
+        edit:
+            label: Modifier les demandes des autres
+            help: Titre, description, champs et fichiers d'une demande écrite par quelqu'un d'autre. L'auteur modifie toujours la sienne.
+        change_tracker:
+            label: Changer la catégorie d'une demande
+            help: Déplacer une demande vers une autre catégorie du projet, en choisissant son étape dans le nouveau workflow.
+        assign:
+            label: Assigner les demandes
+            help: Choisir qui traite une demande, parmi les membres du projet.
+        set_criticality:
+            label: Changer la criticité
+            help: Passer une demande en basse, normale, haute ou bloquante.
+        set_private:
+            label: Rendre une demande privée
+            help: La cacher aux externes, ou la leur montrer à nouveau.
+    comment:
+        create:
+            label: Commenter
+            help: Écrire dans le fil d'une demande.
+        set_private:
+            label: Écrire des commentaires privés
+            help: Un commentaire privé et ses fichiers ne sont vus que des internes.
+        edit:
+            label: Modifier les commentaires des autres
+            help: Réécrire ou supprimer le commentaire de quelqu'un d'autre. L'auteur gère toujours le sien.
+
+field_type:
+    text: Texte court
+    textarea: Texte long
+    rich_text: Texte mis en forme
+    select: Liste déroulante
+    choice: Choix unique
+    number: Nombre
+    date: Date
+    url: Adresse web
+    bool: Oui / non
+
+migration_policy:
+    strict:
+        label: Stricte
+        help: si une étape disparaît sans successeur déclaré (migrate_from), la synchronisation est refusée et la configuration précédente reste en vigueur.
+    fallback:
+        label: Repli
+        help: les demandes posées sur une étape qui disparaît vont à l'étape de repli de leur workflow.

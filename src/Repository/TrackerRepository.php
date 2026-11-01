@@ -34,4 +34,19 @@ class TrackerRepository extends ServiceEntityRepository
 
         return $this->findBy($criteria, ['position' => 'ASC', 'id' => 'ASC']);
     }
+
+    /**
+     * @return array<string, int> workflow id => trackers bound to it
+     */
+    public function countByWorkflow(): array
+    {
+        /** @var list<array{workflowId: string, trackers: int|string}> $rows */
+        $rows = $this->createQueryBuilder('t')
+            ->select('t.workflowId AS workflowId', 'COUNT(t.id) AS trackers')
+            ->groupBy('t.workflowId')
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_column(array_map(static fn (array $row): array => [$row['workflowId'], (int) $row['trackers']], $rows), 1, 0);
+    }
 }

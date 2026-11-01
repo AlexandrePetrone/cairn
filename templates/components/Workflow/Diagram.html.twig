@@ -1,0 +1,14 @@
+{# The graph of a workflow: the Mermaid source, drawn by the `workflow-diagram` controller, and the legend of colours and dotted arrows. The source only shows when drawing fails; the table of actions next to the diagram tells the same without JavaScript. #}
+<div {{ attributes.defaults({ class: 'space-y-2' }) }}>
+    <div class="overflow-x-auto rounded-md border border-gray-200 bg-white p-3" data-controller="workflow-diagram">
+        <div data-workflow-diagram-target="canvas" class="min-w-max min-h-24"></div>
+        <pre data-workflow-diagram-target="source" class="text-xs text-gray-500 whitespace-pre" hidden>{{ this.source }}</pre>
+    </div>
+    <p class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+        {% for status in ['open', 'in_progress', 'waiting', 'closed'] %}
+            <span class="inline-flex items-center gap-1.5"><twig:Ui:Status:Dot :status="status" size="md" />{{ ('status.' ~ status)|trans }}</span>
+        {% endfor %}
+        <span>{{ 'admin.configuration.diagram.dotted'|trans }}</span>
+        <span>{{ 'admin.configuration.diagram.comment'|trans }}</span>
+    </p>
+</div>

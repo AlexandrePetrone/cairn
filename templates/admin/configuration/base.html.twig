@@ -1,0 +1,19 @@
+{# Base of the configuration pages, read-only: the navigation has one entry per subject. Pages set `configurationSubject` (roles, workflows, fields or history) and fill `configuration_content`. #}
+{% extends 'layout/admin.html.twig' %}
+
+{% block page_title %}{{ ('admin.configuration.nav.' ~ configurationSubject)|trans }}{% endblock %}
+
+{% block breadcrumb %}
+    <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-gray-300 shrink-0" />
+    <span>{{ 'admin.nav.configuration'|trans }}</span>
+{% endblock %}
+
+{% block content %}
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 space-y-6">
+        <div>
+            <h1 class="text-xl font-semibold text-gray-900">{{ ('admin.configuration.nav.' ~ configurationSubject)|trans }}</h1>
+            <p class="text-xs text-gray-500">{{ 'admin.configuration.intro'|trans }}</p>
+        </div>
+        {% block configuration_content %}{% endblock %}
+    </div>
+{% endblock %}

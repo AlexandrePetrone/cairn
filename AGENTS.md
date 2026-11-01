@@ -243,6 +243,14 @@ Rules:
   its workspace, the last active administrator stays one. Keys never
   change once created. Project configuration and memberships seen from
   a project belong to its manager, in the project zone, not here.
+  The configuration itself is shown read-only under
+  `/admin/configuration` (`Controller/Admin/ConfigurationController`,
+  its own section of `Layout:AdminNav`): roles and the permission
+  matrix, each workflow drawn as a graph (`Workflow/MermaidDiagram`
+  writes the Mermaid source, `Workflow:Diagram` shows it) with its
+  fields and actions by role,
+  fields and links, sync history. It changes only through the instance
+  file and `app:config:sync`.
 - **One authorization service.** `Security/AccessControl` takes the acting
   user as an explicit argument and resolves the effective role (direct
   membership or workspace membership, the broadest wins; being internal
@@ -425,9 +433,10 @@ Rules:
   screens. A deletion confirms in place, never through `confirm()`.
 - JavaScript is Stimulus only, one small controller per behaviour in
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`,
-  `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`); a heavy one
-  is marked `/* stimulusFetch: 'lazy' */` (`editor`) so that its imports
-  are only fetched on a page that uses it; write a new one when a component needs it, not before. No
+  `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`,
+  `workflow-diagram`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
+  (`editor` with TipTap, `workflow-diagram` with Mermaid) so that its
+  imports are only fetched on a page that uses it; write a new one when a component needs it, not before. No
   inline scripts.
 
 ## Configuration and snapshot
@@ -463,7 +472,10 @@ by default). The journal is never migrated.
     domain (`status.open`, `issue.action.create`), never English sentences.
     No hardcoded labels in Twig or PHP. English is the default language and
     French is shipped too; `CAIRN_LOCALE` picks one per instance.
-    `debug:translation fr` lists missing and unused keys.
+    `debug:translation fr` lists missing and unused keys (keys built
+    from a value, such as `permission.<value>.label`, show as unused).
+    Every `Permission` case comes with `permission.<value>.label` and
+    `.help` in each catalogue; `PermissionTest` checks it.
   - Content written by the agency or the users (configuration labels,
     hints and prompts; project, tracker, issue and comment text) is data in
     the instance language. It is displayed as-is and never passed to the

@@ -216,6 +216,7 @@ admin:
         projects: Projects
         workspaces: Workspaces
         users: Users
+        configuration: Configuration
     filter:
         state: State
         type: Type
@@ -311,6 +312,79 @@ admin:
         state:
             active: Active
             deactivated: Deactivated
+    configuration:
+        intro: 'Read-only: the configuration changes in the instance file, then applies with app:config:sync.'
+        nav:
+            roles: Roles and rights
+            workflows: Workflows
+            fields: Fields and links
+            history: History
+        roles:
+            title: Roles
+            intro: From the broadest to the narrowest. Direct access to a project may only widen the role inherited from the workspace.
+            role: Role
+            who: For whom
+            memberships: Access
+            anyone: Internal and external users
+            internal_only: Internal users only
+            membership_count: '{0}no access|{1}1 access|]1,Inf[ %count% accesses'
+            orphan: '%count% accesses carry the role "%role%", missing from the configuration: they grant nothing any more.'
+        permissions:
+            title: Rights outside workflows
+            intro: The rights the configuration gives each role. Workflow actions have their own roles, detailed below.
+            permission: Right
+        workflows:
+            intro: Each tracker picks a workflow when it is created, for good. For each one, its places (the columns of the kanban), the fields it asks for and the actions moving an issue from one place to another, with the roles that may trigger them. An administrator may trigger them all.
+            graph: Places and moves
+            details: Detailed places and usage →
+            actions: Actions and who may trigger them
+            action: Action
+            from: From
+            to: To
+            tracker_count: '{0}no tracker|{1}1 tracker|]1,Inf[ %count% trackers'
+        diagram:
+            dotted: 'Dotted: back to an earlier place'
+            comment: '💬: comment required'
+        workflow:
+            initial: 'A new issue starts on "%place%".'
+            fallback: 'Fallback place: "%place%".'
+            steps: Places and actions
+            steps_intro: In the order of the kanban. Under each place, the actions leaving it and the roles that may trigger them.
+            initial_badge: Initial
+            final_badge: Final
+            comment_required: Comment required
+            fields: Fields
+            no_field: No field.
+            usage: Usage
+            unused: No tracker uses this workflow.
+            tracker: Tracker
+            total: Total
+        fields:
+            title: Fields
+            intro: Fields are shared by the whole instance; each workflow picks the ones it uses.
+            field: Field
+            type: Type
+            filling: Filling
+            visibility: Visibility
+            required: Required
+            optional: Optional
+            everyone: Everyone
+            internal_only: Internal users only
+            used_by: 'Used by:'
+            unused: Used by no workflow.
+        links:
+            title: Link types
+            intro: The links possible between two issues.
+            inverse: 'seen from the other issue: "%label%"'
+            symmetric: symmetric
+        history:
+            policy: Migration policy
+            title: Syncs
+            intro: Each sync records the configuration it applied and what changed.
+            current: In force
+            by: 'by %name%'
+            show_changes: '{1}Show the change|]1,Inf[ Show the %count% changes'
+            hide_changes: Hide the changes
     refused:
         not_found: Not found.
         workspace_key_taken: 'A workspace already uses the key %key%.'
@@ -322,3 +396,53 @@ admin:
         email_taken: 'An account already uses %email%.'
         last_admin: At least one active administrator must remain.
         holds_internal_roles: '%name% holds roles for internal users only (%where%): revoke them before making this person external.'
+
+permission:
+    issue:
+        create:
+            label: Create issues
+            help: Open an issue in the trackers they can see.
+        edit:
+            label: Edit the issues of others
+            help: Title, description, fields and files of an issue written by someone else. Authors always edit their own.
+        change_tracker:
+            label: Change the tracker of an issue
+            help: Move an issue to another tracker of the project, choosing its place in the new workflow.
+        assign:
+            label: Assign issues
+            help: Choose who handles an issue, among the members of the project.
+        set_criticality:
+            label: Change the criticality
+            help: Set an issue to low, normal, high or blocking.
+        set_private:
+            label: Make an issue private
+            help: Hide it from external users, or show it to them again.
+    comment:
+        create:
+            label: Comment
+            help: Write in the thread of an issue.
+        set_private:
+            label: Write private comments
+            help: A private comment and its files are seen by internal users only.
+        edit:
+            label: Edit the comments of others
+            help: Rewrite or delete someone else's comment. Authors always handle their own.
+
+field_type:
+    text: Short text
+    textarea: Long text
+    rich_text: Formatted text
+    select: Drop-down list
+    choice: Single choice
+    number: Number
+    date: Date
+    url: Web address
+    bool: Yes / no
+
+migration_policy:
+    strict:
+        label: Strict
+        help: when a place disappears without a declared successor (migrate_from), the sync is refused and the previous configuration stays in force.
+    fallback:
+        label: Fallback
+        help: the issues sitting on a place that disappears move to the fallback place of their workflow.

@@ -22,4 +22,12 @@ class ConfigSnapshotRepository extends ServiceEntityRepository
     {
         return $this->findOneBy([], ['id' => 'DESC']);
     }
+
+    /**
+     * @return list<ConfigSnapshot>
+     */
+    public function findAllLatestFirst(): array
+    {
+        return $this->findBy([], ['id' => 'DESC']);
+    }
 }
