@@ -55,9 +55,8 @@ final class ShowIssueVisibilityTest extends KernelTestCase
                 $expected = self::ids(...array_filter($all, static fn (Comment $comment): bool => $access->canSeeComment($user, $comment)));
                 $shown = [];
                 foreach ($detail->timeline as $entry) {
-                    $comment = $entry['comment'] ?? $entry['event']?->getComment();
-                    if (null !== $comment) {
-                        $shown[] = $comment;
+                    if (null !== $entry->comment) {
+                        $shown[] = $entry->comment;
                     }
                 }
 

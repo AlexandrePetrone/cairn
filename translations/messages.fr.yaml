@@ -73,20 +73,17 @@ issue:
         edit_description: Modifier la description
         title_hint: Entrée pour enregistrer · Échap pour annuler
         description_hint: ⌘ Entrée pour enregistrer · Échap pour annuler
+        title_invalid: Le titre est obligatoire et ne dépasse pas 200 caractères.
         edit: Modifier
         save: Enregistrer
         cancel: Annuler
+    action:
         done: '%key% mise à jour.'
-        refused: La modification n'a pas pu être enregistrée.
-        title_invalid: Le titre est obligatoire et ne dépasse pas 200 caractères.
-    change:
-        done: '%key% mise à jour.'
-        refused: La modification n'a pas pu être appliquée.
+        refused: L'action n'a pas pu être appliquée.
     transition:
         hint: 'Étape %place% · votre commentaire accompagne l''action.'
         comment_required: Cette action demande un commentaire.
         applied: '%key% : « %transition% » appliquée.'
-        refused: L'action n'a pas pu être appliquée.
     unassigned: Non assigné
     private: Privée
     create:

@@ -1,6 +1,5 @@
 {# The text of the issue, read or rewritten in place by its author (or whoever may edit the issues of others). #}
-{% set descriptionRoute = { workspaceKey: issue.project.workspace.key, projectKey: issue.project.key } %}
-{% set descriptionEditorUrls = { issues: path('app_suggest_issues', descriptionRoute), users: path('app_suggest_users', descriptionRoute), upload: path('app_attachment_upload', descriptionRoute) } %}
+{% set descriptionEditorUrls = editor_urls(issue.project) %}
 <div {{ attributes }}>
     {% if error %}
         <twig:Ui:Callout tone="danger" size="sm" role="alert" class="mb-2">{{ error }}</twig:Ui:Callout>

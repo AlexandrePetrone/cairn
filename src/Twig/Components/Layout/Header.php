@@ -6,7 +6,7 @@ namespace App\Twig\Components\Layout;
 
 use App\Entity\Project;
 use App\Entity\User;
-use Symfony\Bundle\SecurityBundle\Security;
+use App\Security\Viewer;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 
 /**
@@ -19,14 +19,12 @@ final class Header
     public ?Project $project = null;
 
     public function __construct(
-        private readonly Security $security,
+        private readonly Viewer $viewer,
     ) {
     }
 
     public function getUser(): User
     {
-        $user = $this->security->getUser();
-
-        return $user instanceof User ? $user : throw new \LogicException('The header is only rendered for signed-in users.');
+        return $this->viewer->get();
     }
 }

@@ -6,9 +6,8 @@ namespace App\Twig\Components\Layout;
 
 use App\Entity\Project;
 use App\Entity\Tracker;
-use App\Entity\User;
 use App\Repository\TrackerRepository;
-use Symfony\Bundle\SecurityBundle\Security;
+use App\Security\Viewer;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 
 /**
@@ -22,7 +21,7 @@ final class ProjectNav
 
     public function __construct(
         private readonly TrackerRepository $trackers,
-        private readonly Security $security,
+        private readonly Viewer $viewer,
     ) {
     }
 
@@ -33,8 +32,6 @@ final class ProjectNav
      */
     public function getTrackers(): array
     {
-        $user = $this->security->getUser();
-
-        return $this->trackers->findByProject($this->project, includePrivate: $user instanceof User && $user->isInternal());
+        return $this->trackers->findByProject($this->project, includePrivate: $this->viewer->get()->isInternal());
     }
 }

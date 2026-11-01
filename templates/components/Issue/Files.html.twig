@@ -18,9 +18,7 @@
                                 :href="attachment_url(file)">
                 <twig:block name="actions">
                     {% if filesCanEdit %}
-                        <button type="button" title="{{ 'attachment.remove'|trans }}" aria-label="{{ 'attachment.remove'|trans }}"
-                                data-action="live#action" data-live-action-param="remove" data-live-uuid-param="{{ file.uuid.toRfc4122 }}" data-live-name-param="{{ file.filename }}"
-                                class="-mr-1 rounded p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700">{{ ux_icon('lucide:x', { class: 'h-3.5 w-3.5' }) }}</button>
+                        <twig:Ui:IconButton icon="x" size="sm" :label="'attachment.remove'|trans" class="-mr-1" data-action="live#action" data-live-action-param="remove" data-live-uuid-param="{{ file.uuid.toRfc4122 }}" data-live-name-param="{{ file.filename }}" />
                     {% endif %}
                 </twig:block>
             </twig:Ui:Attachment>

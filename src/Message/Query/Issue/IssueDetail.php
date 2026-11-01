@@ -8,7 +8,6 @@ use App\Config\Definition\PlaceDefinition;
 use App\Entity\Attachment;
 use App\Entity\Comment;
 use App\Entity\Issue;
-use App\Entity\JournalEntry;
 
 /**
  * The issue page: the entity itself, plus what no entity carries, computed
@@ -17,9 +16,9 @@ use App\Entity\JournalEntry;
 final readonly class IssueDetail
 {
     /**
-     * @param PlaceDefinition|null                                                         $place       the current place, null when it left the configuration
-     * @param list<array{at: \DateTimeImmutable, comment: ?Comment, event: ?JournalEntry}> $timeline    comments and journal entries the viewer may see, oldest first; a comment that came with an action appears once, with its entry
-     * @param list<Attachment>                                                             $attachments the files of the issue and of the comments the viewer may see, oldest first
+     * @param PlaceDefinition|null $place       the current place, null when it left the configuration
+     * @param list<TimelineEntry>  $timeline    comments and journal entries the viewer may see, oldest first; a comment that came with an action appears once, with its entry
+     * @param list<Attachment>     $attachments the files of the issue and of the comments the viewer may see, oldest first
      */
     public function __construct(
         public Issue $issue,

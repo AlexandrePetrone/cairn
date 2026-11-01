@@ -73,20 +73,17 @@ issue:
         edit_description: Edit the description
         title_hint: Enter to save · Esc to cancel
         description_hint: ⌘ Enter to save · Esc to cancel
+        title_invalid: The title is required and is at most 200 characters long.
         edit: Edit
         save: Save
         cancel: Cancel
+    action:
         done: '%key% updated.'
-        refused: The change could not be saved.
-        title_invalid: The title is required and is at most 200 characters long.
-    change:
-        done: '%key% updated.'
-        refused: The change could not be applied.
+        refused: The action could not be applied.
     transition:
         hint: 'Step %place% · your comment goes with the action.'
         comment_required: This action needs a comment.
         applied: '%key%: "%transition%" applied.'
-        refused: The action could not be applied.
     unassigned: Unassigned
     private: Private
     create:

@@ -10,6 +10,7 @@ use App\Entity\Issue;
 use App\Entity\JournalEntry;
 use App\Message\Query\Issue\IssueDetail;
 use App\Message\Query\Issue\ShowIssue;
+use App\Message\Query\Issue\TimelineEntry;
 use App\Security\AccessControl;
 use App\Workflow\WorkflowProvider;
 use Doctrine\ORM\EntityManagerInterface;
@@ -59,17 +60,17 @@ final class ShowIssueHandler
         $attached = [];
         $timeline = [];
         foreach ($events as $event) {
-            $timeline[] = ['at' => $event->getAt(), 'comment' => null, 'event' => $event];
+            $timeline[] = TimelineEntry::ofEvent($event);
             if (null !== $event->getComment()) {
                 $attached[$event->getComment()->getId()] = true;
             }
         }
         foreach ($comments as $comment) {
             if (!isset($attached[$comment->getId()])) {
-                $timeline[] = ['at' => $comment->getCreatedAt(), 'comment' => $comment, 'event' => null];
+                $timeline[] = TimelineEntry::ofComment($comment);
             }
         }
-        usort($timeline, static fn (array $a, array $b): int => $a['at'] <=> $b['at']);
+        usort($timeline, static fn (TimelineEntry $a, TimelineEntry $b): int => $a->at <=> $b->at);
 
         return new IssueDetail(
             $issue,

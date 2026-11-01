@@ -13,11 +13,10 @@ use App\Message\Command\Issue\ChangeVisibility;
 use App\Message\CommandBus;
 use App\Message\Query\Project\ListProjectMembers;
 use App\Message\QueryBus;
-use App\MessageHandler\Command\Issue\IssueException;
 use App\Security\AccessControl;
 use App\Security\Permission;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use App\Security\Viewer;
+use App\Twig\Components\DispatchesCommands;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
@@ -35,10 +34,11 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * moves the issue to another place).
  */
 #[AsLiveComponent('Issue:Properties')]
-final class Properties extends AbstractController
+final class Properties
 {
     use ComponentToolsTrait;
     use DefaultActionTrait;
+    use DispatchesCommands;
 
     #[LiveProp]
     public Issue $issue;
@@ -56,11 +56,9 @@ final class Properties extends AbstractController
     #[LiveProp(writable: true)]
     public string $visibility = 'public';
 
-    /** Why the last change did not go through. */
-    public ?string $error = null;
-
     public function __construct(
         private readonly AccessControl $access,
+        private readonly Viewer $viewer,
         private readonly QueryBus $queries,
         private readonly TranslatorInterface $translator,
     ) {
@@ -85,12 +83,12 @@ final class Properties extends AbstractController
 
     public function canAssign(): bool
     {
-        return $this->access->isGranted($this->viewer(), Permission::IssueAssign, $this->issue->getProject());
+        return $this->access->isGranted($this->viewer->get(), Permission::IssueAssign, $this->issue->getProject());
     }
 
     public function canSetCriticality(): bool
     {
-        return $this->access->isGranted($this->viewer(), Permission::IssueSetCriticality, $this->issue->getProject());
+        return $this->access->isGranted($this->viewer->get(), Permission::IssueSetCriticality, $this->issue->getProject());
     }
 
     /**
@@ -99,7 +97,7 @@ final class Properties extends AbstractController
     public function canSetVisibility(): bool
     {
         return !$this->issue->getTracker()->isPrivate()
-            && $this->access->isGranted($this->viewer(), Permission::IssueSetPrivate, $this->issue->getProject());
+            && $this->access->isGranted($this->viewer->get(), Permission::IssueSetPrivate, $this->issue->getProject());
     }
 
     /**
@@ -113,7 +111,7 @@ final class Properties extends AbstractController
     #[LiveAction]
     public function change(CommandBus $commands, #[LiveArg] string $property): void
     {
-        $actorId = (int) $this->viewer()->getId();
+        $actorId = (int) $this->viewer->get()->getId();
         $key = $this->issue->getKey();
         $command = match ($property) {
             'assignee' => new AssignIssue($actorId, $key, $this->assigneeId),
@@ -125,23 +123,12 @@ final class Properties extends AbstractController
             return;
         }
 
-        try {
-            $commands->dispatch($command);
-        } catch (IssueException|AccessDeniedException) {
-            $this->error = $this->translator->trans('issue.change.refused');
+        if (!$this->tryCommand($commands, $command)) {
             $this->refresh();
 
             return;
         }
 
-        $this->emit('issue:changed');
-        $this->dispatchBrowserEvent('toast:show', ['message' => $this->translator->trans('issue.change.done', ['%key%' => $key])]);
-    }
-
-    private function viewer(): User
-    {
-        $user = $this->getUser();
-
-        return $user instanceof User ? $user : throw new \LogicException('Issue properties are only rendered for signed-in users.');
+        $this->announce($this->translator->trans('issue.action.done', ['%key%' => $key]));
     }
 }

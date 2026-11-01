@@ -7,7 +7,6 @@ namespace App\Twig\Components;
 use App\Entity\Attachment;
 use App\Entity\Project;
 use App\Entity\User;
-use App\Message\Command\Attachment\RemoveAttachment;
 use App\Message\Command\Attachment\UploadAttachment;
 use App\Message\CommandBus;
 use App\MessageHandler\Command\Issue\IssueException;
@@ -21,7 +20,8 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
  * `<input type="file" name="files[]">` that triggers `files|<action>`
  * (see the file-picker controller); each goes through UploadAttachment,
  * pending or straight to an issue. A refusal comes back as a message for
- * the component to show. The component has a `translator`.
+ * the component to show, with the name of the file it concerns. The
+ * component has a `translator`.
  */
 trait HandlesAttachments
 {
@@ -48,19 +48,5 @@ trait HandlesAttachments
         }
 
         return [$sent, null];
-    }
-
-    /**
-     * @return ?string why the file was not removed
-     */
-    private function removeFile(CommandBus $commands, User $actor, string $uuid): ?string
-    {
-        try {
-            $commands->dispatch(new RemoveAttachment((int) $actor->getId(), $uuid));
-        } catch (IssueException|AccessDeniedException) {
-            return $this->translator->trans('issue.edit.refused');
-        }
-
-        return null;
     }
 }

@@ -8,7 +8,7 @@ use App\Config\Definition\TransitionDefinition;
 use App\Entity\Attachment;
 use App\Entity\Comment;
 use App\Entity\Issue;
-use App\Entity\User;
+use App\Message\Command\Attachment\RemoveAttachment;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\Command\Issue\DeleteComment;
@@ -17,15 +17,15 @@ use App\Message\CommandBus;
 use App\Message\Query\Issue\IssueDetail;
 use App\Message\Query\Issue\ShowIssue;
 use App\Message\QueryBus;
-use App\MessageHandler\Command\Issue\IssueException;
 use App\Repository\AttachmentRepository;
 use App\Security\AccessControl;
 use App\Security\Permission;
+use App\Security\Viewer;
+use App\Twig\Components\DispatchesCommands;
 use App\Twig\Components\HandlesAttachments;
 use App\Workflow\WorkflowProvider;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -44,10 +44,11 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * being written survives what the other components do.
  */
 #[AsLiveComponent('Issue:Activity')]
-final class Activity extends AbstractController
+final class Activity
 {
     use ComponentToolsTrait;
     use DefaultActionTrait;
+    use DispatchesCommands;
     use HandlesAttachments;
 
     #[LiveProp]
@@ -79,15 +80,13 @@ final class Activity extends AbstractController
     #[LiveProp(writable: true)]
     public ?int $deletingCommentId = null;
 
-    /** Why the last action did not go through, shown above the editor. */
-    public ?string $error = null;
-
     /** The detail, read once per request; forgotten after an action changed the issue. */
     private ?IssueDetail $detail = null;
 
     public function __construct(
         private readonly WorkflowProvider $workflows,
         private readonly AccessControl $access,
+        private readonly Viewer $viewer,
         private readonly QueryBus $queries,
         private readonly TranslatorInterface $translator,
         private readonly AttachmentRepository $attachments,
@@ -125,13 +124,13 @@ final class Activity extends AbstractController
             return [];
         }
 
-        return $this->attachments->findUnattached($this->issue->getProject(), $this->viewer(), array_map(Uuid::fromString(...), $uuids));
+        return $this->attachments->findUnattached($this->issue->getProject(), $this->viewer->get(), array_map(Uuid::fromString(...), $uuids));
     }
 
     public function getDetail(): IssueDetail
     {
-        return $this->detail ??= $this->queries->ask(new ShowIssue($this->viewer(), (int) $this->issue->getProject()->getId(), $this->issue->getNumber()))
-            ?? throw $this->createNotFoundException('The issue is no longer visible.');
+        return $this->detail ??= $this->queries->ask(new ShowIssue($this->viewer->get(), (int) $this->issue->getProject()->getId(), $this->issue->getNumber()))
+            ?? throw new NotFoundHttpException('The issue is no longer visible.');
     }
 
     /**
@@ -139,7 +138,7 @@ final class Activity extends AbstractController
      */
     public function getTransitions(): array
     {
-        $viewer = $this->viewer();
+        $viewer = $this->viewer->get();
         $workflow = $this->workflows->definition($this->issue->getTracker()->getWorkflowId());
 
         return array_values(array_filter(
@@ -150,7 +149,7 @@ final class Activity extends AbstractController
 
     public function canComment(): bool
     {
-        return $this->access->isGranted($this->viewer(), Permission::CommentCreate, $this->issue->getProject());
+        return $this->access->isGranted($this->viewer->get(), Permission::CommentCreate, $this->issue->getProject());
     }
 
     /**
@@ -161,12 +160,11 @@ final class Activity extends AbstractController
      */
     public function getEditableComments(): array
     {
-        $viewer = $this->viewer();
+        $viewer = $this->viewer->get();
         $ids = [];
         foreach ($this->getDetail()->timeline as $entry) {
-            $comment = $entry['comment'] ?? $entry['event']?->getComment();
-            if (null !== $comment && $this->access->canEditComment($viewer, $comment)) {
-                $ids[] = (int) $comment->getId();
+            if (null !== $entry->comment && $this->access->canEditComment($viewer, $entry->comment)) {
+                $ids[] = (int) $entry->comment->getId();
             }
         }
 
@@ -175,7 +173,7 @@ final class Activity extends AbstractController
 
     public function canMakePrivate(): bool
     {
-        return $this->access->isGranted($this->viewer(), Permission::CommentSetPrivate, $this->issue->getProject());
+        return $this->access->isGranted($this->viewer->get(), Permission::CommentSetPrivate, $this->issue->getProject());
     }
 
     #[LiveAction]
@@ -187,10 +185,9 @@ final class Activity extends AbstractController
             return;
         }
 
-        $this->run(
-            fn () => $commands->dispatch(new AddComment((int) $this->viewer()->getId(), $this->issue->getKey(), $this->body, $this->private && $this->canMakePrivate(), $this->pending)),
-            $this->translator->trans('issue.comment.added'),
-        );
+        if ($this->tryCommand($commands, new AddComment((int) $this->viewer->get()->getId(), $this->issue->getKey(), $this->body, $this->private && $this->canMakePrivate(), $this->pending))) {
+            $this->posted($this->translator->trans('issue.comment.added'));
+        }
     }
 
     #[LiveAction]
@@ -211,10 +208,10 @@ final class Activity extends AbstractController
             return;
         }
 
-        $this->run(
-            fn () => $commands->dispatch(new ApplyTransition((int) $this->viewer()->getId(), $this->issue->getKey(), $definition->id, '' === trim($this->body) ? null : $this->body, $this->private && $this->canMakePrivate(), $this->pending)),
-            $this->translator->trans('issue.transition.applied', ['%key%' => $this->issue->getKey(), '%transition%' => $definition->label]),
-        );
+        $command = new ApplyTransition((int) $this->viewer->get()->getId(), $this->issue->getKey(), $definition->id, '' === trim($this->body) ? null : $this->body, $this->private && $this->canMakePrivate(), $this->pending);
+        if ($this->tryCommand($commands, $command)) {
+            $this->posted($this->translator->trans('issue.transition.applied', ['%key%' => $this->issue->getKey(), '%transition%' => $definition->label]));
+        }
     }
 
     /**
@@ -224,7 +221,7 @@ final class Activity extends AbstractController
     #[LiveAction]
     public function attach(Request $request, CommandBus $commands): void
     {
-        [$sent, $this->error] = $this->sendFiles($request, $commands, $this->viewer(), $this->issue->getProject());
+        [$sent, $this->error] = $this->sendFiles($request, $commands, $this->viewer->get(), $this->issue->getProject());
         foreach ($sent as $attachment) {
             if (null === $this->editingCommentId) {
                 $this->pending[] = $attachment->getUuid()->toRfc4122();
@@ -274,19 +271,14 @@ final class Activity extends AbstractController
             return;
         }
 
-        try {
-            $commands->dispatch(new EditComment((int) $this->viewer()->getId(), $this->editingCommentId, $this->commentBody, $this->editPending));
-        } catch (IssueException|AccessDeniedException) {
-            $this->error = $this->translator->trans('issue.edit.refused');
-
+        if (!$this->tryCommand($commands, new EditComment((int) $this->viewer->get()->getId(), $this->editingCommentId, $this->commentBody, $this->editPending))) {
             return;
         }
 
         $this->detail = null;
         $this->editingCommentId = null;
         $this->editPending = [];
-        $this->emit('issue:changed');
-        $this->dispatchBrowserEvent('toast:show', ['message' => $this->translator->trans('issue.comment.updated')]);
+        $this->announce($this->translator->trans('issue.comment.updated'));
     }
 
     #[LiveAction]
@@ -308,11 +300,7 @@ final class Activity extends AbstractController
             return;
         }
 
-        try {
-            $commands->dispatch(new DeleteComment((int) $this->viewer()->getId(), $this->deletingCommentId));
-        } catch (IssueException|AccessDeniedException) {
-            $this->error = $this->translator->trans('issue.edit.refused');
-
+        if (!$this->tryCommand($commands, new DeleteComment((int) $this->viewer->get()->getId(), $this->deletingCommentId))) {
             return;
         }
 
@@ -321,32 +309,16 @@ final class Activity extends AbstractController
             $this->cancelComment();
         }
         $this->deletingCommentId = null;
-        $this->emit('issue:changed');
-        $this->dispatchBrowserEvent('toast:show', ['message' => $this->translator->trans('issue.comment.deleted')]);
-    }
-
-    /** A comment of the thread the viewer may edit, null otherwise. */
-    private function editableComment(int $id): ?Comment
-    {
-        foreach ($this->getDetail()->timeline as $entry) {
-            $comment = $entry['comment'] ?? $entry['event']?->getComment();
-            if ($comment?->getId() === $id && $this->access->canEditComment($this->viewer(), $comment)) {
-                return $comment;
-            }
-        }
-
-        return null;
+        $this->announce($this->translator->trans('issue.comment.deleted'));
     }
 
     /** Removes a file of a posted comment. */
     #[LiveAction]
     public function removeAttachment(CommandBus $commands, #[LiveArg] string $uuid, #[LiveArg] string $name): void
     {
-        $this->error = $this->removeFile($commands, $this->viewer(), $uuid);
-        if (null === $this->error) {
+        if ($this->tryCommand($commands, new RemoveAttachment((int) $this->viewer->get()->getId(), $uuid))) {
             $this->detail = null;
-            $this->emit('issue:changed');
-            $this->dispatchBrowserEvent('toast:show', ['message' => $this->translator->trans('attachment.removed', ['%name%' => $name])]);
+            $this->announce($this->translator->trans('attachment.removed', ['%name%' => $name]));
         }
     }
 
@@ -359,30 +331,27 @@ final class Activity extends AbstractController
     {
     }
 
-    private function run(\Closure $dispatch, string $success): void
+    /** A comment of the thread the viewer may edit, null otherwise. */
+    private function editableComment(int $id): ?Comment
     {
-        try {
-            $dispatch();
-        } catch (IssueException|AccessDeniedException) {
-            $this->error = $this->translator->trans('issue.transition.refused');
-
-            return;
+        foreach ($this->getDetail()->timeline as $entry) {
+            if ($entry->comment?->getId() === $id && $this->access->canEditComment($this->viewer->get(), $entry->comment)) {
+                return $entry->comment;
+            }
         }
 
+        return null;
+    }
+
+    /** The comment being written went through: the composer starts afresh. */
+    private function posted(string $message): void
+    {
         $this->detail = null;
         $this->body = '';
         $this->private = false;
         $this->pending = [];
-        $this->emit('issue:changed');
         // The editor sits outside the morph (data-live-ignore): it is told to empty itself.
         $this->dispatchBrowserEvent('editor:reset');
-        $this->dispatchBrowserEvent('toast:show', ['message' => $success]);
-    }
-
-    private function viewer(): User
-    {
-        $user = $this->getUser();
-
-        return $user instanceof User ? $user : throw new \LogicException('The issue activity is only rendered for signed-in users.');
+        $this->announce($message);
     }
 }

@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Form\Type;
 
 use App\Entity\Project;
+use App\Twig\EditorExtension;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * Markdown written in the rich editor. Rendered by the `markdown_widget`
@@ -23,7 +23,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 final class MarkdownType extends AbstractType
 {
     public function __construct(
-        private readonly UrlGeneratorInterface $urls,
+        private readonly EditorExtension $editor,
     ) {
     }
 
@@ -46,14 +46,6 @@ final class MarkdownType extends AbstractType
     public function buildView(FormView $view, FormInterface $form, array $options): void
     {
         $project = $options['project'];
-        $view->vars['editor_urls'] = ['issues' => '', 'users' => '', 'upload' => ''];
-        if ($project instanceof Project) {
-            $route = ['workspaceKey' => $project->getWorkspace()->getKey(), 'projectKey' => $project->getKey()];
-            $view->vars['editor_urls'] = [
-                'issues' => $this->urls->generate('app_suggest_issues', $route),
-                'users' => $this->urls->generate('app_suggest_users', $route),
-                'upload' => $this->urls->generate('app_attachment_upload', $route),
-            ];
-        }
+        $view->vars['editor_urls'] = $project instanceof Project ? $this->editor->urls($project) : ['issues' => '', 'users' => '', 'upload' => ''];
     }
 }

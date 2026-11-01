@@ -9,7 +9,6 @@ use App\Entity\Attachment;
 use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\Tracker;
-use App\Entity\User;
 use App\Form\IssueData;
 use App\Form\IssueType;
 use App\Message\Command\Issue\CreateIssue;
@@ -21,6 +20,7 @@ use App\Repository\AttachmentRepository;
 use App\Repository\TrackerRepository;
 use App\Security\AccessControl;
 use App\Security\Permission;
+use App\Security\Viewer;
 use App\Twig\Components\HandlesAttachments;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\Extension\Core\Type\FormType;
@@ -71,6 +71,7 @@ final class CreateForm extends AbstractController
         private readonly QueryBus $queries,
         private readonly FormFactoryInterface $forms,
         private readonly AccessControl $access,
+        private readonly Viewer $viewer,
         private readonly AttachmentRepository $attachments,
         private readonly TranslatorInterface $translator,
     ) {
@@ -83,7 +84,7 @@ final class CreateForm extends AbstractController
      */
     public function getTrackers(): array
     {
-        return $this->trackers->findByProject($this->project, includePrivate: $this->viewer()->isInternal());
+        return $this->trackers->findByProject($this->project, includePrivate: $this->viewer->get()->isInternal());
     }
 
     /**
@@ -119,14 +120,14 @@ final class CreateForm extends AbstractController
             return [];
         }
 
-        return $this->attachments->findUnattached($this->project, $this->viewer(), array_map(Uuid::fromString(...), $this->pending));
+        return $this->attachments->findUnattached($this->project, $this->viewer->get(), array_map(Uuid::fromString(...), $this->pending));
     }
 
     /** Files chosen for the new issue: sent now, pending until it is created. */
     #[LiveAction]
     public function attach(Request $request, CommandBus $commands): void
     {
-        [$sent, $this->attachError] = $this->sendFiles($request, $commands, $this->viewer(), $this->project);
+        [$sent, $this->attachError] = $this->sendFiles($request, $commands, $this->viewer->get(), $this->project);
         foreach ($sent as $attachment) {
             $this->pending[] = $attachment->getUuid()->toRfc4122();
         }
@@ -150,7 +151,7 @@ final class CreateForm extends AbstractController
         $this->submitForm();
         $data = $this->getForm()->getData();
         \assert($data instanceof IssueData);
-        $viewer = $this->viewer();
+        $viewer = $this->viewer->get();
 
         try {
             $issue = $commands->dispatch(new CreateIssue(
@@ -197,7 +198,7 @@ final class CreateForm extends AbstractController
             return $this->forms->createNamed('issue', FormType::class, null, ['csrf_protection' => false]);
         }
 
-        $viewer = $this->viewer();
+        $viewer = $this->viewer->get();
         $definition = $this->config->definition();
 
         return $this->forms->createNamed('issue', IssueType::class, new IssueData(), [
@@ -220,12 +221,5 @@ final class CreateForm extends AbstractController
     private function getDataModelValue(): string
     {
         return 'norender|*';
-    }
-
-    private function viewer(): User
-    {
-        $user = $this->getUser();
-
-        return $user instanceof User ? $user : throw new \LogicException('The new issue form is only rendered for signed-in users.');
     }
 }

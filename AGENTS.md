@@ -199,7 +199,8 @@ Rules:
   project managers. A rewritten description or comment, and a deleted
   comment, are journaled with the text before and after
   (`changed` with `from`/`to`, `comment_edited`, `comment_deleted`), shown
-  in the thread behind a disclosure.
+  in the thread behind a disclosure. `Issue:JournalEntry` turns an entry
+  into its sentence: the only place that reads what each type recorded.
 - **Side effects go through events.** A handler dispatches a domain event
   with the EventDispatcher inside the transaction. Whatever must be atomic
   with the write, such as the journal, is written in the handler or by a
@@ -323,7 +324,13 @@ Rules:
   in place and emits it (`issue:changed`); every component of the page
   listens with a `#[LiveListener]` that just redraws. No redirect from a
   live action when other components hold state worth keeping (a comment
-  being written).
+  being written). The components share `Twig/Components/DispatchesCommands`:
+  `tryCommand()` dispatches and turns a refusal (domain, access,
+  validation) into the `error` the component shows, `announce()` emits
+  the event with a toast. They read the signed-in user from
+  `Security/Viewer`, as do the layout components and the Twig extensions;
+  a live component extends `AbstractController` only when it redirects
+  (`Issue:CreateForm`).
   The live components of a page are siblings laid out by the page
   template, never nested in one another: when a parent redraws while an
   element it holds has the focus, the morph replaces the child with its
@@ -344,7 +351,9 @@ Rules:
   (text otherwise), and `@[Claire Martin](user:12)` mentions a person
   with their current name. The editor suggests both from
   `Controller/Project/SuggestController`, which reuses `SearchIssues`
-  and `ListProjectMembers` so that visibility stays written once.
+  and `ListProjectMembers` so that visibility stays written once; a
+  template gives an editor its endpoints with `editor_urls(project)`
+  (`Twig/EditorExtension`, which `MarkdownType` asks too).
 - **Files are attachments, in three states.** Any file up to 10 MB
   (`UploadAttachment`; PHP's upload limits are set on the server). A file
   is *pending* while what it goes with is being written: an image pasted

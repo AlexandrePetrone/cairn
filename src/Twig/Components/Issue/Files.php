@@ -6,12 +6,13 @@ namespace App\Twig\Components\Issue;
 
 use App\Entity\Attachment;
 use App\Entity\Issue;
-use App\Entity\User;
+use App\Message\Command\Attachment\RemoveAttachment;
 use App\Message\CommandBus;
 use App\Repository\AttachmentRepository;
 use App\Security\AccessControl;
+use App\Security\Viewer;
+use App\Twig\Components\DispatchesCommands;
 use App\Twig\Components\HandlesAttachments;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -28,21 +29,20 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * adds and removes them; each change is journaled and tells the page.
  */
 #[AsLiveComponent('Issue:Files')]
-final class Files extends AbstractController
+final class Files
 {
     use ComponentToolsTrait;
     use DefaultActionTrait;
+    use DispatchesCommands;
     use HandlesAttachments;
 
     #[LiveProp]
     public Issue $issue;
 
-    /** Why the last action did not go through. */
-    public ?string $error = null;
-
     public function __construct(
         private readonly AttachmentRepository $attachments,
         private readonly AccessControl $access,
+        private readonly Viewer $viewer,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -57,42 +57,28 @@ final class Files extends AbstractController
 
     public function canEdit(): bool
     {
-        return $this->access->canEditIssue($this->viewer(), $this->issue);
+        return $this->access->canEditIssue($this->viewer->get(), $this->issue);
     }
 
     #[LiveAction]
     public function upload(Request $request, CommandBus $commands): void
     {
-        [$sent, $this->error] = $this->sendFiles($request, $commands, $this->viewer(), $this->issue->getProject(), $this->issue->getKey());
+        [$sent, $this->error] = $this->sendFiles($request, $commands, $this->viewer->get(), $this->issue->getProject(), $this->issue->getKey());
         if ([] !== $sent) {
-            $this->changed($this->translator->trans('attachment.added', ['%count%' => \count($sent)]));
+            $this->announce($this->translator->trans('attachment.added', ['%count%' => \count($sent)]));
         }
     }
 
     #[LiveAction]
     public function remove(CommandBus $commands, #[LiveArg] string $uuid, #[LiveArg] string $name): void
     {
-        $this->error = $this->removeFile($commands, $this->viewer(), $uuid);
-        if (null === $this->error) {
-            $this->changed($this->translator->trans('attachment.removed', ['%name%' => $name]));
+        if ($this->tryCommand($commands, new RemoveAttachment((int) $this->viewer->get()->getId(), $uuid))) {
+            $this->announce($this->translator->trans('attachment.removed', ['%name%' => $name]));
         }
     }
 
     #[LiveListener('issue:changed')]
     public function refresh(): void
     {
-    }
-
-    private function changed(string $message): void
-    {
-        $this->emit('issue:changed');
-        $this->dispatchBrowserEvent('toast:show', ['message' => $message]);
-    }
-
-    private function viewer(): User
-    {
-        $user = $this->getUser();
-
-        return $user instanceof User ? $user : throw new \LogicException('The issue files are only rendered for signed-in users.');
     }
 }

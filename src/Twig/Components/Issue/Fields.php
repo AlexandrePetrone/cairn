@@ -7,16 +7,14 @@ namespace App\Twig\Components\Issue;
 use App\Config\ConfigRegistry;
 use App\Config\FieldValue;
 use App\Entity\Issue;
-use App\Entity\User;
 use App\Form\IssueFieldsType;
 use App\Message\Command\Issue\ChangeFields;
 use App\Message\CommandBus;
-use App\MessageHandler\Command\Issue\IssueException;
 use App\Security\AccessControl;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use App\Security\Viewer;
+use App\Twig\Components\DispatchesCommands;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
-use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
@@ -31,11 +29,12 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * one form (the one of the creation) by whoever may edit the issue.
  */
 #[AsLiveComponent('Issue:Fields')]
-final class Fields extends AbstractController
+final class Fields
 {
     use ComponentToolsTrait;
     use ComponentWithFormTrait;
     use DefaultActionTrait;
+    use DispatchesCommands;
 
     #[LiveProp]
     public Issue $issue;
@@ -43,11 +42,9 @@ final class Fields extends AbstractController
     #[LiveProp(writable: true)]
     public bool $editing = false;
 
-    /** Why the last save did not go through. */
-    public ?string $error = null;
-
     public function __construct(
         private readonly AccessControl $access,
+        private readonly Viewer $viewer,
         private readonly ConfigRegistry $config,
         private readonly FormFactoryInterface $forms,
         private readonly TranslatorInterface $translator,
@@ -63,12 +60,12 @@ final class Fields extends AbstractController
     {
         $definition = $this->config->definition();
 
-        return $definition->fieldValues($definition->workflow($this->issue->getTracker()->getWorkflowId()), $this->issue->getFieldValues(), $this->viewer()->isInternal());
+        return $definition->fieldValues($definition->workflow($this->issue->getTracker()->getWorkflowId()), $this->issue->getFieldValues(), $this->viewer->get()->isInternal());
     }
 
     public function canEdit(): bool
     {
-        return $this->access->canEditIssue($this->viewer(), $this->issue);
+        return $this->access->canEditIssue($this->viewer->get(), $this->issue);
     }
 
     #[LiveAction]
@@ -92,18 +89,13 @@ final class Fields extends AbstractController
         $values = $this->getForm()->getData();
         \assert(\is_array($values));
 
-        try {
-            $commands->dispatch(new ChangeFields((int) $this->viewer()->getId(), $this->issue->getKey(), $values));
-        } catch (IssueException|AccessDeniedException) {
-            $this->error = $this->translator->trans('issue.edit.refused');
-
+        if (!$this->tryCommand($commands, new ChangeFields((int) $this->viewer->get()->getId(), $this->issue->getKey(), $values))) {
             return;
         }
 
         $this->editing = false;
         $this->resetForm();
-        $this->emit('issue:changed');
-        $this->dispatchBrowserEvent('toast:show', ['message' => $this->translator->trans('issue.edit.done', ['%key%' => $this->issue->getKey()])]);
+        $this->announce($this->translator->trans('issue.action.done', ['%key%' => $this->issue->getKey()]));
     }
 
     /**
@@ -125,7 +117,7 @@ final class Fields extends AbstractController
         return $this->forms->createNamed('fields', IssueFieldsType::class, array_intersect_key($this->issue->getFieldValues(), $workflow->fields), [
             'workflow' => $workflow,
             'definition' => $definition,
-            'internal' => $this->viewer()->isInternal(),
+            'internal' => $this->viewer->get()->isInternal(),
             'csrf_protection' => false,
         ]);
     }
@@ -137,12 +129,5 @@ final class Fields extends AbstractController
     private function getDataModelValue(): string
     {
         return 'norender|*';
-    }
-
-    private function viewer(): User
-    {
-        $user = $this->getUser();
-
-        return $user instanceof User ? $user : throw new \LogicException('Issue fields are only rendered for signed-in users.');
     }
 }

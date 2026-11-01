@@ -1,0 +1,26 @@
+{# One line of the issue's history: who, what (the sentence comes from the component), when. A rewritten text or a deleted comment is readable behind a disclosure.
+   `this` is read before the nested components, whose blocks see their own `this`. #}
+{% set journalLabel = this.label %}
+{% set journalVersions = this.versions %}
+{% set journalDeletedBody = this.deletedBody %}
+<li {{ attributes.defaults({ class: 'relative pl-6' }) }}>
+    <span class="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-gray-300 ring-2 ring-gray-50"></span>
+    <div class="text-xs text-gray-500">
+        <span class="font-medium text-gray-700">{{ entry.author ? entry.author.fullName : 'issue.show.system'|trans }}</span>
+        {{ journalLabel }}
+        <span class="text-gray-400">· {{ entry.at|date('d/m/Y H:i') }}</span>
+    </div>
+    {% if journalVersions %}
+        <twig:Ui:Disclosure :closedLabel="'issue.event.versions'|trans" :openLabel="'issue.event.hide_versions'|trans" class="mt-1">
+            <div class="grid gap-3 text-sm sm:grid-cols-2">
+                <div class="rounded-md border border-red-100 bg-red-50/50 p-3"><div class="mb-1 text-xs font-medium uppercase text-red-500">{{ 'issue.event.before'|trans }}</div><div class="prose prose-sm max-w-none">{{ journalVersions.from|markdown }}</div></div>
+                <div class="rounded-md border border-emerald-100 bg-emerald-50/50 p-3"><div class="mb-1 text-xs font-medium uppercase text-emerald-600">{{ 'issue.event.after'|trans }}</div><div class="prose prose-sm max-w-none">{{ journalVersions.to|markdown }}</div></div>
+            </div>
+        </twig:Ui:Disclosure>
+    {% endif %}
+    {% if journalDeletedBody is not null %}
+        <twig:Ui:Disclosure :closedLabel="'issue.event.deleted_comment'|trans" :openLabel="'issue.event.hide_deleted_comment'|trans" class="mt-1">
+            <div class="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm"><div class="prose prose-sm max-w-none">{{ journalDeletedBody|markdown }}</div></div>
+        </twig:Ui:Disclosure>
+    {% endif %}
+</li>

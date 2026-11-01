@@ -5,62 +5,16 @@
 {% set activityCanComment = this.canComment %}
 {% set activityEditable = this.editableComments %}
 {% set activityPendingFiles = this.pendingFiles %}
-{% set activityRoute = { workspaceKey: issue.project.workspace.key, projectKey: issue.project.key } %}
-{% set activityEditorUrls = { issues: path('app_suggest_issues', activityRoute), users: path('app_suggest_users', activityRoute), upload: path('app_attachment_upload', activityRoute) } %}
+{% set activityEditorUrls = editor_urls(issue.project) %}
 <div {{ attributes }}>
 
     <section class="mt-8">
         <h2 class="font-semibold text-gray-900 mb-3">{{ 'issue.show.activity'|trans }}</h2>
         <ol class="relative border-l border-gray-200 ml-3 space-y-4">
             {% for entry in activityDetail.timeline %}
-                {% set entryComment = entry.event ? entry.event.comment : entry.comment %}
+                {% set entryComment = entry.comment %}
                 {% if entry.event %}
-                    {% set event = entry.event %}
-                    {% set versionsFrom = null %}{% set versionsTo = null %}{% set deletedBody = null %}
-                    {% set eventData = event.data %}
-                    <li class="relative pl-6">
-                        <span class="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-gray-300 ring-2 ring-gray-50"></span>
-                        <div class="text-xs text-gray-500">
-                            <span class="font-medium text-gray-700">{{ event.author ? event.author.fullName : 'issue.show.system'|trans }}</span>
-                            {% if event.type.value == 'created' %}
-                                {{ 'issue.event.created'|trans }}
-                            {% elseif event.type.value == 'transitioned' %}
-                                {{ 'issue.event.transitioned'|trans({ '%transition%': eventData.transition, '%from%': eventData.from, '%to%': eventData.to }) }}
-                            {% elseif event.type.value == 'field_changed' %}
-                                {{ 'issue.event.field_changed'|trans({ '%field%': eventData.label, '%from%': eventData.from ?? '—', '%to%': eventData.to ?? '—' }) }}
-                            {% elseif event.type.value == 'changed' and eventData.field == 'description' %}
-                                {{ 'issue.event.changed.description'|trans }}
-                                {% if eventData.from is not null %}{% set versionsFrom = eventData.from %}{% set versionsTo = eventData.to %}{% endif %}
-                            {% elseif event.type.value == 'comment_edited' %}
-                                {{ ('issue.event.comment_edited.' ~ (eventData.author_id == event.author?.id ? 'own' : 'other'))|trans({ '%author%': eventData.author }) }}
-                                {% set versionsFrom = eventData.from %}{% set versionsTo = eventData.to %}
-                            {% elseif event.type.value == 'comment_deleted' %}
-                                {{ ('issue.event.comment_deleted.' ~ (eventData.author_id == event.author?.id ? 'own' : 'other'))|trans({ '%author%': eventData.author }) }}
-                                {% set deletedBody = eventData.body %}
-                            {% elseif event.type.value == 'changed' %}
-                                {% set changeValues = [eventData.from, eventData.to]|map(value => value is null ? 'issue.show.nobody'|trans : (eventData.field == 'criticality' ? ('criticality.' ~ value)|trans : (eventData.field == 'visibility' ? ('issue.show.' ~ (value == 'private' ? 'hidden' : 'visible') ~ '_externals')|trans : value))) %}
-                                {{ ('issue.event.changed.' ~ eventData.field)|trans({ '%from%': changeValues[0], '%to%': changeValues[1] }) }}
-                            {% elseif event.type.value in ['attachment_added', 'attachment_removed'] %}
-                                {{ ('issue.event.' ~ event.type.value)|trans({ '%filename%': eventData.filename }) }}
-                            {% elseif event.type.value == 'tracker_changed' %}
-                                {{ 'issue.event.tracker_changed'|trans({ '%from_tracker%': eventData.from_tracker, '%to_tracker%': eventData.to_tracker, '%to%': eventData.to }) }}
-                            {% endif %}
-                            <span class="text-gray-400">· {{ event.at|date('d/m/Y H:i') }}</span>
-                        </div>
-                        {% if versionsFrom is not null %}
-                            <twig:Ui:Disclosure :closedLabel="'issue.event.versions'|trans" :openLabel="'issue.event.hide_versions'|trans" class="mt-1">
-                                <div class="grid gap-3 text-sm sm:grid-cols-2">
-                                    <div class="rounded-md border border-red-100 bg-red-50/50 p-3"><div class="mb-1 text-xs font-medium uppercase text-red-500">{{ 'issue.event.before'|trans }}</div><div class="prose prose-sm max-w-none">{{ versionsFrom|markdown }}</div></div>
-                                    <div class="rounded-md border border-emerald-100 bg-emerald-50/50 p-3"><div class="mb-1 text-xs font-medium uppercase text-emerald-600">{{ 'issue.event.after'|trans }}</div><div class="prose prose-sm max-w-none">{{ versionsTo|markdown }}</div></div>
-                                </div>
-                            </twig:Ui:Disclosure>
-                        {% endif %}
-                        {% if deletedBody is not null %}
-                            <twig:Ui:Disclosure :closedLabel="'issue.event.deleted_comment'|trans" :openLabel="'issue.event.hide_deleted_comment'|trans" class="mt-1">
-                                <div class="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm"><div class="prose prose-sm max-w-none">{{ deletedBody|markdown }}</div></div>
-                            </twig:Ui:Disclosure>
-                        {% endif %}
-                    </li>
+                    <twig:Issue:JournalEntry :entry="entry.event" />
                 {% endif %}
                 {% if entryComment %}
                     <li class="relative pl-6">
@@ -91,9 +45,7 @@
                                             {% for file in editPendingFiles %}
                                                 <twig:Ui:Attachment :name="file.filename" :size="file.size" :image="file.image" :href="attachment_url(file)" class="bg-white py-1">
                                                     <twig:block name="actions">
-                                                        <button type="button" title="{{ 'attachment.remove'|trans }}" aria-label="{{ 'attachment.remove'|trans }}"
-                                                                data-action="live#action" data-live-action-param="discard" data-live-uuid-param="{{ file.uuid.toRfc4122 }}"
-                                                                class="-mr-1 rounded p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700">{{ ux_icon('lucide:x', { class: 'h-3.5 w-3.5' }) }}</button>
+                                                        <twig:Ui:IconButton icon="x" size="sm" :label="'attachment.remove'|trans" class="-mr-1" data-action="live#action" data-live-action-param="discard" data-live-uuid-param="{{ file.uuid.toRfc4122 }}" />
                                                     </twig:block>
                                                 </twig:Ui:Attachment>
                                             {% endfor %}
@@ -129,9 +81,7 @@
                                         <twig:Ui:Attachment :name="file.filename" :size="file.size" :image="file.image" :href="attachment_url(file)" class="bg-white">
                                             <twig:block name="actions">
                                                 {% if commentEditable %}
-                                                    <button type="button" title="{{ 'attachment.remove'|trans }}" aria-label="{{ 'attachment.remove'|trans }}"
-                                                            data-action="live#action" data-live-action-param="removeAttachment" data-live-uuid-param="{{ file.uuid.toRfc4122 }}" data-live-name-param="{{ file.filename }}"
-                                                            class="-mr-1 rounded p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700">{{ ux_icon('lucide:x', { class: 'h-3.5 w-3.5' }) }}</button>
+                                                    <twig:Ui:IconButton icon="x" size="sm" :label="'attachment.remove'|trans" class="-mr-1" data-action="live#action" data-live-action-param="removeAttachment" data-live-uuid-param="{{ file.uuid.toRfc4122 }}" data-live-name-param="{{ file.filename }}" />
                                                 {% endif %}
                                             </twig:block>
                                         </twig:Ui:Attachment>
@@ -162,9 +112,7 @@
                                 {% for file in activityPendingFiles %}
                                     <twig:Ui:Attachment :name="file.filename" :size="file.size" :image="file.image" :href="attachment_url(file)" class="bg-white py-1">
                                         <twig:block name="actions">
-                                            <button type="button" title="{{ 'attachment.remove'|trans }}" aria-label="{{ 'attachment.remove'|trans }}"
-                                                    data-action="live#action" data-live-action-param="discard" data-live-uuid-param="{{ file.uuid.toRfc4122 }}"
-                                                    class="-mr-1 rounded p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700">{{ ux_icon('lucide:x', { class: 'h-3.5 w-3.5' }) }}</button>
+                                            <twig:Ui:IconButton icon="x" size="sm" :label="'attachment.remove'|trans" class="-mr-1" data-action="live#action" data-live-action-param="discard" data-live-uuid-param="{{ file.uuid.toRfc4122 }}" />
                                         </twig:block>
                                     </twig:Ui:Attachment>
                                 {% endfor %}

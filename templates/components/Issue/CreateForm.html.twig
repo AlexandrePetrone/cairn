@@ -75,9 +75,7 @@
                     {% for file in createPendingFiles %}
                         <twig:Ui:Attachment :name="file.filename" :size="file.size" :image="file.image" :href="attachment_url(file)" class="bg-white">
                             <twig:block name="actions">
-                                <button type="button" title="{{ 'attachment.remove'|trans }}" aria-label="{{ 'attachment.remove'|trans }}"
-                                        data-action="live#action" data-live-action-param="discard" data-live-uuid-param="{{ file.uuid.toRfc4122 }}"
-                                        class="-mr-1 rounded p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700">{{ ux_icon('lucide:x', { class: 'h-3.5 w-3.5' }) }}</button>
+                                <twig:Ui:IconButton icon="x" size="sm" :label="'attachment.remove'|trans" class="-mr-1" data-action="live#action" data-live-action-param="discard" data-live-uuid-param="{{ file.uuid.toRfc4122 }}" />
                             </twig:block>
                         </twig:Ui:Attachment>
                     {% endfor %}
