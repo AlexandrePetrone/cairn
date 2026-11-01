@@ -28,7 +28,7 @@ Symfony 8.1 on PHP 8.4, installed from `webapp-pack`. Check `composer.json`
 for the exact versions and `symfony.lock` for which recipes ran. Already in
 place: Doctrine ORM + migrations, Messenger (Doctrine transport), Form,
 Validator, Serializer, Security, Twig, Mailer, Notifier, Translation,
-AssetMapper, Stimulus, Turbo, Scheduler.
+Stimulus, Turbo, Scheduler, and Reprise (`symfony/reprise`) for the assets.
 
 Decisions already taken:
 
@@ -287,9 +287,20 @@ Rules:
 
 ### Frontend
 
+- Assets are built by Vite through Symfony Reprise, not AssetMapper.
+  `vite.config.ts` declares one entry, `app` (`assets/app.js`, which
+  imports the CSS), and the Reprise plugin registers the Stimulus
+  controllers from `assets/controllers.json` and `assets/controllers/`.
+  JavaScript dependencies are npm packages in `package.json` (`npm
+  install <package>`, lock file committed); Symfony UX packages point to
+  their `vendor/` copy with `file:`. Templates render the entry with
+  `reprise_entry_link_tags('app')` and `reprise_entry_script_tags('app')`.
+  The build goes to `public/build/` (`npm run build`, `castor assets`);
+  in dev the Vite server is a `symfony serve` worker and serves the
+  assets with hot reload. Tests render no asset tags (`strict_mode` is
+  off in `test`), so they need no build.
 - Tailwind v4, configured in CSS (`assets/styles/app.css`: `@theme`, `@utility`,
-  `@source`), built by `symfonycasts/tailwind-bundle` (`tailwind:build`,
-  started as a `symfony serve` worker). No `tailwind.config.js`.
+  `@source`), built by Vite with `@tailwindcss/vite`. No `tailwind.config.js`.
 - UI elements are **anonymous Twig components** in `templates/components/Ui/`,
   grouped in folders (`Status/`, `Form/`, `Filter/`…), with `{% props %}`,
   and used with the `Ui:` prefix (`<twig:Ui:Button>`, `<twig:Ui:Form:Input>`).
@@ -387,7 +398,7 @@ Rules:
   `dispatchBrowserEvent('toast:show', ['message' => …])`.
 - **Text users write is markdown.** Descriptions and comments are stored
   as CommonMark and edited in `Ui:Form:Editor` (the `editor` controller,
-  TipTap through the importmap), bound to a hidden textarea: a form
+  TipTap from npm), bound to a hidden textarea: a form
   field is `Form/Type/MarkdownType`, a live component passes `model`.
   They are displayed with the `markdown` Twig filter
   (`Markdown/MarkdownRenderer`), never raw: HTML is escaped, unsafe
@@ -435,8 +446,8 @@ Rules:
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`,
   `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`,
   `workflow-diagram`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
-  (`editor` with TipTap, `workflow-diagram` with Mermaid) so that its
-  imports are only fetched on a page that uses it; write a new one when a component needs it, not before. No
+  (`editor` with TipTap, `workflow-diagram` with Mermaid) so that Vite
+  splits its imports into chunks only fetched on a page that uses it; write a new one when a component needs it, not before. No
   inline scripts.
 
 ## Configuration and snapshot
@@ -508,7 +519,9 @@ by default). The journal is never migrated.
 
 ## Everyday workflow
 
-- Run the app with `symfony serve -d`, commands with `symfony console ...`
+- Run `npm install` once, then the app with `symfony serve -d` (its
+  workers start the Vite dev server, Storia's watcher and the scheduler),
+  commands with `symfony console ...`
   (or `bin/console` when the Symfony CLI isn't available). In dev and test
   the database is SQLite under `var/` (see `DATABASE_URL` in `.env`); the
   Docker Compose Postgres service is there for testing against a real

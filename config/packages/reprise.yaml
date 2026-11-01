@@ -1,0 +1,15 @@
+# Assets are built by Vite (vite.config.ts); the bundle reads public/build/entrypoints.json.
+reprise:
+    output_path: '%kernel.project_dir%/public/build'
+
+when@test:
+    reprise:
+        # Page tests render the layout without a build: no tags rather than an exception.
+        strict_mode: false
+
+when@prod:
+    reprise:
+        # A missing build renders no tags rather than a 500 on every page.
+        strict_mode: false
+        # Rebuild the Symfony cache when entrypoints.json changes.
+        cache: true

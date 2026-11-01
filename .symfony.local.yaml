@@ -1,7 +1,7 @@
 # Workers started by `symfony serve`.
 workers:
-    tailwind:
-        cmd: ['symfony', 'console', 'tailwind:build', '--watch']
+    vite:
+        cmd: ['npx', 'vite']
     storia:
         cmd: ['symfony', 'console', 'storia:watch']
     scheduler:

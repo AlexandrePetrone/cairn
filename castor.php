@@ -14,6 +14,7 @@ defined('CASTOR_USE_CHDIR') || define('CASTOR_USE_CHDIR', true);
  *   castor test       PHPUnit, extra arguments are passed through
  *   castor storia     Storia catalogue with live reload
  *   castor fixtures   reset the dev database with the development data
+ *   castor assets     install the npm packages and build the assets for production
  */
 
 use Castor\Attribute\AsOption;
@@ -55,6 +56,12 @@ function storia(): int
 function fixtures(): int
 {
     return tool(['bin/console', 'foundry:load-fixtures', 'main', '--no-interaction']);
+}
+
+#[AsTask(description: 'Install the npm packages and build the assets with Vite')]
+function assets(): int
+{
+    return tool(['npm', 'ci']) ?: tool(['npx', 'vite', 'build']);
 }
 
 #[AsTask(description: 'Run the test suite with PHPUnit')]
