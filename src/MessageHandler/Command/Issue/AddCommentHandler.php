@@ -33,6 +33,7 @@ final class AddCommentHandler
         $comment = new Comment($issue, $actor, trim($command->body), $command->private);
         $issue->touch();
         $this->entityManager->persist($comment);
+        $this->support->claimAttachments($actor, $issue, $command->attachments, $comment->getBody(), $comment);
 
         return $comment;
     }

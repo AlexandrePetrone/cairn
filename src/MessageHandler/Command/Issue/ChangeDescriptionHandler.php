@@ -7,7 +7,6 @@ namespace App\MessageHandler\Command\Issue;
 use App\Entity\JournalEntry;
 use App\Message\Command\Issue\ChangeDescription;
 use App\Security\AccessControl;
-use App\Security\Permission;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -26,13 +25,16 @@ final class ChangeDescriptionHandler
         $actor = $this->support->actor($command->actorId);
         $issue = $this->support->visibleIssue($actor, $command->issueKey);
 
-        $this->support->denyUnless($this->access->isGranted($actor, Permission::IssueEdit, $issue->getProject()), 'edit issues');
+        $this->support->denyUnless($this->access->canEditIssue($actor, $issue), 'rewrite the description of an issue written by someone else');
 
         if ($issue->getDescription() === $command->description) {
             return;
         }
 
+        $previous = $issue->getDescription();
         $issue->describe($command->description);
-        $this->entityManager->persist(JournalEntry::changed($issue, $actor, 'description', null, null));
+        $this->entityManager->persist(JournalEntry::changed($issue, $actor, 'description', $previous, $issue->getDescription()));
+        // Images pasted while rewriting it were uploaded pending.
+        $this->support->claimAttachments($actor, $issue, [], $command->description);
     }
 }

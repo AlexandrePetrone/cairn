@@ -8,6 +8,7 @@ use App\Config\ConfigLoader;
 use App\Config\Definition\TransitionDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use App\Config\Sync\ConfigSynchronizer;
+use App\Entity\Attachment;
 use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
 use App\Entity\Project;
@@ -19,6 +20,7 @@ use App\Factory\ProjectFactory;
 use App\Factory\TrackerFactory;
 use App\Factory\UserFactory;
 use App\Factory\WorkspaceFactory;
+use App\Message\Command\Attachment\UploadAttachment;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\Command\Issue\AssignIssue;
@@ -31,6 +33,7 @@ use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Zenstruck\Foundry\Attribute\AsFixture;
 use Zenstruck\Foundry\Story;
 
@@ -280,15 +283,38 @@ final class AppStory extends Story
     {
         $clock->modify(\sprintf('+%d hours +%d minutes', mt_rand(1, 6), mt_rand(0, 59)));
         $developer = $people['developers'][mt_rand(0, \count($people['developers']) - 1)];
-        $this->commands->dispatch(new AddComment((int) $this->users[$developer]->getId(), $issue->getKey(), 'Je regarde, je reviens vers vous dans la journée.'));
+        $this->commands->dispatch(new AddComment((int) $this->users[$developer]->getId(), $issue->getKey(), 'Je regarde, je reviens vers vous dans la journée.', attachments: [$this->upload($this->users[$developer], $issue, 'trace.log')]));
 
         if (null !== $people['client'] && !$issue->isPrivate()) {
             $clock->modify(\sprintf('+%d hours +%d minutes', mt_rand(1, 6), mt_rand(0, 59)));
             $this->commands->dispatch(new AddComment((int) $this->users[$people['client']]->getId(), $issue->getKey(), 'Merci, c\'est bloquant pour nos équipes.'));
+            if ($issue->getAuthor() === $this->users[$people['client']]) {
+                $this->upload($issue->getAuthor(), $issue, 'capture.png', toIssue: true);
+            }
         }
         if (0 === mt_rand(0, 2)) {
-            $this->commands->dispatch(new AddComment((int) $this->users[$people['manager']]->getId(), $issue->getKey(), 'À chiffrer avant de s\'engager sur une date.', private: true));
+            $manager = $this->users[$people['manager']];
+            $this->commands->dispatch(new AddComment((int) $manager->getId(), $issue->getKey(), 'À chiffrer avant de s\'engager sur une date.', private: true, attachments: [$this->upload($manager, $issue, 'chiffrage.pdf')]));
         }
+    }
+
+    /**
+     * Sends one of the sample files of `files/`, pending (its uuid, for the
+     * comment that takes it) or straight to the issue.
+     */
+    private function upload(User $actor, Issue $issue, string $name, bool $toIssue = false): string
+    {
+        $copy = (string) tempnam(sys_get_temp_dir(), 'cairn');
+        copy(__DIR__.'/files/'.$name, $copy);
+        $attachment = $this->commands->dispatch(new UploadAttachment(
+            (int) $actor->getId(),
+            (int) $issue->getProject()->getId(),
+            $toIssue ? $issue->getKey() : null,
+            new UploadedFile($copy, $name, null, null, true),
+        ));
+        \assert($attachment instanceof Attachment);
+
+        return $attachment->getUuid()->toRfc4122();
     }
 
     /**

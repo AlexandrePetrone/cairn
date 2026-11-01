@@ -12,6 +12,9 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 final readonly class ApplyTransition
 {
+    /**
+     * @param list<string> $attachments uuids of the actor's pending files sent with the comment
+     */
     public function __construct(
         public int $actorId,
         #[Assert\NotBlank(normalizer: 'trim')]
@@ -20,6 +23,7 @@ final readonly class ApplyTransition
         public string $transitionId,
         public ?string $comment = null,
         public bool $commentPrivate = false,
+        public array $attachments = [],
     ) {
     }
 }

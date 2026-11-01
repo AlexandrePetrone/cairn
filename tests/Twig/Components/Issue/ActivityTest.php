@@ -97,6 +97,29 @@ final class ActivityTest extends KernelTestCase
         self::assertNotNull($component->getDispatchedBrowserEvent($render, 'editor:reset'), 'the editor, outside the morph, empties itself');
     }
 
+    public function testFilesSentWithACommentGoUnderIt(): void
+    {
+        $component = $this->activity('claire.martin@maison-dupont.test');
+
+        $component->call('attach', [], ['files' => [FilesTest::file('devis.pdf'), FilesTest::file('brouillon.txt')]]);
+        $activity = $component->component();
+        self::assertInstanceOf(Activity::class, $activity);
+        self::assertCount(2, $activity->pending);
+        self::assertStringContainsString('brouillon.txt', (string) $component->render());
+
+        $component->call('discard', ['uuid' => $activity->pending[1]]);
+        $component->set('body', 'Voici le devis.')->call('postComment');
+        $render = (string) $component->render();
+
+        $comment = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Comment::class)->findOneBy(['issue' => $this->issue], ['id' => 'DESC']);
+        self::assertSame('Voici le devis.', $comment?->getBody());
+        $activity = $component->component();
+        self::assertInstanceOf(Activity::class, $activity);
+        self::assertSame([], $activity->pending, 'the composer starts afresh');
+        self::assertStringContainsString('devis.pdf', $render);
+        self::assertStringNotContainsString('brouillon.txt', $render, 'a discarded file stays out');
+    }
+
     public function testAnEmptyCommentIsRefused(): void
     {
         $component = $this->activity('nadia.benali@cairn.test');
@@ -116,17 +139,115 @@ final class ActivityTest extends KernelTestCase
         self::assertStringContainsString('Brouillon en cours', (string) $component->render());
     }
 
-    public function testTheDescriptionIsRewrittenWithoutLosingTheComment(): void
+    public function testTheFilesOfACommentAreRemovedByWhoMayEditIt(): void
+    {
+        $claire = $this->activity('claire.martin@maison-dupont.test');
+        $claire->call('attach', [], ['files' => [FilesTest::file('devis.pdf')]]);
+        $activity = $claire->component();
+        self::assertInstanceOf(Activity::class, $activity);
+        $remove = \sprintf('data-live-action-param="removeAttachment" data-live-uuid-param="%s"', $activity->pending[0]);
+        $claire->set('body', 'Voici le devis.')->call('postComment');
+        self::assertStringContainsString($remove, (string) $claire->render());
+
+        $render = (string) $this->activity('nadia.benali@cairn.test')->render();
+        self::assertStringContainsString('devis.pdf', $render);
+        self::assertStringNotContainsString($remove, $render, 'Nadia did not write that comment');
+        self::assertStringContainsString($remove, (string) $this->activity('thomas.girard@cairn.test')->render(), 'comment.edit');
+    }
+
+    public function testACommentIsRewrittenInPlaceWithoutLosingTheDraft(): void
     {
         $component = $this->activity('claire.martin@maison-dupont.test');
+        $id = $this->postedComment($component, 'Merci, c\'est bloquant.');
         $component->set('body', 'Brouillon en cours');
+        self::assertStringContainsString(\sprintf('data-live-action-param="editComment" data-live-id-param="%d"', $id), (string) $component->render());
 
-        $component->call('editDescription')->set('description', 'Le fichier ne contient que l\'en-tête.')->call('saveDescription');
+        $component->call('editComment', ['id' => $id]);
+        $activity = $component->component();
+        self::assertInstanceOf(Activity::class, $activity);
+        self::assertSame($id, $activity->editingCommentId);
+        $component->call('attach', [], ['files' => [FilesTest::file('precision.pdf')]]);
+        $component->set('commentBody', 'Merci, **vraiment** bloquant.')->call('saveComment');
         $render = (string) $component->render();
+        $activity = $component->component();
+        self::assertInstanceOf(Activity::class, $activity);
+        self::assertNull($activity->error);
 
-        self::assertStringContainsString('<p>Le fichier ne contient que l\'en-tête.</p>', $render);
-        self::assertStringContainsString('a modifié la description', $render);
-        self::assertStringContainsString('Brouillon en cours', $render);
+        self::assertSame('Merci, **vraiment** bloquant.', $this->reloadedComment($id)?->getBody());
+        self::assertStringContainsString('modifié le', $render);
+        self::assertStringContainsString('a modifié son commentaire', $render);
+        self::assertStringContainsString('precision.pdf', $render, 'a file sent while rewriting goes with the comment');
+        self::assertStringContainsString('Brouillon en cours', $render, 'the composer keeps its draft');
+        $activity = $component->component();
+        self::assertInstanceOf(Activity::class, $activity);
+        self::assertNull($activity->editingCommentId);
+        self::assertSame([], $activity->editPending);
+    }
+
+    public function testACommentIsDeletedAfterConfirmationAndItsTextStaysInTheThread(): void
+    {
+        $component = $this->activity('claire.martin@maison-dupont.test');
+        $body = 'À supprimer, envoyé par erreur.';
+        $id = $this->postedComment($component, $body);
+
+        $component->call('confirmDelete', ['id' => $id]);
+        self::assertStringContainsString('Supprimer ce commentaire ?', (string) $component->render());
+
+        $component->call('deleteComment');
+        $render = $component->render();
+
+        self::assertNull($this->reloadedComment($id));
+        self::assertStringContainsString('a supprimé son commentaire', (string) $render);
+        self::assertStringContainsString($body, (string) $render, 'the deleted text is still readable');
+        self::assertNotNull($component->getEmittedEvent($render, 'issue:changed'));
+    }
+
+    public function testEditingControlsFollowTheRightOnTheComment(): void
+    {
+        // The story picks the developer who comments at random: take whoever it was.
+        $comments = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Comment::class)->findBy(['issue' => $this->issue, 'private' => false], ['id' => 'ASC']);
+        $developerComment = $comments[0] ?? self::fail('no comment');
+        self::assertTrue($developerComment->getAuthor()->isInternal());
+        $claireComment = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Comment::class)->findOneBy(['issue' => $this->issue, 'author' => $this->user('claire.martin@maison-dupont.test')]) ?? self::fail('no comment of Claire');
+
+        $component = $this->activity($developerComment->getAuthor()->getEmail());
+        $developer = (string) $component->render();
+        $activity = $component->component();
+        self::assertInstanceOf(Activity::class, $activity);
+        self::assertSame([(int) $developerComment->getId()], $activity->getEditableComments(), $developerComment->getAuthor()->getEmail().' edits their own comment only');
+        self::assertStringContainsString(\sprintf('data-live-action-param="editComment" data-live-id-param="%d"', $developerComment->getId()), $developer, 'their own');
+        self::assertStringNotContainsString(\sprintf('data-live-id-param="%d"', $claireComment->getId()), $developer, 'not theirs');
+
+        $paul = (string) $this->activity('paul.roussel@maison-dupont.test')->render();
+        self::assertStringNotContainsString('data-live-action-param="editComment"', $paul);
+        self::assertStringNotContainsString('data-live-action-param="confirmDelete"', $paul);
+    }
+
+    /** Posts a comment from the composer and returns its id. */
+    private function postedComment(TestLiveComponent $component, string $body): int
+    {
+        $component->set('body', $body)->call('postComment');
+        $comment = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Comment::class)->findOneBy(['issue' => $this->issue], ['id' => 'DESC']);
+        self::assertSame($body, $comment?->getBody());
+
+        return (int) $comment->getId();
+    }
+
+    /** The comment as the database has it; a removed one is already out of the identity map. */
+    private function reloadedComment(int $id): ?Comment
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $comment = $entityManager->find(Comment::class, $id);
+        if (null !== $comment) {
+            $entityManager->refresh($comment);
+        }
+
+        return $comment;
+    }
+
+    private function user(string $email): User
+    {
+        return self::getContainer()->get(UserRepository::class)->findOneBy(['email' => $email]) ?? self::fail('no '.$email);
     }
 
     private function activity(string $email): TestLiveComponent

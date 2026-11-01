@@ -9,7 +9,6 @@ use App\Entity\Project;
 use App\Entity\User;
 use App\Message\Command\Attachment\UploadAttachment;
 use App\Message\CommandBus;
-use App\MessageHandler\Command\Issue\IssueException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -25,9 +24,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * Receives an image pasted in an editor and answers with its URL. Only
  * the editor calls it, with the `X-Requested-With` header that a
- * cross-origin form cannot send. `issue` is the key of the issue being
- * edited or commented, absent while a new issue is written. Every answer
- * is JSON, a failure carrying the `error` the editor shows.
+ * cross-origin form cannot send. The file is pending until the text that
+ * points to it is saved. Every answer is JSON, a failure carrying the
+ * `error` the editor shows.
  */
 #[IsGranted('view', subject: 'project')]
 final class UploadAttachmentController extends AbstractController
@@ -51,16 +50,12 @@ final class UploadAttachmentController extends AbstractController
         if (!$request->isXmlHttpRequest() || !$file instanceof UploadedFile) {
             return $this->json(['error' => $translator->trans('editor.upload_failed')], Response::HTTP_BAD_REQUEST);
         }
-        $issueKey = $request->request->getString('issue');
 
         try {
             /** @var Attachment $attachment */
-            $attachment = $commands->dispatch(new UploadAttachment((int) $user->getId(), (int) $project->getId(), '' === $issueKey ? null : $issueKey, $file));
+            $attachment = $commands->dispatch(new UploadAttachment((int) $user->getId(), (int) $project->getId(), null, $file));
         } catch (ValidationFailedException $e) {
             return $this->json(['error' => (string) $e->getViolations()->get(0)->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
-        } catch (IssueException) {
-            // The only one the handler throws: an issue the user may not see.
-            return $this->json(['error' => $translator->trans('editor.upload_refused')], Response::HTTP_NOT_FOUND);
         } catch (AccessDeniedException) {
             return $this->json(['error' => $translator->trans('editor.upload_refused')], Response::HTTP_FORBIDDEN);
         }

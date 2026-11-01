@@ -17,9 +17,9 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Serves an attachment to whoever may see its issue; before an issue
- * claims it, to its uploader only. Anything else is not found, so that
- * private issues cannot be probed.
+ * Serves an attachment to whoever may see it (AccessControl::canSeeAttachment).
+ * Anything else is not found, so that private issues and comments cannot be
+ * probed.
  */
 final class AttachmentController extends AbstractController
 {
@@ -42,19 +42,17 @@ final class AttachmentController extends AbstractController
         if (null === $attachment || $attachment->getFilename() !== $filename) {
             throw $this->createNotFoundException('No such attachment.');
         }
-        $issue = $attachment->getIssue();
-        $visible = null === $issue
-            ? $attachment->getUploadedBy()->getId() === $user->getId()
-            : $access->canSee($user, $issue);
-        if (!$visible) {
+        if (!$access->canSeeAttachment($user, $attachment)) {
             throw $this->createNotFoundException('No such attachment for this user.');
         }
 
+        // Images are shown; anything else, HTML or SVG included, is only downloaded.
+        $image = $attachment->isImage();
         $response = new BinaryFileResponse($storage->path($attachment), headers: [
-            'Content-Type' => $attachment->getMediaType(),
+            'Content-Type' => $image ? $attachment->getMediaType() : 'application/octet-stream',
             'X-Content-Type-Options' => 'nosniff',
         ]);
-        $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE, $attachment->getFilename());
+        $response->setContentDisposition($image ? ResponseHeaderBag::DISPOSITION_INLINE : ResponseHeaderBag::DISPOSITION_ATTACHMENT, $attachment->getFilename());
         $response->setAutoLastModified();
         $response->setPrivate();
         $response->setMaxAge(3600);

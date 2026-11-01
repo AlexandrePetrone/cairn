@@ -11,7 +11,6 @@ use App\Message\Command\Issue\ChangeTitle;
 use App\Message\CommandBus;
 use App\MessageHandler\Command\Issue\IssueException;
 use App\Security\AccessControl;
-use App\Security\Permission;
 use App\Workflow\WorkflowProvider;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Messenger\Exception\ValidationFailedException;
@@ -65,7 +64,7 @@ final class Header extends AbstractController
 
     public function canEdit(): bool
     {
-        return $this->access->isGranted($this->viewer(), Permission::IssueEdit, $this->issue->getProject());
+        return $this->access->canEditIssue($this->viewer(), $this->issue);
     }
 
     #[LiveAction]

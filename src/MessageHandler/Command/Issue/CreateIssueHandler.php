@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\Command\Issue;
 
-use App\Entity\Attachment;
 use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
 use App\Entity\JournalEntry;
 use App\Message\Command\Issue\CreateIssue;
-use App\Repository\AttachmentRepository;
 use App\Repository\ProjectRepository;
 use App\Repository\TrackerRepository;
 use App\Security\AccessControl;
@@ -28,7 +26,6 @@ final class CreateIssueHandler
         private readonly TrackerRepository $trackers,
         private readonly AccessControl $access,
         private readonly WorkflowProvider $workflows,
-        private readonly AttachmentRepository $attachments,
         private readonly EntityManagerInterface $entityManager,
     ) {
     }
@@ -74,10 +71,8 @@ final class CreateIssueHandler
         $this->entityManager->persist($issue);
         $this->entityManager->persist(JournalEntry::created($issue, $actor));
 
-        // Images pasted while writing the issue were sent before it existed.
-        foreach ($this->attachments->findUnattached($project, $actor, Attachment::referencedIn($command->description)) as $attachment) {
-            $attachment->attachTo($issue);
-        }
+        // Files sent while writing the issue were uploaded before it existed.
+        $this->support->claimAttachments($actor, $issue, $command->attachments, $command->description);
 
         return $issue;
     }

@@ -38,8 +38,30 @@ issue:
         transitioned: 'applied "%transition%": %from% → %to%'
         tracker_changed: 'changed the category: %from_tracker% → %to_tracker% (%to%)'
         field_changed: 'changed "%field%": %from% → %to%'
+        comment_edited:
+            own: edited their comment
+            other: edited the comment of %author%
+        comment_deleted:
+            own: deleted their comment
+            other: deleted the comment of %author%
+        versions: Show versions
+        hide_versions: Hide versions
+        before: Before
+        after: After
+        deleted_comment: Show the deleted comment
+        hide_deleted_comment: Hide the deleted comment
+        attachment_added: 'added the file %filename%'
+        attachment_removed: 'removed the file %filename%'
     comment:
         placeholder: Write a comment…
+        edited: 'edited on %date%'
+        edit: Edit the comment
+        delete: Delete the comment
+        delete_confirm: Delete this comment? Its text stays in the history.
+        delete_yes: Delete
+        deleted: Comment deleted.
+        edit_hint: Cmd+Enter saves · Esc cancels
+        updated: Comment updated.
         submit: Comment
         submit_private: Comment privately
         private: Private
@@ -47,8 +69,8 @@ issue:
         empty: The comment is empty.
         added: Comment added.
     edit:
-        click_to_edit: Click to edit
-        add_description: Add a description…
+        edit_title: Edit the title
+        edit_description: Edit the description
         title_hint: Enter to save · Esc to cancel
         description_hint: ⌘ Enter to save · Esc to cancel
         edit: Edit
@@ -169,3 +191,18 @@ editor:
     upload_failed: The image could not be sent.
     upload_refused: You cannot send an image here.
     images_only: Only images can be pasted here.
+
+attachment:
+    title: Files
+    add: Add
+    attach: Attach a file
+    remove: Remove
+    added: '%count% file(s) added.'
+    removed: '%name% removed.'
+    choose: Drop files here or browse
+    limit: Screenshots, exports, logs · 10 MB max per file
+    refused: This file could not be sent.
+    unit:
+        b: '%size% B'
+        kb: '%size% KB'
+        mb: '%size% MB'

@@ -12,6 +12,7 @@ namespace App\Security;
 enum Permission: string
 {
     case IssueCreate = 'issue.create';
+    /** Edit the content of issues written by others; authors always edit their own. */
     case IssueEdit = 'issue.edit';
     case IssueChangeTracker = 'issue.change_tracker';
     case IssueAssign = 'issue.assign';
@@ -19,4 +20,6 @@ enum Permission: string
     case IssueSetPrivate = 'issue.set_private';
     case CommentCreate = 'comment.create';
     case CommentSetPrivate = 'comment.set_private';
+    /** Edit or delete the comments of others; authors always handle their own. */
+    case CommentEdit = 'comment.edit';
 }

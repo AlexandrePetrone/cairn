@@ -53,6 +53,7 @@ final class ApplyTransitionHandler
             $this->support->denyUnless(!$command->commentPrivate || $this->access->isGranted($actor, Permission::CommentSetPrivate, $project), 'make comments private');
             $comment = new Comment($issue, $actor, $body, $command->commentPrivate);
             $this->entityManager->persist($comment);
+            $this->support->claimAttachments($actor, $issue, $command->attachments, $body, $comment);
         }
 
         $from = $definition->place((string) $issue->getPlace());

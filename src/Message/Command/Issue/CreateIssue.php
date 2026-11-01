@@ -14,7 +14,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 final readonly class CreateIssue
 {
     /**
-     * @param array<string, mixed> $fields field id => value, for the fields of the tracker's workflow
+     * @param array<string, mixed> $fields      field id => value, for the fields of the tracker's workflow
+     * @param list<string>         $attachments uuids of the actor's pending files sent with the issue
      */
     public function __construct(
         public int $actorId,
@@ -28,6 +29,7 @@ final readonly class CreateIssue
         public ?int $assigneeId = null,
         public bool $private = false,
         public array $fields = [],
+        public array $attachments = [],
     ) {
     }
 }

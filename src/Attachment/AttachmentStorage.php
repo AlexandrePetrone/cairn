@@ -26,6 +26,14 @@ final class AttachmentStorage
         $file->move($this->directory, $this->name($attachment));
     }
 
+    public function delete(Attachment $attachment): void
+    {
+        $path = $this->path($attachment);
+        if (is_file($path)) {
+            unlink($path);
+        }
+    }
+
     public function path(Attachment $attachment): string
     {
         return $this->directory.'/'.$this->name($attachment);

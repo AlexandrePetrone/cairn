@@ -1,7 +1,7 @@
 {# Rich text written as markdown (editor controller). The content block is the markdown; `name` goes to the hidden textarea that carries it (never `required`: the browser cannot point at a hidden field, the server validates), everything else to the root, where `editor:submit` and `editor:cancel` arrive.
    `model` becomes the textarea's `data-model` inside a live component: passed as a plain `data-model` attribute, Live would bind the editor itself to the parent.
-   Without the suggestion URLs, `#` and `@` are plain text; without `uploadUrl`, pasted images are refused. `issue` is the key of the issue being edited, for the uploads. #}
-{% props placeholder = '', issuesUrl = '', usersUrl = '', uploadUrl = '', issue = '', rows = 4, invalid = false, autofocus = false, disabled = false, model = null %}
+   Without the suggestion URLs, `#` and `@` are plain text; without `uploadUrl`, pasted images are refused. #}
+{% props placeholder = '', issuesUrl = '', usersUrl = '', uploadUrl = '', rows = 4, invalid = false, autofocus = false, disabled = false, model = null %}
 {% set editorClasses = html_cva(
     base: 'mt-1 w-full rounded-md border border-gray-300 bg-white focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100',
     variants: {
@@ -24,7 +24,6 @@
      data-editor-issues-url-value="{{ issuesUrl }}"
      data-editor-users-url-value="{{ usersUrl }}"
      data-editor-upload-url-value="{{ uploadUrl }}"
-     data-editor-issue-value="{{ issue }}"
      data-editor-placeholder-value="{{ placeholder }}"
      data-editor-link-prompt-value="{{ 'editor.link_prompt'|trans }}"
      data-editor-upload-failed-value="{{ 'editor.upload_failed'|trans }}"
@@ -41,6 +40,7 @@
             </button>
         {% endfor %}
     </div>
-    <div data-editor-target="content" data-live-ignore class="cursor-text px-3 py-2" style="min-height: {{ rows * 1.5 + 1 }}rem"></div>
+    {# Grows with the text up to half the screen, then scrolls inside: what follows the editor stays in view. #}
+    <div data-editor-target="content" data-live-ignore class="max-h-[50vh] cursor-text overflow-y-auto px-3 py-2" style="min-height: {{ rows * 1.5 + 1 }}rem"></div>
     <textarea data-editor-target="input" hidden {{ attributes.only('name') }} {% if model %}data-model="{{ model }}"{% endif %}>{% block content %}{% endblock %}</textarea>
 </div>

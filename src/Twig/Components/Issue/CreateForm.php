@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Twig\Components\Issue;
 
 use App\Config\ConfigRegistry;
+use App\Entity\Attachment;
 use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\Tracker;
@@ -16,17 +17,22 @@ use App\Message\CommandBus;
 use App\Message\Query\Project\ListProjectMembers;
 use App\Message\QueryBus;
 use App\MessageHandler\Command\Issue\IssueException;
+use App\Repository\AttachmentRepository;
 use App\Repository\TrackerRepository;
 use App\Security\AccessControl;
 use App\Security\Permission;
+use App\Twig\Components\HandlesAttachments;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Uid\Uuid;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
+use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\ComponentWithFormTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
@@ -41,6 +47,7 @@ final class CreateForm extends AbstractController
 {
     use ComponentWithFormTrait;
     use DefaultActionTrait;
+    use HandlesAttachments;
 
     #[LiveProp]
     public Project $project;
@@ -51,12 +58,21 @@ final class CreateForm extends AbstractController
     /** A refusal of the command, shown above the form. */
     public ?string $failure = null;
 
+    /** @var list<string> uuids of the files sent for the new issue, pending until it is created */
+    #[LiveProp]
+    public array $pending = [];
+
+    /** Why the last file was refused. */
+    public ?string $attachError = null;
+
     public function __construct(
         private readonly TrackerRepository $trackers,
         private readonly ConfigRegistry $config,
         private readonly QueryBus $queries,
         private readonly FormFactoryInterface $forms,
         private readonly AccessControl $access,
+        private readonly AttachmentRepository $attachments,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
@@ -92,6 +108,37 @@ final class CreateForm extends AbstractController
         $this->resetForm();
     }
 
+    /**
+     * The files sent for the new issue, still pending.
+     *
+     * @return list<Attachment>
+     */
+    public function getPendingFiles(): array
+    {
+        if ([] === $this->pending) {
+            return [];
+        }
+
+        return $this->attachments->findUnattached($this->project, $this->viewer(), array_map(Uuid::fromString(...), $this->pending));
+    }
+
+    /** Files chosen for the new issue: sent now, pending until it is created. */
+    #[LiveAction]
+    public function attach(Request $request, CommandBus $commands): void
+    {
+        [$sent, $this->attachError] = $this->sendFiles($request, $commands, $this->viewer(), $this->project);
+        foreach ($sent as $attachment) {
+            $this->pending[] = $attachment->getUuid()->toRfc4122();
+        }
+    }
+
+    /** Takes a file back from the new issue; it stays pending, unused. */
+    #[LiveAction]
+    public function discard(#[LiveArg] string $uuid): void
+    {
+        $this->pending = array_values(array_diff($this->pending, [$uuid]));
+    }
+
     #[LiveAction]
     public function save(CommandBus $commands, TranslatorInterface $translator): ?Response
     {
@@ -116,6 +163,7 @@ final class CreateForm extends AbstractController
                 assigneeId: $data->assignee?->getId(),
                 private: $data->private,
                 fields: array_filter($data->fields, static fn (mixed $value): bool => null !== $value && '' !== $value),
+                attachments: $this->pending,
             ));
         } catch (IssueException) {
             $this->failure = $translator->trans('issue.create.refused');

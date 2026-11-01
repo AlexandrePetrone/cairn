@@ -1,0 +1,5 @@
+component: Ui:IconButton
+variants:
+    default: { args: { icon: pencil, label: Modifier } }
+    danger: { args: { icon: trash-2, label: Supprimer, tone: danger } }
+    disabled: { args: { icon: pencil, label: Modifier, disabled: true } }

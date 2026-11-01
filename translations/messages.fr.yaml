@@ -38,8 +38,30 @@ issue:
         transitioned: 'a appliqué « %transition% » : %from% → %to%'
         tracker_changed: 'a changé la catégorie : %from_tracker% → %to_tracker% (%to%)'
         field_changed: 'a changé « %field% » : %from% → %to%'
+        comment_edited:
+            own: a modifié son commentaire
+            other: a modifié le commentaire de %author%
+        comment_deleted:
+            own: a supprimé son commentaire
+            other: a supprimé le commentaire de %author%
+        versions: Voir les versions
+        hide_versions: Masquer les versions
+        before: Avant
+        after: Après
+        deleted_comment: Voir le commentaire supprimé
+        hide_deleted_comment: Masquer le commentaire supprimé
+        attachment_added: 'a ajouté le fichier %filename%'
+        attachment_removed: 'a retiré le fichier %filename%'
     comment:
         placeholder: Écrire un commentaire…
+        edited: 'modifié le %date%'
+        edit: Modifier le commentaire
+        delete: Supprimer le commentaire
+        delete_confirm: Supprimer ce commentaire ? Son texte restera dans l'historique.
+        delete_yes: Supprimer
+        deleted: Commentaire supprimé.
+        edit_hint: ⌘ Entrée pour enregistrer · Échap pour annuler
+        updated: Commentaire modifié.
         submit: Commenter
         submit_private: Commenter en privé
         private: Privé
@@ -47,8 +69,8 @@ issue:
         empty: Le commentaire est vide.
         added: Commentaire ajouté.
     edit:
-        click_to_edit: Cliquer pour modifier
-        add_description: Ajouter une description…
+        edit_title: Modifier le titre
+        edit_description: Modifier la description
         title_hint: Entrée pour enregistrer · Échap pour annuler
         description_hint: ⌘ Entrée pour enregistrer · Échap pour annuler
         edit: Modifier
@@ -169,3 +191,18 @@ editor:
     upload_failed: L'image n'a pas pu être envoyée.
     upload_refused: Vous ne pouvez pas envoyer d'image ici.
     images_only: Seules les images peuvent être collées ici.
+
+attachment:
+    title: Fichiers
+    add: Ajouter
+    attach: Joindre un fichier
+    remove: Retirer
+    added: '%count% fichier(s) ajouté(s).'
+    removed: '%name% retiré.'
+    choose: Glissez des fichiers ici ou parcourez
+    limit: Captures, exports, logs · 10 Mo max par fichier
+    refused: Ce fichier n'a pas pu être envoyé.
+    unit:
+        b: '%size% o'
+        kb: '%size% Ko'
+        mb: '%size% Mo'

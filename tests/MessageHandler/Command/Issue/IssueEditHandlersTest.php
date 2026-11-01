@@ -53,6 +53,32 @@ final class IssueEditHandlersTest extends KernelTestCase
         self::assertSame('description', $this->lastEntry($issue, JournalEntryType::Changed)->getData()['field']);
     }
 
+    public function testTheContentIsEditedByTheAuthorOrWithTheRightOnOthers(): void
+    {
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+        $manager = (int) $this->fixtures->manager->getId();
+
+        $this->commands->dispatch(new ChangeDescription($manager, $issue->getKey(), 'Réécrit par le chef de projet.'));
+        self::assertSame('Réécrit par le chef de projet.', $issue->getDescription());
+        self::assertSame(['field' => 'description', 'from' => 'Le fichier téléchargé est vide.', 'to' => 'Réécrit par le chef de projet.'], $this->lastEntry($issue, JournalEntryType::Changed)->getData(), 'both versions are kept');
+        $this->commands->dispatch(new ChangeTitle($manager, $issue->getKey(), 'Export CSV vide (prod)'));
+        $this->commands->dispatch(new ChangeFields($manager, $issue->getKey(), ['environment' => 'preprod']));
+
+        $developer = (int) $this->fixtures->developer->getId();
+        foreach ([
+            new ChangeDescription($developer, $issue->getKey(), 'Pas la mienne.'),
+            new ChangeTitle($developer, $issue->getKey(), 'Pas la mienne'),
+            new ChangeFields($developer, $issue->getKey(), ['environment' => 'staging']),
+        ] as $command) {
+            try {
+                $this->commands->dispatch($command);
+                self::fail($command::class.': the developer did not write the issue');
+            } catch (AccessDeniedException) {
+            }
+        }
+        self::assertSame('Export CSV vide (prod)', $issue->getTitle());
+    }
+
     public function testABlankTitleIsRefused(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);

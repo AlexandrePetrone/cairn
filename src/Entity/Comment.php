@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Repository\CommentRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -12,7 +13,7 @@ use function Symfony\Component\Clock\now;
 /**
  * A comment on an issue. Private comments are hidden from external users.
  */
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: CommentRepository::class)]
 class Comment
 {
     #[ORM\Id]
@@ -36,6 +37,10 @@ class Comment
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
+
+    /** When the body was last rewritten; the journal keeps the versions. */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $editedAt = null;
 
     public function __construct(Issue $issue, User $author, string $body, bool $private = false)
     {
@@ -84,5 +89,16 @@ class Comment
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function getEditedAt(): ?\DateTimeImmutable
+    {
+        return $this->editedAt;
+    }
+
+    public function edit(string $body): void
+    {
+        $this->body = trim($body);
+        $this->editedAt = now();
     }
 }

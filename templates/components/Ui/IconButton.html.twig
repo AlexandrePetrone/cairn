@@ -1,0 +1,10 @@
+{# A button that is only an icon, for discreet actions: `label` is its tooltip and accessible name. `danger` turns red on hover. #}
+{% props icon, label, tone = 'default', size = 'md' %}
+{% set iconButtonClasses = html_cva(
+    base: 'inline-flex shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200 disabled:pointer-events-none disabled:opacity-40',
+    variants: {
+        tone: { default: 'hover:bg-gray-100 hover:text-gray-700', danger: 'hover:bg-red-50 hover:text-red-600' },
+        size: { sm: 'h-6 w-6', md: 'h-7 w-7' },
+    },
+) %}
+<button type="button" title="{{ label }}" aria-label="{{ label }}" class="{{ iconButtonClasses.apply({ tone: tone, size: size }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>{{ ux_icon('lucide:' ~ icon, { class: size == 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4' }) }}</button>

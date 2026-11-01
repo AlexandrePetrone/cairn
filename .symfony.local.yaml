@@ -4,3 +4,5 @@ workers:
         cmd: ['symfony', 'console', 'tailwind:build', '--watch']
     storia:
         cmd: ['symfony', 'console', 'storia:watch']
+    scheduler:
+        cmd: ['symfony', 'console', 'messenger:consume', 'scheduler_default']

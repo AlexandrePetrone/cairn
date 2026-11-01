@@ -12,14 +12,19 @@ use Symfony\Component\Uid\Uuid;
 use function Symfony\Component\Clock\now;
 
 /**
- * A file sent with a description or a comment, pasted images for now. It
- * belongs to its project from the upload and to its issue once known: an
- * image pasted while creating an issue is attached when the issue is
- * created. Its random uuid names the file on disk and appears in the URL.
+ * A file sent with an issue or a comment. It belongs to its project from
+ * the upload and goes through three states: pending (no issue yet: being
+ * written, seen by its uploader only), on an issue, or on a comment of
+ * that issue. The command that writes the issue or the comment claims it.
+ * Its random uuid names the file on disk and appears in the URL. Removing
+ * an attachment deletes it, file and row: the one exception to keeping
+ * everything, the journal keeps its name.
  */
 #[ORM\Entity(repositoryClass: AttachmentRepository::class)]
 class Attachment
 {
+    public const array IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -34,6 +39,9 @@ class Attachment
 
     #[ORM\ManyToOne]
     private ?Issue $issue;
+
+    #[ORM\ManyToOne]
+    private ?Comment $comment = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
@@ -83,6 +91,22 @@ class Attachment
         return $this->issue;
     }
 
+    public function getComment(): ?Comment
+    {
+        return $this->comment;
+    }
+
+    public function isPending(): bool
+    {
+        return null === $this->issue;
+    }
+
+    /** Shown in the page; anything else is downloaded. */
+    public function isImage(): bool
+    {
+        return \in_array($this->mediaType, self::IMAGE_TYPES, true);
+    }
+
     public function getUploadedBy(): User
     {
         return $this->uploadedBy;
@@ -121,11 +145,15 @@ class Attachment
         return array_values(array_map(static fn (string $uuid) => Uuid::fromString($uuid), array_unique($matches[1])));
     }
 
-    public function attachTo(Issue $issue): void
+    public function attachTo(Issue $issue, ?Comment $comment = null): void
     {
         if ($issue->getProject() !== $this->project) {
             throw new \LogicException('An attachment stays in its project.');
         }
+        if (null !== $comment && $comment->getIssue() !== $issue) {
+            throw new \LogicException('An attachment goes with a comment of its issue.');
+        }
         $this->issue = $issue;
+        $this->comment = $comment;
     }
 }

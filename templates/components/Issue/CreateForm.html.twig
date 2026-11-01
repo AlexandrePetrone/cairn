@@ -1,6 +1,8 @@
-{# One page: pick the tracker (cards bound to `trackerId`), then the form built for it. `this` is read before any nested component. #}
+{# One page: pick the tracker (cards bound to `trackerId`), then the form built for it. `this` is read before any nested component.
+   The Files section stays outside the <form>: inside, the file input would be bound to the form's data-model; the submit button joins the form by its `form` attribute. #}
 {% set createTrackers = this.trackers %}
 {% set createTracker = this.tracker %}
+{% set createPendingFiles = this.pendingFiles %}
 <div {{ attributes }} class="space-y-6">
     <section>
         <div class="flex items-baseline gap-2 mb-2">
@@ -17,7 +19,7 @@
     </section>
 
     {% if createTracker %}
-        {{ form_start(form, { attr: form.vars.attr|merge({ 'data-action': 'live#action:prevent', 'data-live-action-param': 'save', class: 'space-y-6' }) }) }}
+        {{ form_start(form, { attr: form.vars.attr|merge({ id: 'issue-form', 'data-action': 'live#action:prevent', 'data-live-action-param': 'save', class: 'space-y-6' }) }) }}
             {% if failure %}
                 <twig:Ui:Callout tone="danger" size="sm" role="alert">{{ failure }}</twig:Ui:Callout>
             {% endif %}
@@ -54,10 +56,38 @@
                 </section>
             {% endif %}
 
-            <div class="sticky bottom-0 border-t border-gray-200 bg-white/95 backdrop-blur py-3 flex items-center gap-3">
-                <twig:Ui:Button variant="primary" size="lg" type="submit" data-loading="addAttribute(disabled)">{{ 'issue.create.submit'|trans }}</twig:Ui:Button>
-                <twig:Ui:Button variant="ghost" size="lg" href="{{ path('app_project_issues', { workspaceKey: project.workspace.key, projectKey: project.key }) }}">{{ 'issue.create.cancel'|trans }}</twig:Ui:Button>
-            </div>
         {{ form_end(form) }}
+
+        <section>
+            <h2 class="font-semibold text-gray-900 mb-2">{{ 'attachment.title'|trans }}</h2>
+            <label class="flex cursor-pointer flex-col items-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-5 text-center text-sm text-gray-500 hover:border-indigo-300 hover:bg-indigo-50/30" data-loading="action(attach)|addClass(opacity-60)">
+                {{ ux_icon('lucide:paperclip', { class: 'h-5 w-5 text-gray-400' }) }}
+                <span class="mt-1">{{ 'attachment.choose'|trans }}</span>
+                <span class="text-xs text-gray-400">{{ 'attachment.limit'|trans }}</span>
+                <input type="file" name="files[]" multiple class="sr-only" data-controller="file-picker"
+                       data-action="change->file-picker#chosen file-picker:chosen->live#action" data-live-action-param="files|attach">
+            </label>
+            {% if attachError %}
+                <twig:Ui:Callout tone="danger" size="sm" role="alert" class="mt-2">{{ attachError }}</twig:Ui:Callout>
+            {% endif %}
+            {% if createPendingFiles is not empty %}
+                <div class="mt-2 flex flex-wrap gap-2">
+                    {% for file in createPendingFiles %}
+                        <twig:Ui:Attachment :name="file.filename" :size="file.size" :image="file.image" :href="attachment_url(file)" class="bg-white">
+                            <twig:block name="actions">
+                                <button type="button" title="{{ 'attachment.remove'|trans }}" aria-label="{{ 'attachment.remove'|trans }}"
+                                        data-action="live#action" data-live-action-param="discard" data-live-uuid-param="{{ file.uuid.toRfc4122 }}"
+                                        class="-mr-1 rounded p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700">{{ ux_icon('lucide:x', { class: 'h-3.5 w-3.5' }) }}</button>
+                            </twig:block>
+                        </twig:Ui:Attachment>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </section>
+
+        <div class="sticky bottom-0 border-t border-gray-200 bg-white/95 backdrop-blur py-3 flex items-center gap-3">
+            <twig:Ui:Button variant="primary" size="lg" type="submit" form="issue-form" data-loading="addAttribute(disabled)">{{ 'issue.create.submit'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button variant="ghost" size="lg" href="{{ path('app_project_issues', { workspaceKey: project.workspace.key, projectKey: project.key }) }}">{{ 'issue.create.cancel'|trans }}</twig:Ui:Button>
+        </div>
     {% endif %}
 </div>

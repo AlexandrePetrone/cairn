@@ -38,11 +38,12 @@ final class DiffCalculatorTest extends TestCase
             '+ workflows.bug: «Anomalie»',
             '+ migrationPolicy: strict',
             '+ permissions.comment.create: [project_manager, developer, client]',
+            '+ permissions.comment.edit: [project_manager]',
             '+ permissions.comment.set_private: [project_manager, developer]',
             '+ permissions.issue.assign: [project_manager, developer]',
             '+ permissions.issue.change_tracker: [project_manager, developer]',
             '+ permissions.issue.create: [project_manager, developer, client]',
-            '+ permissions.issue.edit: [project_manager, developer, client]',
+            '+ permissions.issue.edit: [project_manager]',
             '+ permissions.issue.set_criticality: [project_manager, developer, client]',
             '+ permissions.issue.set_private: [project_manager]',
         ], $this->calculator->between(null, DefinitionFactory::definition()));

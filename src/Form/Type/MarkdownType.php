@@ -16,7 +16,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  * Markdown written in the rich editor. Rendered by the `markdown_widget`
  * block of the form theme, which calls Form:Editor. With a `project`, `#`
  * and `@` suggest its issues and members and pasted images are sent to
- * it; `issue` is the key of the issue being edited, if any.
+ * it.
  *
  * @extends AbstractType<string>
  */
@@ -39,15 +39,13 @@ final class MarkdownType extends AbstractType
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        $resolver->setDefaults(['project' => null, 'issue' => null]);
+        $resolver->setDefaults(['project' => null]);
         $resolver->setAllowedTypes('project', ['null', Project::class]);
-        $resolver->setAllowedTypes('issue', ['null', 'string']);
     }
 
     public function buildView(FormView $view, FormInterface $form, array $options): void
     {
         $project = $options['project'];
-        $view->vars['editor_issue'] = $options['issue'] ?? '';
         $view->vars['editor_urls'] = ['issues' => '', 'users' => '', 'upload' => ''];
         if ($project instanceof Project) {
             $route = ['workspaceKey' => $project->getWorkspace()->getKey(), 'projectKey' => $project->getKey()];

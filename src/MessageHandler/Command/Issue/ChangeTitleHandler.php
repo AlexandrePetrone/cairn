@@ -7,7 +7,6 @@ namespace App\MessageHandler\Command\Issue;
 use App\Entity\JournalEntry;
 use App\Message\Command\Issue\ChangeTitle;
 use App\Security\AccessControl;
-use App\Security\Permission;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -26,7 +25,7 @@ final class ChangeTitleHandler
         $actor = $this->support->actor($command->actorId);
         $issue = $this->support->visibleIssue($actor, $command->issueKey);
 
-        $this->support->denyUnless($this->access->isGranted($actor, Permission::IssueEdit, $issue->getProject()), 'edit issues');
+        $this->support->denyUnless($this->access->canEditIssue($actor, $issue), 'retitle an issue written by someone else');
 
         $previous = $issue->getTitle();
         if ($previous === trim($command->title)) {

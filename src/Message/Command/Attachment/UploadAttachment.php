@@ -8,20 +8,20 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * Stores an image pasted in an editor. Without an issue (a new issue being
- * written) it waits in the project until CreateIssue claims it. Handled by
- * UploadAttachmentHandler, which returns the Attachment.
+ * Stores a file, of any type, up to 10 MB. Without an issue it is pending:
+ * sent while an issue or a comment is being written, it waits for the
+ * command that writes it. With an issue key it goes straight to that
+ * issue (its Files block). Handled by UploadAttachmentHandler, which
+ * returns the Attachment.
  */
 final readonly class UploadAttachment
 {
-    public const array MEDIA_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
-
     public function __construct(
         public int $actorId,
         public int $projectId,
         public ?string $issueKey,
         #[Assert\NotNull]
-        #[Assert\Image(maxSize: '10M', mimeTypes: self::MEDIA_TYPES)]
+        #[Assert\File(maxSize: '10M')]
         public UploadedFile $file,
     ) {
     }

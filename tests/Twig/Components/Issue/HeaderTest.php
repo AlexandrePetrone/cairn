@@ -36,6 +36,17 @@ final class HeaderTest extends KernelTestCase
         self::assertStringContainsString('Privée', (string) $component->render());
     }
 
+    public function testThePencilFollowsTheRightToEditTheIssue(): void
+    {
+        AppStory::load();
+        $issue = self::getContainer()->get(IssueRepository::class)->findOneByKey('MD-SPT-4') ?? self::fail('no MD-SPT-4');
+        foreach (['claire.martin@maison-dupont.test' => true, 'thomas.girard@cairn.test' => true, 'nadia.benali@cairn.test' => false] as $email => $expected) {
+            $user = self::getContainer()->get(UserRepository::class)->findOneBy(['email' => $email]) ?? self::fail('no '.$email);
+            $render = (string) $this->createLiveComponent('Issue:Header', ['issue' => $issue])->actingAs($user)->render();
+            self::assertSame($expected, str_contains($render, 'data-live-action-param="editTitle"'), $email);
+        }
+    }
+
     public function testTheTitleIsEditedInPlace(): void
     {
         self::bootKernel();

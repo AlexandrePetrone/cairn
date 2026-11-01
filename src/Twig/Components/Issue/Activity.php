@@ -5,21 +5,28 @@ declare(strict_types=1);
 namespace App\Twig\Components\Issue;
 
 use App\Config\Definition\TransitionDefinition;
+use App\Entity\Attachment;
+use App\Entity\Comment;
 use App\Entity\Issue;
 use App\Entity\User;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
-use App\Message\Command\Issue\ChangeDescription;
+use App\Message\Command\Issue\DeleteComment;
+use App\Message\Command\Issue\EditComment;
 use App\Message\CommandBus;
 use App\Message\Query\Issue\IssueDetail;
 use App\Message\Query\Issue\ShowIssue;
 use App\Message\QueryBus;
 use App\MessageHandler\Command\Issue\IssueException;
+use App\Repository\AttachmentRepository;
 use App\Security\AccessControl;
 use App\Security\Permission;
+use App\Twig\Components\HandlesAttachments;
 use App\Workflow\WorkflowProvider;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use Symfony\Component\Uid\Uuid;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
@@ -30,7 +37,7 @@ use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
- * Description, thread and editor of the issue page: comment, and apply the
+ * Thread and comment editor of the issue page: comment, and apply the
  * workflow actions of the viewer's role, the comment going with the
  * action. A success redraws the thread in place, tells the other
  * components of the page (`issue:changed`) and shows a toast; the comment
@@ -41,6 +48,7 @@ final class Activity extends AbstractController
 {
     use ComponentToolsTrait;
     use DefaultActionTrait;
+    use HandlesAttachments;
 
     #[LiveProp]
     public Issue $issue;
@@ -52,12 +60,24 @@ final class Activity extends AbstractController
     #[LiveProp(writable: true)]
     public bool $private = false;
 
-    #[LiveProp(writable: true)]
-    public bool $editingDescription = false;
+    /** @var list<string> uuids of the files sent for the comment being written, pending until it is posted */
+    #[LiveProp]
+    public array $pending = [];
 
-    /** The description being rewritten. */
+    /** The comment being rewritten, and its new body. */
     #[LiveProp(writable: true)]
-    public string $description = '';
+    public ?int $editingCommentId = null;
+
+    #[LiveProp(writable: true)]
+    public string $commentBody = '';
+
+    /** @var list<string> uuids of the files sent while rewriting a comment */
+    #[LiveProp]
+    public array $editPending = [];
+
+    /** The comment whose deletion waits for a confirmation. */
+    #[LiveProp(writable: true)]
+    public ?int $deletingCommentId = null;
 
     /** Why the last action did not go through, shown above the editor. */
     public ?string $error = null;
@@ -67,7 +87,42 @@ final class Activity extends AbstractController
         private readonly AccessControl $access,
         private readonly QueryBus $queries,
         private readonly TranslatorInterface $translator,
+        private readonly AttachmentRepository $attachments,
     ) {
+    }
+
+    /**
+     * The files sent for the comment being written, still pending.
+     *
+     * @return list<Attachment>
+     */
+    public function getPendingFiles(): array
+    {
+        return $this->pendingFiles($this->pending);
+    }
+
+    /**
+     * The files sent while rewriting a comment, still pending.
+     *
+     * @return list<Attachment>
+     */
+    public function getEditPendingFiles(): array
+    {
+        return $this->pendingFiles($this->editPending);
+    }
+
+    /**
+     * @param list<string> $uuids
+     *
+     * @return list<Attachment>
+     */
+    private function pendingFiles(array $uuids): array
+    {
+        if ([] === $uuids) {
+            return [];
+        }
+
+        return $this->attachments->findUnattached($this->issue->getProject(), $this->viewer(), array_map(Uuid::fromString(...), $uuids));
     }
 
     public function getDetail(): IssueDetail
@@ -95,9 +150,24 @@ final class Activity extends AbstractController
         return $this->access->isGranted($this->viewer(), Permission::CommentCreate, $this->issue->getProject());
     }
 
-    public function canEdit(): bool
+    /**
+     * The comments of the thread the viewer may edit or delete, with their
+     * files: their own, or all of them with `comment.edit`.
+     *
+     * @return list<int> comment ids
+     */
+    public function getEditableComments(): array
     {
-        return $this->access->isGranted($this->viewer(), Permission::IssueEdit, $this->issue->getProject());
+        $viewer = $this->viewer();
+        $ids = [];
+        foreach ($this->getDetail()->timeline as $entry) {
+            $comment = $entry['comment'] ?? $entry['event']?->getComment();
+            if (null !== $comment && $this->access->canEditComment($viewer, $comment)) {
+                $ids[] = (int) $comment->getId();
+            }
+        }
+
+        return $ids;
     }
 
     public function canMakePrivate(): bool
@@ -115,7 +185,7 @@ final class Activity extends AbstractController
         }
 
         $this->run(
-            fn () => $commands->dispatch(new AddComment((int) $this->viewer()->getId(), $this->issue->getKey(), $this->body, $this->private && $this->canMakePrivate())),
+            fn () => $commands->dispatch(new AddComment((int) $this->viewer()->getId(), $this->issue->getKey(), $this->body, $this->private && $this->canMakePrivate(), $this->pending)),
             $this->translator->trans('issue.comment.added'),
         );
     }
@@ -139,38 +209,139 @@ final class Activity extends AbstractController
         }
 
         $this->run(
-            fn () => $commands->dispatch(new ApplyTransition((int) $this->viewer()->getId(), $this->issue->getKey(), $definition->id, '' === trim($this->body) ? null : $this->body, $this->private && $this->canMakePrivate())),
+            fn () => $commands->dispatch(new ApplyTransition((int) $this->viewer()->getId(), $this->issue->getKey(), $definition->id, '' === trim($this->body) ? null : $this->body, $this->private && $this->canMakePrivate(), $this->pending)),
             $this->translator->trans('issue.transition.applied', ['%key%' => $this->issue->getKey(), '%transition%' => $definition->label]),
         );
     }
 
+    /**
+     * Files chosen for the comment being written, or rewritten: sent now,
+     * pending until the comment is posted or saved.
+     */
     #[LiveAction]
-    public function editDescription(): void
+    public function attach(Request $request, CommandBus $commands): void
     {
-        $this->editingDescription = $this->canEdit();
-        $this->description = $this->issue->getDescription();
+        [$sent, $this->error] = $this->sendFiles($request, $commands, $this->viewer(), $this->issue->getProject());
+        foreach ($sent as $attachment) {
+            if (null === $this->editingCommentId) {
+                $this->pending[] = $attachment->getUuid()->toRfc4122();
+            } else {
+                $this->editPending[] = $attachment->getUuid()->toRfc4122();
+            }
+        }
+    }
+
+    /** Takes a file back from the comment being written or rewritten; it stays pending, unused. */
+    #[LiveAction]
+    public function discard(#[LiveArg] string $uuid): void
+    {
+        $this->pending = array_values(array_diff($this->pending, [$uuid]));
+        $this->editPending = array_values(array_diff($this->editPending, [$uuid]));
     }
 
     #[LiveAction]
-    public function cancelDescription(): void
+    public function editComment(#[LiveArg] int $id): void
     {
-        $this->editingDescription = false;
+        $comment = $this->editableComment($id);
+        if (null === $comment) {
+            return;
+        }
+        $this->editingCommentId = $id;
+        $this->commentBody = $comment->getBody();
+        $this->editPending = [];
+        $this->deletingCommentId = null;
     }
 
     #[LiveAction]
-    public function saveDescription(CommandBus $commands): void
+    public function cancelComment(): void
     {
+        $this->editingCommentId = null;
+        $this->editPending = [];
+    }
+
+    #[LiveAction]
+    public function saveComment(CommandBus $commands): void
+    {
+        if (null === $this->editingCommentId) {
+            return;
+        }
+        if ('' === trim($this->commentBody)) {
+            $this->error = $this->translator->trans('issue.comment.empty');
+
+            return;
+        }
+
         try {
-            $commands->dispatch(new ChangeDescription((int) $this->viewer()->getId(), $this->issue->getKey(), $this->description));
+            $commands->dispatch(new EditComment((int) $this->viewer()->getId(), $this->editingCommentId, $this->commentBody, $this->editPending));
         } catch (IssueException|AccessDeniedException) {
             $this->error = $this->translator->trans('issue.edit.refused');
 
             return;
         }
 
-        $this->editingDescription = false;
+        $this->editingCommentId = null;
+        $this->editPending = [];
         $this->emit('issue:changed');
-        $this->dispatchBrowserEvent('toast:show', ['message' => $this->translator->trans('issue.edit.done', ['%key%' => $this->issue->getKey()])]);
+        $this->dispatchBrowserEvent('toast:show', ['message' => $this->translator->trans('issue.comment.updated')]);
+    }
+
+    #[LiveAction]
+    public function confirmDelete(#[LiveArg] int $id): void
+    {
+        $this->deletingCommentId = null === $this->editableComment($id) ? null : $id;
+    }
+
+    #[LiveAction]
+    public function cancelDelete(): void
+    {
+        $this->deletingCommentId = null;
+    }
+
+    #[LiveAction]
+    public function deleteComment(CommandBus $commands): void
+    {
+        if (null === $this->deletingCommentId) {
+            return;
+        }
+
+        try {
+            $commands->dispatch(new DeleteComment((int) $this->viewer()->getId(), $this->deletingCommentId));
+        } catch (IssueException|AccessDeniedException) {
+            $this->error = $this->translator->trans('issue.edit.refused');
+
+            return;
+        }
+
+        if ($this->editingCommentId === $this->deletingCommentId) {
+            $this->cancelComment();
+        }
+        $this->deletingCommentId = null;
+        $this->emit('issue:changed');
+        $this->dispatchBrowserEvent('toast:show', ['message' => $this->translator->trans('issue.comment.deleted')]);
+    }
+
+    /** A comment of the thread the viewer may edit, null otherwise. */
+    private function editableComment(int $id): ?Comment
+    {
+        foreach ($this->getDetail()->timeline as $entry) {
+            $comment = $entry['comment'] ?? $entry['event']?->getComment();
+            if ($comment?->getId() === $id && $this->access->canEditComment($this->viewer(), $comment)) {
+                return $comment;
+            }
+        }
+
+        return null;
+    }
+
+    /** Removes a file of a posted comment. */
+    #[LiveAction]
+    public function removeAttachment(CommandBus $commands, #[LiveArg] string $uuid, #[LiveArg] string $name): void
+    {
+        $this->error = $this->removeFile($commands, $this->viewer(), $uuid);
+        if (null === $this->error) {
+            $this->emit('issue:changed');
+            $this->dispatchBrowserEvent('toast:show', ['message' => $this->translator->trans('attachment.removed', ['%name%' => $name])]);
+        }
     }
 
     /**
@@ -194,6 +365,7 @@ final class Activity extends AbstractController
 
         $this->body = '';
         $this->private = false;
+        $this->pending = [];
         $this->emit('issue:changed');
         // The editor sits outside the morph (data-live-ignore): it is told to empty itself.
         $this->dispatchBrowserEvent('editor:reset');

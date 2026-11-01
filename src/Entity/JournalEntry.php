@@ -98,7 +98,7 @@ class JournalEntry
     /**
      * A property of the issue changed: `assignee` (full names), `criticality`
      * (enum values), `visibility` (`public`, `private`), `title` (the
-     * titles) or `description` (no values). Null is "none".
+     * titles) or `description` (both texts). Null is "none".
      */
     public static function changed(Issue $issue, User $author, string $field, ?string $from, ?string $to): self
     {
@@ -107,6 +107,42 @@ class JournalEntry
             'from' => $from,
             'to' => $to,
         ]);
+    }
+
+    /**
+     * A comment was rewritten: both versions are kept, with the name of
+     * the comment's author. Private when the comment is. Not linked to the
+     * comment: a linked comment is shown with its entry, at the entry's
+     * date.
+     */
+    public static function commentEdited(Issue $issue, User $author, Comment $comment, string $from, string $to): self
+    {
+        return new self($issue, $author, JournalEntryType::CommentEdited, [
+            'from' => $from,
+            'to' => $to,
+            'author' => $comment->getAuthor()->getFullName(),
+            'author_id' => $comment->getAuthor()->getId(),
+        ], $comment->isPrivate());
+    }
+
+    /**
+     * A comment was deleted: its text, author and date live on here.
+     * Private when the comment was. Not linked to the comment, which goes.
+     */
+    public static function commentDeleted(Issue $issue, User $author, Comment $comment): self
+    {
+        return new self($issue, $author, JournalEntryType::CommentDeleted, [
+            'body' => $comment->getBody(),
+            'author' => $comment->getAuthor()->getFullName(),
+            'author_id' => $comment->getAuthor()->getId(),
+            'at' => $comment->getCreatedAt()->format(\DateTimeInterface::ATOM),
+        ], $comment->isPrivate());
+    }
+
+    /** The comment this entry came with is gone; the entry stays. */
+    public function detachComment(): void
+    {
+        $this->comment = null;
     }
 
     /**
@@ -121,6 +157,24 @@ class JournalEntry
             'from' => self::scalar($field->display($from)),
             'to' => self::scalar($field->display($to)),
         ], $field->internalOnly);
+    }
+
+    /**
+     * A file was added to the issue itself; the files of a comment come
+     * with the comment and need no entry.
+     */
+    public static function attachmentAdded(Issue $issue, User $author, Attachment $attachment): self
+    {
+        return new self($issue, $author, JournalEntryType::AttachmentAdded, ['filename' => $attachment->getFilename()]);
+    }
+
+    /**
+     * A file was removed, and deleted: the entry keeps its name. Private
+     * when the file came with a private comment.
+     */
+    public static function attachmentRemoved(Issue $issue, User $author, Attachment $attachment): self
+    {
+        return new self($issue, $author, JournalEntryType::AttachmentRemoved, ['filename' => $attachment->getFilename()], $attachment->getComment()?->isPrivate() ?? false);
     }
 
     private static function scalar(mixed $value): ?string

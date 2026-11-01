@@ -15,7 +15,6 @@ use App\Message\Query\Issue\ShowIssue;
 use App\Message\QueryBus;
 use App\MessageHandler\Command\Issue\IssueException;
 use App\Security\AccessControl;
-use App\Security\Permission;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
@@ -66,7 +65,7 @@ final class Fields extends AbstractController
 
     public function canEdit(): bool
     {
-        return $this->access->isGranted($this->viewer(), Permission::IssueEdit, $this->issue->getProject());
+        return $this->access->canEditIssue($this->viewer(), $this->issue);
     }
 
     #[LiveAction]

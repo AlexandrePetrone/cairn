@@ -1,35 +1,13 @@
-{# Description, thread and editor of the issue page. The comment being written is the `body` prop, kept across every redraw, including those `issue:changed` triggers.
+{# Thread and comment editor of the issue page. The comment being written is the `body` prop, kept across every redraw, including those `issue:changed` triggers.
    The controls are plain HTML: a data-model attribute on a nested component would bind that component instead. #}
 {% set activityDetail = this.detail %}
 {% set activityTransitions = this.transitions %}
 {% set activityCanComment = this.canComment %}
+{% set activityEditable = this.editableComments %}
+{% set activityPendingFiles = this.pendingFiles %}
 {% set activityRoute = { workspaceKey: issue.project.workspace.key, projectKey: issue.project.key } %}
 {% set activityEditorUrls = { issues: path('app_suggest_issues', activityRoute), users: path('app_suggest_users', activityRoute), upload: path('app_attachment_upload', activityRoute) } %}
 <div {{ attributes }}>
-    <section class="mt-5 rounded-lg border border-gray-200 bg-white p-3 text-gray-800 leading-relaxed">
-        {% if editingDescription %}
-            {# ⌘/Ctrl Enter submits the form (autosubmit), Esc cancels: live actions of one element share one action parameter. #}
-            <form data-controller="autosubmit" data-action="live#action:prevent" data-live-action-param="saveDescription">
-                <twig:Ui:Form:Editor model="norender|description" :rows="8" autofocus class="mt-0"
-                                     :placeholder="'issue.field.description_placeholder'|trans" :issue="issue.key"
-                                     :issuesUrl="activityEditorUrls.issues" :usersUrl="activityEditorUrls.users" :uploadUrl="activityEditorUrls.upload"
-                                     data-action="editor:submit->autosubmit#submit editor:cancel->live#action" data-live-action-param="cancelDescription">{{ description }}</twig:Ui:Form:Editor>
-                <div class="mt-2 flex items-center gap-2">
-                    <twig:Ui:Button variant="primary" size="sm" type="submit" data-loading="addAttribute(disabled)">{{ 'issue.edit.save'|trans }}</twig:Ui:Button>
-                    <twig:Ui:Button variant="ghost" size="sm" data-action="live#action" data-live-action-param="cancelDescription">{{ 'issue.edit.cancel'|trans }}</twig:Ui:Button>
-                    <span class="ml-auto text-xs text-gray-400">{{ 'issue.edit.description_hint'|trans }}</span>
-                </div>
-            </form>
-        {% elseif this.canEdit %}
-            <div role="button" tabindex="0" title="{{ 'issue.edit.click_to_edit'|trans }}"
-                 data-action="click->live#action keydown.enter->live#action" data-live-action-param="editDescription"
-                 class="rounded-md p-2 cursor-text transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200">
-                {% if issue.description is not empty %}<div class="prose prose-sm max-w-none">{{ issue.description|markdown }}</div>{% else %}<span class="text-gray-400">{{ 'issue.edit.add_description'|trans }}</span>{% endif %}
-            </div>
-        {% else %}
-            <div class="p-2">{% if issue.description is not empty %}<div class="prose prose-sm max-w-none">{{ issue.description|markdown }}</div>{% else %}<span class="text-gray-400">{{ 'issue.show.no_description'|trans }}</span>{% endif %}</div>
-        {% endif %}
-    </section>
 
     <section class="mt-8">
         <h2 class="font-semibold text-gray-900 mb-3">{{ 'issue.show.activity'|trans }}</h2>
@@ -38,6 +16,7 @@
                 {% set entryComment = entry.event ? entry.event.comment : entry.comment %}
                 {% if entry.event %}
                     {% set event = entry.event %}
+                    {% set versionsFrom = null %}{% set versionsTo = null %}{% set deletedBody = null %}
                     {% set eventData = event.data %}
                     <li class="relative pl-6">
                         <span class="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-gray-300 ring-2 ring-gray-50"></span>
@@ -51,26 +30,115 @@
                                 {{ 'issue.event.field_changed'|trans({ '%field%': eventData.label, '%from%': eventData.from ?? '—', '%to%': eventData.to ?? '—' }) }}
                             {% elseif event.type.value == 'changed' and eventData.field == 'description' %}
                                 {{ 'issue.event.changed.description'|trans }}
+                                {% if eventData.from is not null %}{% set versionsFrom = eventData.from %}{% set versionsTo = eventData.to %}{% endif %}
+                            {% elseif event.type.value == 'comment_edited' %}
+                                {{ ('issue.event.comment_edited.' ~ (eventData.author_id == event.author?.id ? 'own' : 'other'))|trans({ '%author%': eventData.author }) }}
+                                {% set versionsFrom = eventData.from %}{% set versionsTo = eventData.to %}
+                            {% elseif event.type.value == 'comment_deleted' %}
+                                {{ ('issue.event.comment_deleted.' ~ (eventData.author_id == event.author?.id ? 'own' : 'other'))|trans({ '%author%': eventData.author }) }}
+                                {% set deletedBody = eventData.body %}
                             {% elseif event.type.value == 'changed' %}
                                 {% set changeValues = [eventData.from, eventData.to]|map(value => value is null ? 'issue.show.nobody'|trans : (eventData.field == 'criticality' ? ('criticality.' ~ value)|trans : (eventData.field == 'visibility' ? ('issue.show.' ~ (value == 'private' ? 'hidden' : 'visible') ~ '_externals')|trans : value))) %}
                                 {{ ('issue.event.changed.' ~ eventData.field)|trans({ '%from%': changeValues[0], '%to%': changeValues[1] }) }}
+                            {% elseif event.type.value in ['attachment_added', 'attachment_removed'] %}
+                                {{ ('issue.event.' ~ event.type.value)|trans({ '%filename%': eventData.filename }) }}
                             {% elseif event.type.value == 'tracker_changed' %}
                                 {{ 'issue.event.tracker_changed'|trans({ '%from_tracker%': eventData.from_tracker, '%to_tracker%': eventData.to_tracker, '%to%': eventData.to }) }}
                             {% endif %}
                             <span class="text-gray-400">· {{ event.at|date('d/m/Y H:i') }}</span>
                         </div>
+                        {% if versionsFrom is not null %}
+                            <twig:Ui:Disclosure :closedLabel="'issue.event.versions'|trans" :openLabel="'issue.event.hide_versions'|trans" class="mt-1">
+                                <div class="grid gap-3 text-sm sm:grid-cols-2">
+                                    <div class="rounded-md border border-red-100 bg-red-50/50 p-3"><div class="mb-1 text-xs font-medium uppercase text-red-500">{{ 'issue.event.before'|trans }}</div><div class="prose prose-sm max-w-none">{{ versionsFrom|markdown }}</div></div>
+                                    <div class="rounded-md border border-emerald-100 bg-emerald-50/50 p-3"><div class="mb-1 text-xs font-medium uppercase text-emerald-600">{{ 'issue.event.after'|trans }}</div><div class="prose prose-sm max-w-none">{{ versionsTo|markdown }}</div></div>
+                                </div>
+                            </twig:Ui:Disclosure>
+                        {% endif %}
+                        {% if deletedBody is not null %}
+                            <twig:Ui:Disclosure :closedLabel="'issue.event.deleted_comment'|trans" :openLabel="'issue.event.hide_deleted_comment'|trans" class="mt-1">
+                                <div class="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm"><div class="prose prose-sm max-w-none">{{ deletedBody|markdown }}</div></div>
+                            </twig:Ui:Disclosure>
+                        {% endif %}
                     </li>
                 {% endif %}
                 {% if entryComment %}
                     <li class="relative pl-6">
                         <span class="absolute -left-3 top-1"><twig:Ui:Avatar :name="entryComment.author.fullName" :kind="entryComment.author.internal ? 'internal' : 'external'" /></span>
-                        <div class="rounded-lg border p-3 {{ entryComment.private ? 'border-amber-200 border-l-4 border-l-amber-400 bg-amber-50/70 private-hatching' : 'border-gray-200 bg-white' }}">
+                        {% set commentEditable = entryComment.id in activityEditable %}
+                        <div class="group rounded-lg border p-3 {{ entryComment.private ? 'border-amber-200 border-l-4 border-l-amber-400 bg-amber-50/70 private-hatching' : 'border-gray-200 bg-white' }}">
                             <div class="flex items-center gap-2 text-xs">
                                 <span class="font-medium text-gray-900">{{ entryComment.author.fullName }}</span>
                                 <span class="text-gray-400">{{ entryComment.createdAt|date('d/m/Y H:i') }}</span>
+                                {% if entryComment.editedAt %}<span class="text-gray-400 italic">· {{ 'issue.comment.edited'|trans({ '%date%': entryComment.editedAt|date('d/m/Y H:i') }) }}</span>{% endif %}
                                 {% if entryComment.private %}<twig:Ui:Badge tone="amber" size="sm" icon="lock" class="ml-auto">{{ 'issue.comment.private_badge'|trans }}</twig:Ui:Badge>{% endif %}
+                                {% if commentEditable and editingCommentId != entryComment.id and deletingCommentId != entryComment.id %}
+                                    <span class="hover-actions -my-1 -mr-1 flex items-center {{ entryComment.private ? '' : 'ml-auto' }}">
+                                        <twig:Ui:IconButton icon="pencil" size="sm" :label="'issue.comment.edit'|trans" data-action="live#action" data-live-action-param="editComment" data-live-id-param="{{ entryComment.id }}" />
+                                        <twig:Ui:IconButton icon="trash-2" size="sm" tone="danger" :label="'issue.comment.delete'|trans" data-action="live#action" data-live-action-param="confirmDelete" data-live-id-param="{{ entryComment.id }}" />
+                                    </span>
+                                {% endif %}
                             </div>
+                            {% if editingCommentId == entryComment.id %}
+                                {# ⌘/Ctrl Enter saves (autosubmit), Esc cancels. #}
+                                <form class="mt-2" data-controller="autosubmit" data-action="live#action:prevent" data-live-action-param="saveComment">
+                                    <twig:Ui:Form:Editor model="norender|commentBody" :rows="3" autofocus class="mt-0"
+                                                         :issuesUrl="activityEditorUrls.issues" :usersUrl="activityEditorUrls.users" :uploadUrl="activityEditorUrls.upload"
+                                                         data-action="editor:submit->autosubmit#submit editor:cancel->live#action" data-live-action-param="cancelComment">{{ commentBody }}</twig:Ui:Form:Editor>
+                                    {% set editPendingFiles = this.editPendingFiles %}
+                                    {% if editPendingFiles is not empty %}
+                                        <div class="mt-2 flex flex-wrap gap-2">
+                                            {% for file in editPendingFiles %}
+                                                <twig:Ui:Attachment :name="file.filename" :size="file.size" :image="file.image" :href="attachment_url(file)" class="bg-white py-1">
+                                                    <twig:block name="actions">
+                                                        <button type="button" title="{{ 'attachment.remove'|trans }}" aria-label="{{ 'attachment.remove'|trans }}"
+                                                                data-action="live#action" data-live-action-param="discard" data-live-uuid-param="{{ file.uuid.toRfc4122 }}"
+                                                                class="-mr-1 rounded p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700">{{ ux_icon('lucide:x', { class: 'h-3.5 w-3.5' }) }}</button>
+                                                    </twig:block>
+                                                </twig:Ui:Attachment>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="mt-2 flex flex-wrap items-center gap-2">
+                                        <twig:Ui:Button variant="primary" size="sm" type="submit" data-loading="addAttribute(disabled)">{{ 'issue.edit.save'|trans }}</twig:Ui:Button>
+                                        <twig:Ui:Button variant="ghost" size="sm" data-action="live#action" data-live-action-param="cancelComment">{{ 'issue.edit.cancel'|trans }}</twig:Ui:Button>
+                                        <label title="{{ 'attachment.attach'|trans }}" class="inline-flex cursor-pointer items-center rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-800" data-loading="action(attach)|addClass(opacity-50)">
+                                            {{ ux_icon('lucide:paperclip', { class: 'h-4 w-4' }) }}
+                                            <span class="sr-only">{{ 'attachment.attach'|trans }}</span>
+                                            <input type="file" name="files[]" multiple class="sr-only" data-controller="file-picker"
+                                                   data-action="change->file-picker#chosen file-picker:chosen->live#action" data-live-action-param="files|attach">
+                                        </label>
+                                        <span class="ml-auto text-xs text-gray-400">{{ 'issue.comment.edit_hint'|trans }}</span>
+                                    </div>
+                                </form>
+                            {% else %}
+                            {% if deletingCommentId == entryComment.id %}
+                                <div class="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alertdialog">
+                                    <span>{{ 'issue.comment.delete_confirm'|trans }}</span>
+                                    <span class="ml-auto flex items-center gap-2">
+                                        <twig:Ui:Button variant="danger" size="sm" data-action="live#action" data-live-action-param="deleteComment" data-loading="addAttribute(disabled)">{{ 'issue.comment.delete_yes'|trans }}</twig:Ui:Button>
+                                        <twig:Ui:Button variant="ghost" size="sm" data-action="live#action" data-live-action-param="cancelDelete">{{ 'issue.edit.cancel'|trans }}</twig:Ui:Button>
+                                    </span>
+                                </div>
+                            {% endif %}
                             <div class="prose prose-sm mt-1.5 max-w-none">{{ entryComment.body|markdown }}</div>
+                            {% set commentFiles = activityDetail.commentAttachments(entryComment) %}
+                            {% if commentFiles is not empty %}
+                                <div class="mt-2 flex flex-wrap gap-2">
+                                    {% for file in commentFiles %}
+                                        <twig:Ui:Attachment :name="file.filename" :size="file.size" :image="file.image" :href="attachment_url(file)" class="bg-white">
+                                            <twig:block name="actions">
+                                                {% if commentEditable %}
+                                                    <button type="button" title="{{ 'attachment.remove'|trans }}" aria-label="{{ 'attachment.remove'|trans }}"
+                                                            data-action="live#action" data-live-action-param="removeAttachment" data-live-uuid-param="{{ file.uuid.toRfc4122 }}" data-live-name-param="{{ file.filename }}"
+                                                            class="-mr-1 rounded p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700">{{ ux_icon('lucide:x', { class: 'h-3.5 w-3.5' }) }}</button>
+                                                {% endif %}
+                                            </twig:block>
+                                        </twig:Ui:Attachment>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% endif %}
                         </div>
                     </li>
                 {% endif %}
@@ -86,11 +154,32 @@
                         {# ⌘/Ctrl Enter posts; a posted comment empties the editor through editor:reset. #}
                         <twig:Ui:Form:Editor model="norender|body" :rows="3"
                                              class="mt-0 rounded-t-lg rounded-b-none border-0 bg-transparent focus-within:ring-0"
-                                             :placeholder="'issue.comment.placeholder'|trans" :issue="issue.key"
+                                             :placeholder="'issue.comment.placeholder'|trans"
                                              :issuesUrl="activityEditorUrls.issues" :usersUrl="activityEditorUrls.users" :uploadUrl="activityEditorUrls.upload"
                                              data-action="editor:submit->live#action editor:reset@window->editor#reset" data-live-action-param="postComment">{{ body }}</twig:Ui:Form:Editor>
+                        {% if activityPendingFiles is not empty %}
+                            <div class="flex flex-wrap gap-2 px-3 pb-2">
+                                {% for file in activityPendingFiles %}
+                                    <twig:Ui:Attachment :name="file.filename" :size="file.size" :image="file.image" :href="attachment_url(file)" class="bg-white py-1">
+                                        <twig:block name="actions">
+                                            <button type="button" title="{{ 'attachment.remove'|trans }}" aria-label="{{ 'attachment.remove'|trans }}"
+                                                    data-action="live#action" data-live-action-param="discard" data-live-uuid-param="{{ file.uuid.toRfc4122 }}"
+                                                    class="-mr-1 rounded p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700">{{ ux_icon('lucide:x', { class: 'h-3.5 w-3.5' }) }}</button>
+                                        </twig:block>
+                                    </twig:Ui:Attachment>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     {% endif %}
                     <div class="flex flex-wrap items-center gap-2 border-t border-gray-200 px-3 py-2">
+                        {% if activityCanComment %}
+                            <label title="{{ 'attachment.attach'|trans }}" class="inline-flex cursor-pointer items-center gap-1 rounded p-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-gray-800" data-loading="action(attach)|addClass(opacity-50)">
+                                {{ ux_icon('lucide:paperclip', { class: 'h-4 w-4' }) }}
+                                <span class="sr-only">{{ 'attachment.attach'|trans }}</span>
+                                <input type="file" name="files[]" multiple class="sr-only" data-controller="file-picker"
+                                       data-action="change->file-picker#chosen file-picker:chosen->live#action" data-live-action-param="files|attach">
+                            </label>
+                        {% endif %}
                         {% if activityCanComment and this.canMakePrivate %}
                             <label class="inline-flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
                                 <input type="checkbox" data-model="private" {{ private ? 'checked' }} class="h-3.5 w-3.5 rounded border-gray-300 text-amber-600">

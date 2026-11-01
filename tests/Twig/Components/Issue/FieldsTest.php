@@ -45,7 +45,8 @@ final class FieldsTest extends KernelTestCase
         self::assertStringContainsString('fields[environment]', $client);
         self::assertStringNotContainsString('fields[estimate]', $client, 'internal-only field');
 
-        self::assertStringContainsString('fields[estimate]', (string) $this->fields('nadia.benali@cairn.test')->call('edit')->render());
+        self::assertStringNotContainsString('data-live-action-param="edit"', (string) $this->fields('nadia.benali@cairn.test')->render(), 'a developer did not write the issue');
+        self::assertStringContainsString('fields[estimate]', (string) $this->fields('thomas.girard@cairn.test')->call('edit')->render(), 'a manager edits the issues of others and sees internal fields');
     }
 
     public function testAClientSavesANewValue(): void

@@ -1,0 +1,29 @@
+{# The text of the issue, read or rewritten in place by its author (or whoever may edit the issues of others). #}
+{% set descriptionRoute = { workspaceKey: issue.project.workspace.key, projectKey: issue.project.key } %}
+{% set descriptionEditorUrls = { issues: path('app_suggest_issues', descriptionRoute), users: path('app_suggest_users', descriptionRoute), upload: path('app_attachment_upload', descriptionRoute) } %}
+<div {{ attributes }}>
+    {% if error %}
+        <twig:Ui:Callout tone="danger" size="sm" role="alert" class="mb-2">{{ error }}</twig:Ui:Callout>
+    {% endif %}
+    {% if editingDescription %}
+        {# ⌘/Ctrl Enter submits the form (autosubmit), Esc cancels: live actions of one element share one action parameter. #}
+        <form data-controller="autosubmit" data-action="live#action:prevent" data-live-action-param="saveDescription">
+            <twig:Ui:Form:Editor model="norender|description" :rows="4" autofocus class="mt-0"
+                                 :placeholder="'issue.field.description_placeholder'|trans"
+                                 :issuesUrl="descriptionEditorUrls.issues" :usersUrl="descriptionEditorUrls.users" :uploadUrl="descriptionEditorUrls.upload"
+                                 data-action="editor:submit->autosubmit#submit editor:cancel->live#action" data-live-action-param="cancelDescription">{{ description }}</twig:Ui:Form:Editor>
+            <div class="mt-2 flex items-center gap-2">
+                <twig:Ui:Button variant="primary" size="sm" type="submit" data-loading="addAttribute(disabled)">{{ 'issue.edit.save'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button variant="ghost" size="sm" data-action="live#action" data-live-action-param="cancelDescription">{{ 'issue.edit.cancel'|trans }}</twig:Ui:Button>
+                <span class="ml-auto text-xs text-gray-400">{{ 'issue.edit.description_hint'|trans }}</span>
+            </div>
+        </form>
+    {% elseif this.canEdit %}
+        <div class="group flex items-start gap-2 p-2">
+            <div class="min-w-0 flex-1">{% if issue.description is not empty %}<div class="prose prose-sm max-w-none">{{ issue.description|markdown }}</div>{% else %}<span class="text-gray-400">{{ 'issue.show.no_description'|trans }}</span>{% endif %}</div>
+            <twig:Ui:IconButton icon="pencil" :label="'issue.edit.edit_description'|trans" class="hover-actions -mt-1 -mr-1" data-action="live#action" data-live-action-param="editDescription" />
+        </div>
+    {% else %}
+        <div class="p-2">{% if issue.description is not empty %}<div class="prose prose-sm max-w-none">{{ issue.description|markdown }}</div>{% else %}<span class="text-gray-400">{{ 'issue.show.no_description'|trans }}</span>{% endif %}</div>
+    {% endif %}
+</div>

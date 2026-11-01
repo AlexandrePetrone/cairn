@@ -50,3 +50,11 @@ a.issue-reference:hover {
 .tiptap img.ProseMirror-selectednode {
     @apply ring-2 ring-indigo-400;
 }
+
+/* Discreet actions (edit, delete) of a `group`: shown on hover or focus, always on touch screens. */
+@utility hover-actions {
+    @apply opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100;
+    @media (hover: none) {
+        opacity: 1;
+    }
+}

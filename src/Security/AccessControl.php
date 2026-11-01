@@ -6,6 +6,7 @@ namespace App\Security;
 
 use App\Config\ConfigRegistry;
 use App\Config\Definition\TransitionDefinition;
+use App\Entity\Attachment;
 use App\Entity\Comment;
 use App\Entity\Issue;
 use App\Entity\Project;
@@ -94,6 +95,52 @@ final class AccessControl
     public function canSeeComment(User $user, Comment $comment): bool
     {
         return $this->canSee($user, $comment->getIssue()) && ($user->isInternal() || !$comment->isPrivate());
+    }
+
+    /**
+     * The content of an issue (title, description, fields, files on the
+     * issue) is its author's, as long as their role still lets them write
+     * in the project; `issue.edit` grants it on the issues of others.
+     */
+    public function canEditIssue(User $user, Issue $issue): bool
+    {
+        $project = $issue->getProject();
+        $own = $issue->getAuthor()->getId() === $user->getId() && $this->isGranted($user, Permission::IssueCreate, $project);
+
+        return $own || $this->isGranted($user, Permission::IssueEdit, $project);
+    }
+
+    /**
+     * The body and files of a comment are its author's, as long as their
+     * role still lets them comment; `comment.edit` grants it on the
+     * comments of others. Editing and deleting are the same right.
+     */
+    public function canEditComment(User $user, Comment $comment): bool
+    {
+        if (!$this->canSeeComment($user, $comment)) {
+            return false;
+        }
+        $project = $comment->getIssue()->getProject();
+        $own = $comment->getAuthor()->getId() === $user->getId() && $this->isGranted($user, Permission::CommentCreate, $project);
+
+        return $own || $this->isGranted($user, Permission::CommentEdit, $project);
+    }
+
+    /**
+     * A pending file is seen by its uploader only; then it follows its
+     * comment or its issue. ShowIssueHandler applies the same rule in SQL;
+     * keep them in step.
+     */
+    public function canSeeAttachment(User $user, Attachment $attachment): bool
+    {
+        $issue = $attachment->getIssue();
+        $comment = $attachment->getComment();
+
+        return match (true) {
+            null === $issue => $attachment->getUploadedBy()->getId() === $user->getId(),
+            null !== $comment => $this->canSeeComment($user, $comment),
+            default => $this->canSee($user, $issue),
+        };
     }
 
     public function canTransition(User $user, TransitionDefinition $transition, Project $project): bool

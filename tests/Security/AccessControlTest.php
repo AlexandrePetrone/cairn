@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Security;
 
 use App\Config\ConfigRegistry;
+use App\Entity\Comment;
 use App\Entity\Issue;
 use App\Entity\Tracker;
 use App\Security\AccessControl;
@@ -18,8 +19,8 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
  * Test roles, broadest first: project_manager, developer, client.
- * Test permissions: issue.create for everyone, issue.set_private for
- * project managers only.
+ * Test permissions: issue.create for everyone, issue.set_private,
+ * issue.edit and comment.edit for project managers only.
  */
 final class AccessControlTest extends KernelTestCase
 {
@@ -157,6 +158,49 @@ final class AccessControlTest extends KernelTestCase
 
         $elsewhere = new Issue($this->fixtures->otherProject, new Tracker($this->fixtures->otherProject, 'Anomalie', 'bug'), 1, $client, 'Ailleurs', '');
         self::assertFalse($this->access->canSee($client, $elsewhere), 'no access to that project');
+    }
+
+    /**
+     * Test permissions: issue.edit and comment.edit for project managers
+     * only, issue.create and comment.create for every role.
+     */
+    public function testContentIsEditedByItsAuthorOrWithTheRightOnOthers(): void
+    {
+        $client = $this->fixtures->user('claire@client.test');
+        $this->fixtures->grantOnWorkspace($client, $this->fixtures->workspace, 'client');
+        $otherClient = $this->fixtures->user('paul@client.test');
+        $this->fixtures->grantOnWorkspace($otherClient, $this->fixtures->workspace, 'client');
+        $developer = $this->fixtures->user('nadia@agency.test', internal: true);
+        $this->fixtures->grantOnWorkspace($developer, $this->fixtures->workspace, 'developer');
+        $manager = $this->fixtures->user('thomas@agency.test', internal: true);
+        $this->fixtures->grantOnWorkspace($manager, $this->fixtures->workspace, 'project_manager');
+        $onlooker = $this->fixtures->user('lea@agency.test', internal: true);
+        $admin = $this->fixtures->user('admin@agency.test', internal: true, admin: true);
+
+        $tracker = new Tracker($this->fixtures->shop, 'Anomalie', 'bug');
+        $issue = new Issue($this->fixtures->shop, $tracker, 1, $client, 'Export', '');
+        $comment = new Comment($issue, $developer, 'Je regarde.');
+        $privateComment = new Comment($issue, $developer, 'Chiffrage.', private: true);
+
+        self::assertTrue($this->access->canEditIssue($client, $issue), 'the author');
+        self::assertFalse($this->access->canEditIssue($otherClient, $issue), 'another client');
+        self::assertFalse($this->access->canEditIssue($developer, $issue), 'a developer may create, not edit the issues of others');
+        self::assertTrue($this->access->canEditIssue($manager, $issue), 'issue.edit');
+        self::assertFalse($this->access->canEditIssue($onlooker, $issue), 'internal without a role');
+        self::assertTrue($this->access->canEditIssue($admin, $issue));
+
+        self::assertTrue($this->access->canEditComment($developer, $comment), 'the author');
+        self::assertFalse($this->access->canEditComment($client, $comment), 'another author');
+        self::assertTrue($this->access->canEditComment($manager, $comment), 'comment.edit');
+        self::assertFalse($this->access->canEditComment($onlooker, $comment));
+        self::assertTrue($this->access->canEditComment($admin, $comment));
+        self::assertFalse($this->access->canEditComment($client, $privateComment), 'cannot even see it');
+        self::assertTrue($this->access->canEditComment($manager, $privateComment));
+
+        $this->fixtures->shop->archive();
+        self::assertFalse($this->access->canEditIssue($client, $issue), 'archived: nobody');
+        self::assertFalse($this->access->canEditIssue($admin, $issue));
+        self::assertFalse($this->access->canEditComment($developer, $comment));
     }
 
     public function testTheVoterAnswersIsGrantedForTheCurrentUser(): void

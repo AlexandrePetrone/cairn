@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\MessageHandler\Query\Issue;
 
 use App\Config\ConfigRegistry;
+use App\Entity\Attachment;
 use App\Entity\Comment;
 use App\Entity\Issue;
 use App\Entity\JournalEntry;
@@ -15,9 +16,10 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
- * The issue is checked with AccessControl::canSee(). Its comments and
- * journal entries are filtered in SQL: externals never get private ones,
- * the SQL side of AccessControl::canSeeComment(), which
+ * The issue is checked with AccessControl::canSee(). Its comments, journal
+ * entries and attachments are filtered in SQL: externals never get private
+ * ones, nor the files of private comments. That is the SQL side of
+ * AccessControl::canSeeComment() and canSeeAttachment(), which
  * ShowIssueVisibilityTest compares on the development dataset.
  */
 #[AsMessageHandler(bus: 'query.bus')]
@@ -72,7 +74,42 @@ final class ShowIssueHandler
         $workflow = $this->config->definition()->workflow($issue->getTracker()->getWorkflowId());
         $place = (string) $issue->getPlace();
 
-        return new IssueDetail($issue, $workflow->hasPlace($place) ? $workflow->place($place) : null, $timeline, $this->fields($issue, $query->viewer->isInternal()));
+        return new IssueDetail(
+            $issue,
+            $workflow->hasPlace($place) ? $workflow->place($place) : null,
+            $timeline,
+            $this->fields($issue, $query->viewer->isInternal()),
+            $this->attachments($issue, $publicOnly),
+        );
+    }
+
+    /**
+     * The files of the issue and of the comments the viewer may see, oldest
+     * first, with their uploader.
+     *
+     * @return list<Attachment>
+     */
+    private function attachments(Issue $issue, bool $publicOnly): array
+    {
+        $queryBuilder = $this->entityManager->createQueryBuilder()
+            ->select('f', 'fu')
+            ->from(Attachment::class, 'f')
+            ->join('f.uploadedBy', 'fu')
+            ->leftJoin('f.comment', 'fc')
+            ->where('f.issue = :issue')
+            ->setParameter('issue', $issue)
+            ->orderBy('f.createdAt')
+            ->addOrderBy('f.id');
+        if ($publicOnly) {
+            $queryBuilder->andWhere('fc.id IS NULL OR fc.private = false');
+        }
+
+        $rows = $queryBuilder->getQuery()->getResult();
+        if (!\is_array($rows)) {
+            throw new \LogicException('An object hydration query returns a list.');
+        }
+
+        return array_values(array_filter($rows, static fn (mixed $row): bool => $row instanceof Attachment));
     }
 
     /**

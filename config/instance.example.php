@@ -32,6 +32,7 @@ use App\Security\Permission;
 $internal = ['project_manager', 'developer'];
 $internalAndClient = ['project_manager', 'developer', 'client'];
 $clientFacing = ['project_manager', 'client'];
+$managers = ['project_manager'];
 
 return new InstanceDefinition(
     // What the sync does with issues sitting on a place that disappears
@@ -53,13 +54,16 @@ return new InstanceDefinition(
     // Permissions outside workflows. Administrators hold all of them.
     permissions: [
         Permission::IssueCreate->value => $internalAndClient,
-        Permission::IssueEdit->value => $internalAndClient,
+        // Authors always edit their own issues and comments; these two
+        // grant editing the content written by others.
+        Permission::IssueEdit->value => $managers,
         Permission::IssueChangeTracker->value => $internal,
         Permission::IssueAssign->value => $internal,
         Permission::IssueSetCriticality->value => $internalAndClient,
         Permission::IssueSetPrivate->value => $internal,
         Permission::CommentCreate->value => $internalAndClient,
         Permission::CommentSetPrivate->value => $internal,
+        Permission::CommentEdit->value => $managers,
     ],
 
     // Global fields; each workflow picks the ones it uses.

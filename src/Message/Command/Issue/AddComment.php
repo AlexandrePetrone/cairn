@@ -12,6 +12,9 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 final readonly class AddComment
 {
+    /**
+     * @param list<string> $attachments uuids of the actor's pending files sent with the comment
+     */
     public function __construct(
         public int $actorId,
         #[Assert\NotBlank(normalizer: 'trim')]
@@ -19,6 +22,7 @@ final readonly class AddComment
         #[Assert\NotBlank(normalizer: 'trim')]
         public string $body,
         public bool $private = false,
+        public array $attachments = [],
     ) {
     }
 }

@@ -15,4 +15,8 @@ enum JournalEntryType: string
     case TrackerChanged = 'tracker_changed';
     case Changed = 'changed';
     case FieldChanged = 'field_changed';
+    case AttachmentAdded = 'attachment_added';
+    case AttachmentRemoved = 'attachment_removed';
+    case CommentEdited = 'comment_edited';
+    case CommentDeleted = 'comment_deleted';
 }

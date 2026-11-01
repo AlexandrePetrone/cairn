@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Attachment;
+use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -24,6 +25,33 @@ class AttachmentRepository extends ServiceEntityRepository
     public function findOneByUuid(Uuid $uuid): ?Attachment
     {
         return $this->findOneBy(['uuid' => $uuid]);
+    }
+
+    /**
+     * The files of an issue itself, not those of its comments, oldest first.
+     *
+     * @return list<Attachment>
+     */
+    public function findByIssue(Issue $issue): array
+    {
+        return $this->findBy(['issue' => $issue, 'comment' => null], ['createdAt' => 'ASC', 'id' => 'ASC']);
+    }
+
+    /**
+     * Pending attachments sent before a date: abandoned with their draft.
+     *
+     * @return list<Attachment>
+     */
+    public function findPendingBefore(\DateTimeImmutable $before): array
+    {
+        $rows = $this->createQueryBuilder('a')
+            ->where('a.issue IS NULL')
+            ->andWhere('a.createdAt < :before')
+            ->setParameter('before', $before)
+            ->getQuery()
+            ->getResult();
+
+        return \is_array($rows) ? array_values(array_filter($rows, static fn (mixed $row): bool => $row instanceof Attachment)) : [];
     }
 
     /**

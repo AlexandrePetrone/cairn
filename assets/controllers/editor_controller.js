@@ -87,7 +87,6 @@ export default class extends Controller {
         issuesUrl: String,
         usersUrl: String,
         uploadUrl: String,
-        issue: String,
         placeholder: String,
         linkPrompt: String,
         uploadFailed: String,
@@ -205,9 +204,6 @@ export default class extends Controller {
     async upload(file) {
         const body = new FormData();
         body.append('file', file);
-        if (this.issueValue) {
-            body.append('issue', this.issueValue);
-        }
         try {
             const response = await fetch(this.uploadUrlValue, { method: 'POST', body, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             // A failure the controller did not decide itself (a proxy, a crash) comes as HTML.

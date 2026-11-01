@@ -8,7 +8,6 @@ use App\Config\ConfigRegistry;
 use App\Entity\JournalEntry;
 use App\Message\Command\Issue\ChangeFields;
 use App\Security\AccessControl;
-use App\Security\Permission;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -32,7 +31,7 @@ final class ChangeFieldsHandler
         $actor = $this->support->actor($command->actorId);
         $issue = $this->support->visibleIssue($actor, $command->issueKey);
 
-        $this->support->denyUnless($this->access->isGranted($actor, Permission::IssueEdit, $issue->getProject()), 'edit issues');
+        $this->support->denyUnless($this->access->canEditIssue($actor, $issue), 'change the fields of an issue written by someone else');
 
         $definition = $this->config->definition();
         $workflow = $definition->workflow($issue->getTracker()->getWorkflowId());

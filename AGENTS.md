@@ -25,12 +25,15 @@ Symfony 8.1 on PHP 8.4, installed from `webapp-pack`. Check `composer.json`
 for the exact versions and `symfony.lock` for which recipes ran. Already in
 place: Doctrine ORM + migrations, Messenger (Doctrine transport), Form,
 Validator, Serializer, Security, Twig, Mailer, Notifier, Translation,
-AssetMapper, Stimulus, Turbo.
+AssetMapper, Stimulus, Turbo, Scheduler.
 
 Decisions already taken:
 
 - Persistence: Doctrine ORM, schema compatible with both MariaDB and
-  PostgreSQL. Nothing is ever physically deleted.
+  PostgreSQL. Nothing is ever physically deleted, with two exceptions
+  the journal covers: a removed attachment (file and row, the journal
+  keeps its name) and a deleted comment (row and files, the journal
+  keeps its text, author and date).
 - Interface: server-rendered Twig + Turbo + UX Twig/Live Components, Tailwind
   for styling. The kanban is a React island; the rich-text editor is
   TipTap driven by a Stimulus controller, no framework.
@@ -49,7 +52,7 @@ Decisions already taken:
 
 Install missing capabilities with `composer require <package>` and let the
 Flex recipe register the bundle and generate its config. Don't hand-edit
-`config/bundles.php` or hand-write a bundle's base config. Planned additions: `symfony/scheduler`.
+`config/bundles.php` or hand-write a bundle's base config.
 
 ## Vocabulary
 
@@ -177,8 +180,22 @@ Rules:
   decides for one issue, `SearchIssuesHandler::restrictToVisible()` applies
   the same rule in SQL. Change both together: `SearchIssuesVisibilityTest`
   compares them for every user of the development dataset.
-  The same holds for private comments: `AccessControl::canSeeComment()`
-  in PHP, `ShowIssueHandler` in SQL, compared by `ShowIssueVisibilityTest`.
+  The same holds for private comments and their files:
+  `AccessControl::canSeeComment()` and `canSeeAttachment()` in PHP,
+  `ShowIssueHandler` in SQL, compared by `ShowIssueVisibilityTest`.
+- **Who edits what: the author, or the right on others.** The content of
+  an issue (title, description, fields, files on the issue) is its
+  author's as long as their role still lets them create issues there;
+  `issue.edit` grants it on the issues written by others. The body and
+  files of a comment are its author's as long as they may still comment;
+  `comment.edit` grants it on the comments of others, and deleting is the
+  same right. One method per object decides, `AccessControl::canEditIssue()`
+  and `canEditComment()`: handlers call it, components show the controls
+  only when it says yes, and the config example gives both rights to
+  project managers. A rewritten description or comment, and a deleted
+  comment, are journaled with the text before and after
+  (`changed` with `from`/`to`, `comment_edited`, `comment_deleted`), shown
+  in the thread behind a disclosure.
 - **Side effects go through events.** A handler dispatches a domain event
   with the EventDispatcher inside the transaction. Whatever must be atomic
   with the write, such as the journal, is written in the handler or by a
@@ -303,6 +320,11 @@ Rules:
   listens with a `#[LiveListener]` that just redraws. No redirect from a
   live action when other components hold state worth keeping (a comment
   being written).
+  The live components of a page are siblings laid out by the page
+  template, never nested in one another: when a parent redraws while an
+  element it holds has the focus, the morph replaces the child with its
+  empty placeholder (`Issue:Description` and `Issue:Files` share a box in
+  `project/issue.html.twig` for that reason).
 - **Toasts have one host.** `Ui:Toaster`, placed once in `base.html.twig`,
   shows the flash messages the page starts with and adds a toast for every
   `toast:show` browser event; a live component sends one with
@@ -319,16 +341,40 @@ Rules:
   with their current name. The editor suggests both from
   `Controller/Project/SuggestController`, which reuses `SearchIssues`
   and `ListProjectMembers` so that visibility stays written once.
-- **Pasted images are attachments.** The editor sends them to
-  `/{ws}/{p}/attachments` (`UploadAttachment`: raster images only, no
-  SVG; sending goes with the right to create, edit or comment). The file
-  lives under `ATTACHMENTS_DIR`, outside `public/`, and
-  `/attachments/{uuid}/{filename}` serves it to whoever sees its issue.
-  An image pasted in a new issue waits for its uploader until
-  `CreateIssue` claims it from the description.
+- **Files are attachments, in three states.** Any file up to 10 MB
+  (`UploadAttachment`; PHP's upload limits are set on the server). A file
+  is *pending* while what it goes with is being written: an image pasted
+  in an editor (sent by the editor to `/{ws}/{p}/attachments`), a file
+  chosen for a comment or a new issue (a live action). Only its uploader
+  sees it. The command that saves the text claims it
+  (`IssueHandlerSupport::claimAttachments()`): the files sent along and
+  those its markdown points to. `CreateIssue` and `ChangeDescription` give
+  them to the issue, `AddComment` and `ApplyTransition` to the comment, so
+  the files of a private comment are private. The Files block
+  (`Issue:Files`) adds to the issue directly, journaled. A file follows
+  what it goes with: who may edit the issue changes its files, who may
+  edit the comment changes the comment's.
+  `AccessControl::canSeeAttachment()` decides, `ShowIssueHandler` filters
+  the same in SQL, compared by `ShowIssueVisibilityTest`.
+  `/attachments/{uuid}/{filename}` shows images and makes anything else
+  a download. Removing a file (`RemoveAttachment`) deletes it:
+  `EventListener/AttachmentFileRemover` takes the file when the row goes.
+  Pending files nobody took and files without a row are deleted after a
+  day by `Attachment/AttachmentPruner`, a daily Scheduler task
+  (`messenger:consume scheduler_default`, a `symfony serve` worker in
+  dev, a worker to run in production); `app:attachments:prune --dry-run`
+  runs it by hand.
+  A file input inside a live component goes through the `file-picker`
+  controller, so that Live has registered the files before the action
+  sends them; inside a live `<form>`, it stays out of the form.
+- **Discreet actions are icon buttons shown on hover.** Editing and
+  deleting a title, a description or a comment go through
+  `Ui:IconButton` (`pencil`, `trash-2`), in a `group` with the
+  `hover-actions` utility: visible on hover and focus, always on touch
+  screens. A deletion confirms in place, never through `confirm()`.
 - JavaScript is Stimulus only, one small controller per behaviour in
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`,
-  `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`); a heavy one
+  `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`); a heavy one
   is marked `/* stimulusFetch: 'lazy' */` (`editor`) so that its imports
   are only fetched on a page that uses it; write a new one when a component needs it, not before. No
   inline scripts.

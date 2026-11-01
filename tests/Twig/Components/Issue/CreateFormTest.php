@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Twig\Components\Issue;
 
+use App\Entity\Attachment;
 use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\Tracker;
 use App\Entity\User;
+use App\Repository\AttachmentRepository;
 use App\Repository\IssueRepository;
 use App\Repository\ProjectRepository;
 use App\Repository\TrackerRepository;
@@ -79,6 +81,25 @@ final class CreateFormTest extends KernelTestCase
         self::assertSame('new', $issue->getPlace());
         self::assertFalse($issue->isPrivate());
         self::assertSame('claire.martin@maison-dupont.test', $issue->getAuthor()->getEmail());
+    }
+
+    public function testFilesSentWhileWritingGoToTheNewIssue(): void
+    {
+        $component = $this->form('claire.martin@maison-dupont.test');
+        $component->set('trackerId', $this->bugs->getId());
+
+        $component->call('attach', [], ['files' => [FilesTest::file('trace.log')]]);
+        self::assertStringContainsString('trace.log', (string) $component->render());
+        $component->submitForm(['issue' => [
+            'title' => 'Le panier se vide tout seul',
+            'description' => 'Voir la trace.',
+            'fields' => ['environment' => 'prod'],
+            'criticality' => 'normal',
+        ]], 'save');
+
+        self::assertSame(302, $component->response()->getStatusCode());
+        $files = self::getContainer()->get(AttachmentRepository::class)->findByIssue($this->issue('MD-SPT-19'));
+        self::assertSame(['trace.log'], array_map(static fn (Attachment $file): string => $file->getFilename(), $files));
     }
 
     public function testRequiredFieldsAreCheckedByTheForm(): void
