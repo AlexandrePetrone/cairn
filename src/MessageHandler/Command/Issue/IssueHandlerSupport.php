@@ -73,17 +73,27 @@ final class IssueHandlerSupport
     }
 
     /**
-     * The values belong to the workflow and fill its required fields.
+     * Every value given is for a field the workflow uses.
      *
      * @param array<string, mixed> $values
      */
-    public function checkFields(WorkflowDefinition $workflow, array $values): void
+    public function assertKnownFields(WorkflowDefinition $workflow, array $values): void
     {
         foreach (array_keys($values) as $fieldId) {
             if (!isset($workflow->fields[$fieldId])) {
                 throw IssueException::unknownField((string) $fieldId, $workflow->id);
             }
         }
+    }
+
+    /**
+     * The required fields of the workflow are filled in the values the
+     * issue will hold.
+     *
+     * @param array<string, mixed> $values
+     */
+    public function assertRequiredFields(WorkflowDefinition $workflow, array $values): void
+    {
         foreach ($workflow->fields as $usage) {
             $value = $values[$usage->field] ?? null;
             if ($usage->required && (null === $value || (\is_string($value) && '' === trim($value)))) {

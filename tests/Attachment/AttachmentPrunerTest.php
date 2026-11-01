@@ -76,7 +76,7 @@ final class AttachmentPrunerTest extends KernelTestCase
     {
         $path = (string) tempnam(sys_get_temp_dir(), 'cairn');
         file_put_contents($path, 'contenu de '.$name);
-        $attachment = $this->commands->dispatch(new UploadAttachment((int) $this->fixtures->client->getId(), (int) $this->fixtures->bugs->getProject()->getId(), null, new UploadedFile($path, $name, null, null, true)));
+        $attachment = $this->commands->dispatch(new UploadAttachment((int) $this->fixtures->client->getId(), (int) $this->fixtures->bugs->getProject()->getId(), new UploadedFile($path, $name, null, null, true)));
         self::assertInstanceOf(Attachment::class, $attachment);
 
         return $attachment;

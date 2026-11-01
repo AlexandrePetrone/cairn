@@ -10,6 +10,7 @@ use App\Entity\Issue;
 use App\Entity\Tracker;
 use App\Security\AccessControl;
 use App\Security\Permission;
+use App\Tests\Config\Fixture\DefinitionFactory;
 use App\Tests\KernelHelpers;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -149,14 +150,14 @@ final class AccessControlTest extends KernelTestCase
         $this->fixtures->grantOnWorkspace($client, $this->fixtures->workspace, 'client');
         $developer = $this->fixtures->user('nadia@agency.test', internal: true);
         $tracker = new Tracker($this->fixtures->shop, 'Anomalie', 'bug');
-        $issue = new Issue($this->fixtures->shop, $tracker, 1, $client, 'Export', '');
+        $issue = new Issue($this->fixtures->shop, $tracker, DefinitionFactory::bugWorkflow()->place('new'), 1, $client, 'Export', '');
 
         self::assertTrue($this->access->canSee($client, $issue));
         $issue->makePrivate();
         self::assertFalse($this->access->canSee($client, $issue));
         self::assertTrue($this->access->canSee($developer, $issue));
 
-        $elsewhere = new Issue($this->fixtures->otherProject, new Tracker($this->fixtures->otherProject, 'Anomalie', 'bug'), 1, $client, 'Ailleurs', '');
+        $elsewhere = new Issue($this->fixtures->otherProject, new Tracker($this->fixtures->otherProject, 'Anomalie', 'bug'), DefinitionFactory::bugWorkflow()->place('new'), 1, $client, 'Ailleurs', '');
         self::assertFalse($this->access->canSee($client, $elsewhere), 'no access to that project');
     }
 
@@ -178,7 +179,7 @@ final class AccessControlTest extends KernelTestCase
         $admin = $this->fixtures->user('admin@agency.test', internal: true, admin: true);
 
         $tracker = new Tracker($this->fixtures->shop, 'Anomalie', 'bug');
-        $issue = new Issue($this->fixtures->shop, $tracker, 1, $client, 'Export', '');
+        $issue = new Issue($this->fixtures->shop, $tracker, DefinitionFactory::bugWorkflow()->place('new'), 1, $client, 'Export', '');
         $comment = new Comment($issue, $developer, 'Je regarde.');
         $privateComment = new Comment($issue, $developer, 'Chiffrage.', private: true);
 

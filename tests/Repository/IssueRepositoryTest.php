@@ -10,6 +10,7 @@ use App\Entity\Issue;
 use App\Entity\Tracker;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Repository\IssueRepository;
+use App\Tests\Config\Fixture\DefinitionFactory;
 use App\Tests\KernelHelpers;
 use App\Tests\MessageHandler\Command\Issue\IssueFixtures;
 use Doctrine\ORM\EntityManagerInterface;
@@ -48,7 +49,7 @@ final class IssueRepositoryTest extends KernelTestCase
         // An issue of another workflow on a place with the same id must not move.
         $otherTracker = new Tracker($this->fixtures->access->otherProject, 'Autre', 'other_workflow');
         $this->entityManager->persist($otherTracker);
-        $other = new Issue($this->fixtures->access->otherProject, $otherTracker, 1, $this->fixtures->client, 'Autre', '');
+        $other = new Issue($this->fixtures->access->otherProject, $otherTracker, DefinitionFactory::bugWorkflow()->place('new'), 1, $this->fixtures->client, 'Autre', '');
         $other->moveTo(new PlaceDefinition(id: 'new', label: 'Nouveau', status: PlaceStatus::Open));
         $this->entityManager->persist($other);
         $this->entityManager->flush();

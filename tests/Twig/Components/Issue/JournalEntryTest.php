@@ -9,6 +9,7 @@ use App\Entity\Issue;
 use App\Entity\JournalEntry as Entry;
 use App\Entity\Tracker;
 use App\Entity\User;
+use App\Tests\Config\Fixture\DefinitionFactory;
 use App\Tests\Security\AccessFixtures;
 use App\Twig\Components\Issue\JournalEntry;
 use Doctrine\ORM\EntityManagerInterface;
@@ -33,7 +34,7 @@ final class JournalEntryTest extends KernelTestCase
         $fixtures = new AccessFixtures(self::getContainer()->get(EntityManagerInterface::class));
         $this->claire = $fixtures->user('claire@client.test');
         $this->nadia = $fixtures->user('nadia@agency.test', internal: true);
-        $this->issue = new Issue($fixtures->shop, new Tracker($fixtures->shop, 'Anomalie', 'bug'), 4, $this->claire, 'Export vide', '');
+        $this->issue = new Issue($fixtures->shop, new Tracker($fixtures->shop, 'Anomalie', 'bug'), DefinitionFactory::bugWorkflow()->place('new'), 4, $this->claire, 'Export vide', '');
     }
 
     #[DataProvider('changes')]

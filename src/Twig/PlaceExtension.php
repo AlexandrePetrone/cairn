@@ -26,6 +26,6 @@ final class PlaceExtension
     #[AsTwigFunction('issue_place')]
     public function issuePlace(Issue $issue): string
     {
-        return $this->workflows->placeOf($issue)->label ?? (string) $issue->getPlace();
+        return $this->workflows->placeOf($issue)->label ?? $issue->getPlace();
     }
 }

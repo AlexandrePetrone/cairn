@@ -11,6 +11,7 @@ use App\Entity\Enum\JournalEntryType;
 use App\Entity\Issue;
 use App\Entity\JournalEntry;
 use App\Entity\User;
+use App\Message\Command\Attachment\AddAttachment;
 use App\Message\Command\Attachment\RemoveAttachment;
 use App\Message\Command\Attachment\UploadAttachment;
 use App\Message\Command\Issue\AddComment;
@@ -219,7 +220,9 @@ final class AttachmentHandlersTest extends KernelTestCase
 
     private function upload(User $actor, UploadedFile $file, ?Issue $issue = null): Attachment
     {
-        $attachment = $this->commands->dispatch(new UploadAttachment((int) $actor->getId(), (int) $this->fixtures->bugs->getProject()->getId(), $issue?->getKey(), $file));
+        $attachment = $this->commands->dispatch(null === $issue
+            ? new UploadAttachment((int) $actor->getId(), (int) $this->fixtures->bugs->getProject()->getId(), $file)
+            : new AddAttachment((int) $actor->getId(), $issue->getKey(), $file));
         self::assertInstanceOf(Attachment::class, $attachment);
 
         return $attachment;

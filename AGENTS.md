@@ -201,10 +201,13 @@ Rules:
   (`changed` with `from`/`to`, `comment_edited`, `comment_deleted`), shown
   in the thread behind a disclosure. `Issue:JournalEntry` turns an entry
   into its sentence: the only place that reads what each type recorded.
-- **Side effects go through events.** A handler dispatches a domain event
-  with the EventDispatcher inside the transaction. Whatever must be atomic
-  with the write, such as the journal, is written in the handler or by a
-  synchronous listener. Whatever may fail independently, such as mail, is
+- **The journal is written by the handler; side effects will go through
+  events.** What must be atomic with the write, the journal, is persisted
+  by the handler itself, in the transaction. There is no domain event yet
+  (`Event/` does not exist): the first consumer that needs one, the
+  notifications, brings `IssueCreated`, `IssueTransitioned`,
+  `CommentAdded`, dispatched with the EventDispatcher inside the
+  transaction. Whatever may fail independently, such as mail, is then
   re-dispatched as an asynchronous Messenger message with
   `DispatchAfterCurrentBusStamp` so it only leaves after commit.
 - **One authorization service.** `Security/AccessControl` takes the acting
@@ -355,16 +358,17 @@ Rules:
   template gives an editor its endpoints with `editor_urls(project)`
   (`Twig/EditorExtension`, which `MarkdownType` asks too).
 - **Files are attachments, in three states.** Any file up to 10 MB
-  (`UploadAttachment`; PHP's upload limits are set on the server). A file
-  is *pending* while what it goes with is being written: an image pasted
-  in an editor (sent by the editor to `/{ws}/{p}/attachments`), a file
-  chosen for a comment or a new issue (a live action). Only its uploader
-  sees it. The command that saves the text claims it
-  (`IssueHandlerSupport::claimAttachments()`): the files sent along and
-  those its markdown points to. `CreateIssue` and `ChangeDescription` give
-  them to the issue, `AddComment` and `ApplyTransition` to the comment, so
-  the files of a private comment are private. The Files block
-  (`Issue:Files`) adds to the issue directly, journaled. A file follows
+  (PHP's upload limits are set on the server). A file
+  is *pending* while what it goes with is being written (`UploadAttachment`):
+  an image pasted in an editor (sent by the editor to
+  `/{ws}/{p}/attachments`), a file chosen for a comment or a new issue (a
+  live action). Only its uploader sees it. The command that saves the
+  text claims it (`IssueHandlerSupport::claimAttachments()`): the files
+  sent along and those its markdown points to. `CreateIssue` and
+  `ChangeDescription` give them to the issue, `AddComment` and
+  `ApplyTransition` to the comment, so the files of a private comment are
+  private. The Files block (`Issue:Files`) adds to the issue directly
+  (`AddAttachment`), journaled. A file follows
   what it goes with: who may edit the issue changes its files, who may
   edit the comment changes the comment's.
   `AccessControl::canSeeAttachment()` decides, `ShowIssueHandler` filters

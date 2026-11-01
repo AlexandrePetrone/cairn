@@ -36,6 +36,7 @@ final class CreateIssueHandler
         $project = $this->projects->find($command->projectId) ?? throw IssueException::notFound('Project', $command->projectId);
         $tracker = $this->trackers->find($command->trackerId) ?? throw IssueException::notFound('Tracker', $command->trackerId);
 
+        // Refused by the permission check too; this one names the reason.
         if ($project->isArchived()) {
             throw IssueException::archivedProject($project->getName());
         }
@@ -50,15 +51,15 @@ final class CreateIssueHandler
         $this->support->denyUnless(Criticality::DEFAULT === $command->criticality || $this->access->isGranted($actor, Permission::IssueSetCriticality, $project), 'set the criticality');
 
         $workflow = $this->workflows->definition($tracker->getWorkflowId());
-        $this->support->checkFields($workflow, $command->fields);
+        $this->support->assertKnownFields($workflow, $command->fields);
+        $this->support->assertRequiredFields($workflow, $command->fields);
 
         $assignee = $this->support->assignee($command->assigneeId, $project);
 
         // Lock the project row so that concurrent creations draw distinct numbers.
         $this->entityManager->lock($project, LockMode::PESSIMISTIC_WRITE);
 
-        $issue = new Issue($project, $tracker, $project->allocateIssueNumber(), $actor, $command->title, $command->description);
-        $issue->moveTo($workflow->place($workflow->initial));
+        $issue = new Issue($project, $tracker, $workflow->place($workflow->initial), $project->allocateIssueNumber(), $actor, $command->title, $command->description);
         $issue->setCriticality($command->criticality);
         $issue->assignTo($assignee);
         $issue->setFieldValues($command->fields);

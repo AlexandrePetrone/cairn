@@ -99,11 +99,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Equatab
         return $this->internal;
     }
 
-    public function isExternal(): bool
-    {
-        return !$this->internal;
-    }
-
     public function isAdmin(): bool
     {
         return $this->admin;

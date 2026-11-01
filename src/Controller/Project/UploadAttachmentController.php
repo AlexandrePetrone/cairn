@@ -53,7 +53,7 @@ final class UploadAttachmentController extends AbstractController
 
         try {
             /** @var Attachment $attachment */
-            $attachment = $commands->dispatch(new UploadAttachment((int) $user->getId(), (int) $project->getId(), null, $file));
+            $attachment = $commands->dispatch(new UploadAttachment((int) $user->getId(), (int) $project->getId(), $file));
         } catch (ValidationFailedException $e) {
             return $this->json(['error' => (string) $e->getViolations()->get(0)->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (AccessDeniedException) {

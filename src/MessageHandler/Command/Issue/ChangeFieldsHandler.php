@@ -35,6 +35,8 @@ final class ChangeFieldsHandler
 
         $definition = $this->config->definition();
         $workflow = $definition->workflow($issue->getTracker()->getWorkflowId());
+        $this->support->assertKnownFields($workflow, $command->values);
+
         $current = $issue->getFieldValues();
         $changes = [];
         foreach ($command->values as $fieldId => $value) {
@@ -44,9 +46,8 @@ final class ChangeFieldsHandler
             }
         }
 
-        $merged = array_filter(array_replace($current, $changes), static fn (mixed $value): bool => null !== $value);
-        // Unknown fields of the command are refused, kept values of fields the workflow left are ignored.
-        $this->support->checkFields($workflow, array_intersect_key($merged, $workflow->fields) + array_diff_key($command->values, $workflow->fields));
+        // What the issue will hold: the values of fields the workflow left are kept, and ignored here.
+        $this->support->assertRequiredFields($workflow, array_filter(array_replace($current, $changes), static fn (mixed $value): bool => null !== $value));
         foreach (array_keys($changes) as $fieldId) {
             $this->support->denyUnless($actor->isInternal() || !$definition->fields[$fieldId]->internalOnly, 'edit internal fields');
         }

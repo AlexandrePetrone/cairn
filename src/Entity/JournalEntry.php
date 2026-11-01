@@ -7,6 +7,7 @@ namespace App\Entity;
 use App\Config\Definition\FieldDefinition;
 use App\Config\Definition\PlaceDefinition;
 use App\Entity\Enum\JournalEntryType;
+use App\Repository\JournalEntryRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -17,7 +18,7 @@ use function Symfony\Component\Clock\now;
  * time, so that renaming a place or a tracker later never rewrites the
  * past. Private entries are hidden from external users.
  */
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: JournalEntryRepository::class)]
 class JournalEntry
 {
     #[ORM\Id]

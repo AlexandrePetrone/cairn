@@ -39,7 +39,7 @@ final class ApplyTransitionHandler
 
         $workflow = $this->workflows->get($workflowId);
         if (!$workflow->can($issue, $transition->id)) {
-            throw IssueException::transitionUnavailable($transition->id, (string) $issue->getPlace());
+            throw IssueException::transitionUnavailable($transition->id, $issue->getPlace());
         }
 
         $body = trim((string) $command->comment);
@@ -56,9 +56,9 @@ final class ApplyTransitionHandler
             $this->support->claimAttachments($actor, $issue, $command->attachments, $body, $comment);
         }
 
-        $from = $definition->place((string) $issue->getPlace());
+        $from = $definition->place($issue->getPlace());
         $workflow->apply($issue, $transition->id, ['actor' => $actor]);
-        $to = $definition->place((string) $issue->getPlace());
+        $to = $definition->place($issue->getPlace());
 
         $this->entityManager->persist(JournalEntry::transitioned($issue, $actor, $transition->label, $from, $to, $comment));
 

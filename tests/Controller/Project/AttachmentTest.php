@@ -6,7 +6,7 @@ namespace App\Tests\Controller\Project;
 
 use App\Entity\Attachment;
 use App\Entity\User;
-use App\Message\Command\Attachment\UploadAttachment;
+use App\Message\Command\Attachment\AddAttachment;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\CreateIssue;
 use App\Message\CommandBus;
@@ -84,8 +84,7 @@ final class AttachmentTest extends WebTestCase
         $path = (string) tempnam(sys_get_temp_dir(), 'cairn');
         file_put_contents($path, '<html><script>alert(1)</script></html>');
         $claire = $this->user('claire.martin@maison-dupont.test');
-        $project = self::getContainer()->get(ProjectRepository::class)->findOneByKeys('MD', 'SPT') ?? self::fail('no MD-SPT');
-        $attachment = $this->commands()->dispatch(new UploadAttachment((int) $claire->getId(), (int) $project->getId(), 'MD-SPT-4', new UploadedFile($path, 'page.html', 'text/html', null, true)));
+        $attachment = $this->commands()->dispatch(new AddAttachment((int) $claire->getId(), 'MD-SPT-4', new UploadedFile($path, 'page.html', 'text/html', null, true)));
         self::assertInstanceOf(Attachment::class, $attachment);
 
         $this->signInAs('claire.martin@maison-dupont.test');

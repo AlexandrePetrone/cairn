@@ -76,16 +76,6 @@ class Comment
         return $this->private;
     }
 
-    public function makePrivate(): void
-    {
-        $this->private = true;
-    }
-
-    public function makePublic(): void
-    {
-        $this->private = false;
-    }
-
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;

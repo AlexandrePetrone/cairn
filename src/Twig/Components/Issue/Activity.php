@@ -142,7 +142,7 @@ final class Activity
         $workflow = $this->workflows->definition($this->issue->getTracker()->getWorkflowId());
 
         return array_values(array_filter(
-            $workflow->transitionsFrom((string) $this->issue->getPlace()),
+            $workflow->transitionsFrom($this->issue->getPlace()),
             fn (TransitionDefinition $transition): bool => $this->access->canTransition($viewer, $transition, $this->issue->getProject()),
         ));
     }

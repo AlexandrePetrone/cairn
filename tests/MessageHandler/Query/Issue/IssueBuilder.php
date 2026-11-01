@@ -26,8 +26,7 @@ final class IssueBuilder
 
     public function issue(Tracker $tracker, User $author, string $title, string $place = 'new', Criticality $criticality = Criticality::Normal, ?User $assignee = null, bool $private = false): Issue
     {
-        $issue = new Issue($tracker->getProject(), $tracker, ++$this->number, $author, $title, '');
-        $issue->moveTo(DefinitionFactory::bugWorkflow()->place($place));
+        $issue = new Issue($tracker->getProject(), $tracker, DefinitionFactory::bugWorkflow()->place($place), ++$this->number, $author, $title, '');
         $issue->setCriticality($criticality);
         $issue->assignTo($assignee);
         if ($private) {

@@ -40,7 +40,7 @@ final class UserCreateCommandTest extends KernelTestCase
     public function testAnExternalAccountIsTheDefaultType(): void
     {
         self::assertSame(Command::SUCCESS, $this->answer(['claire@client.test', 'Claire', 'Martin', '', 'correct horse', 'correct horse']));
-        self::assertTrue(self::getContainer()->get(UserRepository::class)->findOneBy(['email' => 'claire@client.test'])?->isExternal());
+        self::assertFalse(self::getContainer()->get(UserRepository::class)->findOneBy(['email' => 'claire@client.test'])?->isInternal());
     }
 
     public function testRefusesDifferentPasswords(): void

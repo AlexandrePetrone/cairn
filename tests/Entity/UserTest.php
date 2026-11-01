@@ -22,7 +22,7 @@ final class UserTest extends TestCase
         self::assertSame('Claire', $user->getFirstName());
         self::assertSame('Martin', $user->getLastName());
         self::assertSame('Claire Martin', $user->getFullName());
-        self::assertTrue($user->isExternal());
+        self::assertFalse($user->isInternal());
         self::assertFalse($user->isAdmin());
         self::assertTrue($user->isActive());
         self::assertSame(['ROLE_USER'], $user->getRoles());

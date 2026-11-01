@@ -41,6 +41,6 @@ final class WorkflowProvider
      */
     public function placeOf(Issue $issue): ?PlaceDefinition
     {
-        return $this->definition($issue->getTracker()->getWorkflowId())->findPlace((string) $issue->getPlace());
+        return $this->definition($issue->getTracker()->getWorkflowId())->findPlace($issue->getPlace());
     }
 }

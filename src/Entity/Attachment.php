@@ -7,6 +7,7 @@ namespace App\Entity;
 use App\Repository\AttachmentRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Uid\Uuid;
 
 use function Symfony\Component\Clock\now;
@@ -69,6 +70,39 @@ class Attachment
         $this->mediaType = $mediaType;
         $this->size = $size;
         $this->createdAt = now();
+    }
+
+    /**
+     * The row for a file a user sent, named and measured; storing the file
+     * itself is AttachmentStorage's.
+     */
+    public static function fromUpload(UploadedFile $file, Project $project, ?Issue $issue, User $uploadedBy): self
+    {
+        return new self(
+            $project,
+            $issue,
+            $uploadedBy,
+            self::safeFilename($file->getClientOriginalName(), (string) $file->guessExtension()),
+            (string) $file->getMimeType(),
+            (int) $file->getSize(),
+        );
+    }
+
+    /**
+     * A name safe in a URL, keeping the one the browser gave (a pasted
+     * screenshot comes as `image.png`, an export keeps its `.log`), with
+     * the guessed extension when the given one is missing or unusable.
+     */
+    public static function safeFilename(string $original, string $guessedExtension): string
+    {
+        $safe = static fn (string $part): string => trim((string) preg_replace('/[^A-Za-z0-9._-]+/', '-', $part), '-.');
+        $name = mb_substr($safe(pathinfo($original, \PATHINFO_FILENAME)), 0, 100);
+        $extension = strtolower($safe(pathinfo($original, \PATHINFO_EXTENSION)));
+        if ('' === $extension || \strlen($extension) > 10) {
+            $extension = '' === $guessedExtension ? 'bin' : $guessedExtension;
+        }
+
+        return ('' === $name ? 'file' : $name).'.'.$extension;
     }
 
     public function getId(): ?int

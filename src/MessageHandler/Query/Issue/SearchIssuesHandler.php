@@ -122,9 +122,10 @@ final class SearchIssuesHandler
                 ->setParameter('text', '%'.$text.'%')
                 ->setParameter('number', '%-'.$text.'%');
         } elseif ('' !== $text) {
+            // `!` escapes the wildcards: a backslash would be quoted differently by MySQL, PostgreSQL and SQLite.
             $queryBuilder
-                ->andWhere('LOWER(i.title) LIKE :text OR i.key = :key')
-                ->setParameter('text', '%'.addcslashes(mb_strtolower($text), '%_').'%')
+                ->andWhere("LOWER(i.title) LIKE :text ESCAPE '!' OR i.key = :key")
+                ->setParameter('text', '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($text)).'%')
                 ->setParameter('key', mb_strtoupper($text));
         }
 

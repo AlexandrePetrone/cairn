@@ -7,6 +7,7 @@ namespace App\MessageHandler\Command\Issue;
 use App\Entity\JournalEntry;
 use App\Message\Command\Issue\DeleteComment;
 use App\Repository\AttachmentRepository;
+use App\Repository\JournalEntryRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -20,6 +21,7 @@ final class DeleteCommentHandler
     public function __construct(
         private readonly IssueHandlerSupport $support,
         private readonly AttachmentRepository $attachments,
+        private readonly JournalEntryRepository $journal,
         private readonly EntityManagerInterface $entityManager,
     ) {
     }
@@ -31,7 +33,7 @@ final class DeleteCommentHandler
         $issue = $comment->getIssue();
 
         $this->entityManager->persist(JournalEntry::commentDeleted($issue, $actor, $comment));
-        foreach ($this->entityManager->getRepository(JournalEntry::class)->findBy(['comment' => $comment]) as $entry) {
+        foreach ($this->journal->findByComment($comment) as $entry) {
             $entry->detachComment();
         }
         foreach ($this->attachments->findBy(['comment' => $comment]) as $attachment) {

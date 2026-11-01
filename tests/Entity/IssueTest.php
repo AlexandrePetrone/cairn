@@ -24,7 +24,8 @@ final class IssueTest extends TestCase
 
         self::assertSame('MD-SPT-128', $issue->getKey());
         self::assertSame(128, $issue->getNumber());
-        self::assertNull($issue->getPlace(), 'no place until moved');
+        self::assertSame('new', $issue->getPlace(), 'born on the initial place');
+        self::assertSame(PlaceStatus::Open, $issue->getStatus());
     }
 
     public function testMovingToAPlaceSetsTheStatusAndTheClosingDate(): void
@@ -80,6 +81,6 @@ final class IssueTest extends TestCase
     {
         $project = new Project(new Workspace('Maison Dupont', 'MD'), 'Site e-commerce', 'SPT');
 
-        return new Issue($project, new Tracker($project, 'Anomalie', 'bug'), 128, new User('claire@client.test', 'Claire', 'Martin'), ' Export CSV vide ', 'Le fichier est vide.');
+        return new Issue($project, new Tracker($project, 'Anomalie', 'bug'), DefinitionFactory::bugWorkflow()->place('new'), 128, new User('claire@client.test', 'Claire', 'Martin'), ' Export CSV vide ', 'Le fichier est vide.');
     }
 }

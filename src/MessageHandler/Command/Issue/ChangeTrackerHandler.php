@@ -43,7 +43,7 @@ final class ChangeTrackerHandler
         }
 
         $previousTracker = $issue->getTracker();
-        $previousPlace = $this->workflows->definition($previousTracker->getWorkflowId())->place((string) $issue->getPlace());
+        $previousPlace = $this->workflows->definition($previousTracker->getWorkflowId())->place($issue->getPlace());
 
         $workflow = $this->workflows->definition($tracker->getWorkflowId());
         if (!$workflow->hasPlace($command->placeId)) {

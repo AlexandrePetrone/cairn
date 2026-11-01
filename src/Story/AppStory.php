@@ -20,6 +20,7 @@ use App\Factory\ProjectFactory;
 use App\Factory\TrackerFactory;
 use App\Factory\UserFactory;
 use App\Factory\WorkspaceFactory;
+use App\Message\Command\Attachment\AddAttachment;
 use App\Message\Command\Attachment\UploadAttachment;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
@@ -310,12 +311,10 @@ final class AppStory extends Story
     {
         $copy = (string) tempnam(sys_get_temp_dir(), 'cairn');
         copy(__DIR__.'/files/'.$name, $copy);
-        $attachment = $this->commands->dispatch(new UploadAttachment(
-            (int) $actor->getId(),
-            (int) $issue->getProject()->getId(),
-            $toIssue ? $issue->getKey() : null,
-            new UploadedFile($copy, $name, null, null, true),
-        ));
+        $file = new UploadedFile($copy, $name, null, null, true);
+        $attachment = $this->commands->dispatch($toIssue
+            ? new AddAttachment((int) $actor->getId(), $issue->getKey(), $file)
+            : new UploadAttachment((int) $actor->getId(), (int) $issue->getProject()->getId(), $file));
         \assert($attachment instanceof Attachment);
 
         return $attachment->getUuid()->toRfc4122();

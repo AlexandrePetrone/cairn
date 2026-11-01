@@ -16,8 +16,9 @@ use function Symfony\Component\Clock\now;
 
 /**
  * The tracked object. Its key (`MD-SPT-128`) is fixed at creation. The
- * place is stored as the id of a workflow place, with its status
- * denormalised for sorting and filtering. Nothing is ever deleted.
+ * place, set from the first moment, is stored as the id of a workflow
+ * place, with its status denormalised for sorting and filtering. Nothing
+ * is ever deleted.
  */
 #[ORM\Entity(repositoryClass: IssueRepository::class)]
 #[ORM\UniqueConstraint(name: 'uniq_issue_project_number', columns: ['project_id', 'number'])]
@@ -82,7 +83,10 @@ class Issue implements HasPlace
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $closedAt = null;
 
-    public function __construct(Project $project, Tracker $tracker, int $number, User $author, string $title, string $description)
+    /**
+     * @param PlaceDefinition $place where the issue starts, the initial place of the tracker's workflow
+     */
+    public function __construct(Project $project, Tracker $tracker, PlaceDefinition $place, int $number, User $author, string $title, string $description)
     {
         $this->project = $project;
         $this->tracker = $tracker;
@@ -93,6 +97,7 @@ class Issue implements HasPlace
         $this->description = $description;
         $this->createdAt = now();
         $this->updatedAt = $this->createdAt;
+        $this->moveTo($place);
     }
 
     public function getId(): ?int
@@ -130,9 +135,9 @@ class Issue implements HasPlace
         return $this->description;
     }
 
-    public function getPlace(): ?string
+    public function getPlace(): string
     {
-        return isset($this->place) ? $this->place : null;
+        return $this->place;
     }
 
     public function getStatus(): PlaceStatus
