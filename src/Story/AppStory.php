@@ -265,7 +265,7 @@ final class AppStory extends Story
             $this->comment($issue, $people, $clock, $index);
         }
 
-        foreach ($this->pathTo($workflow, $targetPlace) as $step => $transition) {
+        foreach ($workflow->pathTo($targetPlace) as $step => $transition) {
             $clock->modify(\sprintf('+%d hours +%d minutes', 2 + ($index * 7 + $step * 11) % 38, ($index * 13) % 60));
             if ($clock->now() > $now) {
                 $clock = new MockClock($now->modify('-1 hour'));
@@ -337,31 +337,6 @@ final class AppStory extends Story
         }
 
         return $dates;
-    }
-
-    /**
-     * Shortest sequence of transitions from the initial place to `$target`.
-     *
-     * @return list<TransitionDefinition>
-     */
-    private function pathTo(WorkflowDefinition $workflow, string $target): array
-    {
-        $paths = [$workflow->initial => []];
-        $queue = [$workflow->initial];
-        while ([] !== $queue) {
-            $place = array_shift($queue);
-            if ($place === $target) {
-                return $paths[$place];
-            }
-            foreach ($workflow->transitionsFrom($place) as $transition) {
-                if (!isset($paths[$transition->to])) {
-                    $paths[$transition->to] = [...$paths[$place], $transition];
-                    $queue[] = $transition->to;
-                }
-            }
-        }
-
-        throw new \LogicException(\sprintf('Place "%s" cannot be reached in workflow "%s".', $target, $workflow->id));
     }
 
     /**

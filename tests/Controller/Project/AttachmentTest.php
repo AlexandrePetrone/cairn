@@ -11,35 +11,30 @@ use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\CreateIssue;
 use App\Message\CommandBus;
 use App\Repository\AttachmentRepository;
-use App\Repository\ProjectRepository;
-use App\Repository\TrackerRepository;
-use App\Repository\UserRepository;
-use App\Story\AppStory;
+use App\Tests\Scene\ShopScene;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Uid\Uuid;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
  * Images pasted in an editor are sent pending, then follow the text that
  * points to them; any file is served to whoever may see it, images in the
- * page, the rest as a download. On the development dataset MD-SPT-4 is a
- * public shop issue; Paul only reads the project.
+ * page, the rest as a download. In the scene MD-SPT-4 is a public shop
+ * issue; Paul only reads the project.
  */
 final class AttachmentTest extends WebTestCase
 {
-    use Factories;
-
     /** A 1×1 transparent PNG. */
     private const string PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
     private KernelBrowser $client;
+    private ShopScene $scene;
 
     protected function setUp(): void
     {
         $this->client = self::createClient();
-        AppStory::load();
+        $this->scene = ShopScene::load(self::getContainer());
     }
 
     public function testAPastedImageIsServedToItsUploaderUntilItsTextIsSaved(): void
@@ -115,12 +110,10 @@ final class AttachmentTest extends WebTestCase
         $this->signInAs('claire.martin@maison-dupont.test');
         $url = $this->upload();
 
-        $project = self::getContainer()->get(ProjectRepository::class)->findOneByKeys('MD', 'SPT') ?? self::fail('no MD-SPT');
-        $tracker = self::getContainer()->get(TrackerRepository::class)->findOneBy(['project' => $project, 'workflowId' => 'evolution']) ?? self::fail('no evolution tracker');
         $issue = $this->commands()->dispatch(new CreateIssue(
             (int) $this->user('claire.martin@maison-dupont.test')->getId(),
-            (int) $project->getId(),
-            (int) $tracker->getId(),
+            (int) $this->scene->shop->getId(),
+            (int) $this->scene->evolutions->getId(),
             'Bandeau de la page d\'accueil',
             \sprintf('Comme sur la maquette : ![capture](%s)', $url),
             fields: ['goal' => 'Mettre en avant les soldes.'],
@@ -163,6 +156,6 @@ final class AttachmentTest extends WebTestCase
 
     private function user(string $email): User
     {
-        return self::getContainer()->get(UserRepository::class)->findOneBy(['email' => $email]) ?? self::fail('no '.$email);
+        return $this->scene->user($email);
     }
 }

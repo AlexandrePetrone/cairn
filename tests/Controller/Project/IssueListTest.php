@@ -4,29 +4,24 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller\Project;
 
-use App\Repository\ProjectRepository;
-use App\Repository\TrackerRepository;
-use App\Repository\UserRepository;
-use App\Story\AppStory;
+use App\Tests\Scene\ShopScene;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
- * On the development dataset: the Maison Dupont shop (MD-SPT) has public
- * bugs and evolutions, a private "Tâche interne" tracker, Claire as client
- * and Nadia as developer; Sophie is a client of another workspace.
+ * In the scene, the Maison Dupont shop (MD-SPT) has public bugs and
+ * evolutions, a private "Tâche interne" tracker, Claire as client and
+ * Nadia as developer; Sophie is a client of another workspace.
  */
 final class IssueListTest extends WebTestCase
 {
-    use Factories;
-
     private KernelBrowser $client;
+    private ShopScene $scene;
 
     protected function setUp(): void
     {
         $this->client = self::createClient();
-        AppStory::load();
+        $this->scene = ShopScene::load(self::getContainer());
     }
 
     public function testAClientSeesThePublicOpenIssuesOfTheirProject(): void
@@ -71,8 +66,7 @@ final class IssueListTest extends WebTestCase
         self::assertSelectorTextContains('tbody', 'Spinner infini sur la page panier');
         self::assertSelectorTextNotContains('tbody', 'Les frais de port ne s\'affichent pas en Corse', 'assigned to Nadia');
 
-        $nadia = self::getContainer()->get(UserRepository::class)->findOneBy(['email' => 'nadia.benali@cairn.test']);
-        $this->client->request('GET', '/MD/SPT/issues?assignee[]='.$nadia?->getId());
+        $this->client->request('GET', '/MD/SPT/issues?assignee[]='.$this->scene->user('nadia.benali@cairn.test')->getId());
         self::assertSelectorTextContains('tbody', 'Les frais de port ne s\'affichent pas en Corse');
         self::assertSelectorTextNotContains('tbody', 'Spinner infini sur la page panier');
 
@@ -108,9 +102,7 @@ final class IssueListTest extends WebTestCase
 
     public function testATrackerListIsScopedToItAndDropsTheTrackerFilter(): void
     {
-        $shop = self::getContainer()->get(ProjectRepository::class)->findOneByKeys('MD', 'SPT');
-        $tasks = self::getContainer()->get(TrackerRepository::class)->findOneBy(['project' => $shop, 'name' => 'Tâche interne']);
-        self::assertNotNull($tasks);
+        $tasks = $this->scene->tasks;
         $url = '/MD/SPT/issues/tracker/'.$tasks->getId();
 
         $this->signInAs('nadia.benali@cairn.test');
@@ -151,8 +143,6 @@ final class IssueListTest extends WebTestCase
 
     private function signInAs(string $email): void
     {
-        $user = self::getContainer()->get(UserRepository::class)->findOneBy(['email' => $email]);
-        self::assertNotNull($user);
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->scene->user($email));
     }
 }

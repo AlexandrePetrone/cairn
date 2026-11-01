@@ -5,16 +5,12 @@ declare(strict_types=1);
 namespace App\Tests\Twig\Components\Issue;
 
 use App\Entity\Issue;
-use App\Entity\User;
-use App\Repository\IssueRepository;
-use App\Repository\UserRepository;
-use App\Story\AppStory;
+use App\Tests\Scene\ShopScene;
 use App\Twig\Components\Issue\Description;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
  * The description of MD-SPT-4, which Claire wrote; Nadia may edit the issue
@@ -22,16 +18,16 @@ use Zenstruck\Foundry\Test\Factories;
  */
 final class DescriptionTest extends KernelTestCase
 {
-    use Factories;
     use InteractsWithLiveComponents;
 
+    private ShopScene $scene;
     private Issue $issue;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        AppStory::load();
-        $this->issue = self::getContainer()->get(IssueRepository::class)->findOneByKey('MD-SPT-4') ?? self::fail('no MD-SPT-4');
+        $this->scene = ShopScene::load(self::getContainer());
+        $this->issue = $this->scene->issue('MD-SPT-4');
     }
 
     public function testTheAuthorRewritesTheDescriptionInPlace(): void
@@ -42,8 +38,9 @@ final class DescriptionTest extends KernelTestCase
         $render = $component->render();
 
         self::assertStringContainsString('<p>Le fichier ne contient que l\'en-tête.</p>', (string) $render);
-        self::getContainer()->get(EntityManagerInterface::class)->clear();
-        self::assertSame('Le fichier ne contient que l\'en-tête.', self::getContainer()->get(IssueRepository::class)->findOneByKey('MD-SPT-4')?->getDescription());
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->clear();
+        self::assertSame('Le fichier ne contient que l\'en-tête.', $entityManager->find(Issue::class, $this->issue->getId())?->getDescription());
         self::assertNotNull($component->getEmittedEvent($render, 'issue:changed'));
     }
 
@@ -62,9 +59,6 @@ final class DescriptionTest extends KernelTestCase
 
     private function description(string $email): TestLiveComponent
     {
-        $user = self::getContainer()->get(UserRepository::class)->findOneBy(['email' => $email]);
-        self::assertInstanceOf(User::class, $user);
-
-        return $this->createLiveComponent('Issue:Description', ['issue' => $this->issue])->actingAs($user);
+        return $this->createLiveComponent('Issue:Description', ['issue' => $this->issue])->actingAs($this->scene->user($email));
     }
 }

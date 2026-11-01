@@ -8,31 +8,28 @@ use App\Entity\Issue;
 use App\Entity\User;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\CommandBus;
-use App\Repository\IssueRepository;
-use App\Repository\UserRepository;
-use App\Story\AppStory;
+use App\Tests\Scene\ShopScene;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
- * On MD-SPT-4: Thomas manages the Maison Dupont workspace, Claire is its
- * client, Sophie a client of another workspace.
+ * On MD-SPT-4 of the scene: Thomas manages the Maison Dupont workspace,
+ * Claire is its client, Sophie a client of another workspace.
  */
 final class PropertiesTest extends KernelTestCase
 {
-    use Factories;
     use InteractsWithLiveComponents;
 
+    private ShopScene $scene;
     private Issue $issue;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        AppStory::load();
-        $this->issue = self::getContainer()->get(IssueRepository::class)->findOneByKey('MD-SPT-4') ?? self::fail('no MD-SPT-4');
+        $this->scene = ShopScene::load(self::getContainer());
+        $this->issue = $this->scene->issue('MD-SPT-4');
     }
 
     public function testEachPropertyIsAChoiceForWhoeverMayChangeIt(): void
@@ -92,7 +89,7 @@ final class PropertiesTest extends KernelTestCase
 
     private function user(string $email): User
     {
-        return self::getContainer()->get(UserRepository::class)->findOneBy(['email' => $email]) ?? self::fail("no $email");
+        return $this->scene->user($email);
     }
 
     private function reloaded(): Issue

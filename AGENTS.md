@@ -494,7 +494,13 @@ by default). The journal is never migrated.
 Functional tests extend `WebTestCase`; handler and service tests extend
 `KernelTestCase` and run against a real database: `tests/bootstrap.php`
 builds the test schema from the entities and `dama/doctrine-test-bundle`
-rolls every test back. Run `castor test` (arguments are passed to PHPUnit,
+rolls every test back. Tests own their data: handler tests build what
+they check with `AccessFixtures` and `IssueFixtures`, page and component
+tests load `tests/Scene/ShopScene` (one shop, its people and ten issues
+under the example configuration). The development story is loaded only
+by the tests that compare a PHP rule with its SQL over a rich dataset
+(`SearchIssuesVisibilityTest`, `ShowIssueVisibilityTest`,
+`ListProjectMembersTest`) and by `AppStoryTest`. Run `castor test` (arguments are passed to PHPUnit,
 e.g. `castor test --filter Codec`). A feature isn't done until it has a
 test that exercises it the way a caller would: an HTTP request for a
 controller, a command or query dispatched on its bus for a handler.

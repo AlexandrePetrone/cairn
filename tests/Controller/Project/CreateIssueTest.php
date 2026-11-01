@@ -4,25 +4,22 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller\Project;
 
-use App\Repository\UserRepository;
-use App\Story\AppStory;
+use App\Tests\Scene\ShopScene;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
  * The page only: the screen itself is covered by CreateFormTest.
  */
 final class CreateIssueTest extends WebTestCase
 {
-    use Factories;
-
     private KernelBrowser $client;
+    private ShopScene $scene;
 
     protected function setUp(): void
     {
         $this->client = self::createClient();
-        AppStory::load();
+        $this->scene = ShopScene::load(self::getContainer());
     }
 
     public function testTheNewIssuePageOffersTheTrackersTheViewerMayUse(): void
@@ -50,8 +47,6 @@ final class CreateIssueTest extends WebTestCase
 
     private function signInAs(string $email): void
     {
-        $user = self::getContainer()->get(UserRepository::class)->findOneBy(['email' => $email]);
-        self::assertNotNull($user);
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->scene->user($email));
     }
 }

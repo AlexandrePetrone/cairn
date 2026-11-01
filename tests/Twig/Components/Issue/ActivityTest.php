@@ -6,16 +6,12 @@ namespace App\Tests\Twig\Components\Issue;
 
 use App\Entity\Comment;
 use App\Entity\Issue;
-use App\Entity\User;
-use App\Repository\IssueRepository;
-use App\Repository\UserRepository;
-use App\Story\AppStory;
+use App\Tests\Scene\ShopScene;
 use App\Twig\Components\Issue\Activity;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
  * MD-SPT-4 waits on « À recetter »: the client accepts or refuses, a
@@ -23,16 +19,16 @@ use Zenstruck\Foundry\Test\Factories;
  */
 final class ActivityTest extends KernelTestCase
 {
-    use Factories;
     use InteractsWithLiveComponents;
 
+    private ShopScene $scene;
     private Issue $issue;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        AppStory::load();
-        $this->issue = self::getContainer()->get(IssueRepository::class)->findOneByKey('MD-SPT-4') ?? self::fail('no MD-SPT-4');
+        $this->scene = ShopScene::load(self::getContainer());
+        $this->issue = $this->scene->issue('MD-SPT-4');
     }
 
     public function testTheActionsAreThoseOfTheViewersRole(): void
@@ -204,19 +200,17 @@ final class ActivityTest extends KernelTestCase
 
     public function testEditingControlsFollowTheRightOnTheComment(): void
     {
-        // The story picks the developer who comments at random: take whoever it was.
-        $comments = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Comment::class)->findBy(['issue' => $this->issue, 'private' => false], ['id' => 'ASC']);
-        $developerComment = $comments[0] ?? self::fail('no comment');
-        self::assertTrue($developerComment->getAuthor()->isInternal());
-        $claireComment = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Comment::class)->findOneBy(['issue' => $this->issue, 'author' => $this->user('claire.martin@maison-dupont.test')]) ?? self::fail('no comment of Claire');
+        $comments = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Comment::class);
+        $nadiaComment = $comments->findOneBy(['issue' => $this->issue, 'author' => $this->scene->user('nadia.benali@cairn.test')]) ?? self::fail('no comment of Nadia');
+        $claireComment = $comments->findOneBy(['issue' => $this->issue, 'author' => $this->scene->user('claire.martin@maison-dupont.test')]) ?? self::fail('no comment of Claire');
 
-        $component = $this->activity($developerComment->getAuthor()->getEmail());
+        $component = $this->activity('nadia.benali@cairn.test');
         $developer = (string) $component->render();
         $activity = $component->component();
         self::assertInstanceOf(Activity::class, $activity);
-        self::assertSame([(int) $developerComment->getId()], $activity->getEditableComments(), $developerComment->getAuthor()->getEmail().' edits their own comment only');
-        self::assertStringContainsString(\sprintf('data-live-action-param="editComment" data-live-id-param="%d"', $developerComment->getId()), $developer, 'their own');
-        self::assertStringNotContainsString(\sprintf('data-live-id-param="%d"', $claireComment->getId()), $developer, 'not theirs');
+        self::assertSame([(int) $nadiaComment->getId()], $activity->getEditableComments(), 'Nadia edits her own comment only');
+        self::assertStringContainsString(\sprintf('data-live-action-param="editComment" data-live-id-param="%d"', $nadiaComment->getId()), $developer, 'her own');
+        self::assertStringNotContainsString(\sprintf('data-live-id-param="%d"', $claireComment->getId()), $developer, 'not hers');
 
         $paul = (string) $this->activity('paul.roussel@maison-dupont.test')->render();
         self::assertStringNotContainsString('data-live-action-param="editComment"', $paul);
@@ -245,17 +239,9 @@ final class ActivityTest extends KernelTestCase
         return $comment;
     }
 
-    private function user(string $email): User
-    {
-        return self::getContainer()->get(UserRepository::class)->findOneBy(['email' => $email]) ?? self::fail('no '.$email);
-    }
-
     private function activity(string $email): TestLiveComponent
     {
-        $user = self::getContainer()->get(UserRepository::class)->findOneBy(['email' => $email]);
-        self::assertInstanceOf(User::class, $user);
-
-        return $this->createLiveComponent('Issue:Activity', ['issue' => $this->issue])->actingAs($user);
+        return $this->createLiveComponent('Issue:Activity', ['issue' => $this->issue])->actingAs($this->scene->user($email));
     }
 
     private function reloaded(): Issue

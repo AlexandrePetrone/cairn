@@ -7,16 +7,12 @@ namespace App\Tests\Twig\Components\Issue;
 use App\Entity\Enum\JournalEntryType;
 use App\Entity\Issue;
 use App\Entity\JournalEntry;
-use App\Entity\User;
-use App\Repository\IssueRepository;
-use App\Repository\UserRepository;
-use App\Story\AppStory;
+use App\Tests\Scene\ShopScene;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
  * MD-SPT-4 is a bug: environment (required), url, browser, reproducible,
@@ -24,16 +20,16 @@ use Zenstruck\Foundry\Test\Factories;
  */
 final class FieldsTest extends KernelTestCase
 {
-    use Factories;
     use InteractsWithLiveComponents;
 
+    private ShopScene $scene;
     private Issue $issue;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        AppStory::load();
-        $this->issue = self::getContainer()->get(IssueRepository::class)->findOneByKey('MD-SPT-4') ?? self::fail('no MD-SPT-4');
+        $this->scene = ShopScene::load(self::getContainer());
+        $this->issue = $this->scene->issue('MD-SPT-4');
     }
 
     public function testWhoMayEditSeesTheButtonAndTheirFields(): void
@@ -51,20 +47,18 @@ final class FieldsTest extends KernelTestCase
 
     public function testAClientSavesANewValue(): void
     {
-        // The story draws the environment at random: pick another one.
-        [$value, $label] = 'preprod' === ($this->issue->getFieldValues()['environment'] ?? null) ? ['staging', 'Recette'] : ['preprod', 'Préproduction'];
         $component = $this->fields('claire.martin@maison-dupont.test')->call('edit');
 
-        $component->submitForm(['fields' => ['environment' => $value]], 'save');
+        $component->submitForm(['fields' => ['environment' => 'preprod']], 'save');
         $render = $component->render();
 
         self::assertSame(200, $component->response()->getStatusCode());
-        self::assertStringContainsString($label, (string) $render);
+        self::assertStringContainsString('Préproduction', (string) $render);
         self::assertStringNotContainsString('fields[environment]', (string) $render, 'back to reading');
         self::assertNotNull($component->getEmittedEvent($render, 'issue:changed'));
         self::assertNotNull($component->getDispatchedBrowserEvent($render, 'toast:show'));
         $entry = self::getContainer()->get(EntityManagerInterface::class)->getRepository(JournalEntry::class)->findOneBy(['issue' => $this->issue, 'type' => JournalEntryType::FieldChanged], ['id' => 'DESC']);
-        self::assertSame($label, $entry?->getData()['to'] ?? null);
+        self::assertSame('Préproduction', $entry?->getData()['to'] ?? null);
     }
 
     public function testARequiredFieldCannotBeEmptied(): void
@@ -77,9 +71,6 @@ final class FieldsTest extends KernelTestCase
 
     private function fields(string $email): TestLiveComponent
     {
-        $user = self::getContainer()->get(UserRepository::class)->findOneBy(['email' => $email]);
-        self::assertInstanceOf(User::class, $user);
-
-        return $this->createLiveComponent('Issue:Fields', ['issue' => $this->issue])->actingAs($user);
+        return $this->createLiveComponent('Issue:Fields', ['issue' => $this->issue])->actingAs($this->scene->user($email));
     }
 }

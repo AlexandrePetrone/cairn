@@ -7,17 +7,13 @@ namespace App\Tests\Twig\Components\Issue;
 use App\Entity\Enum\JournalEntryType;
 use App\Entity\Issue;
 use App\Entity\JournalEntry;
-use App\Entity\User;
 use App\Repository\AttachmentRepository;
-use App\Repository\IssueRepository;
-use App\Repository\UserRepository;
-use App\Story\AppStory;
+use App\Tests\Scene\ShopScene;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
  * The Files block of MD-SPT-4, which Claire created: she adds and removes
@@ -26,16 +22,16 @@ use Zenstruck\Foundry\Test\Factories;
  */
 final class FilesTest extends KernelTestCase
 {
-    use Factories;
     use InteractsWithLiveComponents;
 
+    private ShopScene $scene;
     private Issue $issue;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        AppStory::load();
-        $this->issue = self::getContainer()->get(IssueRepository::class)->findOneByKey('MD-SPT-4') ?? self::fail('no MD-SPT-4');
+        $this->scene = ShopScene::load(self::getContainer());
+        $this->issue = $this->scene->issue('MD-SPT-4');
     }
 
     public function testTheAuthorAddsFilesToTheIssue(): void
@@ -93,10 +89,7 @@ final class FilesTest extends KernelTestCase
 
     private function files(string $email): TestLiveComponent
     {
-        $user = self::getContainer()->get(UserRepository::class)->findOneBy(['email' => $email]);
-        self::assertInstanceOf(User::class, $user);
-
-        return $this->createLiveComponent('Issue:Files', ['issue' => $this->issue])->actingAs($user);
+        return $this->createLiveComponent('Issue:Files', ['issue' => $this->issue])->actingAs($this->scene->user($email));
     }
 
     private function lastEntry(): ?JournalEntry

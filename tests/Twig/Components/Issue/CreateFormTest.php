@@ -9,29 +9,24 @@ use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\Tracker;
-use App\Entity\User;
 use App\Repository\AttachmentRepository;
 use App\Repository\IssueRepository;
-use App\Repository\ProjectRepository;
-use App\Repository\TrackerRepository;
-use App\Repository\UserRepository;
-use App\Story\AppStory;
+use App\Tests\Scene\ShopScene;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
- * On the development dataset: the Maison Dupont shop (MD-SPT) has 18
- * issues, a public "Anomalie" tracker on the bug workflow (environment
- * required, estimate internal only) and a private "Tâche interne" one.
+ * In the scene, the Maison Dupont shop (MD-SPT) has ten issues, a public
+ * "Anomalie" tracker on the bug workflow (environment required, estimate
+ * internal only) and a private "Tâche interne" one.
  */
 final class CreateFormTest extends KernelTestCase
 {
-    use Factories;
     use InteractsWithLiveComponents;
 
+    private ShopScene $scene;
     private Project $shop;
     private Tracker $bugs;
     private Tracker $tasks;
@@ -39,13 +34,10 @@ final class CreateFormTest extends KernelTestCase
     protected function setUp(): void
     {
         self::bootKernel();
-        AppStory::load();
-        $shop = self::getContainer()->get(ProjectRepository::class)->findOneByKeys('MD', 'SPT');
-        self::assertNotNull($shop);
-        $this->shop = $shop;
-        $trackers = self::getContainer()->get(TrackerRepository::class);
-        $this->bugs = $trackers->findOneBy(['project' => $shop, 'name' => 'Anomalie']) ?? self::fail('no bug tracker');
-        $this->tasks = $trackers->findOneBy(['project' => $shop, 'name' => 'Tâche interne']) ?? self::fail('no task tracker');
+        $this->scene = ShopScene::load(self::getContainer());
+        $this->shop = $this->scene->shop;
+        $this->bugs = $this->scene->bugs;
+        $this->tasks = $this->scene->tasks;
     }
 
     public function testAClientPicksAPublicTrackerAndCreatesAnIssue(): void
@@ -72,9 +64,9 @@ final class CreateFormTest extends KernelTestCase
 
         $response = $component->response();
         self::assertSame(302, $response->getStatusCode(), $response->getContent() ?: '');
-        self::assertSame('/MD/SPT/issues/19', $response->headers->get('Location'));
+        self::assertSame('/MD/SPT/issues/11', $response->headers->get('Location'));
 
-        $issue = $this->issue('MD-SPT-19');
+        $issue = $this->issue('MD-SPT-11');
         self::assertSame('Le panier se vide tout seul', $issue->getTitle());
         self::assertSame(Criticality::High, $issue->getCriticality());
         self::assertSame(['environment' => 'prod', 'url' => 'https://shop.test/panier'], $issue->getFieldValues());
@@ -98,7 +90,7 @@ final class CreateFormTest extends KernelTestCase
         ]], 'save');
 
         self::assertSame(302, $component->response()->getStatusCode());
-        $files = self::getContainer()->get(AttachmentRepository::class)->findByIssue($this->issue('MD-SPT-19'));
+        $files = self::getContainer()->get(AttachmentRepository::class)->findByIssue($this->issue('MD-SPT-11'));
         self::assertSame(['trace.log'], array_map(static fn (Attachment $file): string => $file->getFilename(), $files));
     }
 
@@ -114,12 +106,12 @@ final class CreateFormTest extends KernelTestCase
             self::assertStringContainsString('issue.title: Cette valeur ne doit pas être vide.', $e->getMessage());
             self::assertStringContainsString('issue.fields.environment: Cette valeur ne doit pas être vide.', $e->getMessage());
         }
-        self::assertNull(self::getContainer()->get(IssueRepository::class)->findOneByKey('MD-SPT-19'));
+        self::assertNull(self::getContainer()->get(IssueRepository::class)->findOneByKey('MD-SPT-11'));
     }
 
     public function testAnInternalUserQualifiesAtCreation(): void
     {
-        $lea = self::getContainer()->get(UserRepository::class)->findOneBy(['email' => 'lea.fontaine@cairn.test']);
+        $lea = $this->scene->user('lea.fontaine@cairn.test');
         $component = $this->form('nadia.benali@cairn.test')->set('trackerId', $this->tasks->getId());
         $rendered = (string) $component->render();
         self::assertStringContainsString('issue[assignee]', $rendered);
@@ -129,11 +121,11 @@ final class CreateFormTest extends KernelTestCase
         $component->set('trackerId', $this->tasks->getId())->submitForm(['issue' => [
             'title' => 'Purger les sessions expirées',
             'description' => 'Le cron ne tourne plus.',
-            'assignee' => (string) $lea?->getId(),
+            'assignee' => (string) $lea->getId(),
         ]], 'save');
 
         self::assertSame(302, $component->response()->getStatusCode(), $component->response()->getContent() ?: '');
-        $issue = $this->issue('MD-SPT-19');
+        $issue = $this->issue('MD-SPT-11');
         self::assertSame('lea.fontaine@cairn.test', $issue->getAssignee()?->getEmail());
         self::assertTrue($issue->isPrivate(), 'private through its tracker');
         self::assertSame('todo', $issue->getPlace());
@@ -147,15 +139,12 @@ final class CreateFormTest extends KernelTestCase
 
         $component->submitForm(['issue' => ['title' => 'Caché', 'description' => 'x']], 'save');
         self::assertSame(200, $component->response()->getStatusCode(), 'nothing happens');
-        self::assertNull(self::getContainer()->get(IssueRepository::class)->findOneByKey('MD-SPT-19'));
+        self::assertNull(self::getContainer()->get(IssueRepository::class)->findOneByKey('MD-SPT-11'));
     }
 
     private function form(string $email): TestLiveComponent
     {
-        $user = self::getContainer()->get(UserRepository::class)->findOneBy(['email' => $email]);
-        self::assertInstanceOf(User::class, $user);
-
-        return $this->createLiveComponent('Issue:CreateForm', ['project' => $this->shop])->actingAs($user);
+        return $this->createLiveComponent('Issue:CreateForm', ['project' => $this->shop])->actingAs($this->scene->user($email));
     }
 
     private function issue(string $key): Issue

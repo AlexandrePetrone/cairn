@@ -83,6 +83,32 @@ final readonly class WorkflowDefinition
     }
 
     /**
+     * The shortest sequence of transitions from the initial place to a
+     * place, whoever may trigger them: how fixtures put an issue there.
+     *
+     * @return list<TransitionDefinition>
+     */
+    public function pathTo(string $placeId): array
+    {
+        $paths = [$this->initial => []];
+        $queue = [$this->initial];
+        while ([] !== $queue) {
+            $place = array_shift($queue);
+            if ($place === $placeId) {
+                return $paths[$place];
+            }
+            foreach ($this->transitionsFrom($place) as $transition) {
+                if (!isset($paths[$transition->to])) {
+                    $paths[$transition->to] = [...$paths[$place], $transition];
+                    $queue[] = $transition->to;
+                }
+            }
+        }
+
+        throw new InvalidDefinitionException(\sprintf('workflows.%s: place "%s" cannot be reached from "%s".', $this->id, $placeId, $this->initial));
+    }
+
+    /**
      * The place that declares a removed place in its `migrateFrom`, if any.
      */
     public function migrationTargetFor(string $removedPlaceId): ?string

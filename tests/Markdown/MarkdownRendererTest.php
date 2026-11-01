@@ -6,25 +6,22 @@ namespace App\Tests\Markdown;
 
 use App\Entity\User;
 use App\Markdown\MarkdownRenderer;
-use App\Repository\UserRepository;
-use App\Story\AppStory;
+use App\Tests\Scene\ShopScene;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
- * On the development dataset: MD-SPT-2 is a public shop issue, MD-SPT-18
- * an internal task that Claire, a client, may not see.
+ * In the scene MD-SPT-2 is a public shop issue, MD-SPT-6 an internal task
+ * that Claire, a client, may not see.
  */
 final class MarkdownRendererTest extends KernelTestCase
 {
-    use Factories;
-
     private MarkdownRenderer $renderer;
+    private ShopScene $scene;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        AppStory::load();
+        $this->scene = ShopScene::load(self::getContainer());
         $this->renderer = self::getContainer()->get(MarkdownRenderer::class);
     }
 
@@ -62,16 +59,16 @@ final class MarkdownRendererTest extends KernelTestCase
 
     public function testAnIssueReferenceIsALinkOnlyForWhoMaySeeTheIssue(): void
     {
-        $markdown = 'Comme #MD-SPT-2, voir #MD-SPT-18 et #ZZ-ZZ-1, pas abc#MD-SPT-2.';
+        $markdown = 'Comme #MD-SPT-2, voir #MD-SPT-6 et #ZZ-ZZ-1, pas abc#MD-SPT-2.';
 
         $client = $this->renderer->render($markdown, $this->user('claire.martin@maison-dupont.test'));
         self::assertStringContainsString('<a class="issue-reference" href="/MD/SPT/issues/2"', $client);
-        self::assertStringNotContainsString('/MD/SPT/issues/18', $client, 'a private issue cannot be probed');
-        self::assertStringContainsString('voir #MD-SPT-18 et #ZZ-ZZ-1', $client);
+        self::assertStringNotContainsString('/MD/SPT/issues/6', $client, 'a private issue cannot be probed');
+        self::assertStringContainsString('voir #MD-SPT-6 et #ZZ-ZZ-1', $client);
         self::assertStringContainsString('pas abc#MD-SPT-2.', $client);
 
         $developer = $this->renderer->render($markdown, $this->user('nadia.benali@cairn.test'));
-        self::assertStringContainsString('href="/MD/SPT/issues/18"', $developer);
+        self::assertStringContainsString('href="/MD/SPT/issues/6"', $developer);
     }
 
     public function testAMentionShowsTheCurrentName(): void
@@ -86,6 +83,6 @@ final class MarkdownRendererTest extends KernelTestCase
 
     private function user(string $email): User
     {
-        return self::getContainer()->get(UserRepository::class)->findOneBy(['email' => $email]) ?? self::fail('no '.$email);
+        return $this->scene->user($email);
     }
 }

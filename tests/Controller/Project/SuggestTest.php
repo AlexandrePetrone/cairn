@@ -4,32 +4,29 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller\Project;
 
-use App\Repository\UserRepository;
-use App\Story\AppStory;
+use App\Tests\Scene\ShopScene;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
- * What the editor offers after `#` and `@`. On the development dataset
- * MD-SPT-18 is an internal task.
+ * What the editor offers after `#` and `@`. In the scene MD-SPT-6 is an
+ * internal task.
  */
 final class SuggestTest extends WebTestCase
 {
-    use Factories;
-
     private KernelBrowser $client;
+    private ShopScene $scene;
 
     protected function setUp(): void
     {
         $this->client = self::createClient();
-        AppStory::load();
+        $this->scene = ShopScene::load(self::getContainer());
     }
 
     public function testIssuesAreThoseTheUserMaySee(): void
     {
-        self::assertNotContains('MD-SPT-18', $this->issueKeys('claire.martin@maison-dupont.test', '18'));
-        self::assertContains('MD-SPT-18', $this->issueKeys('nadia.benali@cairn.test', '18'));
+        self::assertNotContains('MD-SPT-6', $this->issueKeys('claire.martin@maison-dupont.test', '6'));
+        self::assertContains('MD-SPT-6', $this->issueKeys('nadia.benali@cairn.test', '6'));
     }
 
     public function testANumberFindsTheIssuesItStarts(): void
@@ -37,8 +34,9 @@ final class SuggestTest extends WebTestCase
         $keys = $this->issueKeys('nadia.benali@cairn.test', '1');
 
         self::assertContains('MD-SPT-1', $keys);
-        self::assertContains('MD-SPT-12', $keys);
-        self::assertLessThanOrEqual(8, \count($keys));
+        self::assertContains('MD-SPT-10', $keys);
+        self::assertContains('MD-SPT-6', $keys, 'the title says « 8.1 »');
+        self::assertNotContains('MD-SPT-2', $keys);
     }
 
     public function testPeopleAreTheMembersMatchingTheName(): void
@@ -66,8 +64,6 @@ final class SuggestTest extends WebTestCase
 
     private function signInAs(string $email): void
     {
-        $user = self::getContainer()->get(UserRepository::class)->findOneBy(['email' => $email]);
-        self::assertNotNull($user);
-        $this->client->loginUser($user);
+        $this->client->loginUser($this->scene->user($email));
     }
 }
