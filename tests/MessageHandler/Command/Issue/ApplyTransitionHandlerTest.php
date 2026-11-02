@@ -59,6 +59,16 @@ final class ApplyTransitionHandlerTest extends KernelTestCase
         $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->client->getId(), $issue->getKey(), 'start'));
     }
 
+    public function testAnArchivedProjectTakesNoTransition(): void
+    {
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+        $this->fixtures->access->shop->archive();
+        $this->entityManager->flush();
+
+        $this->expectException(AccessDeniedException::class);
+        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->developer->getId(), $issue->getKey(), 'start'));
+    }
+
     public function testTheTransitionMustLeaveTheCurrentPlace(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);

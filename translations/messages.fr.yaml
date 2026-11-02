@@ -398,6 +398,9 @@ admin:
         holds_internal_roles: '%name% a des rôles réservés aux internes (%where%) : retirez-les avant de passer cette personne en externe.'
 
 project:
+    read_only:
+        archived: 'Ce projet est archivé : il est en lecture seule, plus rien n''y peut être modifié.'
+        workspace_archived: 'L''espace %workspace% est archivé : ce projet est en lecture seule, plus rien n''y peut être modifié.'
     settings:
         title: Configuration
         subtitle: 'Projet %project% · espace %workspace%'

@@ -56,6 +56,29 @@ final class IssueTest extends WebTestCase
         self::assertSelectorTextNotContains('main', $comment->getBody());
     }
 
+    public function testAnArchivedProjectShowsItsIssuesWithoutAnyControl(): void
+    {
+        $this->signInAs('claire.martin@maison-dupont.test');
+        $this->client->request('GET', '/MD/SPT/issues/4');
+        self::assertSelectorTextNotContains('body', 'est archivé', 'no banner on an active project');
+
+        $this->scene->shop->archive();
+        self::getContainer()->get(EntityManagerInterface::class)->flush();
+
+        foreach (['claire.martin@maison-dupont.test', 'julie.admin@cairn.test'] as $email) {
+            $this->signInAs($email);
+            $this->client->request('GET', '/MD/SPT/issues/4');
+
+            self::assertResponseIsSuccessful();
+            self::assertSelectorTextContains('body', 'Ce projet est archivé');
+            self::assertSelectorTextContains('h1', 'L\'export CSV des commandes est vide');
+            self::assertSelectorTextNotContains('main', 'Valider', $email);
+            self::assertSelectorTextNotContains('main', 'Refuser', $email);
+            self::assertSelectorNotExists('main [data-live-action-param="postComment"]', $email);
+            self::assertSelectorNotExists('main [data-live-action-param="apply"]', $email);
+        }
+    }
+
     public function testAnIssueTheViewerMayNotSeeIsNotFound(): void
     {
         $this->signInAs('claire.martin@maison-dupont.test');

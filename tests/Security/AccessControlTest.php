@@ -155,6 +155,22 @@ final class AccessControlTest extends KernelTestCase
         self::assertTrue($this->access->canTransition($admin, $workflow->transition('accept'), $this->fixtures->otherProject));
     }
 
+    public function testNoTransitionIsAllowedOnAReadOnlyProject(): void
+    {
+        $workflow = self::getContainer()->get(ConfigRegistry::class)->definition()->workflow('bug');
+        $developer = $this->fixtures->user('nadia@agency.test', internal: true);
+        $this->fixtures->grantOnWorkspace($developer, $this->fixtures->workspace, 'developer');
+        $admin = $this->fixtures->user('admin@agency.test', admin: true);
+
+        $this->fixtures->shop->archive();
+        self::assertFalse($this->access->canTransition($developer, $workflow->transition('start'), $this->fixtures->shop));
+        self::assertFalse($this->access->canTransition($admin, $workflow->transition('start'), $this->fixtures->shop), 'not even an administrator');
+
+        $this->fixtures->workspace->archive();
+        self::assertFalse($this->access->canTransition($admin, $workflow->transition('start'), $this->fixtures->intranet));
+        self::assertTrue($this->access->canTransition($admin, $workflow->transition('start'), $this->fixtures->otherProject));
+    }
+
     public function testExternalsOnlySeePublicIssuesOfTheirProjects(): void
     {
         $client = $this->fixtures->user('claire@client.test');

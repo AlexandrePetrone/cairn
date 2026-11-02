@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Controller\Project;
 
 use App\Tests\Scene\ShopScene;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -139,6 +140,20 @@ final class IssueListTest extends WebTestCase
         $this->client->request('GET', '/MD/ZZZ/issues');
 
         self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testTheProjectsOfAnArchivedWorkspaceSayTheyAreReadOnly(): void
+    {
+        $this->scene->dupont->archive();
+        self::getContainer()->get(EntityManagerInterface::class)->flush();
+        $this->signInAs('thomas.girard@cairn.test');
+
+        $this->client->request('GET', '/MD/SPT/issues');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'L\'espace Maison Dupont est archivé');
+        self::assertSelectorNotExists('a[href="/MD/SPT/issues/new"]', 'no new issue');
+        self::assertSelectorNotExists('a[href="/MD/SPT/settings"]', 'no settings, even for the manager');
     }
 
     private function signInAs(string $email): void

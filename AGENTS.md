@@ -186,8 +186,8 @@ Rules:
   parameters (404 when unknown), and the controller class carries
   `#[IsGranted('view', subject: 'project')]`. Archived projects, and the
   projects of an archived workspace (`Project::isReadOnly()`), are
-  refused by `AccessControl` for every permission, so no controller
-  checks it. A list with another scope is
+  refused by `AccessControl` for every permission and every transition,
+  so no controller checks it; the project layout shows a banner saying so. A list with another scope is
   another route of the same controller (`/issues/assigned`,
   `/issues/created`, `/issues/tracker/{id}`: trackers have no key), never
   a query parameter that switches the view: the route fixes the scope and

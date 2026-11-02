@@ -24,8 +24,9 @@ use Symfony\Contracts\Service\ResetInterface;
  * Administrators may do everything. Internal users may view every project.
  * Everything else comes from the effective role and the configuration.
  * An archived project, or a project of an archived workspace, stays
- * readable but grants no permission at all, to anyone: administrators
- * unarchive them from the administration, which permissions do not govern.
+ * readable but grants no permission and no transition at all, to anyone:
+ * administrators unarchive them from the administration, which
+ * permissions do not govern.
  *
  * A page asks dozens of decisions about the same user: their memberships
  * are loaded once per request. reset() forgets them: the kernel calls it
@@ -155,6 +156,9 @@ final class AccessControl implements ResetInterface
 
     public function canTransition(User $user, TransitionDefinition $transition, Project $project): bool
     {
+        if ($project->isReadOnly()) {
+            return false;
+        }
         if ($user->isAdmin()) {
             return true;
         }
