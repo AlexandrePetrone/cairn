@@ -1,7 +1,18 @@
-{# Application level: the logo, the current project when inside one, the administration link for administrators, the user menu. The burger opens the sidebar on mobile through the shell's `sidebar` controller.
+{# Application level: the logo, the application tabs outside a project, the current project when inside one (it opens the list of the others), the administration link for administrators, the user menu.
+   On small screens the tabs move into the user menu; inside a project the logo and the user menu lead home. The burger opens the sidebar on mobile through the shell's `sidebar` controller.
    In the administration (`admin`): an amber rule and badge, a way back to the application, no project.
    `this` is read before the nested components, whose blocks see their own `this`. #}
 {% set headerUser = this.user %}
+{% set headerRoute = app.current_route %}
+{% set headerTabs = [
+    { href: path('app_home'), label: 'nav.home'|trans, icon: 'home', active: headerRoute == 'app_home' },
+    { href: path('app_my_issues_assigned'), label: 'nav.my_issues'|trans, icon: 'inbox', active: headerRoute starts with 'app_my_issues' },
+    { href: path('app_projects'), label: 'nav.projects'|trans, icon: 'folders', active: headerRoute == 'app_projects' },
+] %}
+{% set headerTabClasses = html_cva(
+    base: 'inline-flex h-8 items-center rounded-md px-2.5 text-sm',
+    variants: { active: { true: 'bg-slate-800 text-white font-medium', false: 'text-slate-400 hover:bg-slate-800 hover:text-white' } },
+) %}
 {% set headerClasses = html_cva(
     base: 'sticky top-0 z-50 h-12 bg-slate-900 text-slate-300 flex items-center gap-2 px-3 sm:px-4',
     variants: { admin: { true: 'border-b-2 border-amber-400' } },
@@ -21,12 +32,54 @@
             <twig:ux:icon name="lucide:settings" class="h-3.5 w-3.5" />{{ 'admin.title'|trans }}
         </span>
         <a href="{{ path('app_home') }}" class="ml-2 hidden sm:inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">{{ 'admin.back'|trans }}</a>
-    {% elseif project %}
-        <div class="inline-flex h-8 max-w-[60vw] items-center gap-2 rounded-md bg-slate-800 px-2 ring-1 ring-inset ring-slate-700">
-            <twig:Ui:Chip tone="dark">{{ project.issuePrefix }}</twig:Ui:Chip>
-            <span class="font-medium text-white truncate">{{ project.name }}</span>
-            <span class="hidden lg:inline text-xs text-slate-400 truncate">{{ project.workspace.name }}</span>
-        </div>
+    {% elseif not project %}
+        <nav class="hidden md:flex items-center gap-1" aria-label="{{ 'nav.application'|trans }}">
+            {% for tab in headerTabs %}
+                <a href="{{ tab.href }}" class="{{ headerTabClasses.apply({ active: tab.active }) }}" {% if tab.active %}aria-current="page"{% endif %}>{{ tab.label }}</a>
+            {% endfor %}
+        </nav>
+    {% endif %}
+    {% if project and not admin %}
+        {% set headerProjects = this.projects %}
+        <twig:Ui:Dropdown width="lg" class="min-w-0">
+            <twig:block name="trigger">
+                <button type="button" data-action="dropdown#toggle" aria-expanded="false" aria-haspopup="menu" title="{{ 'nav.switch_project'|trans }}"
+                        class="inline-flex h-8 max-w-[60vw] items-center gap-2 rounded-md bg-slate-800 pl-2 pr-1.5 text-left ring-1 ring-inset ring-slate-700 hover:bg-slate-700">
+                    <twig:Ui:Chip tone="dark">{{ project.issuePrefix }}</twig:Ui:Chip>
+                    <span class="font-medium text-white truncate">{{ project.name }}</span>
+                    <span class="hidden lg:inline text-xs text-slate-400 truncate">{{ project.workspace.name }}</span>
+                    <twig:ux:icon name="lucide:chevron-down" class="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                </button>
+            </twig:block>
+            <div data-controller="list-filter">
+                <label class="flex items-center gap-2 px-3 pb-2 pt-1 border-b border-gray-100 text-gray-400">
+                    <twig:ux:icon name="lucide:search" class="h-4 w-4" />
+                    <input type="search" data-dropdown-target="search" data-action="input->list-filter#filter" placeholder="{{ 'nav.switch_project'|trans }}" autocomplete="off"
+                           class="w-full border-0 bg-transparent p-0 text-sm text-gray-800 outline-none placeholder:text-gray-400 focus:ring-0">
+                </label>
+                <div class="max-h-80 overflow-y-auto py-1">
+                    {% for group in headerProjects %}
+                        {% set headerWorkspace = (group|first).project.workspace %}
+                        <div data-list-filter-target="group">
+                            <div class="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">{{ headerWorkspace.name }}</div>
+                            {% for summary in group %}
+                                {% set headerOther = summary.project %}
+                                <a href="{{ path('app_project_issues', { workspaceKey: headerWorkspace.key, projectKey: headerOther.key }) }}"
+                                   data-list-filter-target="item" data-text="{{ headerOther.name }} {{ headerOther.issuePrefix }} {{ headerWorkspace.name }}"
+                                   class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-gray-50 {{ headerOther.id == project.id ? 'text-indigo-700 font-medium' : (headerOther.readOnly ? 'text-gray-400' : 'text-gray-700') }}"
+                                   {% if headerOther.id == project.id %}aria-current="page"{% endif %}>
+                                    <twig:Ui:Chip class="shrink-0">{{ headerOther.issuePrefix }}</twig:Ui:Chip>
+                                    <span class="truncate">{{ headerOther.name }}</span>
+                                    {% if headerOther.readOnly %}<twig:ux:icon name="lucide:archive" class="ml-auto h-3.5 w-3.5 shrink-0" />{% endif %}
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                    <p data-list-filter-target="empty" hidden class="px-3 py-3 text-center text-sm text-gray-400">{{ 'projects.no_match'|trans }}</p>
+                </div>
+                <a href="{{ path('app_projects') }}" class="block border-t border-gray-100 px-3 pt-2 pb-1 text-xs text-indigo-600 hover:underline">{{ 'home.projects.all'|trans }}</a>
+            </div>
+        </twig:Ui:Dropdown>
     {% endif %}
     <div class="ml-auto flex items-center gap-2">
     {% if project and not admin and is_granted('issue.create', project) %}
@@ -53,8 +106,15 @@
                 <div class="text-xs text-gray-500 truncate">{{ headerUser.email }}</div>
             </div>
         </div>
-        <twig:Ui:Dropdown:Item href="{{ path('app_home') }}" icon="home">{{ 'nav.home'|trans }}</twig:Ui:Dropdown:Item>
-        <div class="my-1 border-t border-gray-100"></div>
+        {% if project or admin %}
+            <twig:Ui:Dropdown:Item href="{{ path('app_home') }}" icon="home">{{ 'nav.home'|trans }}</twig:Ui:Dropdown:Item>
+            <div class="my-1 border-t border-gray-100"></div>
+        {% else %}
+            {% for tab in headerTabs %}
+                <twig:Ui:Dropdown:Item :href="tab.href" :icon="tab.icon" :active="tab.active" class="md:hidden">{{ tab.label }}</twig:Ui:Dropdown:Item>
+            {% endfor %}
+            <div class="my-1 border-t border-gray-100 md:hidden"></div>
+        {% endif %}
         <twig:Ui:Dropdown:Item href="{{ path('app_logout') }}" icon="log-out">{{ 'auth.logout'|trans }}</twig:Ui:Dropdown:Item>
     </twig:Ui:Dropdown>
     </div>

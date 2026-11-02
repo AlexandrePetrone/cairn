@@ -1,8 +1,6 @@
 {% extends 'layout/project.html.twig' %}
 
-{% set route = { workspaceKey: project.workspace.key, projectKey: project.key } %}
 {% set title = tracker ? tracker.name : ('issue.list.title.' ~ scope)|trans %}
-{% set listPath = path(app.current_route, app.current_route_parameters) %}
 
 {% block page_title %}{{ title }}{% endblock %}
 
@@ -12,102 +10,10 @@
             <h1 class="font-semibold text-gray-900 text-base">{{ title }}</h1>
             <span class="text-xs text-gray-400">{{ 'issue.list.count'|trans({ '%count%': issues.total }) }}</span>
         </div>
-        <form method="get" action="{{ listPath }}" class="flex flex-wrap items-center gap-2" data-controller="autosubmit" data-action="change->autosubmit#submit">
-            {% if 'status' in dimensions %}
-                <twig:Ui:Filter:Menu :label="'filter.status'|trans" :count="filters.status|length">
-                    {% for status in statuses %}
-                        <twig:Ui:Filter:Option name="status[]" :value="status.value" :checked="status in filters.status">
-                            <twig:Ui:Status:Dot :status="status.value" />
-                            {{ ('status.' ~ status.value)|trans }}
-                        </twig:Ui:Filter:Option>
-                    {% endfor %}
-                </twig:Ui:Filter:Menu>
-            {% endif %}
-            {% if 'tracker' in dimensions %}
-                <twig:Ui:Filter:Menu :label="'filter.tracker'|trans" :count="filters.tracker|length">
-                    {% for tracker in trackers %}
-                        <twig:Ui:Filter:Option name="tracker[]" :value="tracker.id" :checked="tracker.id in filters.tracker">
-                            <span class="truncate {{ tracker.active ? '' : 'text-gray-400 line-through' }}" {% if not tracker.active %}title="{{ 'project.settings.tracker.inactive_badge'|trans }}"{% endif %}>{{ tracker.name }}</span>
-                            {% if tracker.private %}<twig:ux:icon name="lucide:lock" class="h-3 w-3 shrink-0 text-gray-400" />{% endif %}
-                        </twig:Ui:Filter:Option>
-                    {% endfor %}
-                </twig:Ui:Filter:Menu>
-            {% endif %}
-            {% if 'criticality' in dimensions %}
-                <twig:Ui:Filter:Menu :label="'filter.criticality'|trans" :count="filters.criticality|length">
-                    {% for criticality in criticalities|reverse %}
-                        <twig:Ui:Filter:Option name="criticality[]" :value="criticality.value" :checked="criticality in filters.criticality">
-                            {{ ('criticality.' ~ criticality.value)|trans }}
-                        </twig:Ui:Filter:Option>
-                    {% endfor %}
-                </twig:Ui:Filter:Menu>
-            {% endif %}
-            {% if 'assignee' in dimensions %}
-                <twig:Ui:Filter:Menu :label="'filter.assignee'|trans" :count="filters.assignee|length">
-                    <twig:Ui:Filter:Option name="assignee[]" value="0" :checked="0 in filters.assignee">
-                        <twig:Ui:Avatar size="xs" />
-                        {{ 'issue.unassigned'|trans }}
-                    </twig:Ui:Filter:Option>
-                    {% for member in members %}
-                        <twig:Ui:Filter:Option name="assignee[]" :value="member.id" :checked="member.id in filters.assignee">
-                            <twig:Ui:Avatar size="xs" :name="member.fullName" :kind="member.internal ? 'internal' : 'external'" />
-                            {{ member.fullName }}
-                        </twig:Ui:Filter:Option>
-                    {% endfor %}
-                </twig:Ui:Filter:Menu>
-            {% endif %}
-            <twig:Ui:Filter:Search :value="filters.q" />
-            {% if not filters.isEmpty %}
-                <a href="{{ listPath }}" class="text-xs text-indigo-600 hover:underline">{{ 'filter.clear'|trans }}</a>
-            {% endif %}
-            <twig:Ui:Form:Checkbox name="closed" :label="'issue.list.show_closed'|trans" :checked="filters.closed" class="ml-auto text-xs text-gray-600" />
-        </form>
+        {{ include('issue/_filters.html.twig') }}
     </div>
 
     <div class="px-4 sm:px-6 py-4 space-y-3">
-        {% if issues.items is empty %}
-            <twig:Ui:EmptyState :title="'issue.list.empty'|trans" bordered>{{ 'issue.list.empty_hint'|trans }}</twig:Ui:EmptyState>
-        {% else %}
-            <twig:Ui:Table>
-                <twig:block name="head">
-                    <th class="px-3 py-2 text-left font-medium w-32">{{ 'issue.list.column.key'|trans }}</th>
-                    <th class="px-3 py-2 text-left font-medium">{{ 'issue.list.column.title'|trans }}</th>
-                    <th class="px-3 py-2 text-left font-medium w-32">{{ 'issue.list.column.tracker'|trans }}</th>
-                    <th class="px-3 py-2 text-left font-medium w-44">{{ 'issue.list.column.place'|trans }}</th>
-                    <th class="px-3 py-2 text-left font-medium w-28">{{ 'issue.list.column.criticality'|trans }}</th>
-                    <th class="px-3 py-2 text-left font-medium w-12">{{ 'issue.list.column.assignee'|trans }}</th>
-                    <th class="px-3 py-2 text-right font-medium w-28">{{ 'issue.list.column.updated'|trans }}</th>
-                </twig:block>
-                {% for issue in issues.items %}
-                    {% set closed = issue.status.value == 'closed' %}
-                    <twig:Ui:Table:Row :closed="closed">
-                        <td class="sm:px-3 sm:py-2.5 order-1 whitespace-nowrap"><twig:Ui:IssueKey :key="issue.key" href="{{ path('app_issue_show', route|merge({ number: issue.number })) }}" /></td>
-                        <td class="sm:px-3 sm:py-2.5 order-4 basis-full sm:basis-auto {{ closed ? 'text-gray-500' : 'text-gray-900' }}">
-                            <a href="{{ path('app_issue_show', route|merge({ number: issue.number })) }}" class="hover:text-indigo-700">{{ issue.title }}</a>
-                            {% if issue.private %}<twig:Ui:Badge tone="amber" size="sm" icon="lock">{{ 'issue.private'|trans }}</twig:Ui:Badge>{% endif %}
-                        </td>
-                        <td class="sm:px-3 sm:py-2.5 order-5 whitespace-nowrap text-xs text-gray-600">{{ issue.tracker.name }}</td>
-                        <td class="sm:px-3 sm:py-2.5 order-6 whitespace-nowrap"><twig:Ui:Status:Step :status="issue.status.value" :label="issue_place(issue)" /></td>
-                        <td class="sm:px-3 sm:py-2.5 order-2 whitespace-nowrap"><twig:Ui:Criticality:Badge :criticality="issue.criticality.value" /></td>
-                        <td class="sm:px-3 sm:py-2.5 order-7 whitespace-nowrap"><twig:Ui:Avatar :name="issue.assignee ? issue.assignee.fullName : null" :kind="issue.assignee and issue.assignee.internal ? 'internal' : 'external'" size="sm" /></td>
-                        <td class="sm:px-3 sm:py-2.5 order-3 ml-auto sm:ml-0 text-right whitespace-nowrap text-xs text-gray-400">{{ issue.updatedAt|date('d/m/Y') }}</td>
-                    </twig:Ui:Table:Row>
-                {% endfor %}
-            </twig:Ui:Table>
-        {% endif %}
-
-        {% if issues.pageCount > 1 %}
-            <nav class="flex items-center justify-between text-xs text-gray-500" aria-label="{{ 'pagination.label'|trans }}">
-                <span>{{ 'pagination.page_of'|trans({ '%page%': issues.page, '%count%': issues.pageCount }) }}</span>
-                <div class="flex items-center gap-2">
-                    {% if issues.page > 1 %}
-                        <twig:Ui:Button size="sm" href="{{ path(app.current_route, app.current_route_parameters|merge(app.request.query.all)|merge({ page: issues.page - 1 })) }}">{{ 'pagination.previous'|trans }}</twig:Ui:Button>
-                    {% endif %}
-                    {% if issues.page < issues.pageCount %}
-                        <twig:Ui:Button size="sm" href="{{ path(app.current_route, app.current_route_parameters|merge(app.request.query.all)|merge({ page: issues.page + 1 })) }}">{{ 'pagination.next'|trans }}</twig:Ui:Button>
-                    {% endif %}
-                </div>
-            </nav>
-        {% endif %}
+        {{ include('issue/_list.html.twig') }}
     </div>
 {% endblock %}

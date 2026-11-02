@@ -119,6 +119,7 @@ issue:
         empty_hint: Élargissez les filtres ou affichez les demandes fermées.
         column:
             key: Demande
+            project: Projet
             title: Titre
             tracker: Catégorie
             place: Étape
@@ -136,6 +137,7 @@ panel:
 filter:
     search: Rechercher…
     status: Statut
+    project: Projet
     tracker: Catégorie
     criticality: Criticité
     assignee: Assigné
@@ -143,6 +145,10 @@ filter:
 
 nav:
     home: Accueil
+    my_issues: Mes demandes
+    projects: Projets
+    application: Application
+    switch_project: Changer de projet…
     open: Ouvrir la navigation
     breadcrumb: Fil d'Ariane
     project:
@@ -176,7 +182,31 @@ auth:
     logout: Se déconnecter
 
 home:
-    signed_in_as: 'Connecté en tant que %name%.'
+    greeting: 'Bonjour %name%'
+    assigned_count: '{0}Aucune demande ouverte ne vous est assignée|{1}1 demande ouverte vous est assignée|]1,Inf[ %count% demandes ouvertes vous sont assignées'
+    projects:
+        title: Mes projets
+        hint: les plus actifs d'abord
+        all: Tous les projets
+        empty: Aucun projet pour l'instant
+        empty_hint: Un administrateur vous donne accès aux projets de vos clients.
+    issues_empty: Rien pour l'instant
+    signals:
+        title: À regarder en premier
+        blocking: Bloquante, assignée à vous
+        waiting: Votre demande est en attente
+
+my_issues:
+    heading: Mes demandes
+    title:
+        assigned: Mes demandes · assignées à moi
+        created: Mes demandes · créées par moi
+
+projects:
+    title: Projets
+    search: Nom ou code du projet, nom de l'espace…
+    count: '{1}1 projet|]1,Inf[ %count% projets'
+    no_match: Aucun projet ne correspond.
 
 editor:
     bold: Gras
@@ -398,6 +428,12 @@ admin:
         holds_internal_roles: '%name% a des rôles réservés aux internes (%where%) : retirez-les avant de passer cette personne en externe.'
 
 project:
+    summary:
+        open: '{0}Aucune ouverte|{1}1 ouverte|]1,Inf[ %count% ouvertes'
+        waiting: En attente
+        blocking: Bloquantes ouvertes
+        archived: Archivé
+        read_only: Archivé · lecture seule
     read_only:
         archived: 'Ce projet est archivé : il est en lecture seule, plus rien n''y peut être modifié.'
         workspace_archived: 'L''espace %workspace% est archivé : ce projet est en lecture seule, plus rien n''y peut être modifié.'

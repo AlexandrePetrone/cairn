@@ -120,6 +120,7 @@ final class SearchIssuesHandlerTest extends KernelTestCase
         self::assertSame([$mineElsewhere, $mine], self::queryBus()->ask(new SearchIssues($this->nadia, assigneeId: $this->nadia->getId()))->items);
         self::assertSame(['Pas à moi', 'Assignée ailleurs'], self::titles(self::queryBus()->ask(new SearchIssues($this->manager, authorId: $this->manager->getId()))->items));
         self::assertSame(3, self::queryBus()->ask(new SearchIssues($this->manager, workspaceId: $this->project->getWorkspace()->getId()))->total);
+        self::assertSame([$mineElsewhere], self::queryBus()->ask(new SearchIssues($this->nadia, assigneeId: $this->nadia->getId(), project: [(int) $other->getProject()->getId()]))->items, 'the project filter');
     }
 
     public function testAnInvalidPageIsRefusedBeforeReachingTheHandler(): void

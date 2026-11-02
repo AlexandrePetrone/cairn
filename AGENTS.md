@@ -200,11 +200,17 @@ Rules:
   never the scope from the URL. It returns a
   `Repository/Pagination` of `Issue` entities with tracker, project,
   workspace and assignee joined, 50 per page. Place labels come from the
-  configuration through the `issue_place()` Twig function.
+  configuration through the `issue_place()` Twig function. The lists of
+  a project and those across projects (`/issues/assigned`,
+  `/issues/created`, the home page) share their filter bar and rows
+  (`templates/issue/_filters.html.twig`, `_list.html.twig`).
 - **Visibility is written twice and tested as one.** `AccessControl::canSee()`
-  decides for one issue, `SearchIssuesHandler::restrictToVisible()` applies
-  the same rule in SQL. Change both together: `SearchIssuesVisibilityTest`
-  compares them for every user of the development dataset.
+  decides for one issue, `Repository/Visibility::restrictIssues()` applies
+  the same rule in SQL; `canView()` and `restrictProjects()` do the same
+  for projects. Every handler that lists issues or projects goes through
+  `Visibility`. Change both sides together: `SearchIssuesVisibilityTest`
+  and `ListVisibleProjectsTest` compare them for every user of the
+  development dataset.
   The same holds for private comments and their files:
   `AccessControl::canSeeComment()` and `canSeeAttachment()` in PHP,
   `ShowIssueHandler` in SQL, compared by `ShowIssueVisibilityTest`.
@@ -285,7 +291,7 @@ Rules:
 
   | Zone        | URL                                    | Shell                       | Controllers            | Templates              |
   |-------------|----------------------------------------|-----------------------------|------------------------|------------------------|
-  | application | `/`, `/issues/…`, `/workspaces`, `/MD` | header only                 | `Controller/` root     | `templates/` root      |
+  | application | `/`, `/issues/…`, `/projects`          | header only                 | `Controller/` root     | `templates/` root      |
   | project     | `/MD/SPT/…`                            | header + project navigation | `Controller/Project/`  | `templates/project/`   |
   | admin       | `/admin/…`                             | amber header + admin navigation (`Layout:AdminNav`) | `Controller/Admin/`    | `templates/admin/`     |
   | security    | `/login`                               | none                        | `Controller/Security/` | `templates/security/`  |
@@ -458,7 +464,7 @@ Rules:
 - JavaScript is Stimulus only, one small controller per behaviour in
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`,
   `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`,
-  `workflow-diagram`, `sortable`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
+  `workflow-diagram`, `sortable`, `list-filter`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
   (`editor` with TipTap, `workflow-diagram` with Mermaid) so that Vite
   splits its imports into chunks only fetched on a page that uses it; write a new one when a component needs it, not before. No
   inline scripts.
@@ -572,7 +578,7 @@ tests load `tests/Scene/ShopScene` (one shop, its people and ten issues
 under the example configuration). The development story is loaded only
 by the tests that compare a PHP rule with its SQL over a rich dataset
 (`SearchIssuesVisibilityTest`, `ShowIssueVisibilityTest`,
-`ListProjectMembersTest`) and by `AppStoryTest`. Run `castor test` (arguments are passed to PHPUnit,
+`ListProjectMembersTest`, `ListVisibleProjectsTest`) and by `AppStoryTest`. Run `castor test` (arguments are passed to PHPUnit,
 e.g. `castor test --filter Codec`). A feature isn't done until it has a
 test that exercises it the way a caller would: an HTTP request for a
 controller, a command or query dispatched on its bus for a handler.

@@ -16,6 +16,7 @@ final readonly class IssueFilters
 {
     /**
      * @param list<PlaceStatus> $status
+     * @param list<int>         $project
      * @param list<int>         $tracker
      * @param list<int>         $assignee    user ids, 0 for unassigned
      * @param list<Criticality> $criticality
@@ -23,6 +24,7 @@ final readonly class IssueFilters
      */
     public function __construct(
         public array $status = [],
+        public array $project = [],
         public array $tracker = [],
         public array $assignee = [],
         public array $criticality = [],
@@ -35,6 +37,6 @@ final readonly class IssueFilters
 
     public function isEmpty(): bool
     {
-        return [] === $this->status && [] === $this->tracker && [] === $this->assignee && [] === $this->criticality && '' === trim($this->q) && !$this->closed;
+        return [] === $this->status && [] === $this->project && [] === $this->tracker && [] === $this->assignee && [] === $this->criticality && '' === trim($this->q) && !$this->closed;
     }
 }

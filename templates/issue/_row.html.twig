@@ -1,0 +1,13 @@
+{# One issue on a line, in a short list (the home page): key, title with an optional `reason` it is listed for, criticality, place, last update. #}
+{% set reason = reason ?? null %}
+{% set issueHref = path('app_issue_show', { workspaceKey: issue.project.workspace.key, projectKey: issue.project.key, number: issue.number }) %}
+<li class="flex items-center gap-3 px-4 py-2 hover:bg-gray-50">
+    <twig:Ui:IssueKey :key="issue.key" :href="issueHref" class="w-28 shrink-0" />
+    <span class="flex-1 min-w-0">
+        <a href="{{ issueHref }}" class="block truncate text-gray-900 hover:text-indigo-700">{{ issue.title }}</a>
+        {% if reason %}<span class="block text-xs text-amber-800">{{ reason }}</span>{% endif %}
+    </span>
+    <twig:Ui:Criticality:Badge :criticality="issue.criticality.value" />
+    <span class="hidden sm:block w-40 shrink-0"><twig:Ui:Status:Step :status="issue.status.value" :label="issue_place(issue)" /></span>
+    <span class="hidden md:inline w-20 shrink-0 text-right text-xs text-gray-400">{{ issue.updatedAt|date('d/m/Y') }}</span>
+</li>

@@ -6,6 +6,7 @@ namespace App\Tests\Controller\Security;
 
 use App\Entity\User;
 use App\Factory\UserFactory;
+use App\Tests\KernelHelpers;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -14,12 +15,15 @@ use Zenstruck\Foundry\Test\Factories;
 final class LoginTest extends WebTestCase
 {
     use Factories;
+    use KernelHelpers;
 
     private KernelBrowser $client;
 
     protected function setUp(): void
     {
         $this->client = self::createClient();
+        // The home page, where a sign-in lands, reads the configuration.
+        self::applyConfiguration();
         // Login throttling counts failures in a cache that outlives a test: start each one clean.
         self::getContainer()->get('cache.rate_limiter')->clear();
         UserFactory::createOne(['email' => 'claire@client.test', 'firstName' => 'Claire', 'lastName' => 'Martin']);
@@ -38,7 +42,7 @@ final class LoginTest extends WebTestCase
 
         self::assertResponseRedirects('/');
         $this->client->followRedirect();
-        self::assertSelectorTextContains('main', 'Connecté en tant que Claire Martin');
+        self::assertSelectorTextContains('h1', 'Bonjour Claire');
     }
 
     public function testAWrongPasswordKeepsTheEmailAndShowsAnError(): void

@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\Query\Issue;
 
-use App\Config\ConfigRegistry;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
-use App\Entity\Membership;
 use App\Entity\User;
 use App\Message\Query\Issue\SearchIssues;
 use App\Repository\Pagination;
 use App\Repository\SearchText;
+use App\Repository\Visibility;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
  * Lists issues sorted status first, then criticality, then latest activity,
- * restricted to what the viewer may see. Two queries per page: the total,
- * then the rows with tracker, project, workspace and assignee loaded.
+ * restricted to what the viewer may see (Repository/Visibility). Two
+ * queries per page: the total, then the rows with tracker, project,
+ * workspace and assignee loaded.
  */
 #[AsMessageHandler(bus: 'query.bus')]
 final class SearchIssuesHandler
@@ -28,7 +28,7 @@ final class SearchIssuesHandler
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
-        private readonly ConfigRegistry $config,
+        private readonly Visibility $visibility,
     ) {
     }
 
@@ -74,7 +74,7 @@ final class SearchIssuesHandler
             ->join('p.workspace', 'w')
             ->leftJoin('i.assignee', 'a');
 
-        $this->restrictToVisible($queryBuilder, $viewer);
+        $this->visibility->restrictIssues($queryBuilder, $viewer);
 
         if (null !== $query->projectId) {
             $queryBuilder->andWhere('p.id = :projectId')->setParameter('projectId', $query->projectId);
@@ -95,6 +95,9 @@ final class SearchIssuesHandler
         // Closed issues stay out unless asked for, by the flag or by status.
         if (!$query->closed && !\in_array(PlaceStatus::Closed, $query->status, true)) {
             $queryBuilder->andWhere('i.status != :closedStatus')->setParameter('closedStatus', PlaceStatus::Closed);
+        }
+        if ([] !== $query->project) {
+            $queryBuilder->andWhere('p.id IN (:project)')->setParameter('project', $query->project);
         }
         if ([] !== $query->tracker) {
             $queryBuilder->andWhere('t.id IN (:tracker)')->setParameter('tracker', $query->tracker);
@@ -130,34 +133,5 @@ final class SearchIssuesHandler
         }
 
         return $queryBuilder;
-    }
-
-    /**
-     * The SQL side of AccessControl::canSee(); both must always agree, and
-     * SearchIssuesVisibilityTest compares them on the development dataset.
-     * Internal users see every issue. An external user sees an issue when
-     * neither it nor its tracker is private, and when they hold a membership
-     * on the project or on its workspace whose role still exists in the
-     * configuration in force.
-     */
-    private function restrictToVisible(QueryBuilder $queryBuilder, User $viewer): void
-    {
-        if ($viewer->isInternal()) {
-            return;
-        }
-
-        $membership = $this->entityManager->createQueryBuilder()
-            ->select('1')
-            ->from(Membership::class, 'm')
-            ->where('m.user = :viewer')
-            ->andWhere('m.role IN (:roles)')
-            ->andWhere('m.project = p OR IDENTITY(m.workspace) = IDENTITY(p.workspace)');
-
-        $queryBuilder
-            ->andWhere('i.private = false')
-            ->andWhere('t.private = false')
-            ->andWhere($queryBuilder->expr()->exists($membership->getDQL()))
-            ->setParameter('viewer', $viewer)
-            ->setParameter('roles', $this->config->definition()->roleIds());
     }
 }

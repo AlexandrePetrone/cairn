@@ -1,0 +1,5 @@
+component: Ui:ProjectCard
+variants:
+    default: { args: { href: '#', code: MD-SPT, name: Site e-commerce, workspace: Maison Dupont, open: 12 } }
+    with_signals: { args: { href: '#', code: MD-SPT, name: Site e-commerce, workspace: Maison Dupont, open: 12, waiting: 3, blocking: 1 } }
+    archived: { args: { href: '#', code: TR-RES, name: Site de réservation, workspace: Travelia, archived: true } }

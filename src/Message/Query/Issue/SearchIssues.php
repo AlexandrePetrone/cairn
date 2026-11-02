@@ -23,6 +23,7 @@ final readonly class SearchIssues implements Query
 {
     /**
      * @param list<PlaceStatus> $status
+     * @param list<int>         $project     among the projects of the scope
      * @param list<int>         $tracker
      * @param list<int>         $assignee    user ids, 0 for unassigned
      * @param list<Criticality> $criticality
@@ -36,6 +37,7 @@ final readonly class SearchIssues implements Query
         public ?int $assigneeId = null,
         public ?int $authorId = null,
         public array $status = [],
+        public array $project = [],
         public array $tracker = [],
         public array $assignee = [],
         public array $criticality = [],
