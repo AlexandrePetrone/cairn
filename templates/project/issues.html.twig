@@ -27,7 +27,7 @@
                 <twig:Ui:Filter:Menu :label="'filter.tracker'|trans" :count="filters.tracker|length">
                     {% for tracker in trackers %}
                         <twig:Ui:Filter:Option name="tracker[]" :value="tracker.id" :checked="tracker.id in filters.tracker">
-                            {{ tracker.name }}
+                            <span class="truncate {{ tracker.active ? '' : 'text-gray-400 line-through' }}" {% if not tracker.active %}title="{{ 'project.settings.tracker.inactive_badge'|trans }}"{% endif %}>{{ tracker.name }}</span>
                             {% if tracker.private %}<twig:ux:icon name="lucide:lock" class="h-3 w-3 shrink-0 text-gray-400" />{% endif %}
                         </twig:Ui:Filter:Option>
                     {% endfor %}

@@ -13,7 +13,9 @@ use function Symfony\Component\Clock\now;
 /**
  * A category of issues within a project, bound to one workflow of the
  * configuration for good. A private tracker hides all of its issues from
- * external users. Position orders the creation form and the menu.
+ * external users. Position orders the creation form and the menu. A
+ * deactivated tracker keeps its issues but takes no new one: it is never
+ * deleted.
  */
 #[ORM\Entity(repositoryClass: TrackerRepository::class)]
 class Tracker
@@ -39,6 +41,9 @@ class Tracker
 
     #[ORM\Column]
     private bool $private = false;
+
+    #[ORM\Column]
+    private bool $active = true;
 
     #[ORM\Column]
     private int $position;
@@ -68,6 +73,11 @@ class Tracker
     public function getName(): string
     {
         return $this->name;
+    }
+
+    public function rename(string $name): void
+    {
+        $this->name = trim($name);
     }
 
     public function getDescription(): ?string
@@ -100,9 +110,29 @@ class Tracker
         $this->private = false;
     }
 
+    public function isActive(): bool
+    {
+        return $this->active;
+    }
+
+    public function activate(): void
+    {
+        $this->active = true;
+    }
+
+    public function deactivate(): void
+    {
+        $this->active = false;
+    }
+
     public function getPosition(): int
     {
         return $this->position;
+    }
+
+    public function moveTo(int $position): void
+    {
+        $this->position = $position;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

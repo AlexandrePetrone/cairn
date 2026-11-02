@@ -23,12 +23,15 @@ final class ConfigValidator
         $violations = [];
 
         foreach ($definition->permissions as $permission => $roleIds) {
-            if (null === Permission::tryFrom($permission)) {
+            $case = Permission::tryFrom($permission);
+            if (null === $case) {
                 $violations[] = new ConfigViolation("permissions.$permission", 'unknown permission.');
             }
             foreach ($roleIds as $roleId) {
                 if (!$definition->hasRole($roleId)) {
                     $violations[] = new ConfigViolation("permissions.$permission", \sprintf('unknown role "%s".', $roleId));
+                } elseif ($case?->internalOnly() && !$definition->role($roleId)->internalOnly) {
+                    $violations[] = new ConfigViolation("permissions.$permission", \sprintf('role "%s" is not internal-only; this permission opens what external users never see.', $roleId));
                 }
             }
         }

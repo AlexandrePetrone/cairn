@@ -38,6 +38,9 @@ final class ChangeTrackerHandler
         if ($tracker->getProject()->getId() !== $project->getId()) {
             throw IssueException::trackerOutsideProject($tracker->getName(), $project->getName());
         }
+        if (!$tracker->isActive()) {
+            throw IssueException::inactiveTracker($tracker->getName());
+        }
         if ($tracker->getId() === $issue->getTracker()->getId()) {
             throw IssueException::sameTracker($tracker->getName());
         }

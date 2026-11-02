@@ -42,6 +42,19 @@ final class ConfigValidatorTest extends TestCase
         ], $this->messages($definition));
     }
 
+    public function testProjectPermissionsGoToInternalOnlyRoles(): void
+    {
+        $definition = DefinitionFactory::definition(permissions: [
+            'project.configure' => ['project_manager', 'client'],
+            'project.manage_members' => ['client'],
+        ]);
+
+        self::assertSame([
+            'permissions.project.configure: role "client" is not internal-only; this permission opens what external users never see.',
+            'permissions.project.manage_members: role "client" is not internal-only; this permission opens what external users never see.',
+        ], $this->messages($definition));
+    }
+
     public function testInitialAndFallbackMustBePlaces(): void
     {
         $workflow = new WorkflowDefinition(

@@ -9,6 +9,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 /**
  * Gives a user a role on a workspace or on a project, exactly one of the
  * two; a user who already holds a role there gets the new one instead.
+ * Without an actor, the administration grants it; with one, the actor
+ * needs `project.manage_members` and grants on a project only.
  * Handled by GrantMembershipHandler.
  */
 #[Assert\Expression(
@@ -23,6 +25,7 @@ final readonly class GrantMembership
         public ?int $projectId,
         #[Assert\NotBlank]
         public string $role,
+        public ?int $actorId = null,
     ) {
     }
 }

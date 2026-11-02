@@ -140,6 +140,14 @@ final readonly class InstanceDefinition
         return isset($this->workflows[$id]);
     }
 
+    /**
+     * @return array<string, string> workflow id => label, in declaration order
+     */
+    public function workflowLabels(): array
+    {
+        return array_map(static fn (WorkflowDefinition $workflow): string => $workflow->label, $this->workflows);
+    }
+
     public function workflow(string $id): WorkflowDefinition
     {
         return $this->workflows[$id] ?? throw new InvalidDefinitionException(\sprintf('Unknown workflow "%s".', $id));

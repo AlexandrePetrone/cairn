@@ -1,4 +1,4 @@
-{# Project level: the issue lists, then the trackers the viewer may see. #}
+{# Project level: the issue lists, the trackers the viewer may see, then the access and the configuration of the project for those who manage them. #}
 {% set route = { workspaceKey: project.workspace.key, projectKey: project.key } %}
 {% set navTrackers = this.trackers %}
 <twig:Ui:Layout:Sidebar :title="project.name">
@@ -12,6 +12,18 @@
             {% for tracker in navTrackers %}
                 <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_issues_tracker', route|merge({ tracker: tracker.id })) }}" icon="kanban" :locked="tracker.private" :active="app.current_route == 'app_project_issues_tracker' and app.current_route_parameters.tracker == tracker.id">{{ tracker.name }}</twig:Ui:Layout:Sidebar:Item>
             {% endfor %}
+        </twig:Ui:Layout:Sidebar:Section>
+    {% endif %}
+    {% set navManagesMembers = is_granted('project.manage_members', project) %}
+    {% set navConfigures = is_granted('project.configure', project) %}
+    {% if navManagesMembers or navConfigures %}
+        <twig:Ui:Layout:Sidebar:Section :label="'nav.project.manage'|trans">
+            {% if navManagesMembers %}
+                <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_access', route) }}" icon="users" :active="app.current_route == 'app_project_access'">{{ 'nav.project.access'|trans }}</twig:Ui:Layout:Sidebar:Item>
+            {% endif %}
+            {% if navConfigures %}
+                <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_settings', route) }}" icon="settings" :active="app.current_route starts with 'app_project_settings'">{{ 'nav.project.settings'|trans }}</twig:Ui:Layout:Sidebar:Item>
+            {% endif %}
         </twig:Ui:Layout:Sidebar:Section>
     {% endif %}
 </twig:Ui:Layout:Sidebar>

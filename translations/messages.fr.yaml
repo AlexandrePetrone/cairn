@@ -148,6 +148,9 @@ nav:
     project:
         issues: Demandes
         trackers: Catégories
+        manage: Projet
+        access: Accès
+        settings: Configuration
     issues:
         all: Toutes
         assigned: Assignées à moi
@@ -342,9 +345,6 @@ admin:
             from: Depuis
             to: Vers
             tracker_count: '{0}aucune catégorie|{1}1 catégorie|]1,Inf[ %count% catégories'
-        diagram:
-            dotted: 'Pointillés : retour à une étape précédente'
-            comment: '💬 : commentaire obligatoire'
         workflow:
             initial: 'Une nouvelle demande commence à l''étape « %place% ».'
             fallback: 'Étape de repli : « %place% ».'
@@ -397,6 +397,61 @@ admin:
         last_admin: Il doit rester au moins un administrateur actif.
         holds_internal_roles: '%name% a des rôles réservés aux internes (%where%) : retirez-les avant de passer cette personne en externe.'
 
+project:
+    settings:
+        title: Configuration
+        subtitle: 'Projet %project% · espace %workspace%'
+        tab:
+            trackers: Catégories
+            general: Général
+        trackers: Catégories
+        save: Enregistrer
+        saved: Modifications enregistrées.
+        name: Nom du projet
+        description: Description pour les clients
+        description_help: Affichée aux clients sur les pages du projet.
+        key_fixed: "Le code %key% fait partie des identifiants des demandes : il ne change pas. L'archivage du projet se fait dans l'administration."
+        tracker:
+            new: Ajouter
+            new_title: Nouvelle catégorie
+            create: Créer la catégorie
+            created: 'Catégorie « %name% » créée.'
+            empty: Aucune catégorie. Créez-en une pour que des demandes puissent être déposées.
+            drag: Glisser pour réordonner
+            issue_count: '{0}aucune demande|{1}1 demande|]1,Inf[ %count% demandes'
+            inactive_badge: Désactivée
+            private_badge: Réservée aux internes
+            order_help: L'ordre est celui du formulaire de création et du menu.
+            moved: Ordre enregistré.
+            name: Nom
+            description: Description pour les clients
+            description_help: Affichée sur la carte de choix à la création d'une demande.
+            workflow: Workflow
+            workflow_help: Il ne change plus une fois la catégorie créée.
+            workflow_fixed: "Choisi à la création de la catégorie, il ne change plus. Ses étapes, ses champs et ses actions sont définis par l'agence dans la configuration."
+            private: Réservée aux internes
+            private_help: Les externes ne voient pas ses demandes et n'en créent pas.
+            active: Accepte de nouvelles demandes
+            active_help: Une catégorie désactivée garde ses demandes mais disparaît du formulaire de création et du menu.
+        refused:
+            not_found: Introuvable.
+            unknown_workflow: "Le workflow « %workflow% » n'existe pas dans la configuration."
+    access:
+        title: Accès
+        intro: "Les rôles détenus sur l'espace %workspace% valent pour tous ses projets. Un rôle accordé ici ne vaut que pour ce projet et ne peut qu'élargir le rôle hérité."
+        inherited: "Hérités de l'espace %workspace%"
+        edit_in_workspace: "Modifier dans l'espace →"
+        no_inherited: "Personne n'a de rôle sur l'espace."
+        direct: Accès du projet
+        direct_help: ajoutés ou élargis ici, valables sur ce projet seulement
+        empty: "Personne n'a de rôle directement sur ce projet."
+        inherits: "hérite « %role% » de l'espace"
+
+workflow:
+    diagram:
+        dotted: 'Pointillés : retour à une étape précédente'
+        comment: '💬 : commentaire obligatoire'
+
 permission:
     issue:
         create:
@@ -427,6 +482,13 @@ permission:
         edit:
             label: Modifier les commentaires des autres
             help: Réécrire ou supprimer le commentaire de quelqu'un d'autre. L'auteur gère toujours le sien.
+    project:
+        configure:
+            label: Configurer le projet
+            help: Changer son nom et sa description, créer, ordonner et désactiver ses catégories.
+        manage_members:
+            label: Gérer les accès du projet
+            help: Accorder, changer et retirer les rôles détenus sur le projet lui-même. Les rôles d'espace restent à l'administration.
 
 field_type:
     text: Texte court

@@ -242,7 +242,20 @@ Rules:
   hold one), a role granted on a project widens the one inherited from
   its workspace, the last active administrator stays one. Keys never
   change once created. Project configuration and memberships seen from
-  a project belong to its manager, in the project zone, not here.
+  a project belong to its manager, in the project zone, not here:
+  `/MD/SPT/settings` (trackers, general settings) and `/MD/SPT/access`,
+  guarded by `project.configure` and `project.manage_members`. They
+  reuse the administration's commands with an optional `actorId`: null
+  is the administration, a set actor is checked by
+  `MessageHandler/Command/ProjectActor` (one call per handler), may
+  act on that project only (never on a workspace membership) and never
+  archives, since an archived project grants nobody the right to bring
+  it back. Both permissions show what external users never see (private
+  trackers, every account of the instance), so the configuration grants
+  them to internal-only roles: `Permission::internalOnly()` says which,
+  `ConfigValidator` refuses the rest. Trackers are never deleted:
+  `UpdateTracker` deactivates one (no new issue, out of the menu) or
+  moves it (`position`).
   The configuration itself is shown read-only under
   `/admin/configuration` (`Controller/Admin/ConfigurationController`,
   its own section of `Layout:AdminNav`): roles and the permission
@@ -445,7 +458,7 @@ Rules:
 - JavaScript is Stimulus only, one small controller per behaviour in
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`,
   `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`,
-  `workflow-diagram`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
+  `workflow-diagram`, `sortable`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
   (`editor` with TipTap, `workflow-diagram` with Mermaid) so that Vite
   splits its imports into chunks only fetched on a page that uses it; write a new one when a component needs it, not before. No
   inline scripts.

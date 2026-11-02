@@ -21,15 +21,19 @@ class TrackerRepository extends ServiceEntityRepository
 
     /**
      * The trackers of a project in display order; private ones only when
-     * asked for, since external users never see them.
+     * asked for, since external users never see them, and deactivated ones
+     * only for the project configuration.
      *
      * @return list<Tracker>
      */
-    public function findByProject(Project $project, bool $includePrivate): array
+    public function findByProject(Project $project, bool $includePrivate, bool $includeInactive = false): array
     {
         $criteria = ['project' => $project];
         if (!$includePrivate) {
             $criteria['private'] = false;
+        }
+        if (!$includeInactive) {
+            $criteria['active'] = true;
         }
 
         return $this->findBy($criteria, ['position' => 'ASC', 'id' => 'ASC']);

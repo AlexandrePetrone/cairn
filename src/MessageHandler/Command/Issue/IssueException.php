@@ -25,6 +25,11 @@ final class IssueException extends \DomainException
         return new self(\sprintf('Tracker "%s" does not belong to project "%s".', $trackerName, $projectName));
     }
 
+    public static function inactiveTracker(string $trackerName): self
+    {
+        return new self(\sprintf('Tracker "%s" is deactivated: it takes no new issue.', $trackerName));
+    }
+
     public static function unknownField(string $fieldId, string $workflowId): self
     {
         return new self(\sprintf('Field "%s" is not used by workflow "%s".', $fieldId, $workflowId));

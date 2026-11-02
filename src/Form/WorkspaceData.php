@@ -14,11 +14,11 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 final class WorkspaceData
 {
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(normalizer: 'trim')]
     #[Assert\Length(max: 120)]
     public ?string $name = null;
 
-    #[Assert\NotBlank(groups: ['creation'])]
+    #[Assert\NotBlank(normalizer: 'trim', groups: ['creation'])]
     #[Assert\Regex(Workspace::KEY_PATTERN, message: 'admin.key_invalid', groups: ['creation'])]
     public ?string $key = null;
 

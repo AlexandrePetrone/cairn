@@ -16,6 +16,7 @@ use App\Tests\Security\AccessFixtures;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\ValidationFailedException;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 /**
  * GrantMembership and RevokeMembership. Test roles, broadest first:
@@ -110,5 +111,44 @@ final class MembershipHandlersTest extends KernelTestCase
 
         self::assertSame([], $this->memberships->findByUser($claire));
         self::assertNull($this->access->roleOn($claire, $this->fixtures->shop), 'the access control forgets it at once');
+    }
+
+    public function testAProjectManagerGrantsAndRevokesOnTheirProjectOnly(): void
+    {
+        $thomas = $this->fixtures->user('thomas@agency.test', internal: true);
+        $this->fixtures->grantOnProject($thomas, $this->fixtures->shop, 'project_manager');
+        $claire = $this->fixtures->user('claire@client.test');
+        $actorId = (int) $thomas->getId();
+
+        $this->commands->dispatch(new GrantMembership((int) $claire->getId(), null, $this->fixtures->shop->getId(), 'client', $actorId));
+        self::assertSame('client', $this->access->roleOn($claire, $this->fixtures->shop));
+
+        foreach ([
+            'a workspace stays the administration\'s' => new GrantMembership((int) $claire->getId(), $this->fixtures->workspace->getId(), null, 'client', $actorId),
+            'another project is not theirs' => new GrantMembership((int) $claire->getId(), null, $this->fixtures->intranet->getId(), 'client', $actorId),
+        ] as $reason => $command) {
+            try {
+                $this->commands->dispatch($command);
+                self::fail($reason);
+            } catch (AccessDeniedException) {
+            }
+        }
+
+        $membership = $this->memberships->findOneBy(['user' => $claire, 'project' => $this->fixtures->shop]);
+        self::assertInstanceOf(Membership::class, $membership);
+        $this->commands->dispatch(new RevokeMembership((int) $membership->getId(), $actorId));
+        self::assertNull($this->access->roleOn($claire, $this->fixtures->shop));
+    }
+
+    public function testWhoDoesNotManageTheMembersGrantsNothing(): void
+    {
+        $nadia = $this->fixtures->user('nadia@agency.test', internal: true);
+        $this->fixtures->grantOnWorkspace($nadia, $this->fixtures->workspace, 'developer');
+        $claire = $this->fixtures->user('claire@client.test');
+        $this->fixtures->grantOnWorkspace($claire, $this->fixtures->workspace, 'client');
+        $membership = $this->memberships->findByUser($claire)[0];
+
+        $this->expectException(AccessDeniedException::class);
+        $this->commands->dispatch(new RevokeMembership((int) $membership->getId(), (int) $nadia->getId()));
     }
 }

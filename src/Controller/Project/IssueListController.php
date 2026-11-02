@@ -110,7 +110,7 @@ final class IssueListController extends AbstractController
             'dimensions' => $dimensions,
             'filters' => $filters,
             'issues' => $this->queries->ask($query),
-            'trackers' => $this->trackers->findByProject($project, includePrivate: $query->viewer->isInternal()),
+            'trackers' => $this->trackers->findByProject($project, includePrivate: $query->viewer->isInternal(), includeInactive: true),
             'members' => \in_array('assignee', $dimensions, true) ? $this->queries->ask(new ListProjectMembers($project)) : [],
             'statuses' => PlaceStatus::cases(),
             'criticalities' => Criticality::cases(),

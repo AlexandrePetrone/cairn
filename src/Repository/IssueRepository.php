@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
+use App\Entity\Project;
 use App\Entity\Tracker;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
@@ -41,6 +42,31 @@ class IssueRepository extends ServiceEntityRepository
             ->setParameter('place', $placeId)
             ->getQuery()
             ->getSingleScalarResult();
+    }
+
+    /**
+     * Number of issues in each tracker of a project, private ones
+     * included: the project configuration is for internal users.
+     *
+     * @return array<int, int> tracker id => issues
+     */
+    public function countByTracker(Project $project): array
+    {
+        /** @var list<array{trackerId: int|string, issues: int|string}> $rows */
+        $rows = $this->createQueryBuilder('i')
+            ->select('IDENTITY(i.tracker) AS trackerId', 'COUNT(i.id) AS issues')
+            ->andWhere('i.project = :project')
+            ->setParameter('project', $project)
+            ->groupBy('i.tracker')
+            ->getQuery()
+            ->getArrayResult();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(int) $row['trackerId']] = (int) $row['issues'];
+        }
+
+        return $counts;
     }
 
     /**

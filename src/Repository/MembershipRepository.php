@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Membership;
+use App\Entity\Project;
 use App\Entity\User;
 use App\Entity\Workspace;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -26,6 +27,25 @@ class MembershipRepository extends ServiceEntityRepository
     public function findByUser(User $user): array
     {
         return $this->findBy(['user' => $user]);
+    }
+
+    /**
+     * The roles granted directly on a project, with their users, by name.
+     *
+     * @return list<Membership>
+     */
+    public function findOnProject(Project $project): array
+    {
+        /* @var list<Membership> */
+        return $this->createQueryBuilder('m')
+            ->addSelect('u')
+            ->join('m.user', 'u')
+            ->andWhere('m.project = :project')
+            ->setParameter('project', $project)
+            ->orderBy('u.lastName')
+            ->addOrderBy('u.firstName')
+            ->getQuery()
+            ->getResult();
     }
 
     /**

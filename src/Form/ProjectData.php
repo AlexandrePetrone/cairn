@@ -17,11 +17,11 @@ final class ProjectData
     #[Assert\NotNull]
     public ?Workspace $workspace = null;
 
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(normalizer: 'trim')]
     #[Assert\Length(max: 120)]
     public ?string $name = null;
 
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(normalizer: 'trim')]
     #[Assert\Regex(Project::KEY_PATTERN, message: 'admin.key_invalid')]
     public ?string $key = null;
 }

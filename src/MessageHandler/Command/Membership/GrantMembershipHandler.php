@@ -9,10 +9,12 @@ use App\Entity\Membership;
 use App\Entity\Project;
 use App\Entity\User;
 use App\Message\Command\Membership\GrantMembership;
+use App\MessageHandler\Command\ProjectActor;
 use App\Repository\MembershipRepository;
 use App\Repository\ProjectRepository;
 use App\Repository\UserRepository;
 use App\Repository\WorkspaceRepository;
+use App\Security\Permission;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -20,7 +22,8 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * The role must exist in the configuration, an internal-only role goes to
  * internal users only, and a role granted on a project must widen the one
  * the user inherits from its workspace: a narrower one would change
- * nothing, the broadest role wins (AccessControl::roleOn).
+ * nothing, the broadest role wins (AccessControl::roleOn). An actor, from
+ * a project, grants on that project only (ProjectActor).
  */
 #[AsMessageHandler(bus: 'command.bus')]
 final class GrantMembershipHandler
@@ -32,6 +35,7 @@ final class GrantMembershipHandler
         private readonly MembershipRepository $memberships,
         private readonly ConfigRegistry $config,
         private readonly EntityManagerInterface $entityManager,
+        private readonly ProjectActor $actor,
     ) {
     }
 
@@ -49,9 +53,11 @@ final class GrantMembershipHandler
 
         if (null !== $command->projectId) {
             $project = $this->projects->find($command->projectId) ?? throw MembershipException::notFound('Project', $command->projectId);
+            $this->actor->denyUnlessGranted($command->actorId, Permission::ProjectManageMembers, $project);
             $this->assertWidensInherited($user, $project, $command->role);
             $membership = $this->memberships->findOneBy(['user' => $user, 'project' => $project]) ?? Membership::onProject($user, $project, $command->role);
         } else {
+            $this->actor->denyUnlessGranted($command->actorId, Permission::ProjectManageMembers, null);
             $workspaceId = (int) $command->workspaceId;
             $workspace = $this->workspaces->find($workspaceId) ?? throw MembershipException::notFound('Workspace', $workspaceId);
             $membership = $this->memberships->findOneBy(['user' => $user, 'workspace' => $workspace]) ?? Membership::onWorkspace($user, $workspace, $command->role);

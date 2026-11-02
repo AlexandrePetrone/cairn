@@ -109,6 +109,8 @@ final class DefinitionFactory
                 Permission::CommentCreate->value => ['project_manager', 'developer', 'client'],
                 Permission::CommentSetPrivate->value => ['project_manager', 'developer'],
                 Permission::CommentEdit->value => ['project_manager'],
+                Permission::ProjectConfigure->value => ['project_manager'],
+                Permission::ProjectManageMembers->value => ['project_manager'],
             ],
             fields: $fields ?? self::fields(),
             links: [

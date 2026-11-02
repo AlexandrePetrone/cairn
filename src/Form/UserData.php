@@ -18,15 +18,15 @@ final class UserData
     public const string ADMIN = 'admin';
     public const string EXTERNAL = 'external';
 
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(normalizer: 'trim')]
     #[Assert\Email]
     public ?string $email = null;
 
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(normalizer: 'trim')]
     #[Assert\Length(max: 80)]
     public ?string $firstName = null;
 
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(normalizer: 'trim')]
     #[Assert\Length(max: 80)]
     public ?string $lastName = null;
 

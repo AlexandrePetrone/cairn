@@ -1,0 +1,11 @@
+{% extends 'project/settings/base.html.twig' %}
+
+{% block settings_content %}
+    {{ form_start(form, { attr: { class: 'max-w-2xl rounded-lg border border-gray-200 bg-white p-4 space-y-4' } }) }}
+        {{ form_errors(form) }}
+        {{ form_row(form.name) }}
+        <p class="text-xs text-gray-500">{{ 'project.settings.key_fixed'|trans({ '%key%': project.issuePrefix }) }}</p>
+        {{ form_row(form.description) }}
+        <twig:Ui:Button type="submit" variant="primary" size="lg">{{ 'project.settings.save'|trans }}</twig:Ui:Button>
+    {{ form_end(form) }}
+{% endblock %}

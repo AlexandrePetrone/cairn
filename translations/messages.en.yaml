@@ -148,6 +148,9 @@ nav:
     project:
         issues: Issues
         trackers: Categories
+        manage: Project
+        access: Access
+        settings: Configuration
     issues:
         all: All
         assigned: Assigned to me
@@ -342,9 +345,6 @@ admin:
             from: From
             to: To
             tracker_count: '{0}no tracker|{1}1 tracker|]1,Inf[ %count% trackers'
-        diagram:
-            dotted: 'Dotted: back to an earlier place'
-            comment: '💬: comment required'
         workflow:
             initial: 'A new issue starts on "%place%".'
             fallback: 'Fallback place: "%place%".'
@@ -397,6 +397,61 @@ admin:
         last_admin: At least one active administrator must remain.
         holds_internal_roles: '%name% holds roles for internal users only (%where%): revoke them before making this person external.'
 
+project:
+    settings:
+        title: Configuration
+        subtitle: 'Project %project% · workspace %workspace%'
+        tab:
+            trackers: Trackers
+            general: General
+        trackers: Trackers
+        save: Save
+        saved: Changes saved.
+        name: Project name
+        description: Description for clients
+        description_help: Shown to client users on the project pages.
+        key_fixed: 'The key %key% is part of the issue identifiers: it does not change. Archiving the project is done in the administration.'
+        tracker:
+            new: Add
+            new_title: New tracker
+            create: Create the tracker
+            created: 'Tracker "%name%" created.'
+            empty: No tracker yet. Create one so that issues can be filed.
+            drag: Drag to reorder
+            issue_count: '{0}no issue|{1}1 issue|]1,Inf[ %count% issues'
+            inactive_badge: Deactivated
+            private_badge: Internal users only
+            order_help: The order is the one of the creation form and the menu.
+            moved: Order saved.
+            name: Name
+            description: Description for clients
+            description_help: Shown on the card clients pick when creating an issue.
+            workflow: Workflow
+            workflow_help: It never changes once the tracker is created.
+            workflow_fixed: Chosen when the tracker was created, it does not change. Its places, fields and actions are defined by the agency in the configuration.
+            private: Internal users only
+            private_help: External users neither see its issues nor create any.
+            active: Takes new issues
+            active_help: A deactivated tracker keeps its issues but disappears from the creation form and the menu.
+        refused:
+            not_found: Not found.
+            unknown_workflow: 'The workflow "%workflow%" does not exist in the configuration.'
+    access:
+        title: Access
+        intro: 'Roles held on the workspace %workspace% apply to all of its projects. A role granted here applies to this project only and may only widen the inherited one.'
+        inherited: 'Inherited from the workspace %workspace%'
+        edit_in_workspace: Edit in the workspace →
+        no_inherited: Nobody holds a role on the workspace.
+        direct: Access to the project
+        direct_help: granted or widened here, valid on this project only
+        empty: Nobody holds a role on this project directly.
+        inherits: 'inherits "%role%" from the workspace'
+
+workflow:
+    diagram:
+        dotted: 'Dotted: back to an earlier place'
+        comment: '💬: comment required'
+
 permission:
     issue:
         create:
@@ -427,6 +482,13 @@ permission:
         edit:
             label: Edit the comments of others
             help: Rewrite or delete someone else's comment. Authors always handle their own.
+    project:
+        configure:
+            label: Configure the project
+            help: Change its name and description, create, arrange and deactivate its trackers.
+        manage_members:
+            label: Manage access to the project
+            help: Grant, change and revoke the roles held on the project itself. Workspace roles stay with the administration.
 
 field_type:
     text: Short text

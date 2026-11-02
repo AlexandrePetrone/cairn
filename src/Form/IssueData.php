@@ -15,11 +15,11 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 final class IssueData
 {
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(normalizer: 'trim')]
     #[Assert\Length(max: 200)]
     public ?string $title = null;
 
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(normalizer: 'trim')]
     public ?string $description = null;
 
     public Criticality $criticality = Criticality::DEFAULT;

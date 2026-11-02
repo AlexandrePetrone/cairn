@@ -43,6 +43,9 @@ final class CreateIssueHandler
         if ($tracker->getProject()->getId() !== $project->getId()) {
             throw IssueException::trackerOutsideProject($tracker->getName(), $project->getName());
         }
+        if (!$tracker->isActive()) {
+            throw IssueException::inactiveTracker($tracker->getName());
+        }
 
         $this->support->denyUnless($this->access->isGranted($actor, Permission::IssueCreate, $project), 'create issues in this project');
         $this->support->denyUnless($actor->isInternal() || !$tracker->isPrivate(), 'use this tracker');

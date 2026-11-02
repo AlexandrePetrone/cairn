@@ -82,6 +82,44 @@ final class GrantsTest extends KernelTestCase
         self::assertCount(2, self::getContainer()->get(MembershipRepository::class)->findByUser($nadia));
     }
 
+    public function testTheManagerOfAProjectWidensAnInheritedRoleOnIt(): void
+    {
+        $paul = $this->user('paul.roussel@maison-dupont.test');
+        $component = $this->onProject('thomas.girard@cairn.test');
+        $render = (string) $component->render();
+        self::assertStringContainsString('Paul Roussel', $render, 'inherited from Maison Dupont');
+        self::assertStringContainsString('Nadia Benali', $render, 'held on the shop');
+
+        $render = (string) $component->set('newUserId', $paul->getId())->render();
+        $offered = explode('data-model="newRole"', $render)[1];
+        self::assertStringContainsString('<option value="client"', $offered);
+        self::assertStringNotContainsString('<option value="client_readonly"', $offered, 'what he inherits widens nothing');
+
+        $component->set('newRole', 'client')->call('grant');
+
+        $membership = self::getContainer()->get(MembershipRepository::class)->findOneBy(['user' => $paul, 'project' => $this->scene->shop]);
+        self::assertSame('client', $membership?->getRole());
+        self::assertStringContainsString('hérite « Client (lecture) »', (string) $component->render());
+    }
+
+    public function testOnAProjectTheViewerActsWithTheirOwnRights(): void
+    {
+        $lea = $this->user('lea.fontaine@cairn.test');
+        $membership = self::getContainer()->get(MembershipRepository::class)->findOneBy(['user' => $lea, 'project' => $this->scene->shop]);
+        self::assertNotNull($membership);
+        $component = $this->onProject('nadia.benali@cairn.test');
+
+        $component->call('confirmRevoke', ['membership' => $membership->getId()])->call('revoke');
+
+        self::assertStringContainsString('role="alert"', (string) $component->render());
+        self::assertNotNull(self::getContainer()->get(MembershipRepository::class)->find((int) $membership->getId()), 'a developer revokes nothing');
+    }
+
+    private function onProject(string $viewer): TestLiveComponent
+    {
+        return $this->createLiveComponent('Membership:Grants', ['project' => $this->scene->shop])->actingAs($this->user($viewer));
+    }
+
     private function onWorkspace(): TestLiveComponent
     {
         return $this->createLiveComponent('Membership:Grants', ['workspace' => $this->scene->dupont])->actingAs($this->user('julie.admin@cairn.test'));

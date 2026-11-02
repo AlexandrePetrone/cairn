@@ -8,7 +8,7 @@
         {% for status in ['open', 'in_progress', 'waiting', 'closed'] %}
             <span class="inline-flex items-center gap-1.5"><twig:Ui:Status:Dot :status="status" size="md" />{{ ('status.' ~ status)|trans }}</span>
         {% endfor %}
-        <span>{{ 'admin.configuration.diagram.dotted'|trans }}</span>
-        <span>{{ 'admin.configuration.diagram.comment'|trans }}</span>
+        <span>{{ 'workflow.diagram.dotted'|trans }}</span>
+        <span>{{ 'workflow.diagram.comment'|trans }}</span>
     </p>
 </div>

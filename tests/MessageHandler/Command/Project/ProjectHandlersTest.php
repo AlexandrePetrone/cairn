@@ -13,6 +13,7 @@ use App\Tests\KernelHelpers;
 use App\Tests\Security\AccessFixtures;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 /**
  * CreateProject and UpdateProject. The fixtures hold MD
@@ -28,6 +29,7 @@ final class ProjectHandlersTest extends KernelTestCase
     protected function setUp(): void
     {
         self::bootKernel();
+        self::applyConfiguration();
         $this->commands = self::commandBus();
         $this->fixtures = new AccessFixtures(self::getContainer()->get(EntityManagerInterface::class));
     }
@@ -67,5 +69,28 @@ final class ProjectHandlersTest extends KernelTestCase
 
         $this->commands->dispatch(new UpdateProject($projectId, archived: false));
         self::assertFalse($this->fixtures->shop->isReadOnly());
+    }
+
+    public function testAProjectManagerChangesTheNameAndDescriptionButDoesNotArchive(): void
+    {
+        $thomas = $this->fixtures->user('thomas@agency.test', internal: true);
+        $this->fixtures->grantOnWorkspace($thomas, $this->fixtures->workspace, 'project_manager');
+        $projectId = (int) $this->fixtures->shop->getId();
+
+        $this->commands->dispatch(new UpdateProject($projectId, 'Boutique', 'Le site public.', actorId: (int) $thomas->getId()));
+        self::assertSame('Boutique', $this->fixtures->shop->getName());
+        self::assertSame('Le site public.', $this->fixtures->shop->getDescription());
+
+        $this->expectException(AccessDeniedException::class);
+        $this->commands->dispatch(new UpdateProject($projectId, archived: true, actorId: (int) $thomas->getId()));
+    }
+
+    public function testWhoDoesNotConfigureTheProjectChangesNothing(): void
+    {
+        $nadia = $this->fixtures->user('nadia@agency.test', internal: true);
+        $this->fixtures->grantOnWorkspace($nadia, $this->fixtures->workspace, 'developer');
+
+        $this->expectException(AccessDeniedException::class);
+        $this->commands->dispatch(new UpdateProject((int) $this->fixtures->shop->getId(), 'Boutique', actorId: (int) $nadia->getId()));
     }
 }
