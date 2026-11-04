@@ -19,6 +19,7 @@ final readonly class UpdateIssue
     /**
      * @param array<string, mixed>|null $fields     field id => new value, null to empty it; the fields not listed keep their value
      * @param int|null                  $assigneeId the new assignee, NOBODY to unassign
+     * @param int|null                  $releaseId  an open release of the project, NOBODY to take the issue out of its release
      */
     public function __construct(
         public int $actorId,
@@ -33,6 +34,8 @@ final readonly class UpdateIssue
         public ?int $assigneeId = null,
         public ?Criticality $criticality = null,
         public ?bool $private = null,
+        #[Assert\PositiveOrZero]
+        public ?int $releaseId = null,
     ) {
     }
 }

@@ -61,11 +61,13 @@ return new InstanceDefinition(
         Permission::IssueAssign->value => $internal,
         Permission::IssueSetCriticality->value => $internalAndClient,
         Permission::IssueSetPrivate->value => $internal,
+        Permission::IssueSetRelease->value => $internal,
         Permission::CommentCreate->value => $internalAndClient,
         Permission::CommentSetPrivate->value => $internal,
         Permission::CommentEdit->value => $managers,
         Permission::ProjectConfigure->value => $managers,
         Permission::ProjectManageMembers->value => $managers,
+        Permission::ReleaseManage->value => $managers,
     ],
 
     // Global fields; each workflow picks the ones it uses.

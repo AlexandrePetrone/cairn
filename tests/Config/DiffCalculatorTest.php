@@ -46,8 +46,10 @@ final class DiffCalculatorTest extends TestCase
             '+ permissions.issue.edit: [project_manager]',
             '+ permissions.issue.set_criticality: [project_manager, developer, client]',
             '+ permissions.issue.set_private: [project_manager]',
+            '+ permissions.issue.set_release: [project_manager, developer]',
             '+ permissions.project.configure: [project_manager]',
             '+ permissions.project.manage_members: [project_manager]',
+            '+ permissions.release.manage: [project_manager]',
         ], $this->calculator->between(null, DefinitionFactory::definition()));
     }
 

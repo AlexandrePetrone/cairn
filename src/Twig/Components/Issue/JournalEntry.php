@@ -13,7 +13,7 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
  * One line of the history of an issue: who did what, when. The entry
  * keeps ids and labels of the time; the sentence is built here from what
  * the type recorded, with the values translated when they are ours
- * (criticality, visibility, "nobody").
+ * (criticality, visibility, "nobody", no release).
  */
 #[AsTwigComponent('Issue:JournalEntry')]
 final class JournalEntry
@@ -79,7 +79,7 @@ final class JournalEntry
         }
 
         $shown = fn (string $key): string => match (true) {
-            !isset($data[$key]) => $this->translator->trans('issue.show.nobody'),
+            !isset($data[$key]) => $this->translator->trans('release' === $field ? 'issue.show.no_release' : 'issue.show.nobody'),
             'criticality' === $field => $this->translator->trans('criticality.'.$this->text($data, $key)),
             'visibility' === $field => $this->translator->trans('issue.show.'.('private' === $data[$key] ? 'hidden' : 'visible').'_externals'),
             default => $this->text($data, $key),

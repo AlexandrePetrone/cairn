@@ -215,7 +215,8 @@ Rules:
   order is `Repository/IssueOrder`: the group first, then the sorted
   column (`IssueSort`), then the default order (status, criticality,
   latest activity). A grouped list (`IssueGrouping`: place, criticality,
-  assignee, project across projects) gets the total of each group over
+  assignee, project across projects, release in a project that has
+  some) gets the total of each group over
   every page (`Pagination::$groupTotals`); the component cuts its page
   into groups (`IssueGroup::split()`). The key of a group is written in
   SQL (`IssueOrder::groupKey()`) and in PHP (`IssueGrouping::keyOf()`),
@@ -288,6 +289,18 @@ Rules:
   transaction. Whatever may fail independently, such as mail, is then
   re-dispatched as an asynchronous Messenger message with
   `DispatchAfterCurrentBusStamp` so it only leaves after commit.
+- **Releases are optional, without a setting.** A `Release` belongs to
+  one project, its name unique there; `ReleaseStatus` (open, delivered,
+  abandoned, in `Entity/Enum/`) is a property of `UpdateRelease`, and
+  only an open release takes issues, those of a delivered or abandoned
+  one staying in it. An issue is in one release at most, set by
+  `UpdateIssue::$releaseId` (`issue.set_release`) and journaled with the
+  names of the time. A project without any release shows none of it:
+  no Release property on the issue, no filter nor grouping in its lists,
+  and the Releases page (`/MD/SPT/releases`, `Project/ReleaseController`)
+  is in its navigation only for whoever may create the first
+  (`release.manage`). Clients read the releases, their progress counted
+  over the issues they see (`ListReleases`, through `Visibility`).
 - **The administration is guarded at its door.** Everything under
   `/admin` requires `ROLE_ADMIN` (`access_control` in `security.yaml`,
   and `#[IsGranted('ROLE_ADMIN')]` on each `Controller/Admin/`

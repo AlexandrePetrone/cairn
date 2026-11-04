@@ -7,8 +7,10 @@ namespace App\MessageHandler\Command\Issue;
 use App\Config\ConfigRegistry;
 use App\Entity\Issue;
 use App\Entity\JournalEntry;
+use App\Entity\Release;
 use App\Entity\User;
 use App\Message\Command\Issue\UpdateIssue;
+use App\Repository\ReleaseRepository;
 use App\Security\AccessControl;
 use App\Security\Permission;
 use Doctrine\ORM\EntityManagerInterface;
@@ -29,6 +31,7 @@ final class UpdateIssueHandler
         private readonly IssueHandlerSupport $support,
         private readonly AccessControl $access,
         private readonly ConfigRegistry $config,
+        private readonly ReleaseRepository $releases,
         private readonly EntityManagerInterface $entityManager,
     ) {
     }
@@ -56,6 +59,11 @@ final class UpdateIssueHandler
             if (!$command->private && $issue->getTracker()->isPrivate()) {
                 throw IssueException::privateTracker($issue->getTracker()->getName());
             }
+        }
+        $release = null;
+        if (null !== $command->releaseId) {
+            $this->support->denyUnless($this->access->isGranted($actor, Permission::IssueSetRelease, $project), 'schedule issues in releases');
+            $release = UpdateIssue::NOBODY === $command->releaseId ? null : $this->release($issue, $command->releaseId);
         }
 
         if (null !== $command->title && $issue->getTitle() !== trim($command->title)) {
@@ -86,6 +94,11 @@ final class UpdateIssueHandler
             $previous = $issue->getCriticality();
             $issue->setCriticality($command->criticality);
             $this->journal(JournalEntry::changed($issue, $actor, 'criticality', $previous->value, $command->criticality->value));
+        }
+        if (null !== $command->releaseId && $issue->getRelease() !== $release) {
+            $previous = $issue->getRelease();
+            $issue->scheduleIn($release);
+            $this->journal(JournalEntry::changed($issue, $actor, 'release', $previous?->getName(), $release?->getName()));
         }
         if (null !== $command->private && $issue->isPrivate() !== $command->private) {
             $command->private ? $issue->makePrivate() : $issue->makePublic();
@@ -124,6 +137,24 @@ final class UpdateIssueHandler
         }
 
         return $changes;
+    }
+
+    /**
+     * A release of the issue's project that still takes issues; the one
+     * it is already in is accepted as it is, so that sending it back
+     * unchanged refuses nothing.
+     */
+    private function release(Issue $issue, int $releaseId): Release
+    {
+        $release = $this->releases->find($releaseId) ?? throw IssueException::notFound('Release', $releaseId);
+        if ($release->getProject() !== $issue->getProject()) {
+            throw IssueException::releaseOutsideProject($release->getName(), $issue->getProject()->getName());
+        }
+        if (!$release->isOpen() && $issue->getRelease() !== $release) {
+            throw IssueException::closedRelease($release->getName());
+        }
+
+        return $release;
     }
 
     private function journal(JournalEntry $entry): void

@@ -60,6 +60,17 @@
             {% endfor %}
         </twig:Ui:Filter:Menu>
     {% endif %}
+    {% if listComponent.offersReleases %}
+        <twig:Ui:Filter:Menu :label="'filter.release'|trans" :count="releases|length">
+            <twig:Ui:Filter:Option model="releases" value="0" :checked="0 in releases">{{ 'issue.list.no_release'|trans }}</twig:Ui:Filter:Option>
+            {% for listRelease in listComponent.releaseChoices %}
+                <twig:Ui:Filter:Option model="releases" :value="listRelease.id" :checked="listRelease.id in releases">
+                    <span class="truncate font-mono text-xs {{ listRelease.open ? '' : 'text-gray-400' }}">{{ listRelease.name }}</span>
+                    {% if not listRelease.open %}<span class="text-xs text-gray-400">{{ ('release.status.' ~ listRelease.status.value)|trans }}</span>{% endif %}
+                </twig:Ui:Filter:Option>
+            {% endfor %}
+        </twig:Ui:Filter:Menu>
+    {% endif %}
     <twig:Ui:Filter:Search :value="q" model="debounce(300)|q" class="w-48 xl:w-60" />
     {% if listComponent.hasFilters %}
         <button type="button" class="text-xs text-indigo-600 hover:underline" data-action="live#action" data-live-action-param="clearFilters">{{ 'filter.clear'|trans }}</button>

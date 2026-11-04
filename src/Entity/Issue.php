@@ -67,6 +67,9 @@ class Issue implements HasPlace
     #[ORM\ManyToOne]
     private ?User $assignee = null;
 
+    #[ORM\ManyToOne]
+    private ?Release $release = null;
+
     #[ORM\Column]
     private bool $private = false;
 
@@ -198,6 +201,20 @@ class Issue implements HasPlace
      * Hidden from external users, either by its own flag or because its
      * tracker is private.
      */
+    public function getRelease(): ?Release
+    {
+        return $this->release;
+    }
+
+    /**
+     * Schedules the issue in a release of its project, or in none.
+     */
+    public function scheduleIn(?Release $release): void
+    {
+        $this->release = $release;
+        $this->touch();
+    }
+
     public function isPrivate(): bool
     {
         return $this->private || $this->tracker->isPrivate();

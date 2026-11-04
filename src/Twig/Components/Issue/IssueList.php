@@ -7,6 +7,7 @@ namespace App\Twig\Components\Issue;
 use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
 use App\Entity\Project;
+use App\Entity\Release;
 use App\Entity\Tracker;
 use App\Entity\User;
 use App\Message\Query\Issue\IssueGrouping;
@@ -17,6 +18,7 @@ use App\Message\Query\Project\ListVisibleProjects;
 use App\Message\Query\Project\ProjectSummary;
 use App\Message\QueryBus;
 use App\Repository\Pagination;
+use App\Repository\ReleaseRepository;
 use App\Repository\TrackerRepository;
 use App\Security\Viewer;
 use App\Workflow\PlaceCatalog;
@@ -49,7 +51,7 @@ final class IssueList
 {
     use DefaultActionTrait;
 
-    public const array DIMENSIONS = ['place', 'project', 'tracker', 'criticality', 'assignee'];
+    public const array DIMENSIONS = ['place', 'project', 'tracker', 'criticality', 'assignee', 'release'];
 
     #[LiveProp]
     public ?Project $project = null;
@@ -98,6 +100,10 @@ final class IssueList
     #[LiveProp(writable: true, url: true, onUpdated: 'restart')]
     public array $assignees = [];
 
+    /** @var list<int|string> release ids, 0 for the issues in no release */
+    #[LiveProp(writable: true, url: true, onUpdated: 'restart')]
+    public array $releases = [];
+
     /** @var list<string> Criticality values */
     #[LiveProp(writable: true, url: true, onUpdated: 'restart')]
     public array $criticality = [];
@@ -133,13 +139,16 @@ final class IssueList
     public array $selected = [];
 
     /** The props bound to the query string, which the address of the list carries. */
-    private const array URL_PROPS = ['places', 'projects', 'trackers', 'assignees', 'criticality', 'q', 'closed', 'page', 'sort', 'order', 'group'];
+    private const array URL_PROPS = ['places', 'projects', 'trackers', 'assignees', 'releases', 'criticality', 'q', 'closed', 'page', 'sort', 'order', 'group'];
 
     /** @var Pagination<Issue>|null read once per render */
     private ?Pagination $issues = null;
 
     /** @var list<Tracker>|null read once per render */
     private ?array $projectTrackers = null;
+
+    /** @var list<Release>|null read once per render */
+    private ?array $projectReleases = null;
 
     /** @var list<PlaceChoice>|null read once per render */
     private ?array $placeChoices = null;
@@ -148,6 +157,7 @@ final class IssueList
         private readonly QueryBus $queries,
         private readonly Viewer $viewer,
         private readonly TrackerRepository $trackerRepository,
+        private readonly ReleaseRepository $releaseRepository,
         private readonly UrlGeneratorInterface $urls,
         private readonly RequestStack $requests,
         private readonly PlaceCatalog $placeCatalog,
@@ -176,6 +186,7 @@ final class IssueList
         $this->projects = self::ids($this->projects);
         $this->trackers = self::ids($this->trackers);
         $this->assignees = self::ids($this->assignees, withZero: true);
+        $this->releases = self::ids($this->releases, withZero: true);
         $this->selected = self::ids($this->selected);
         $this->page = max(1, $this->page);
         $this->sort = $this->sortColumn()->value ?? '';
@@ -222,6 +233,7 @@ final class IssueList
             tracker: null !== $this->tracker ? [(int) $this->tracker->getId()] : ($this->offers('tracker') ? self::ids($this->trackers) : []),
             assignee: $this->offers('assignee') ? self::ids($this->assignees, withZero: true) : [],
             criticality: self::criticalities($this->criticality),
+            release: $this->offersReleases() ? self::ids($this->releases, withZero: true) : [],
             q: $this->q,
             closed: $this->closed,
             page: $this->page,
@@ -249,7 +261,8 @@ final class IssueList
 
     /**
      * What the list can group by: the project only across projects, the
-     * assignee unless the list is the viewer's own.
+     * assignee unless the list is the viewer's own, the release in a
+     * project that has some.
      *
      * @return list<IssueGrouping>
      */
@@ -258,6 +271,7 @@ final class IssueList
         return array_values(array_filter(IssueGrouping::cases(), fn (IssueGrouping $grouping): bool => match ($grouping) {
             IssueGrouping::Project => $this->showProject,
             IssueGrouping::Assignee => null === $this->assigneeId,
+            IssueGrouping::Release => [] !== $this->projectReleases(),
             default => true,
         }));
     }
@@ -309,9 +323,41 @@ final class IssueList
         };
     }
 
+    /**
+     * The label of a release group, for its header; the release is read
+     * from the project's, so a group header costs no query.
+     */
+    public function releaseLabel(string $key): ?string
+    {
+        foreach ($this->projectReleases() as $release) {
+            if ((string) $release->getId() === $key) {
+                return $release->getName();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The release filter is offered on the lists of a project that has
+     * releases, when the page offers it.
+     */
+    public function offersReleases(): bool
+    {
+        return $this->offers('release') && [] !== $this->projectReleases();
+    }
+
+    /**
+     * @return list<Release>
+     */
+    public function getReleaseChoices(): array
+    {
+        return $this->offersReleases() ? $this->projectReleases() : [];
+    }
+
     public function hasFilters(): bool
     {
-        return [] !== $this->places || [] !== $this->projects || [] !== $this->trackers || [] !== $this->assignees
+        return [] !== $this->places || [] !== $this->projects || [] !== $this->trackers || [] !== $this->assignees || [] !== $this->releases
             || [] !== $this->criticality || '' !== trim($this->q) || $this->closed;
     }
 
@@ -389,7 +435,7 @@ final class IssueList
     #[LiveAction]
     public function clearFilters(): void
     {
-        $this->places = $this->projects = $this->trackers = $this->assignees = $this->criticality = [];
+        $this->places = $this->projects = $this->trackers = $this->assignees = $this->releases = $this->criticality = [];
         $this->q = '';
         $this->closed = false;
         $this->restart();
@@ -503,6 +549,16 @@ final class IssueList
     private function projectTrackers(): array
     {
         return $this->projectTrackers ??= null === $this->project ? [] : $this->trackerRepository->findByProject($this->project, includePrivate: $this->viewer->get()->isInternal(), includeInactive: true);
+    }
+
+    /**
+     * The releases of the project, open ones first.
+     *
+     * @return list<Release>
+     */
+    private function projectReleases(): array
+    {
+        return $this->projectReleases ??= null === $this->project ? [] : $this->releaseRepository->findByProject($this->project);
     }
 
     /**

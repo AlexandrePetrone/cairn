@@ -1,0 +1,6 @@
+{# Moves `release` to `status` (delivered, abandoned, open), with the button `variant`. #}
+<form method="post" action="{{ path('app_project_release_status', { workspaceKey: release.project.workspace.key, projectKey: release.project.key, release: release.id }) }}">
+    <input type="hidden" name="_token" value="{{ csrf_token('submit') }}" data-controller="csrf-protection">
+    <input type="hidden" name="status" value="{{ status }}">
+    <twig:Ui:Button type="submit" size="sm" :variant="variant">{{ ('release.to_status.' ~ status)|trans }}</twig:Ui:Button>
+</form>

@@ -8,7 +8,9 @@ use App\Entity\Enum\Criticality;
 use App\Entity\Enum\JournalEntryType;
 use App\Entity\Issue;
 use App\Entity\JournalEntry;
+use App\Entity\Release;
 use App\Message\Command\Issue\UpdateIssue;
+use App\Message\Command\Release\CreateRelease;
 use App\Message\CommandBus;
 use App\MessageHandler\Command\Issue\IssueException;
 use App\Tests\KernelHelpers;
@@ -21,7 +23,8 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
  * UpdateIssue. Test workflow `bug`: environment (select, required) and url
  * fields; everyone holds issue.edit. Test permissions: issue.assign for
  * managers and developers, issue.set_criticality for everyone,
- * issue.set_private for managers only.
+ * issue.set_private for managers only, issue.set_release for managers
+ * and developers, release.manage for managers.
  */
 final class UpdateIssueHandlerTest extends KernelTestCase
 {
@@ -253,6 +256,67 @@ final class UpdateIssueHandlerTest extends KernelTestCase
         }
 
         self::assertSame('Export CSV vide', $issue->getTitle(), 'checked before anything changes');
+    }
+
+    public function testAnIssueIsScheduledInAReleaseThenTakenOut(): void
+    {
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+        $release = $this->release('2.5.0');
+        $developer = (int) $this->fixtures->developer->getId();
+
+        $this->commands->dispatch(new UpdateIssue($developer, $issue->getKey(), releaseId: $release->getId()));
+        self::assertSame($release, $issue->getRelease());
+        self::assertSame(['field' => 'release', 'from' => null, 'to' => '2.5.0'], $this->lastEntry($issue, JournalEntryType::Changed)->getData());
+
+        $this->commands->dispatch(new UpdateIssue($developer, $issue->getKey(), releaseId: UpdateIssue::NOBODY));
+        self::assertNull($issue->getRelease());
+        self::assertSame(['field' => 'release', 'from' => '2.5.0', 'to' => null], $this->lastEntry($issue, JournalEntryType::Changed)->getData());
+    }
+
+    public function testAClientMayNotScheduleAnIssue(): void
+    {
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+        $release = $this->release('2.5.0');
+
+        $this->expectException(AccessDeniedException::class);
+        $this->commands->dispatch(new UpdateIssue((int) $this->fixtures->client->getId(), $issue->getKey(), releaseId: $release->getId()));
+    }
+
+    public function testTheReleaseBelongsToTheProjectOfTheIssue(): void
+    {
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+        $release = $this->commands->dispatch(new CreateRelease((int) $this->fixtures->manager->getId(), (int) $this->fixtures->access->intranet->getId(), '1.0.0'));
+        \assert($release instanceof Release);
+
+        $this->expectException(IssueException::class);
+        $this->expectExceptionMessage('does not belong');
+        $this->commands->dispatch(new UpdateIssue((int) $this->fixtures->manager->getId(), $issue->getKey(), releaseId: $release->getId()));
+    }
+
+    public function testADeliveredReleaseTakesNoNewIssueButKeepsItsOwn(): void
+    {
+        $manager = (int) $this->fixtures->manager->getId();
+        $scheduled = $this->fixtures->createIssue($this->fixtures->client);
+        $other = $this->fixtures->createIssue($this->fixtures->client, title: 'Typo');
+        $release = $this->release('2.4.0');
+        $this->commands->dispatch(new UpdateIssue($manager, $scheduled->getKey(), releaseId: $release->getId()));
+        $release->deliver();
+        $this->entityManager->flush();
+
+        $this->commands->dispatch(new UpdateIssue($manager, $scheduled->getKey(), releaseId: $release->getId(), criticality: Criticality::High));
+        self::assertSame($release, $scheduled->getRelease(), 'sending its release back unchanged refuses nothing');
+
+        $this->expectException(IssueException::class);
+        $this->expectExceptionMessage('no longer open');
+        $this->commands->dispatch(new UpdateIssue($manager, $other->getKey(), releaseId: $release->getId()));
+    }
+
+    private function release(string $name): Release
+    {
+        $release = $this->commands->dispatch(new CreateRelease((int) $this->fixtures->manager->getId(), (int) $this->fixtures->access->shop->getId(), $name));
+        \assert($release instanceof Release);
+
+        return $release;
     }
 
     private function lastEntry(Issue $issue, JournalEntryType $type): JournalEntry

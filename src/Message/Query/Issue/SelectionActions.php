@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Message\Query\Issue;
 
 use App\Entity\Issue;
+use App\Entity\Release;
 use App\Entity\User;
 
 /**
@@ -18,6 +19,7 @@ final readonly class SelectionActions
      * @param list<Issue>               $issues
      * @param list<SelectionTransition> $transitions common to every issue
      * @param list<User>                $assignees   members of every project of the selection
+     * @param list<Release>             $releases    the open releases of the project, when the selection holds one project
      */
     public function __construct(
         public array $issues,
@@ -27,6 +29,7 @@ final readonly class SelectionActions
         public bool $canComment = false,
         public bool $canCommentPrivately = false,
         public bool $canSetCriticality = false,
+        public array $releases = [],
     ) {
     }
 
@@ -46,7 +49,7 @@ final readonly class SelectionActions
 
     /**
      * Whether the action, as the selection page names it, is offered:
-     * `transition:<id>`, `assign`, `comment` or `criticality`.
+     * `transition:<id>`, `assign`, `comment`, `criticality` or `release`.
      */
     public function offers(string $action): bool
     {
@@ -58,13 +61,14 @@ final readonly class SelectionActions
             'assign' => $this->canAssign,
             'comment' => $this->canComment,
             'criticality' => $this->canSetCriticality,
+            'release' => [] !== $this->releases,
             default => false,
         };
     }
 
     public function hasAnything(): bool
     {
-        return [] !== $this->transitions || $this->canAssign || $this->canComment || $this->canSetCriticality;
+        return [] !== $this->transitions || $this->canAssign || $this->canComment || $this->canSetCriticality || [] !== $this->releases;
     }
 
     /**

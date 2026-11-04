@@ -10,8 +10,10 @@ use App\Config\Definition\WorkflowDefinition;
 use App\Config\Sync\ConfigSynchronizer;
 use App\Entity\Attachment;
 use App\Entity\Enum\Criticality;
+use App\Entity\Enum\ReleaseStatus;
 use App\Entity\Issue;
 use App\Entity\Project;
+use App\Entity\Release;
 use App\Entity\Tracker;
 use App\Entity\User;
 use App\Entity\Workspace;
@@ -26,6 +28,8 @@ use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\Command\Issue\CreateIssue;
 use App\Message\Command\Issue\UpdateIssue;
+use App\Message\Command\Release\CreateRelease;
+use App\Message\Command\Release\UpdateRelease;
 use App\Message\CommandBus;
 use App\Security\AccessControl;
 use App\Workflow\WorkflowProvider;
@@ -40,8 +44,9 @@ use Zenstruck\Foundry\Story;
 
 /**
  * Development data, close to the mockups: four workspaces, their projects
- * and trackers, internal and client users, and issues spread over the last
- * two months at every place of the bug, evolution and task workflows.
+ * and trackers, internal and client users, issues spread over the last
+ * two months at every place of the bug, evolution and task workflows, and
+ * the releases of two projects.
  *
  * Load it with `castor fixtures`. It applies config/instance.example.php,
  * whose workflows it is written for, and creates issues through the real
@@ -83,8 +88,12 @@ final class AppStory extends Story
                 $project = $definition['project'];
                 $trackers = $this->createTrackers($project);
                 $dates = self::creationDates($now, \count($definition['issues']));
+                $issues = [];
                 foreach ($definition['issues'] as $index => $issue) {
-                    $this->createIssue($project, $trackers[$issue[0]], $issue, $definition['people'], $dates[$index], $now, $index);
+                    $issues[] = $this->createIssue($project, $trackers[$issue[0]], $issue, $definition['people'], $dates[$index], $now, $index);
+                }
+                foreach ($definition['releases'] ?? [] as $release) {
+                    $this->createRelease($project, $this->users[$definition['people']['manager']], $release, $issues, $now);
                 }
                 if ($definition['archived'] ?? false) {
                     $project->archive();
@@ -122,7 +131,7 @@ final class AppStory extends Story
     }
 
     /**
-     * @return iterable<array{project: Project, people: array{manager: string, developers: list<string>, client: ?string}, issues: list<array{0: string, 1: string, 2: string, 3: Criticality, 4?: ?string, 5?: bool}>, archived?: bool}>
+     * @return iterable<array{project: Project, people: array{manager: string, developers: list<string>, client: ?string}, issues: list<array{0: string, 1: string, 2: string, 3: Criticality, 4?: ?string, 5?: bool}>, releases?: list<array{0: string, 1: int, 2: string, 3: ReleaseStatus, 4: list<int>}>, archived?: bool}>
      */
     private function projects(): iterable
     {
@@ -152,6 +161,12 @@ final class AppStory extends Story
             ['task', 'Mettre à jour Symfony en 8.1', 'doing', Criticality::Normal, 'nadia'],
             ['task', 'Purger le cache Varnish après déploiement', 'done', Criticality::Low, 'lea'],
             ['task', 'Revoir les index de la table des commandes', 'todo', Criticality::Normal],
+        ], 'releases' => [
+            // [name, planned in days from now, description, status, indexes of its issues]
+            ['2.4.0', -10, 'Corrections d\'affichage et avis clients.', ReleaseStatus::Delivered, [5, 6, 13]],
+            ['2.5.0', 14, 'Tunnel de commande et export comptable.', ReleaseStatus::Open, [1, 3, 4, 9, 11, 15]],
+            ['2.6.0', 45, 'Paiement en trois fois et recherche fournisseur.', ReleaseStatus::Open, [8, 10]],
+            ['2.3.1', -40, 'Correctif annulé, repris dans la 2.4.0.', ReleaseStatus::Abandoned, []],
         ]];
         yield ['project' => $this->project($dupont, 'Intranet', 'INT', 'Outil interne des magasins.', developers: ['marc']), 'people' => ['manager' => 'thomas', 'developers' => ['marc'], 'client' => 'claire'], 'issues' => [
             ['bug', 'Le planning n\'affiche pas les jours fériés', 'qualified', Criticality::Normal, 'marc'],
@@ -182,6 +197,8 @@ final class AppStory extends Story
             ['evolution', 'Import des stocks par fichier', 'delivered', Criticality::Normal, 'lea'],
             ['evolution', 'Historique des prix', 'to_estimate', Criticality::Normal],
             ['task', 'Supprimer les comptes de test', 'todo', Criticality::Low, 'lea', true],
+        ], 'releases' => [
+            ['1.3.0', 20, 'Import du catalogue et tri des commandes.', ReleaseStatus::Open, [0, 1, 5]],
         ]];
         yield ['project' => $this->project($travelia, 'Site de réservation', 'RES', 'Réservation de séjours.', developers: ['marc']), 'people' => ['manager' => 'yann', 'developers' => ['marc'], 'client' => 'sophie'], 'archived' => true, 'issues' => [
             ['bug', 'Double réservation possible sur le dernier créneau', 'done', Criticality::Blocking, 'marc'],
@@ -233,7 +250,7 @@ final class AppStory extends Story
      * @param array{0: string, 1: string, 2: string, 3: Criticality, 4?: ?string, 5?: bool} $definition
      * @param array{manager: string, developers: list<string>, client: ?string}             $people
      */
-    private function createIssue(Project $project, Tracker $tracker, array $definition, array $people, \DateTimeImmutable $createdAt, \DateTimeImmutable $now, int $index): void
+    private function createIssue(Project $project, Tracker $tracker, array $definition, array $people, \DateTimeImmutable $createdAt, \DateTimeImmutable $now, int $index): Issue
     {
         [, $title, $targetPlace, $criticality] = $definition;
         $assignee = $definition[4] ?? null;
@@ -277,6 +294,33 @@ final class AppStory extends Story
                 transitionId: $transition->id,
                 comment: $transition->requiresComment ? 'Toujours reproductible en préproduction, voir la capture.' : null,
             ));
+        }
+
+        return $issue;
+    }
+
+    /**
+     * Creates a release planned relative to now and schedules its issues
+     * in it, then delivers or abandons it.
+     *
+     * @param array{0: string, 1: int, 2: string, 3: ReleaseStatus, 4: list<int>} $definition
+     * @param list<Issue>                                                         $issues     the issues of the project, in creation order
+     */
+    private function createRelease(Project $project, User $manager, array $definition, array $issues, \DateTimeImmutable $now): void
+    {
+        [$name, $days, $description, $status, $members] = $definition;
+        $actorId = (int) $manager->getId();
+        // A past release was prepared before its date, a future one is being prepared now.
+        Clock::set(new MockClock($now->modify($days < 0 ? \sprintf('%+d days', $days - 3) : '-1 hour')));
+
+        $release = $this->commands->dispatch(new CreateRelease($actorId, (int) $project->getId(), $name, $now->modify(\sprintf('%+d days', $days)), $description));
+        \assert($release instanceof Release);
+        foreach ($members as $index) {
+            $this->commands->dispatch(new UpdateIssue($actorId, $issues[$index]->getKey(), releaseId: $release->getId()));
+        }
+        if (ReleaseStatus::Open !== $status) {
+            Clock::set(new MockClock($now->modify(\sprintf('%+d days', $days))));
+            $this->commands->dispatch(new UpdateRelease($actorId, (int) $release->getId(), status: $status));
         }
     }
 

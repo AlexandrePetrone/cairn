@@ -1,4 +1,4 @@
-{# The properties of the issue page's side panel. A property the viewer may change is a select bound to its prop, applied on change; the controls are plain HTML because a data-model attribute on a nested component would bind that component instead. #}
+{# The properties of the issue page's side panel; the release only once the project has releases. A property the viewer may change is a select bound to its prop, applied on change; the controls are plain HTML because a data-model attribute on a nested component would bind that component instead. #}
 {% set propertiesSelectClasses = 'h-8 w-full rounded-md border border-gray-200 bg-white py-0 pl-2 text-sm hover:border-gray-300 focus:border-indigo-400 focus:outline-none focus:ring-0' %}
 {% set propertiesMembers = this.canAssign ? this.members : [] %}
 <dl {{ attributes }} class="p-3 space-y-2.5 text-sm" data-loading="addClass(opacity-60)">
@@ -37,6 +37,25 @@
             {% endif %}
         </dd>
     </div>
+    {% if this.hasReleases %}
+        <div class="flex items-center gap-2">
+            <dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.release'|trans }}</dt>
+            <dd class="flex-1 min-w-0">
+                {% if this.canSetRelease %}
+                    <select data-model="norender|releaseId" data-action="change->live#action" data-live-action-param="change" data-live-property-param="release" aria-label="{{ 'issue.show.release'|trans }}" class="{{ propertiesSelectClasses }}">
+                        <option value="" {{ releaseId is null ? 'selected' }}>{{ 'issue.show.no_release'|trans }}</option>
+                        {% for release in this.releaseChoices %}
+                            <option value="{{ release.id }}" {{ release.id == releaseId ? 'selected' }}>{{ release.name }}{{ release.open ? '' : ' · ' ~ ('release.status.' ~ release.status.value)|trans }}</option>
+                        {% endfor %}
+                    </select>
+                {% elseif issue.release %}
+                    <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-700">{{ issue.release.name }}</span>
+                {% else %}
+                    <span class="text-gray-400">{{ 'issue.show.no_release'|trans }}</span>
+                {% endif %}
+            </dd>
+        </div>
+    {% endif %}
     {# Visibility is an agency matter: external users only ever see what is visible to them. #}
     {% if app.user.internal %}
         <div class="flex items-center gap-2">

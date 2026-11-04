@@ -20,6 +20,8 @@ issue:
         criticality: Criticality
         assignee: Assignee
         nobody: Nobody
+        release: Release
+        no_release: None
         visibility: Visibility
         visible_externals: Visible to external users
         hidden_externals: Hidden from external users
@@ -31,6 +33,7 @@ issue:
         created: created the issue
         changed:
             assignee: 'changed the assignee: %from% → %to%'
+            release: 'changed the release: %from% → %to%'
             criticality: 'changed the criticality: %from% → %to%'
             visibility: 'changed the visibility: %from% → %to%'
             title: 'changed the title: "%from%" → "%to%"'
@@ -125,8 +128,10 @@ issue:
             criticality: Criticality
             assignee: Assignee
             project: Project
+            release: Release
             collapse: Fold the group
             expand: Unfold the group
+        no_release: No release
         empty: No issue matches
         empty_hint: Widen the filters or show closed issues.
         column:
@@ -149,6 +154,7 @@ issue:
         assign: Assign
         comment: Comment
         criticality: Change criticality
+        release: Schedule in a release
         applies_to: '{1}Applies to 1 issue.|]1,Inf[ Applies to the %count% issues.'
         comment_label: Comment
         comment_hint: The same message for every issue…
@@ -179,6 +185,7 @@ filter:
     tracker: Category
     criticality: Criticality
     assignee: Assignee
+    release: Release
     clear: Clear all
 
 nav:
@@ -192,6 +199,7 @@ nav:
     project:
         issues: Issues
         trackers: Categories
+        releases: Releases
         manage: Project
         access: Access
         settings: Configuration
@@ -529,6 +537,46 @@ workflow:
         dotted: 'Dotted: back to an earlier place'
         comment: '💬: comment required'
 
+release:
+    title: Releases
+    intro: A release gathers the issues of one delivery. Issues are scheduled from their own page, field Release, or several at once from the selection.
+    new: New release
+    create: Create the release
+    created: 'Release %name% created.'
+    edit: Edit
+    save: Save
+    saved: Release saved.
+    planned_on: 'planned for %date%'
+    delivered_on: 'on %date%'
+    finished: '{0}none finished|{1}1 finished|]1,Inf[ %count% finished'
+    see_issues: See the issues
+    past: Delivered and abandoned
+    empty: No release in preparation
+    empty_hint: The releases of the project will show here.
+    empty_hint_manager: Create one to gather the issues of a delivery.
+    abandon_help: An abandoned release takes no more issues; those it holds stay in it.
+    status:
+        open: Open
+        delivered: Delivered
+        abandoned: Abandoned
+    to_status:
+        open: Reopen
+        delivered: Mark as delivered
+        abandoned: Abandon the release
+    status_changed:
+        open: 'Release %name% reopened.'
+        delivered: 'Release %name% delivered.'
+        abandoned: 'Release %name% abandoned.'
+    form:
+        name: Name
+        name_help: 'Unique in the project, such as 2.4.0.'
+        planned_on: Planned date
+        description: Description
+        description_help: What the release brings. Clients read it.
+    refused:
+        not_found: Not found.
+        name_taken: 'The project already has a release named %name%.'
+
 permission:
     issue:
         create:
@@ -549,6 +597,9 @@ permission:
         set_private:
             label: Make an issue private
             help: Hide it from external users, or show it to them again.
+        set_release:
+            label: Schedule issues in a release
+            help: Put an issue in an open release of the project, or take it out.
     comment:
         create:
             label: Comment
@@ -566,6 +617,10 @@ permission:
         manage_members:
             label: Manage access to the project
             help: Grant, change and revoke the roles held on the project itself. Workspace roles stay with the administration.
+    release:
+        manage:
+            label: Manage releases
+            help: Create the releases of the project, change them, mark them delivered or abandoned.
 
 field_type:
     text: Short text

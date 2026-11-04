@@ -51,7 +51,7 @@ final class SearchIssuesHandler
             ->getSingleScalarResult();
 
         $placeRanks = IssueGrouping::Place === $query->group || IssueSort::Place === $query->sort ? $this->places->ranks() : [];
-        $rows = IssueOrder::apply($this->filtered($viewer, $query)->addSelect('t', 'p', 'w', 'a'), $query->group, $query->sort, $query->order, $placeRanks)
+        $rows = IssueOrder::apply($this->filtered($viewer, $query)->addSelect('t', 'p', 'w', 'a', 'r'), $query->group, $query->sort, $query->order, $placeRanks)
             ->setFirstResult(($query->page - 1) * self::PER_PAGE)
             ->setMaxResults(self::PER_PAGE)
             ->getQuery()
@@ -93,7 +93,8 @@ final class SearchIssuesHandler
             ->join('i.tracker', 't')
             ->join('i.project', 'p')
             ->join('p.workspace', 'w')
-            ->leftJoin('i.assignee', 'a');
+            ->leftJoin('i.assignee', 'a')
+            ->leftJoin('i.release', 'r');
 
         $this->visibility->restrictIssues($queryBuilder, $viewer);
 
@@ -138,6 +139,18 @@ final class SearchIssuesHandler
             }
             if (\in_array(0, $query->assignee, true)) {
                 $conditions[] = 'a.id IS NULL';
+            }
+            $queryBuilder->andWhere($queryBuilder->expr()->orX(...$conditions));
+        }
+        if ([] !== $query->release) {
+            $releases = array_values(array_filter($query->release, static fn (int $id): bool => 0 !== $id));
+            $conditions = [];
+            if ([] !== $releases) {
+                $conditions[] = 'r.id IN (:release)';
+                $queryBuilder->setParameter('release', $releases);
+            }
+            if (\in_array(0, $query->release, true)) {
+                $conditions[] = 'r.id IS NULL';
             }
             $queryBuilder->andWhere($queryBuilder->expr()->orX(...$conditions));
         }

@@ -14,6 +14,7 @@ use App\Message\Query\Issue\SelectionTransition;
 use App\Message\Query\Project\ListProjectMembers;
 use App\Message\QueryBus;
 use App\Repository\IssueOrder;
+use App\Repository\ReleaseRepository;
 use App\Repository\Visibility;
 use App\Security\AccessControl;
 use App\Security\Permission;
@@ -26,7 +27,8 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * the actions valid for all of them: the transitions available from each
  * issue's place to the viewer's role on its project, matched by id; the
  * rights that hold on every project; the people who are members of every
- * project, for the assignment.
+ * project, for the assignment; the open releases, when the selection
+ * holds the issues of one project, since a release belongs to one.
  */
 #[AsMessageHandler(bus: 'query.bus')]
 final class ListSelectionActionsHandler
@@ -36,6 +38,7 @@ final class ListSelectionActionsHandler
         private readonly Visibility $visibility,
         private readonly AccessControl $access,
         private readonly QueryBus $queries,
+        private readonly ReleaseRepository $releases,
     ) {
     }
 
@@ -54,6 +57,7 @@ final class ListSelectionActionsHandler
         $everywhere = fn (Permission $permission): bool => array_all($projects, fn (Project $project): bool => $this->access->isGranted($viewer, $permission, $project));
         $canAssign = $everywhere(Permission::IssueAssign);
         $canComment = $everywhere(Permission::CommentCreate);
+        $project = 1 === \count($projects) ? reset($projects) : null;
 
         return new SelectionActions(
             issues: $issues,
@@ -63,6 +67,7 @@ final class ListSelectionActionsHandler
             canComment: $canComment,
             canCommentPrivately: $canComment && $everywhere(Permission::CommentSetPrivate),
             canSetCriticality: $everywhere(Permission::IssueSetCriticality),
+            releases: null !== $project && $everywhere(Permission::IssueSetRelease) ? $this->releases->findByProject($project, openOnly: true) : [],
         );
     }
 

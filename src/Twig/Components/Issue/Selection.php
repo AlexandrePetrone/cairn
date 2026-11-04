@@ -46,7 +46,7 @@ final class Selection extends AbstractController
     #[LiveProp]
     public string $back = '/';
 
-    /** The action being prepared: `transition:<id>`, `assign`, `comment` or `criticality`. */
+    /** The action being prepared: `transition:<id>`, `assign`, `comment`, `criticality` or `release`. */
     #[LiveProp(writable: true)]
     public ?string $action = null;
 
@@ -63,6 +63,10 @@ final class Selection extends AbstractController
 
     #[LiveProp(writable: true)]
     public string $criticality = Criticality::DEFAULT->value;
+
+    /** The release to schedule the issues in, null for none. */
+    #[LiveProp(writable: true)]
+    public ?int $releaseId = null;
 
     private ?SelectionActions $selection = null;
 
@@ -101,6 +105,7 @@ final class Selection extends AbstractController
         $this->commentPrivate = false;
         $this->assigneeId = null;
         $this->criticality = Criticality::DEFAULT->value;
+        $this->releaseId = null;
     }
 
     #[LiveAction]
@@ -144,6 +149,9 @@ final class Selection extends AbstractController
         } elseif ('assign' === $this->action) {
             $assigneeId = $this->assigneeId ?? UpdateIssue::NOBODY;
             $build = static fn (string $key): object => new UpdateIssue($actorId, $key, assigneeId: $assigneeId);
+        } elseif ('release' === $this->action) {
+            $releaseId = $this->releaseId ?? UpdateIssue::NOBODY;
+            $build = static fn (string $key): object => new UpdateIssue($actorId, $key, releaseId: $releaseId);
         } else {
             $criticality = Criticality::tryFrom($this->criticality);
             if (null === $criticality) {

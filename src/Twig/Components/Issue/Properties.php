@@ -6,11 +6,13 @@ namespace App\Twig\Components\Issue;
 
 use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
+use App\Entity\Release;
 use App\Entity\User;
 use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
 use App\Message\Query\Project\ListProjectMembers;
 use App\Message\QueryBus;
+use App\Repository\ReleaseRepository;
 use App\Security\AccessControl;
 use App\Security\Permission;
 use App\Security\Viewer;
@@ -26,7 +28,8 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
  * The properties of an issue in the side panel of its page: assignee,
- * criticality and visibility become choices for whoever may change them.
+ * criticality, release and visibility become choices for whoever may
+ * change them; the release shows once the project has releases.
  * A change is its own command; the other components of the page are told
  * (`issue:changed`), and this one follows their changes (a transition
  * moves the issue to another place).
@@ -45,6 +48,9 @@ final class Properties
     public ?int $assigneeId = null;
 
     #[LiveProp(writable: true)]
+    public ?int $releaseId = null;
+
+    #[LiveProp(writable: true)]
     public Criticality $criticality = Criticality::DEFAULT;
 
     /**
@@ -58,6 +64,7 @@ final class Properties
         private readonly AccessControl $access,
         private readonly Viewer $viewer,
         private readonly QueryBus $queries,
+        private readonly ReleaseRepository $releases,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -75,6 +82,7 @@ final class Properties
     public function refresh(): void
     {
         $this->assigneeId = $this->issue->getAssignee()?->getId();
+        $this->releaseId = $this->issue->getRelease()?->getId();
         $this->criticality = $this->issue->getCriticality();
         $this->visibility = $this->issue->isPrivate() ? 'private' : 'public';
     }
@@ -87,6 +95,33 @@ final class Properties
     public function canSetCriticality(): bool
     {
         return $this->access->isGranted($this->viewer->get(), Permission::IssueSetCriticality, $this->issue->getProject());
+    }
+
+    public function canSetRelease(): bool
+    {
+        return $this->access->isGranted($this->viewer->get(), Permission::IssueSetRelease, $this->issue->getProject());
+    }
+
+    public function hasReleases(): bool
+    {
+        return $this->releases->hasReleases($this->issue->getProject());
+    }
+
+    /**
+     * The releases the issue can go to: the open ones, and the one it is
+     * in even when delivered or abandoned, so that the choice shows it.
+     *
+     * @return list<Release>
+     */
+    public function getReleaseChoices(): array
+    {
+        $choices = $this->releases->findByProject($this->issue->getProject(), openOnly: true);
+        $current = $this->issue->getRelease();
+        if (null !== $current && !$current->isOpen()) {
+            $choices[] = $current;
+        }
+
+        return $choices;
     }
 
     /**
@@ -114,6 +149,7 @@ final class Properties
         $command = match ($property) {
             'assignee' => new UpdateIssue($actorId, $key, assigneeId: $this->assigneeId ?? UpdateIssue::NOBODY),
             'criticality' => new UpdateIssue($actorId, $key, criticality: $this->criticality),
+            'release' => new UpdateIssue($actorId, $key, releaseId: $this->releaseId ?? UpdateIssue::NOBODY),
             'visibility' => new UpdateIssue($actorId, $key, private: 'private' === $this->visibility),
             default => null,
         };

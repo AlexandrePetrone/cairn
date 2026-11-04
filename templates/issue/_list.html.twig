@@ -34,6 +34,8 @@
                             <twig:Ui:Avatar :name="groupIssue.assignee ? groupIssue.assignee.fullName : null" :kind="groupIssue.assignee and groupIssue.assignee.internal ? 'internal' : 'external'" size="xs" />
                             {{ groupIssue.assignee ? groupIssue.assignee.fullName : 'issue.unassigned'|trans }}
                         </span>
+                    {% elseif listGrouping == 'release' %}
+                        <span class="font-mono">{{ listComponent.releaseLabel(listGroup.key) ?? 'issue.list.no_release'|trans }}</span>
                     {% else %}
                         <span>{{ groupIssue.project.name }} <span class="font-normal text-gray-400">· {{ groupIssue.project.workspace.name }}</span></span>
                     {% endif %}

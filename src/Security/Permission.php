@@ -18,6 +18,8 @@ enum Permission: string
     case IssueAssign = 'issue.assign';
     case IssueSetCriticality = 'issue.set_criticality';
     case IssueSetPrivate = 'issue.set_private';
+    /** Schedule an issue in an open release of its project, or take it out. */
+    case IssueSetRelease = 'issue.set_release';
     case CommentCreate = 'comment.create';
     case CommentSetPrivate = 'comment.set_private';
     /** Edit or delete the comments of others; authors always handle their own. */
@@ -26,6 +28,8 @@ enum Permission: string
     case ProjectConfigure = 'project.configure';
     /** Grant, change and revoke the roles held directly on the project. */
     case ProjectManageMembers = 'project.manage_members';
+    /** Create the releases of the project, change, deliver and abandon them. */
+    case ReleaseManage = 'release.manage';
 
     /**
      * Whether the permission opens what external users never see: the

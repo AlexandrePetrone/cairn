@@ -10,6 +10,7 @@ use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
 use App\Entity\Membership;
 use App\Entity\Project;
+use App\Entity\Release;
 use App\Entity\Tracker;
 use App\Entity\User;
 use App\Entity\Workspace;
@@ -17,6 +18,7 @@ use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\Command\Issue\CreateIssue;
 use App\Message\Command\Issue\UpdateIssue;
+use App\Message\Command\Release\CreateRelease;
 use App\Message\CommandBus;
 use App\Security\AccessControl;
 use App\Workflow\WorkflowProvider;
@@ -115,6 +117,24 @@ final class ShopScene
         $this->issues[$issue->getKey()] = $issue;
 
         return $issue;
+    }
+
+    /**
+     * An open release of the shop, which has none until then, holding the
+     * issues named: Thomas, who manages the workspace, creates it.
+     *
+     * @param list<string> $keys
+     */
+    public function release(string $name = '2.5.0', array $keys = []): Release
+    {
+        $thomas = (int) $this->user('thomas.girard@cairn.test')->getId();
+        $release = $this->commands->dispatch(new CreateRelease($thomas, (int) $this->shop->getId(), $name, description: 'Tunnel de commande.'));
+        \assert($release instanceof Release);
+        foreach ($keys as $key) {
+            $this->commands->dispatch(new UpdateIssue($thomas, $key, releaseId: $release->getId()));
+        }
+
+        return $release;
     }
 
     private function people(): void

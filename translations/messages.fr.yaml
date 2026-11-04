@@ -20,6 +20,8 @@ issue:
         criticality: Criticité
         assignee: Assigné
         nobody: Personne
+        release: Version
+        no_release: Aucune
         visibility: Visibilité
         visible_externals: Visible par les externes
         hidden_externals: Invisible pour les externes
@@ -31,6 +33,7 @@ issue:
         created: a créé la demande
         changed:
             assignee: 'a changé l''assigné : %from% → %to%'
+            release: 'a changé la version : %from% → %to%'
             criticality: 'a changé la criticité : %from% → %to%'
             visibility: 'a changé la visibilité : %from% → %to%'
             title: 'a changé le titre : « %from% » → « %to% »'
@@ -118,6 +121,7 @@ issue:
             label: Affichage
             grouped: 'Groupé par %grouping%'
             closed: Demandes terminées
+        no_release: Sans version
         group:
             label: Grouper par
             none: Aucun groupe
@@ -125,6 +129,7 @@ issue:
             criticality: Criticité
             assignee: Assigné
             project: Projet
+            release: Version
             collapse: Replier le groupe
             expand: Déplier le groupe
         empty: Aucune demande ne correspond
@@ -149,6 +154,7 @@ issue:
         assign: Assigner
         comment: Commenter
         criticality: Changer la criticité
+        release: Rattacher à une version
         applies_to: '{1}S''applique à 1 demande.|]1,Inf[ S''applique aux %count% demandes.'
         comment_label: Commentaire
         comment_hint: Le même message pour toutes les demandes…
@@ -179,6 +185,7 @@ filter:
     tracker: Catégorie
     criticality: Criticité
     assignee: Assigné
+    release: Version
     clear: Tout effacer
 
 nav:
@@ -192,6 +199,7 @@ nav:
     project:
         issues: Demandes
         trackers: Catégories
+        releases: Versions
         manage: Projet
         access: Accès
         settings: Configuration
@@ -529,6 +537,46 @@ workflow:
         dotted: 'Pointillés : retour à une étape précédente'
         comment: '💬 : commentaire obligatoire'
 
+release:
+    title: Versions
+    intro: Une version regroupe les demandes d'une même livraison. Le rattachement se fait depuis la fiche demande, propriété Version, ou pour plusieurs depuis la sélection.
+    new: Nouvelle version
+    create: Créer la version
+    created: 'Version %name% créée.'
+    edit: Modifier
+    save: Enregistrer
+    saved: Version enregistrée.
+    planned_on: 'prévue le %date%'
+    delivered_on: 'le %date%'
+    finished: '{0}aucune terminée|{1}1 terminée|]1,Inf[ %count% terminées'
+    see_issues: Voir les demandes
+    past: Livrées et abandonnées
+    empty: Aucune version en préparation
+    empty_hint: Les versions du projet s'afficheront ici.
+    empty_hint_manager: Créez-en une pour regrouper les demandes d'une livraison.
+    abandon_help: Une version abandonnée ne reçoit plus de demandes ; celles qu'elle contient y restent.
+    status:
+        open: Ouverte
+        delivered: Livrée
+        abandoned: Abandonnée
+    to_status:
+        open: Rouvrir
+        delivered: Marquer comme livrée
+        abandoned: Abandonner la version
+    status_changed:
+        open: 'Version %name% rouverte.'
+        delivered: 'Version %name% livrée.'
+        abandoned: 'Version %name% abandonnée.'
+    form:
+        name: Nom
+        name_help: 'Unique dans le projet, par exemple 2.4.0.'
+        planned_on: Date prévue
+        description: Description
+        description_help: Ce que la version apporte. Les clients la lisent.
+    refused:
+        not_found: Introuvable.
+        name_taken: 'Le projet a déjà une version nommée %name%.'
+
 permission:
     issue:
         create:
@@ -549,6 +597,9 @@ permission:
         set_private:
             label: Rendre une demande privée
             help: La cacher aux externes, ou la leur montrer à nouveau.
+        set_release:
+            label: Rattacher une demande à une version
+            help: Placer une demande dans une version ouverte du projet, ou l'en retirer.
     comment:
         create:
             label: Commenter
@@ -566,6 +617,10 @@ permission:
         manage_members:
             label: Gérer les accès du projet
             help: Accorder, changer et retirer les rôles détenus sur le projet lui-même. Les rôles d'espace restent à l'administration.
+    release:
+        manage:
+            label: Gérer les versions
+            help: Créer les versions du projet, les modifier, les marquer livrées ou abandonnées.
 
 field_type:
     text: Texte court

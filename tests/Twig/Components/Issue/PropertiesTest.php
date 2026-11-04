@@ -71,6 +71,20 @@ final class PropertiesTest extends KernelTestCase
         self::assertStringContainsString('Fermée', (string) $component->render());
     }
 
+    public function testTheReleaseShowsOnceTheProjectHasReleases(): void
+    {
+        self::assertStringNotContainsString('data-live-property-param="release"', (string) $this->properties('thomas.girard@cairn.test')->render());
+
+        $release = $this->scene->release();
+        self::assertStringNotContainsString('data-live-property-param="release"', (string) $this->properties('claire.martin@maison-dupont.test')->render(), 'a client reads it');
+        $component = $this->properties('nadia.benali@cairn.test');
+        self::assertStringContainsString('data-live-property-param="release"', (string) $component->render());
+
+        $component->set('releaseId', $release->getId())->call('change', ['property' => 'release']);
+        self::assertSame('2.5.0', $this->reloaded()->getRelease()?->getName());
+        self::assertStringContainsString('2.5.0', (string) $this->properties('claire.martin@maison-dupont.test')->render());
+    }
+
     public function testSomeoneOutsideTheProjectCannotBeAssigned(): void
     {
         $sophie = $this->user('sophie.bernard@travelia.test');

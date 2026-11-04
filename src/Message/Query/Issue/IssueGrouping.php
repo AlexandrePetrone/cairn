@@ -18,8 +18,9 @@ enum IssueGrouping: string
     case Criticality = 'criticality';
     case Assignee = 'assignee';
     case Project = 'project';
+    case Release = 'release';
 
-    /** The key of the issues nobody is assigned to. */
+    /** The key of the issues nobody is assigned to, or in no release. */
     public const string NOBODY = 'none';
 
     public function keyOf(Issue $issue): string
@@ -29,6 +30,7 @@ enum IssueGrouping: string
             self::Criticality => $issue->getCriticality()->value,
             self::Assignee => null === $issue->getAssignee() ? self::NOBODY : (string) $issue->getAssignee()->getId(),
             self::Project => (string) $issue->getProject()->getId(),
+            self::Release => null === $issue->getRelease() ? self::NOBODY : (string) $issue->getRelease()->getId(),
         };
     }
 

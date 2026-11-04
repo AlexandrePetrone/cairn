@@ -13,7 +13,7 @@ use Doctrine\ORM\QueryBuilder;
  * grouped, then the column it is sorted by, then the default order:
  * status (open, in progress, waiting, closed), criticality (blocking
  * first), latest activity. The query builder names the issue `i`, its
- * tracker `t`, project `p`, workspace `w` and assignee `a`.
+ * tracker `t`, project `p`, workspace `w`, assignee `a` and release `r`.
  */
 final class IssueOrder
 {
@@ -37,6 +37,7 @@ final class IssueOrder
                 IssueGrouping::Criticality => self::by($queryBuilder, 'groupCriticality', self::CRITICALITY_RANK, \SortDirection::Ascending),
                 IssueGrouping::Assignee => self::byAssignee($queryBuilder, 'group', \SortDirection::Ascending),
                 IssueGrouping::Project => $queryBuilder->addOrderBy('w.name')->addOrderBy('p.name')->addOrderBy('p.id'),
+                IssueGrouping::Release => self::byRelease($queryBuilder),
             };
         }
 
@@ -73,6 +74,7 @@ final class IssueOrder
             IssueGrouping::Criticality => 'i.criticality',
             IssueGrouping::Assignee => 'IDENTITY(i.assignee)',
             IssueGrouping::Project => 'p.id',
+            IssueGrouping::Release => 'IDENTITY(i.release)',
         };
     }
 
@@ -100,6 +102,19 @@ final class IssueOrder
             ->addOrderBy('a.lastName', self::sql($order))
             ->addOrderBy('a.firstName', self::sql($order))
             ->addOrderBy('a.id', self::sql($order));
+    }
+
+    /**
+     * The open releases by planned date, undated ones after, then the
+     * delivered and abandoned ones, then the issues in no release.
+     */
+    private static function byRelease(QueryBuilder $queryBuilder): QueryBuilder
+    {
+        return self::by($queryBuilder, 'groupReleaseState', "CASE WHEN r.id IS NULL THEN 2 WHEN r.status = 'open' THEN 0 ELSE 1 END", \SortDirection::Ascending)
+            ->addSelect('CASE WHEN r.plannedOn IS NULL THEN 1 ELSE 0 END AS HIDDEN groupReleaseUndated')
+            ->addOrderBy('groupReleaseUndated', 'ASC')
+            ->addOrderBy('r.plannedOn', 'ASC')
+            ->addOrderBy('r.id', 'ASC');
     }
 
     /**

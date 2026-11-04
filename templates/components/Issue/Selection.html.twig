@@ -42,6 +42,7 @@
                         {% if selectionActions.canAssign %}<twig:Ui:Button size="sm" icon="user" data-action="live#action" data-live-action-param="choose" data-live-choice-param="assign">{{ 'issue.bulk.assign'|trans }}</twig:Ui:Button>{% endif %}
                         {% if selectionActions.canComment %}<twig:Ui:Button size="sm" icon="message-square" data-action="live#action" data-live-action-param="choose" data-live-choice-param="comment">{{ 'issue.bulk.comment'|trans }}</twig:Ui:Button>{% endif %}
                         {% if selectionActions.canSetCriticality %}<twig:Ui:Button size="sm" icon="flame" data-action="live#action" data-live-action-param="choose" data-live-choice-param="criticality">{{ 'issue.bulk.criticality'|trans }}</twig:Ui:Button>{% endif %}
+                        {% if selectionActions.releases is not empty %}<twig:Ui:Button size="sm" icon="milestone" data-action="live#action" data-live-action-param="choose" data-live-choice-param="release">{{ 'issue.bulk.release'|trans }}</twig:Ui:Button>{% endif %}
                     </div>
                 {% endif %}
             {% else %}
@@ -62,6 +63,15 @@
                         <twig:Ui:Form:Select model="criticality">
                             {% for selectionCriticality in enum_cases('App\\Entity\\Enum\\Criticality')|reverse %}
                                 <option value="{{ selectionCriticality.value }}" {{ selectionCriticality.value == criticality ? 'selected' }}>{{ ('criticality.' ~ selectionCriticality.value)|trans }}</option>
+                            {% endfor %}
+                        </twig:Ui:Form:Select>
+                    </label>
+                {% elseif action == 'release' %}
+                    <label class="block text-sm text-gray-700">{{ 'issue.show.release'|trans }}
+                        <twig:Ui:Form:Select model="releaseId">
+                            <option value="">{{ 'issue.show.no_release'|trans }}</option>
+                            {% for release in selectionActions.releases %}
+                                <option value="{{ release.id }}" {{ release.id == releaseId ? 'selected' }}>{{ release.name }}</option>
                             {% endfor %}
                         </twig:Ui:Form:Select>
                     </label>

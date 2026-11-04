@@ -25,6 +25,8 @@ final class SearchIssuesGroupingTest extends KernelTestCase
         self::bootKernel();
         $scene = ShopScene::load(self::getContainer());
         $scene->intranetBug();
+        $scene->release('2.5.0', ['MD-SPT-1', 'MD-SPT-3', 'MD-SPT-6']);
+        $scene->release('2.6.0', ['MD-SPT-7']);
         $queries = self::getContainer()->get(QueryBus::class);
         $viewer = $scene->user('thomas.girard@cairn.test');
 

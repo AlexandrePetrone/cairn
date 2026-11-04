@@ -103,6 +103,21 @@ final class SelectionTest extends KernelTestCase
         self::assertSame(Criticality::High, $this->reloaded('MD-SPT-2')->getCriticality());
     }
 
+    public function testADeveloperSchedulesSeveralIssuesInARelease(): void
+    {
+        $release = $this->scene->release();
+        $intranetBug = $this->scene->intranetBug();
+        self::assertStringNotContainsString('data-live-choice-param="release"', (string) $this->selection('claire.martin@maison-dupont.test', 'MD-SPT-1', 'MD-SPT-2')->render(), 'a client does not schedule');
+        self::assertStringNotContainsString('data-live-choice-param="release"', (string) $this->selection('thomas.girard@cairn.test', 'MD-SPT-1', $intranetBug->getKey())->render(), 'a release belongs to one project');
+
+        $component = $this->selection('nadia.benali@cairn.test', 'MD-SPT-1', 'MD-SPT-2');
+        $component->call('choose', ['choice' => 'release'])->set('releaseId', $release->getId())->call('apply');
+
+        self::assertSame(302, $component->response()->getStatusCode());
+        self::assertSame('2.5.0', $this->reloaded('MD-SPT-1')->getRelease()?->getName());
+        self::assertSame('2.5.0', $this->reloaded('MD-SPT-2')->getRelease()?->getName());
+    }
+
     public function testEachIssueIsItsOwnCommandSoARefusalLeavesTheOthersDone(): void
     {
         $intranetBug = $this->scene->intranetBug();

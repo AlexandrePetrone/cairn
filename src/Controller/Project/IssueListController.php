@@ -27,19 +27,19 @@ final class IssueListController extends AbstractController
     #[Route('', name: 'app_project_issues', methods: ['GET'])]
     public function all(#[CurrentProject] Project $project): Response
     {
-        return $this->list($project, 'all', ['place', 'tracker', 'criticality', 'assignee']);
+        return $this->list($project, 'all', ['place', 'tracker', 'criticality', 'assignee', 'release']);
     }
 
     #[Route('/assigned', name: 'app_project_issues_assigned', methods: ['GET'])]
     public function assigned(#[CurrentProject] Project $project, #[CurrentUser] User $viewer): Response
     {
-        return $this->list($project, 'assigned', ['place', 'tracker', 'criticality'], assigneeId: $viewer->getId());
+        return $this->list($project, 'assigned', ['place', 'tracker', 'criticality', 'release'], assigneeId: $viewer->getId());
     }
 
     #[Route('/created', name: 'app_project_issues_created', methods: ['GET'])]
     public function created(#[CurrentProject] Project $project, #[CurrentUser] User $viewer): Response
     {
-        return $this->list($project, 'created', ['place', 'tracker', 'criticality', 'assignee'], authorId: $viewer->getId());
+        return $this->list($project, 'created', ['place', 'tracker', 'criticality', 'assignee', 'release'], authorId: $viewer->getId());
     }
 
     /**
@@ -60,11 +60,11 @@ final class IssueListController extends AbstractController
             throw new NotFoundHttpException(\sprintf('Tracker %d is not a tracker of %s.', $tracker->getId(), $project->getIssuePrefix()));
         }
 
-        return $this->list($project, 'tracker', ['place', 'criticality', 'assignee'], tracker: $tracker);
+        return $this->list($project, 'tracker', ['place', 'criticality', 'assignee', 'release'], tracker: $tracker);
     }
 
     /**
-     * @param list<string> $dimensions the filters the list offers, among place, tracker, criticality and assignee
+     * @param list<string> $dimensions the filters the list offers, among place, tracker, criticality, assignee and release
      */
     private function list(Project $project, string $scope, array $dimensions, ?Tracker $tracker = null, ?int $assigneeId = null, ?int $authorId = null): Response
     {

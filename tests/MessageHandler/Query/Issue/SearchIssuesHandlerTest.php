@@ -8,6 +8,7 @@ use App\Entity\Enum\Criticality;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
 use App\Entity\Project;
+use App\Entity\Release;
 use App\Entity\Tracker;
 use App\Entity\User;
 use App\Factory\MembershipFactory;
@@ -182,6 +183,30 @@ final class SearchIssuesHandlerTest extends KernelTestCase
 
         self::assertSame(['Publique'], self::titles($this->inProject(viewer: $this->client)->items));
         self::assertSame(3, $this->inProject(viewer: $this->manager)->total);
+    }
+
+    public function testFiltersAndGroupsByRelease(): void
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $later = new Release($this->project, '2.6.0');
+        $later->plan(new \DateTimeImmutable('2026-12-01'));
+        $sooner = new Release($this->project, '2.5.0');
+        $sooner->plan(new \DateTimeImmutable('2026-11-15'));
+        $entityManager->persist($later);
+        $entityManager->persist($sooner);
+        $inSooner = $this->builder->issue($this->bugs, $this->client, 'Dans la 2.5.0');
+        $inSooner->scheduleIn($sooner);
+        $inLater = $this->builder->issue($this->bugs, $this->client, 'Dans la 2.6.0');
+        $inLater->scheduleIn($later);
+        $this->builder->issue($this->bugs, $this->client, 'Sans version');
+        $entityManager->flush();
+
+        self::assertSame(['Dans la 2.5.0'], self::titles(self::queryBus()->ask(new SearchIssues($this->manager, projectId: $this->project->getId(), release: [(int) $sooner->getId()]))->items));
+        self::assertEqualsCanonicalizing(['Dans la 2.6.0', 'Sans version'], self::titles(self::queryBus()->ask(new SearchIssues($this->manager, projectId: $this->project->getId(), release: [(int) $later->getId(), 0]))->items));
+
+        $grouped = $this->search(group: IssueGrouping::Release);
+        self::assertSame(['Dans la 2.5.0', 'Dans la 2.6.0', 'Sans version'], self::titles($grouped->items), 'the release planned first comes first, the issues in no release last');
+        self::assertEquals([(string) $sooner->getId() => 1, (string) $later->getId() => 1, IssueGrouping::NOBODY => 1], $grouped->groupTotals);
     }
 
     public function testPagination(): void
