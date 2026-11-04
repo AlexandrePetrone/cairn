@@ -52,7 +52,7 @@ final class AttachmentPrunerTest extends KernelTestCase
         $directory = \dirname($storage->path($old));
         $orphan = $directory.'/'.Uuid::v4()->toRfc4122();
         file_put_contents($orphan, 'orphan');
-        touch($orphan, time() - 3 * 86400);
+        touch($orphan, $clock->now()->getTimestamp() - 3 * 86400);
         $clock->modify('+6 hours');
 
         $pruner = self::getContainer()->get(AttachmentPruner::class);

@@ -1,0 +1,8 @@
+{# The bar of Issue:List shown while rows are checked: how many, uncheck them, and the way to the bulk actions. #}
+{% if selected is not empty %}
+    <div class="flex flex-wrap items-center gap-3 rounded-lg border border-indigo-200 bg-indigo-50/60 px-3 py-2 text-sm">
+        <span class="font-medium text-indigo-900">{{ 'issue.bulk.selected'|trans({ '%count%': selected|length }) }}</span>
+        <button type="button" class="text-xs text-indigo-600 hover:underline" data-action="live#action" data-live-action-param="clearSelection">{{ 'issue.bulk.clear'|trans }}</button>
+        <twig:Ui:Button variant="primary" size="sm" icon="list-checks" href="{{ listComponent.selectionUrl }}" class="ml-auto">{{ 'issue.bulk.open'|trans }}</twig:Ui:Button>
+    </div>
+{% endif %}

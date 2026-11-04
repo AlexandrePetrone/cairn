@@ -1,5 +1,5 @@
-{# `name`, `value`, `id`, `required` and `disabled` (default 1) go to the checkbox. `boxed` draws the bordered field of the configuration forms; `tone` amber for private flags. #}
-{% props label, checked = false, tone = 'indigo', boxed = false %}
+{# `name`, `value`, `id`, `required` and `disabled` (default 1) go to the checkbox. `model` becomes its `data-model` in a live component, without a value so that it binds a boolean. `boxed` draws the bordered field of the configuration forms; `tone` amber for private flags. #}
+{% props label, checked = false, tone = 'indigo', boxed = false, model = null %}
 {% set checkboxClasses = html_cva(
     base: 'items-center gap-2 text-sm cursor-pointer has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60',
     variants: { boxed: { true: 'mt-1 flex h-9 rounded-md border border-gray-300 px-3', false: 'inline-flex' } },
@@ -9,6 +9,6 @@
     variants: { tone: { indigo: 'text-indigo-600', amber: 'text-amber-600' } },
 ) %}
 <label class="{{ checkboxClasses.apply({ boxed: boxed }, attributes.render('class'))|tailwind_merge }}" {{ attributes.without('name', 'value', 'id', 'required', 'disabled', 'class') }}>
-    <input type="checkbox" {{ attributes.defaults({ value: '1' }).only('name', 'value', 'id', 'required', 'disabled') }} {{ checked ? 'checked' }} class="{{ checkboxInputClasses.apply({ tone: tone }) }}">
+    <input type="checkbox" {{ attributes.defaults(model ? {} : { value: '1' }).only('name', 'value', 'id', 'required', 'disabled') }}{% if model %} data-model="{{ model }}"{% endif %} {{ checked ? 'checked' }} class="{{ checkboxInputClasses.apply({ tone: tone }) }}">
     {{ label }}
 </label>

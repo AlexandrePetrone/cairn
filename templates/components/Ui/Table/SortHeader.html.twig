@@ -1,0 +1,22 @@
+{# A column header the list sorts by: the label in the content, `direction` (null, `asc`, `desc`) its arrow. The button carries the attributes (the live action); the cell keeps `class` and `align`. #}
+{% props direction = null, align = 'left' %}
+{% set tableSortHeaderClasses = html_cva(
+    base: 'px-3 py-2 font-medium',
+    variants: { align: { left: 'text-left', right: 'text-right' } },
+) %}
+{% set tableSortHeaderButtonClasses = html_cva(
+    base: 'group/sort inline-flex items-center gap-1 uppercase tracking-wider hover:text-gray-800',
+    variants: { active: { true: 'text-gray-900' }, align: { right: 'flex-row-reverse' } },
+) %}
+<th class="{{ tableSortHeaderClasses.apply({ align: align }, attributes.render('class'))|tailwind_merge }}" {{ direction ? 'aria-sort=' ~ (direction == 'asc' ? 'ascending' : 'descending') }}>
+    <button type="button" class="{{ tableSortHeaderButtonClasses.apply({ active: direction is not null, align: align }) }}" {{ attributes }}>
+        {% block content %}{% endblock %}
+        {% if direction == 'asc' %}
+            <twig:ux:icon name="lucide:arrow-up" class="h-3 w-3" />
+        {% elseif direction == 'desc' %}
+            <twig:ux:icon name="lucide:arrow-down" class="h-3 w-3" />
+        {% else %}
+            <twig:ux:icon name="lucide:chevrons-up-down" class="h-3 w-3 opacity-0 group-hover/sort:opacity-60" />
+        {% endif %}
+    </button>
+</th>

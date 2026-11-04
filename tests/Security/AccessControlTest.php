@@ -171,6 +171,23 @@ final class AccessControlTest extends KernelTestCase
         self::assertTrue($this->access->canTransition($admin, $workflow->transition('start'), $this->fixtures->otherProject));
     }
 
+    public function testTheTransitionsOfAnIssueAreThoseLeavingItsPlaceThatTheRoleMayTrigger(): void
+    {
+        $client = $this->fixtures->user('claire@client.test');
+        $this->fixtures->grantOnProject($client, $this->fixtures->shop, 'client');
+        $developer = $this->fixtures->user('nadia@agency.test', internal: true);
+        $this->fixtures->grantOnWorkspace($developer, $this->fixtures->workspace, 'developer');
+        $tracker = new Tracker($this->fixtures->shop, 'Anomalie', 'bug');
+        $issue = new Issue($this->fixtures->shop, $tracker, DefinitionFactory::bugWorkflow()->place('to_test'), 1, $client, 'Export', '');
+
+        $ids = static fn (array $transitions): array => array_map(static fn ($transition): string => $transition->id, $transitions);
+        self::assertSame(['accept', 'refuse'], $ids($this->access->transitionsFor($client, $issue)));
+        self::assertSame([], $this->access->transitionsFor($developer, $issue), 'nothing leaving to_test is a developer\'s');
+
+        $this->fixtures->shop->archive();
+        self::assertSame([], $this->access->transitionsFor($client, $issue), 'an archived project allows nothing');
+    }
+
     public function testExternalsOnlySeePublicIssuesOfTheirProjects(): void
     {
         $client = $this->fixtures->user('claire@client.test');

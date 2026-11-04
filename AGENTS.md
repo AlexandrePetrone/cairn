@@ -73,7 +73,7 @@ mix them.
 | Workflow       | `Workflow`       | Places + transitions. Defined in configuration, not in the UI.   |
 | Étape          | `Place`          | Position in a workflow (Symfony Workflow term).                  |
 | Action         | `Transition`     | Named button that moves an issue to another place.               |
-| Statut         | `PlaceStatus`    | Family of a place: Open, InProgress, Waiting, Closed. PHP enum.  |
+| (interne)      | `PlaceStatus`    | Family of a place: Open, InProgress, Waiting, Closed. PHP enum. Never shown to users, who see places: it orders lists, hides finished issues, feeds statistics. Only the configuration pages of the administration show it. |
 | Criticité      | `Criticality`    | Low, Normal, High, Blocking. First-class column, not a field.    |
 | Champ          | `Field`          | Global attribute, enabled per tracker.                           |
 | Lien           | `Link`           | Related, Duplicates/DuplicatedBy, Blocks/BlockedBy.              |
@@ -191,19 +191,70 @@ Rules:
   another route of the same controller (`/issues/assigned`,
   `/issues/created`, `/issues/tracker/{id}`: trackers have no key), never
   a query parameter that switches the view: the route fixes the scope and
-  the filters it offers. Filter values are a
-  `Form/` object mapped with `#[MapQueryString]`, so the framework does the
-  typing and refuses unknown values.
-- **Issue lists are one query.** `SearchIssues` serves every list. The
-  controller builds it whole: the viewer and the scope (project, workspace,
-  assignee, author) from where it stands, the filters from the request,
-  never the scope from the URL. It returns a
+  the filters it offers.
+- **Issue lists are one query, shown by one component.** `SearchIssues`
+  serves every list. `Issue:List` (`Twig/Components/Issue/IssueList`,
+  `List` being reserved) builds it: the page gives the scope (project,
+  tracker, assignee, author) as props the browser cannot change, and the
+  filters it offers (`dimensions`); the filter values, the sorted column
+  (`sort`, `order`) and the grouping (`group`) are writable props bound
+  to the query string (`url: true`), so a list as the user arranged it is
+  an address and the URL follows without a reload. A value the list does
+  not know is ignored, never an error. Ids arrive from the browser as
+  text: such props are typed `list<int|string>`, because the bundle
+  silently drops a query string value that does not match the prop's
+  type, and are normalised after hydration. A filter, a sort or a
+  grouping goes back to page 1.
+  Users filter and group by place, never by status. A place is named
+  with its workflow, `workflow:place` (`Workflow/PlaceCatalog::key()`,
+  `Repository/IssueOrder::PLACE_KEY` in SQL): a list mixing workflows
+  keeps their places apart, under their workflow's label in the filter
+  and in the group headers ("Anomalie › En cours"), with no merging
+  rule. Workflows come in the order of the instance file, places in the
+  order of their workflow. The SQL
+  order is `Repository/IssueOrder`: the group first, then the sorted
+  column (`IssueSort`), then the default order (status, criticality,
+  latest activity). A grouped list (`IssueGrouping`: place, criticality,
+  assignee, project across projects) gets the total of each group over
+  every page (`Pagination::$groupTotals`); the component cuts its page
+  into groups (`IssueGroup::split()`). The key of a group is written in
+  SQL (`IssueOrder::groupKey()`) and in PHP (`IssueGrouping::keyOf()`),
+  compared for every grouping by `SearchIssuesGroupingTest`. A folded
+  group (`collapsed`, not in the URL) stays folded until the grouping
+  changes. The query returns a
   `Repository/Pagination` of `Issue` entities with tracker, project,
   workspace and assignee joined, 50 per page. Place labels come from the
-  configuration through the `issue_place()` Twig function. The lists of
-  a project and those across projects (`/issues/assigned`,
-  `/issues/created`, the home page) share their filter bar and rows
-  (`templates/issue/_filters.html.twig`, `_list.html.twig`).
+  configuration through the `issue_place()` Twig function. The
+  controllers of the lists (`Project/IssueListController`,
+  `MyIssuesController`) only choose the scope; the filter bar and rows
+  are `templates/issue/_filters.html.twig`, `_list.html.twig` and
+  `_list_row.html.twig`. The home page keeps its own compact panels,
+  outside the component.
+- **Bulk actions go through a selection page.** Rows of `Issue:List` are
+  checked page by page; the selection bar links to the selection page
+  with the ids and the filtered list to come back to (`from`, kept only
+  when it is a path of this site, `Form/IssueSelectionRequest`). The
+  page has a route per zone, `/MD/SPT/issues/selection` for the lists of
+  a project and `/issues/selection` for those across projects, and one
+  template, `issue/selection.html.twig`, which extends the layout of the
+  zone (the project's when the controller passes `project`): both
+  layouts expose the same blocks. The controller resolves where to come
+  back (`back`: the list, or the zone's default). There `Issue:Selection` asks
+  `ListSelectionActions` what the selection allows, which is strictly
+  what applies to every issue: the transitions available from each
+  issue's place to the viewer's role on its project, matched by
+  transition id across workflows (a comment is required as soon as one
+  of them requires it), and the rights (`issue.assign`,
+  `comment.create`, `comment.set_private`, `issue.set_criticality`)
+  that hold on every project of the selection; the people offered for
+  assignment are the members of all of them. An issue the viewer no
+  longer sees drops out of the selection. The component checks the
+  action again, then dispatches the ordinary command for each issue
+  (`ApplyTransition`, `AddComment`, `UpdateIssue`), each in its own
+  transaction: there is no bulk command, a refusal on one issue leaves
+  the others done, and the flash says which were refused and why
+  (`DispatchesCommands::refusal()`). A common comment carries no file,
+  since a pending file is claimed by one issue only.
 - **Visibility is written twice and tested as one.** `AccessControl::canSee()`
   decides for one issue, `Repository/Visibility::restrictIssues()` applies
   the same rule in SQL; `canView()` and `restrictProjects()` do the same
@@ -339,7 +390,12 @@ Rules:
   Props are what changes the look; technical HTML attributes of a form
   control (`name`, `value`) are not props but plain attributes forwarded to
   the inner `<input>` with `attributes.only('name', 'value')`, the root
-  getting `attributes.without('name', 'value', 'class')`.
+  getting `attributes.without('name', 'value', 'class')`. The exception
+  is the live binding: a `data-model` on a nested component binds that
+  component to the parent, not its input, so a form control takes a
+  `model` prop and renders it as its control's `data-model`
+  (`Ui:Form:Editor`, `Checkbox`, `Select`, `Textarea`, `Ui:Filter:Option`,
+  `Search`).
   Variables a component sets for itself carry its name: the main recipe is
   `<component>Classes` (`buttonClasses`), an inner element's
   `<component><Element>Classes` (`dropdownMenuClasses`), other values
@@ -552,6 +608,10 @@ by default). The journal is never migrated.
   nothing drawn at random: two loads give the same database. It
   applies `config/instance.example.php`, whose workflows it is written for.
   Every user's password is `cairn`; `admin@cairn.test` is an administrator.
+  It then loads `src/Story/VolumeStory`, the Natura catalogue (`NC-CAT`):
+  200 issues without threads, to try the lists over several pages. Tests
+  load `AppStory` only. `bin/console foundry:load-fixtures volume --append`
+  adds it to a database that already holds the main story.
   Factories live in `src/Factory/` and are also meant for tests.
 - `CAIRN_CONFIG` points to the instance configuration file; `.env` defaults
   to the committed `config/instance.example.php`. After changing it, run

@@ -1,63 +1,77 @@
-{# The filter bar of an issue list, a GET form submitted on every change. `dimensions` names the filters the route offers (status, project, tracker, criticality, assignee),
-   `filters` holds their values; `statuses`, `criticalities`, `projects` (ProjectSummary), `trackers` and `members` the options of those offered. #}
-{% set listPath = path(app.current_route, app.current_route_parameters) %}
-<form method="get" action="{{ listPath }}" class="flex flex-wrap items-center gap-2" data-controller="autosubmit" data-action="change->autosubmit#submit">
-    {% if 'status' in dimensions %}
-        <twig:Ui:Filter:Menu :label="'filter.status'|trans" :count="filters.status|length">
-            {% for status in statuses %}
-                <twig:Ui:Filter:Option name="status[]" :value="status.value" :checked="status in filters.status">
-                    <twig:Ui:Status:Dot :status="status.value" />
-                    {{ ('status.' ~ status.value)|trans }}
+{# The filter bar of Issue:List: one menu per filter the list offers (`dimensions`), each control bound to the prop of the same filter, then the display menu (grouping, finished issues), so the list redraws and the address follows. Places, never statuses. #}
+<div role="search" class="flex flex-wrap items-center gap-2">
+    <span class="text-xs text-gray-400 mr-1">{{ 'issue.list.count'|trans({ '%count%': listIssues.total }) }}</span>
+    {% if listComponent.offers('place') %}
+        {% set listMixesWorkflows = listComponent.mixesWorkflows %}
+        <twig:Ui:Filter:Menu :label="'filter.place'|trans" :count="places|length">
+            {% set listWorkflowLabel = null %}
+            {% for listPlace in listComponent.placeChoices %}
+                {% if listMixesWorkflows and listPlace.workflowLabel != listWorkflowLabel %}
+                    <p class="px-2.5 pt-1.5 pb-1 text-[11px] font-medium uppercase tracking-wider text-gray-400 {{ loop.first ? '' : 'mt-1 border-t border-gray-100' }}">{{ listPlace.workflowLabel }}</p>
+                {% endif %}
+                {% set listWorkflowLabel = listPlace.workflowLabel %}
+                <twig:Ui:Filter:Option model="places" :value="listPlace.key" :checked="listPlace.key in places">
+                    <twig:Ui:Status:Dot :status="listPlace.status.value" />
+                    <span class="truncate">{{ listPlace.label }}</span>
                 </twig:Ui:Filter:Option>
             {% endfor %}
         </twig:Ui:Filter:Menu>
     {% endif %}
-    {% if 'project' in dimensions %}
-        <twig:Ui:Filter:Menu :label="'filter.project'|trans" :count="filters.project|length">
-            {% for summary in projects %}
-                <twig:Ui:Filter:Option name="project[]" :value="summary.project.id" :checked="summary.project.id in filters.project">
+    {% if listComponent.offers('project') %}
+        <twig:Ui:Filter:Menu :label="'filter.project'|trans" :count="projects|length">
+            {% for summary in listComponent.projectChoices %}
+                <twig:Ui:Filter:Option model="projects" :value="summary.project.id" :checked="summary.project.id in projects">
                     <span class="truncate">{{ summary.project.name }}</span>
                     <span class="truncate text-xs text-gray-400">{{ summary.project.workspace.name }}</span>
                 </twig:Ui:Filter:Option>
             {% endfor %}
         </twig:Ui:Filter:Menu>
     {% endif %}
-    {% if 'tracker' in dimensions %}
-        <twig:Ui:Filter:Menu :label="'filter.tracker'|trans" :count="filters.tracker|length">
-            {% for tracker in trackers %}
-                <twig:Ui:Filter:Option name="tracker[]" :value="tracker.id" :checked="tracker.id in filters.tracker">
-                    <span class="truncate {{ tracker.active ? '' : 'text-gray-400 line-through' }}" {% if not tracker.active %}title="{{ 'project.settings.tracker.inactive_badge'|trans }}"{% endif %}>{{ tracker.name }}</span>
-                    {% if tracker.private %}<twig:ux:icon name="lucide:lock" class="h-3 w-3 shrink-0 text-gray-400" />{% endif %}
+    {% if listComponent.offers('tracker') and tracker is null %}
+        <twig:Ui:Filter:Menu :label="'filter.tracker'|trans" :count="trackers|length">
+            {% for listTracker in listComponent.trackerChoices %}
+                <twig:Ui:Filter:Option model="trackers" :value="listTracker.id" :checked="listTracker.id in trackers">
+                    <span class="truncate {{ listTracker.active ? '' : 'text-gray-400 line-through' }}" {% if not listTracker.active %}title="{{ 'project.settings.tracker.inactive_badge'|trans }}"{% endif %}>{{ listTracker.name }}</span>
+                    {% if listTracker.private %}<twig:ux:icon name="lucide:lock" class="h-3 w-3 shrink-0 text-gray-400" />{% endif %}
                 </twig:Ui:Filter:Option>
             {% endfor %}
         </twig:Ui:Filter:Menu>
     {% endif %}
-    {% if 'criticality' in dimensions %}
-        <twig:Ui:Filter:Menu :label="'filter.criticality'|trans" :count="filters.criticality|length">
-            {% for criticality in criticalities|reverse %}
-                <twig:Ui:Filter:Option name="criticality[]" :value="criticality.value" :checked="criticality in filters.criticality">
-                    {{ ('criticality.' ~ criticality.value)|trans }}
+    {% if listComponent.offers('criticality') %}
+        <twig:Ui:Filter:Menu :label="'filter.criticality'|trans" :count="criticality|length">
+            {% for listCriticality in enum_cases('App\\Entity\\Enum\\Criticality')|reverse %}
+                <twig:Ui:Filter:Option model="criticality" :value="listCriticality.value" :checked="listCriticality.value in criticality">
+                    {{ ('criticality.' ~ listCriticality.value)|trans }}
                 </twig:Ui:Filter:Option>
             {% endfor %}
         </twig:Ui:Filter:Menu>
     {% endif %}
-    {% if 'assignee' in dimensions %}
-        <twig:Ui:Filter:Menu :label="'filter.assignee'|trans" :count="filters.assignee|length">
-            <twig:Ui:Filter:Option name="assignee[]" value="0" :checked="0 in filters.assignee">
+    {% if listComponent.offers('assignee') %}
+        <twig:Ui:Filter:Menu :label="'filter.assignee'|trans" :count="assignees|length">
+            <twig:Ui:Filter:Option model="assignees" value="0" :checked="0 in assignees">
                 <twig:Ui:Avatar size="xs" />
                 {{ 'issue.unassigned'|trans }}
             </twig:Ui:Filter:Option>
-            {% for member in members %}
-                <twig:Ui:Filter:Option name="assignee[]" :value="member.id" :checked="member.id in filters.assignee">
+            {% for member in listComponent.memberChoices %}
+                <twig:Ui:Filter:Option model="assignees" :value="member.id" :checked="member.id in assignees">
                     <twig:Ui:Avatar size="xs" :name="member.fullName" :kind="member.internal ? 'internal' : 'external'" />
                     {{ member.fullName }}
                 </twig:Ui:Filter:Option>
             {% endfor %}
         </twig:Ui:Filter:Menu>
     {% endif %}
-    <twig:Ui:Filter:Search :value="filters.q" />
-    {% if not filters.isEmpty %}
-        <a href="{{ listPath }}" class="text-xs text-indigo-600 hover:underline">{{ 'filter.clear'|trans }}</a>
+    <twig:Ui:Filter:Search :value="q" model="debounce(300)|q" class="w-48 xl:w-60" />
+    {% if listComponent.hasFilters %}
+        <button type="button" class="text-xs text-indigo-600 hover:underline" data-action="live#action" data-live-action-param="clearFilters">{{ 'filter.clear'|trans }}</button>
     {% endif %}
-    <twig:Ui:Form:Checkbox name="closed" :label="'issue.list.show_closed'|trans" :checked="filters.closed" class="ml-auto text-xs text-gray-600" />
-</form>
+    {% set listGrouping = listComponent.groupings|filter(choice => choice.value == group)|first %}
+    <twig:Ui:Filter:Menu :label="listGrouping ? 'issue.list.display.grouped'|trans({ '%grouping%': ('issue.list.group.' ~ listGrouping.value)|trans|lower }) : 'issue.list.display.label'|trans" :active="group != '' or closed" align="right" class="ml-auto">
+        <p class="px-2.5 pt-1.5 pb-1 text-[11px] font-medium uppercase tracking-wider text-gray-400">{{ 'issue.list.group.label'|trans }}</p>
+        <twig:Ui:Filter:Option single model="group" value="" :checked="group == ''">{{ 'issue.list.group.none'|trans }}</twig:Ui:Filter:Option>
+        {% for listGroupingChoice in listComponent.groupings %}
+            <twig:Ui:Filter:Option single model="group" :value="listGroupingChoice.value" :checked="group == listGroupingChoice.value">{{ ('issue.list.group.' ~ listGroupingChoice.value)|trans }}</twig:Ui:Filter:Option>
+        {% endfor %}
+        <div class="my-1 border-t border-gray-100"></div>
+        <twig:Ui:Filter:Option model="closed" :checked="closed">{{ 'issue.list.display.closed'|trans }}</twig:Ui:Filter:Option>
+    </twig:Ui:Filter:Menu>
+</div>

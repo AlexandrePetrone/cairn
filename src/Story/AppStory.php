@@ -327,7 +327,7 @@ final class AppStory extends Story
      *
      * @return list<\DateTimeImmutable>
      */
-    private static function creationDates(\DateTimeImmutable $now, int $count): array
+    public static function creationDates(\DateTimeImmutable $now, int $count): array
     {
         $span = (self::HISTORY_DAYS - 3) * 24 * 60;
         $dates = [];
@@ -362,7 +362,7 @@ final class AppStory extends Story
      *
      * @return array<string, mixed>
      */
-    private static function fieldsFor(WorkflowDefinition $workflow, int $index): array
+    public static function fieldsFor(WorkflowDefinition $workflow, int $index): array
     {
         $values = [
             'environment' => ['prod', 'preprod', 'staging'][$index % 3],

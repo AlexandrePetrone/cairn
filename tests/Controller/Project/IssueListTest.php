@@ -51,11 +51,11 @@ final class IssueListTest extends WebTestCase
         self::assertSelectorTextContains('aside', 'Tâche interne');
     }
 
-    public function testFiltersComeFromTheQueryString(): void
+    public function testFiltersComeFromTheQueryStringSoAFilteredListIsAnAddress(): void
     {
         $this->signInAs('nadia.benali@cairn.test');
 
-        $this->client->request('GET', '/MD/SPT/issues?status[]=closed');
+        $this->client->request('GET', '/MD/SPT/issues?places[]=bug:done');
         self::assertSelectorTextContains('tbody', 'Image produit floue sur mobile');
         self::assertSelectorTextNotContains('tbody', 'Spinner infini sur la page panier');
 
@@ -63,19 +63,40 @@ final class IssueListTest extends WebTestCase
         self::assertSelectorTextContains('tbody', 'Spinner infini sur la page panier');
         self::assertSelectorTextNotContains('tbody', 'Typo dans le pied de page');
 
-        $this->client->request('GET', '/MD/SPT/issues?assignee[]=0');
+        $this->client->request('GET', '/MD/SPT/issues?assignees[]=0');
         self::assertSelectorTextContains('tbody', 'Spinner infini sur la page panier');
         self::assertSelectorTextNotContains('tbody', 'Les frais de port ne s\'affichent pas en Corse', 'assigned to Nadia');
 
-        $this->client->request('GET', '/MD/SPT/issues?assignee[]='.$this->scene->user('nadia.benali@cairn.test')->getId());
+        $this->client->request('GET', '/MD/SPT/issues?assignees[]='.$this->scene->user('nadia.benali@cairn.test')->getId());
         self::assertSelectorTextContains('tbody', 'Les frais de port ne s\'affichent pas en Corse');
         self::assertSelectorTextNotContains('tbody', 'Spinner infini sur la page panier');
 
-        $this->client->request('GET', '/MD/SPT/issues?status[]=nonsense');
-        self::assertResponseStatusCodeSame(404, 'a value outside the enum');
+        $this->client->request('GET', '/MD/SPT/issues?places[]=nonsense&page=0&sort=nonsense&group=nonsense');
+        self::assertResponseIsSuccessful('a value the list does not know is ignored');
+        self::assertSelectorTextContains('tbody', 'Spinner infini sur la page panier');
+    }
 
-        $this->client->request('GET', '/MD/SPT/issues?page=0');
-        self::assertResponseStatusCodeSame(404, 'an invalid page');
+    public function testUsersSeePlacesNeverStatuses(): void
+    {
+        $this->signInAs('nadia.benali@cairn.test');
+
+        $this->client->request('GET', '/MD/SPT/issues');
+
+        self::assertSelectorTextContains('[role="search"]', 'Étape');
+        self::assertSelectorTextNotContains('[role="search"]', 'Statut');
+        self::assertSelectorTextContains('tbody', 'En cours');
+        self::assertSelectorTextNotContains('tbody', '· Ouvert', 'the status of a place is not shown');
+    }
+
+    public function testAListIsSortedAndGroupedFromItsAddress(): void
+    {
+        $this->signInAs('nadia.benali@cairn.test');
+
+        $this->client->request('GET', '/MD/SPT/issues?sort=title&order=desc&group=assignee');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('th[aria-sort="descending"]');
+        self::assertSelectorTextContains('tbody th', 'Non assigné', 'unassigned issues come first');
     }
 
     public function testEachListIsARouteWithItsOwnScopeAndFilters(): void
@@ -83,17 +104,17 @@ final class IssueListTest extends WebTestCase
         $this->signInAs('nadia.benali@cairn.test');
 
         $this->client->request('GET', '/MD/SPT/issues');
-        self::assertSelectorTextContains('form', 'Assigné');
-        self::assertSelectorTextContains('form', 'Nadia Benali', 'developer on the shop');
-        self::assertSelectorTextContains('form', 'Claire Martin', 'client of the workspace');
-        self::assertSelectorTextNotContains('form', 'Sophie Bernard', 'client of another workspace');
-        self::assertSelectorTextNotContains('form', 'Marc Petit', 'developer of the intranet only');
+        self::assertSelectorTextContains('[role="search"]', 'Assigné');
+        self::assertSelectorTextContains('[role="search"]', 'Nadia Benali', 'developer on the shop');
+        self::assertSelectorTextContains('[role="search"]', 'Claire Martin', 'client of the workspace');
+        self::assertSelectorTextNotContains('[role="search"]', 'Sophie Bernard', 'client of another workspace');
+        self::assertSelectorTextNotContains('[role="search"]', 'Marc Petit', 'developer of the intranet only');
 
         $this->client->request('GET', '/MD/SPT/issues/assigned');
         self::assertSelectorTextContains('h1', 'Demandes assignées à moi');
         self::assertSelectorTextContains('tbody', 'Les frais de port ne s\'affichent pas en Corse');
         self::assertSelectorTextNotContains('tbody', 'Spinner infini sur la page panier', 'unassigned');
-        self::assertSelectorTextNotContains('form', 'Assigné', 'the scope makes the filter pointless');
+        self::assertSelectorTextNotContains('[role="search"]', 'Assigné', 'the scope makes the filter pointless');
         self::assertSelectorTextContains('aside [aria-current="page"]', 'Assignées à moi');
 
         $this->client->request('GET', '/MD/SPT/issues/created');
@@ -112,7 +133,7 @@ final class IssueListTest extends WebTestCase
         self::assertSelectorTextContains('h1', 'Tâche interne');
         self::assertSelectorTextContains('tbody', 'Mettre à jour Symfony en 8.1');
         self::assertSelectorTextNotContains('tbody', 'Spinner infini sur la page panier', 'another tracker');
-        self::assertSelectorTextNotContains('form', 'Catégorie', 'the scope makes the filter pointless');
+        self::assertSelectorTextNotContains('[role="search"]', 'Catégorie', 'the scope makes the filter pointless');
         self::assertSelectorTextContains('aside [aria-current="page"]', 'Tâche interne');
 
         $this->signInAs('claire.martin@maison-dupont.test');

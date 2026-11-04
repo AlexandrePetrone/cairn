@@ -31,19 +31,27 @@ trait DispatchesCommands
      */
     private function tryCommand(CommandBus $commands, object $command, ?string $invalidMessage = null): bool
     {
+        $this->error = $this->refusal($commands, $command, $invalidMessage);
+
+        return null === $this->error;
+    }
+
+    /**
+     * Dispatches the command and says why it was refused, or null when it
+     * went through; for the actions that dispatch several commands and
+     * report each refusal.
+     */
+    private function refusal(CommandBus $commands, object $command, ?string $invalidMessage = null): ?string
+    {
         try {
             $commands->dispatch($command);
         } catch (ValidationFailedException) {
-            $this->error = $invalidMessage ?? $this->translator->trans('issue.action.refused');
-
-            return false;
+            return $invalidMessage ?? $this->translator->trans('issue.action.refused');
         } catch (\DomainException|AccessDeniedException $e) {
-            $this->error = $e instanceof TranslatableInterface ? $e->trans($this->translator) : $this->translator->trans('issue.action.refused');
-
-            return false;
+            return $e instanceof TranslatableInterface ? $e->trans($this->translator) : $this->translator->trans('issue.action.refused');
         }
 
-        return true;
+        return null;
     }
 
     /**

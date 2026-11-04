@@ -1,4 +1,4 @@
-{# A status colour, fixed and global: places have no colour of their own. #}
+{# The colour of a place, from its status, fixed and global: places have no colour of their own. Decorative: the status is never named to users, the label next to it says the place. #}
 {% props status, size = 'sm' %}
 {% set statusDotClasses = html_cva(
     base: 'inline-block shrink-0 rounded-full',
@@ -7,4 +7,4 @@
         size: { sm: 'h-1.5 w-1.5', md: 'h-2 w-2' },
     },
 ) %}
-<span class="{{ statusDotClasses.apply({ status: status, size: size }, attributes.render('class'))|tailwind_merge }}" title="{{ ('status.' ~ status)|trans }}" {{ attributes }}></span>
+<span class="{{ statusDotClasses.apply({ status: status, size: size }, attributes.render('class'))|tailwind_merge }}" aria-hidden="true" {{ attributes }}></span>

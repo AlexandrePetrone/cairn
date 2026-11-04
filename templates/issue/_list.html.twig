@@ -1,55 +1,62 @@
-{# The rows of an issue list and its pager, shared by the lists of a project and the lists across projects (`showProject` adds the project column).
-   `issues` is the Pagination that SearchIssues returns. #}
-{% set showProject = showProject ?? false %}
-{% if issues.items is empty %}
+{# The table of Issue:List and its pager. Headers sort the list (`sortBy`); the header checkbox checks the whole page. A grouped list draws a header row per group, which folds it (`toggleGroup`). `showProject` adds the project column. #}
+{% if listIssues.items is empty %}
     <twig:Ui:EmptyState :title="'issue.list.empty'|trans" bordered>{{ 'issue.list.empty_hint'|trans }}</twig:Ui:EmptyState>
 {% else %}
+    {% set listGrouping = listComponent.group %}
     <twig:Ui:Table>
         <twig:block name="head">
-            <th class="px-3 py-2 text-left font-medium w-32">{{ 'issue.list.column.key'|trans }}</th>
-            {% if showProject %}<th class="px-3 py-2 text-left font-medium w-44">{{ 'issue.list.column.project'|trans }}</th>{% endif %}
-            <th class="px-3 py-2 text-left font-medium">{{ 'issue.list.column.title'|trans }}</th>
-            <th class="px-3 py-2 text-left font-medium w-32">{{ 'issue.list.column.tracker'|trans }}</th>
-            <th class="px-3 py-2 text-left font-medium w-44">{{ 'issue.list.column.place'|trans }}</th>
-            <th class="px-3 py-2 text-left font-medium w-28">{{ 'issue.list.column.criticality'|trans }}</th>
-            <th class="px-3 py-2 text-left font-medium w-12">{{ 'issue.list.column.assignee'|trans }}</th>
-            <th class="px-3 py-2 text-right font-medium w-28">{{ 'issue.list.column.updated'|trans }}</th>
-        </twig:block>
-        {% for issue in issues.items %}
-            {% set closed = issue.status.value == 'closed' %}
-            {% set issueRoute = { workspaceKey: issue.project.workspace.key, projectKey: issue.project.key } %}
-            {% set issueHref = path('app_issue_show', issueRoute|merge({ number: issue.number })) %}
-            <twig:Ui:Table:Row :closed="closed">
-                <td class="sm:px-3 sm:py-2.5 order-1 whitespace-nowrap"><twig:Ui:IssueKey :key="issue.key" href="{{ issueHref }}" /></td>
-                {% if showProject %}
-                    <td class="sm:px-3 sm:py-2.5 order-5 whitespace-nowrap text-xs">
-                        <a href="{{ path('app_project_issues', issueRoute) }}" class="text-gray-700 hover:text-indigo-700">{{ issue.project.name }}</a>
-                        <span class="hidden lg:inline text-gray-400">· {{ issue.project.workspace.name }}</span>
-                    </td>
+            <th class="px-3 py-2 w-8">
+                <input type="checkbox" aria-label="{{ 'issue.bulk.select_page'|trans }}" {{ listComponent.pageSelected ? 'checked' }} data-action="live#action" data-live-action-param="togglePage" class="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600">
+            </th>
+            {% for listColumn in ['key', 'project', 'title', 'tracker', 'place', 'criticality', 'assignee', 'updated'] %}
+                {% if listColumn != 'project' or showProject %}
+                    <twig:Ui:Table:SortHeader
+                        :direction="listComponent.sortDirection(listColumn)"
+                        :align="listColumn == 'updated' ? 'right' : 'left'"
+                        class="{{ { key: 'w-32', project: 'w-44', title: '', tracker: 'w-32', place: 'w-44', criticality: 'w-28', assignee: 'w-12', updated: 'w-28' }[listColumn] }}"
+                        data-action="live#action" data-live-action-param="sortBy" data-live-column-param="{{ listColumn }}"
+                    >{{ ('issue.list.column.' ~ listColumn)|trans }}</twig:Ui:Table:SortHeader>
                 {% endif %}
-                <td class="sm:px-3 sm:py-2.5 order-4 basis-full sm:basis-auto {{ closed ? 'text-gray-500' : 'text-gray-900' }}">
-                    <a href="{{ issueHref }}" class="hover:text-indigo-700">{{ issue.title }}</a>
-                    {% if issue.private %}<twig:Ui:Badge tone="amber" size="sm" icon="lock">{{ 'issue.private'|trans }}</twig:Ui:Badge>{% endif %}
-                </td>
-                <td class="sm:px-3 sm:py-2.5 order-5 whitespace-nowrap text-xs text-gray-600">{{ issue.tracker.name }}</td>
-                <td class="sm:px-3 sm:py-2.5 order-6 whitespace-nowrap"><twig:Ui:Status:Step :status="issue.status.value" :label="issue_place(issue)" /></td>
-                <td class="sm:px-3 sm:py-2.5 order-2 whitespace-nowrap"><twig:Ui:Criticality:Badge :criticality="issue.criticality.value" /></td>
-                <td class="sm:px-3 sm:py-2.5 order-7 whitespace-nowrap"><twig:Ui:Avatar :name="issue.assignee ? issue.assignee.fullName : null" :kind="issue.assignee and issue.assignee.internal ? 'internal' : 'external'" size="sm" /></td>
-                <td class="sm:px-3 sm:py-2.5 order-3 ml-auto sm:ml-0 text-right whitespace-nowrap text-xs text-gray-400">{{ issue.updatedAt|date('d/m/Y') }}</td>
-            </twig:Ui:Table:Row>
-        {% endfor %}
+            {% endfor %}
+        </twig:block>
+        {% if listGrouping %}
+            {% for listGroup in listComponent.groups %}
+                {% set groupIssue = listGroup.first %}
+                <twig:Ui:Table:GroupRow :count="listGroup.total" :collapsed="listGroup.collapsed" :colspan="showProject ? 9 : 8"
+                    data-action="live#action" data-live-action-param="toggleGroup" data-live-key-param="{{ listGroup.key }}"
+                    title="{{ (listGroup.collapsed ? 'issue.list.group.expand' : 'issue.list.group.collapse')|trans }}">
+                    {% if listGrouping == 'place' %}
+                        <twig:Ui:Status:Step :status="groupIssue.status.value" :label="listComponent.placeLabel(listGroup.key)" />
+                    {% elseif listGrouping == 'criticality' %}
+                        <twig:Ui:Criticality:Badge :criticality="groupIssue.criticality.value" />
+                    {% elseif listGrouping == 'assignee' %}
+                        <span class="inline-flex items-center gap-2">
+                            <twig:Ui:Avatar :name="groupIssue.assignee ? groupIssue.assignee.fullName : null" :kind="groupIssue.assignee and groupIssue.assignee.internal ? 'internal' : 'external'" size="xs" />
+                            {{ groupIssue.assignee ? groupIssue.assignee.fullName : 'issue.unassigned'|trans }}
+                        </span>
+                    {% else %}
+                        <span>{{ groupIssue.project.name }} <span class="font-normal text-gray-400">· {{ groupIssue.project.workspace.name }}</span></span>
+                    {% endif %}
+                </twig:Ui:Table:GroupRow>
+                {% if not listGroup.collapsed %}
+                    {% for issue in listGroup.issues %}{{ include('issue/_list_row.html.twig') }}{% endfor %}
+                {% endif %}
+            {% endfor %}
+        {% else %}
+            {% for issue in listIssues.items %}{{ include('issue/_list_row.html.twig') }}{% endfor %}
+        {% endif %}
     </twig:Ui:Table>
 {% endif %}
 
-{% if issues.pageCount > 1 %}
+{% if listIssues.pageCount > 1 %}
     <nav class="flex items-center justify-between text-xs text-gray-500" aria-label="{{ 'pagination.label'|trans }}">
-        <span>{{ 'pagination.page_of'|trans({ '%page%': issues.page, '%count%': issues.pageCount }) }}</span>
+        <span>{{ 'pagination.page_of'|trans({ '%page%': listIssues.page, '%count%': listIssues.pageCount }) }}</span>
         <div class="flex items-center gap-2">
-            {% if issues.page > 1 %}
-                <twig:Ui:Button size="sm" href="{{ path(app.current_route, app.current_route_parameters|merge(app.request.query.all)|merge({ page: issues.page - 1 })) }}">{{ 'pagination.previous'|trans }}</twig:Ui:Button>
+            {% if listIssues.page > 1 %}
+                <twig:Ui:Button size="sm" data-action="live#action" data-live-action-param="turnPage" data-live-page-param="{{ listIssues.page - 1 }}">{{ 'pagination.previous'|trans }}</twig:Ui:Button>
             {% endif %}
-            {% if issues.page < issues.pageCount %}
-                <twig:Ui:Button size="sm" href="{{ path(app.current_route, app.current_route_parameters|merge(app.request.query.all)|merge({ page: issues.page + 1 })) }}">{{ 'pagination.next'|trans }}</twig:Ui:Button>
+            {% if listIssues.page < listIssues.pageCount %}
+                <twig:Ui:Button size="sm" data-action="live#action" data-live-action-param="turnPage" data-live-page-param="{{ listIssues.page + 1 }}">{{ 'pagination.next'|trans }}</twig:Ui:Button>
             {% endif %}
         </div>
     </nav>

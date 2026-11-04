@@ -23,7 +23,6 @@ use App\Security\Permission;
 use App\Security\Viewer;
 use App\Twig\Components\DispatchesCommands;
 use App\Twig\Components\HandlesAttachments;
-use App\Workflow\WorkflowProvider;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -84,7 +83,6 @@ final class Activity
     private ?IssueDetail $detail = null;
 
     public function __construct(
-        private readonly WorkflowProvider $workflows,
         private readonly AccessControl $access,
         private readonly Viewer $viewer,
         private readonly QueryBus $queries,
@@ -138,13 +136,7 @@ final class Activity
      */
     public function getTransitions(): array
     {
-        $viewer = $this->viewer->get();
-        $workflow = $this->workflows->definition($this->issue->getTracker()->getWorkflowId());
-
-        return array_values(array_filter(
-            $workflow->transitionsFrom($this->issue->getPlace()),
-            fn (TransitionDefinition $transition): bool => $this->access->canTransition($viewer, $transition, $this->issue->getProject()),
-        ));
+        return $this->access->transitionsFor($this->viewer->get(), $this->issue);
     }
 
     public function canComment(): bool

@@ -1,9 +1,13 @@
-{# A checkbox line of a Filter:Menu; `name`, `value`, `id`, `required` and `disabled` go to the checkbox (name="criticality[]"). The content is the label, preceded by a dot, an avatar or a chip when relevant. #}
-{% props checked = false, count = null %}
+{# A checkbox line of a Filter:Menu, a radio one with `single` (one choice among the options, such as a grouping); `name`, `value`, `id`, `required` and `disabled` go to the checkbox (name="criticality[]"); `model` becomes its `data-model` in a live component. The content is the label, preceded by a dot, an avatar or a chip when relevant. #}
+{% props checked = false, count = null, model = null, single = false %}
 {% set filterOptionClasses = html_cva(base: 'flex items-center gap-2 px-2.5 py-1.5 text-sm hover:bg-gray-50 cursor-pointer') %}
+{% set filterOptionInputClasses = html_cva(
+    base: 'h-3.5 w-3.5 border-gray-300 text-indigo-600',
+    variants: { single: { true: 'rounded-full', false: 'rounded' } },
+) %}
 {% set filterOptionCountClasses = html_cva(base: 'text-xs text-gray-400 tabular-nums', variants: { empty: { true: 'opacity-40' } }) %}
 <label class="{{ filterOptionClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes.without('name', 'value', 'id', 'required', 'disabled', 'class') }}>
-    <input type="checkbox" {{ attributes.only('name', 'value', 'id', 'required', 'disabled') }} {{ checked ? 'checked' }} class="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600">
+    <input type="{{ single ? 'radio' : 'checkbox' }}" {{ attributes.only('name', 'value', 'id', 'required', 'disabled') }}{% if model %} data-model="{{ model }}"{% endif %} {{ checked ? 'checked' }} class="{{ filterOptionInputClasses.apply({ single: single }) }}">
     <span class="flex-1 min-w-0 flex items-center gap-2 truncate">{% block content %}{% endblock %}</span>
     {% if count is not null %}<span class="{{ filterOptionCountClasses.apply({ empty: count == 0 }) }}">{{ count }}</span>{% endif %}
 </label>

@@ -114,7 +114,19 @@ issue:
             assigned: Demandes assignées à moi
             created: Demandes créées par moi
         count: '{0}Aucune demande|{1}1 demande|]1,Inf[ %count% demandes'
-        show_closed: Afficher les fermées
+        display:
+            label: Affichage
+            grouped: 'Groupé par %grouping%'
+            closed: Demandes terminées
+        group:
+            label: Grouper par
+            none: Aucun groupe
+            place: Étape
+            criticality: Criticité
+            assignee: Assigné
+            project: Projet
+            collapse: Replier le groupe
+            expand: Déplier le groupe
         empty: Aucune demande ne correspond
         empty_hint: Élargissez les filtres ou affichez les demandes fermées.
         column:
@@ -126,6 +138,31 @@ issue:
             criticality: Criticité
             assignee: Assigné
             updated: Mis à jour
+    bulk:
+        selected: '{1}1 demande sélectionnée|]1,Inf[ %count% demandes sélectionnées'
+        select_page: Sélectionner toute la page
+        clear: Tout décocher
+        open: Actions groupées
+        choose: Que faire de ces demandes ?
+        nothing_in_common: Aucune action ne s'applique à toutes ces demandes. Retirez celles qui diffèrent de la sélection.
+        no_common_transition: Aucune action de workflow commune à toutes ces demandes.
+        assign: Assigner
+        comment: Commenter
+        criticality: Changer la criticité
+        applies_to: '{1}S''applique à 1 demande.|]1,Inf[ S''applique aux %count% demandes.'
+        comment_label: Commentaire
+        comment_hint: Le même message pour toutes les demandes…
+        comment_each: Le commentaire est posté sur chacune des demandes.
+        confirm: '{1}Appliquer à 1 demande|]1,Inf[ Appliquer aux %count% demandes'
+        done: '{1}1 demande mise à jour.|]1,Inf[ %count% demandes mises à jour.'
+        partly_done: '{1}1 demande mise à jour ; refusé pour %refused% : %reason%|]1,Inf[ %count% demandes mises à jour ; refusé pour %refused% : %reason%'
+        all_refused: 'Aucune demande n''a été mise à jour : %reason%'
+    selection:
+        title: Actions groupées
+        back: Retour à la liste
+        issues: '{1}1 demande sélectionnée|]1,Inf[ %count% demandes sélectionnées'
+        empty: Aucune demande sélectionnée
+        empty_hint: Cochez des demandes dans une liste, ou elles ne vous sont plus visibles.
 
 action:
     close: Fermer
@@ -136,6 +173,7 @@ panel:
 
 filter:
     search: Rechercher…
+    place: Étape
     status: Statut
     project: Projet
     tracker: Catégorie

@@ -92,6 +92,31 @@ final class ShopScene
         return $this->issues[$key] ?? throw new \LogicException(\sprintf('No %s in the scene.', $key));
     }
 
+    /**
+     * A new bug on the intranet, which has no tracker until then: for the
+     * tests of a selection across projects. Thomas, who manages the
+     * workspace, reports it.
+     */
+    public function intranetBug(): Issue
+    {
+        $tracker = new Tracker($this->intranet, 'Anomalie', 'bug', 0);
+        $this->entityManager->persist($tracker);
+        $this->entityManager->flush();
+
+        $issue = $this->commands->dispatch(new CreateIssue(
+            actorId: (int) $this->user('thomas.girard@cairn.test')->getId(),
+            projectId: (int) $this->intranet->getId(),
+            trackerId: (int) $tracker->getId(),
+            title: 'Le menu ne s\'ouvre plus',
+            description: '',
+            fields: ['environment' => 'prod'],
+        ));
+        \assert($issue instanceof Issue);
+        $this->issues[$issue->getKey()] = $issue;
+
+        return $issue;
+    }
+
     private function people(): void
     {
         foreach ([

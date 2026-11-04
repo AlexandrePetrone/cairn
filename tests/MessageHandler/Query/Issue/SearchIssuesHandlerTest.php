@@ -14,6 +14,8 @@ use App\Factory\MembershipFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\TrackerFactory;
 use App\Factory\UserFactory;
+use App\Message\Query\Issue\IssueGrouping;
+use App\Message\Query\Issue\IssueSort;
 use App\Message\Query\Issue\SearchIssues;
 use App\MessageHandler\Query\Issue\SearchIssuesHandler;
 use App\Repository\Pagination;
@@ -99,6 +101,49 @@ final class SearchIssuesHandlerTest extends KernelTestCase
         self::assertSame(['Export CSV vide', 'Spinner infini'], self::titles($this->inProject(assignee: [0, (int) $this->nadia->getId()])->items));
     }
 
+    public function testAPlaceFilterListsTheChosenPlacesClosedOnesToo(): void
+    {
+        $this->builder->issue($this->bugs, $this->client, 'Nouvelle');
+        $this->builder->issue($this->bugs, $this->client, 'En cours', 'in_progress');
+        $this->builder->issue($this->bugs, $this->client, 'Terminée', 'done');
+
+        self::assertSame(['En cours'], self::titles($this->search(place: ['bug:in_progress'])->items));
+        self::assertSame(['Nouvelle', 'Terminée'], self::titles($this->search(place: ['bug:new', 'bug:done'])->items), 'a closed place chosen is listed');
+    }
+
+    public function testAColumnSortsTheListBeforeTheDefaultOrder(): void
+    {
+        $this->builder->issue($this->bugs, $this->client, 'banane');
+        $this->builder->issue($this->bugs, $this->client, 'Abricot', 'in_progress');
+        $this->builder->issue($this->bugs, $this->client, 'Cerise', criticality: Criticality::Blocking);
+
+        self::assertSame(['Abricot', 'banane', 'Cerise'], self::titles($this->search(sort: IssueSort::Title)->items), 'whatever the case');
+        self::assertSame(['Cerise', 'banane', 'Abricot'], self::titles($this->search(sort: IssueSort::Title, order: \SortDirection::Descending)->items));
+        self::assertSame(['Cerise', 'banane', 'Abricot'], self::titles($this->search(sort: IssueSort::Criticality, order: \SortDirection::Descending)->items), 'blocking first, then the default order');
+        self::assertSame(['Cerise', 'banane', 'Abricot'], self::titles($this->search(sort: IssueSort::Place)->items), 'in the order of the workflow, then the default order');
+    }
+
+    public function testAGroupedListKeepsEachGroupTogetherAndCountsIt(): void
+    {
+        $zoe = UserFactory::new()->internal()->create(['firstName' => 'Zoé', 'lastName' => 'Arnaud']);
+        $marc = UserFactory::new()->internal()->create(['firstName' => 'Marc', 'lastName' => 'Petit']);
+        $this->builder->issue($this->bugs, $this->client, 'Pour Marc', criticality: Criticality::Blocking, assignee: $marc);
+        $this->builder->issue($this->bugs, $this->client, 'Personne');
+        $this->builder->issue($this->bugs, $this->client, 'Pour Zoé', assignee: $zoe);
+        $this->builder->issue($this->bugs, $this->client, 'Encore Marc', assignee: $marc);
+
+        $result = $this->search(group: IssueGrouping::Assignee);
+
+        self::assertSame(['Personne', 'Pour Zoé', 'Pour Marc', 'Encore Marc'], self::titles($result->items), 'nobody first, then by name, the default order inside');
+        self::assertSame([IssueGrouping::NOBODY => 1, (string) $zoe->getId() => 1, (string) $marc->getId() => 2], $result->groupTotals);
+
+        $sorted = $this->search(group: IssueGrouping::Assignee, sort: IssueSort::Title);
+        self::assertSame(['Personne', 'Pour Zoé', 'Encore Marc', 'Pour Marc'], self::titles($sorted->items), 'the sort applies inside each group');
+
+        self::assertSame(['bug:new' => 4], $this->search(group: IssueGrouping::Place)->groupTotals, 'a place is named with its workflow');
+        self::assertSame([], $this->search()->groupTotals, 'nothing counted when not grouped');
+    }
+
     public function testTextSearchMatchesTitlesAndExactKeys(): void
     {
         $export = $this->builder->issue($this->bugs, $this->client, 'L\'export CSV des commandes est vide');
@@ -168,6 +213,18 @@ final class SearchIssuesHandlerTest extends KernelTestCase
             self::assertNotNull($related);
             self::assertFalse($unitOfWork->isUninitializedObject($related), $related::class.' is fetched with the issue');
         }
+    }
+
+    /**
+     * The project list as the manager sees it, with the place filter, the sort and the grouping.
+     *
+     * @param list<string> $place
+     *
+     * @return Pagination<Issue>
+     */
+    private function search(array $place = [], ?IssueSort $sort = null, \SortDirection $order = \SortDirection::Ascending, ?IssueGrouping $group = null): Pagination
+    {
+        return self::queryBus()->ask(new SearchIssues($this->manager, projectId: $this->project->getId(), place: $place, sort: $sort, order: $order, group: $group));
     }
 
     /**

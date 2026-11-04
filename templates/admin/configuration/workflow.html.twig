@@ -23,7 +23,7 @@
                 <li class="rounded-lg border border-gray-200 bg-white">
                     <div class="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-gray-100">
                         <span class="text-xs text-gray-400 tabular-nums">{{ loop.index }}</span>
-                        <twig:Ui:Status:Step :status="place.status.value" :label="place.label" class="font-medium" />
+                        <twig:Ui:Status:Step :status="place.status.value" :label="place.label" withStatus class="font-medium" />
                         {% if place.id == workflow.initial %}<twig:Ui:Badge tone="indigo" size="sm">{{ 'admin.configuration.workflow.initial_badge'|trans }}</twig:Ui:Badge>{% endif %}
                         {% if placeActions is empty %}<twig:Ui:Badge size="sm">{{ 'admin.configuration.workflow.final_badge'|trans }}</twig:Ui:Badge>{% endif %}
                         <span class="ml-auto font-mono text-[11px] text-gray-400">{{ place.id }}</span>

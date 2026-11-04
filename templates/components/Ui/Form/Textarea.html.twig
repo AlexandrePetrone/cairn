@@ -1,7 +1,7 @@
-{# Multi-line text. `invalid` turns the border red. #}
-{% props rows = 4, invalid = false %}
+{# Multi-line text. `model` becomes its `data-model` in a live component. `invalid` turns the border red. #}
+{% props rows = 4, invalid = false, model = null %}
 {% set textareaClasses = html_cva(
     base: 'mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500',
     variants: { invalid: { true: 'border-red-400 focus:border-red-400 focus:ring-red-100' } },
 ) %}
-<textarea rows="{{ rows }}" class="{{ textareaClasses.apply({ invalid: invalid }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>{% block content %}{% endblock %}</textarea>
+<textarea rows="{{ rows }}" class="{{ textareaClasses.apply({ invalid: invalid }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}{% if model %} data-model="{{ model }}"{% endif %}>{% block content %}{% endblock %}</textarea>

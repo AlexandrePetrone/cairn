@@ -7,19 +7,24 @@ namespace App\MessageHandler\Query\Issue;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
 use App\Entity\User;
+use App\Message\Query\Issue\IssueGrouping;
+use App\Message\Query\Issue\IssueSort;
 use App\Message\Query\Issue\SearchIssues;
+use App\Repository\IssueOrder;
 use App\Repository\Pagination;
 use App\Repository\SearchText;
 use App\Repository\Visibility;
+use App\Workflow\PlaceCatalog;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
- * Lists issues sorted status first, then criticality, then latest activity,
- * restricted to what the viewer may see (Repository/Visibility). Two
- * queries per page: the total, then the rows with tracker, project,
- * workspace and assignee loaded.
+ * Lists issues in the order of every list (Repository/IssueOrder), grouped
+ * and sorted as asked, restricted to what the viewer may see
+ * (Repository/Visibility). Two queries per page: the total, then the rows
+ * with tracker, project, workspace and assignee loaded; a third one counts
+ * the groups when the list is grouped.
  */
 #[AsMessageHandler(bus: 'query.bus')]
 final class SearchIssuesHandler
@@ -29,6 +34,7 @@ final class SearchIssuesHandler
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly Visibility $visibility,
+        private readonly PlaceCatalog $places,
     ) {
     }
 
@@ -44,14 +50,8 @@ final class SearchIssuesHandler
             ->getQuery()
             ->getSingleScalarResult();
 
-        $rows = $this->filtered($viewer, $query)
-            ->addSelect('t', 'p', 'w', 'a')
-            ->addSelect("CASE i.status WHEN 'open' THEN 1 WHEN 'in_progress' THEN 2 WHEN 'waiting' THEN 3 ELSE 4 END AS HIDDEN statusOrder")
-            ->addSelect("CASE i.criticality WHEN 'blocking' THEN 1 WHEN 'high' THEN 2 WHEN 'normal' THEN 3 ELSE 4 END AS HIDDEN criticalityOrder")
-            ->orderBy('statusOrder')
-            ->addOrderBy('criticalityOrder')
-            ->addOrderBy('i.updatedAt', 'DESC')
-            ->addOrderBy('i.id', 'DESC')
+        $placeRanks = IssueGrouping::Place === $query->group || IssueSort::Place === $query->sort ? $this->places->ranks() : [];
+        $rows = IssueOrder::apply($this->filtered($viewer, $query)->addSelect('t', 'p', 'w', 'a'), $query->group, $query->sort, $query->order, $placeRanks)
             ->setFirstResult(($query->page - 1) * self::PER_PAGE)
             ->setMaxResults(self::PER_PAGE)
             ->getQuery()
@@ -61,7 +61,28 @@ final class SearchIssuesHandler
         }
         $issues = array_values(array_filter($rows, static fn (mixed $row): bool => $row instanceof Issue));
 
-        return new Pagination($issues, $total, $query->page, self::PER_PAGE);
+        return new Pagination($issues, $total, $query->page, self::PER_PAGE, null === $query->group ? [] : $this->groupTotals($viewer, $query, $query->group));
+    }
+
+    /**
+     * @return array<string, int> group key => issues in the group
+     */
+    private function groupTotals(User $viewer, SearchIssues $query, IssueGrouping $group): array
+    {
+        $rows = $this->filtered($viewer, $query)
+            ->select(IssueOrder::groupKey($group).' AS groupKey', 'COUNT(i.id) AS total')
+            ->groupBy('groupKey')
+            ->getQuery()
+            ->getArrayResult();
+
+        $totals = [];
+        foreach ($rows as $row) {
+            if (\is_array($row)) {
+                $totals[IssueGrouping::key($row['groupKey'] ?? null)] = (int) ($row['total'] ?? 0);
+            }
+        }
+
+        return $totals;
     }
 
     private function filtered(User $viewer, SearchIssues $query): QueryBuilder
@@ -92,8 +113,11 @@ final class SearchIssuesHandler
         if ([] !== $query->status) {
             $queryBuilder->andWhere('i.status IN (:status)')->setParameter('status', $query->status);
         }
-        // Closed issues stay out unless asked for, by the flag or by status.
-        if (!$query->closed && !\in_array(PlaceStatus::Closed, $query->status, true)) {
+        if ([] !== $query->place) {
+            $queryBuilder->andWhere(IssueOrder::PLACE_KEY.' IN (:place)')->setParameter('place', $query->place);
+        }
+        // Closed issues stay out unless asked for: by the flag, by status, or by choosing places.
+        if (!$query->closed && [] === $query->place && !\in_array(PlaceStatus::Closed, $query->status, true)) {
             $queryBuilder->andWhere('i.status != :closedStatus')->setParameter('closedStatus', PlaceStatus::Closed);
         }
         if ([] !== $query->project) {

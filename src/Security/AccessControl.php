@@ -168,6 +168,23 @@ final class AccessControl implements ResetInterface
         return null !== $role && \in_array($role, $transition->roles, true);
     }
 
+    /**
+     * The actions of its workflow the user may take on the issue from where
+     * it stands: those leaving its place that their role on its project
+     * may trigger.
+     *
+     * @return list<TransitionDefinition>
+     */
+    public function transitionsFor(User $user, Issue $issue): array
+    {
+        $workflow = $this->config->definition()->workflow($issue->getTracker()->getWorkflowId());
+
+        return array_values(array_filter(
+            $workflow->transitionsFrom($issue->getPlace()),
+            fn (TransitionDefinition $transition): bool => $this->canTransition($user, $transition, $issue->getProject()),
+        ));
+    }
+
     public function reset(): void
     {
         $this->memberships = [];

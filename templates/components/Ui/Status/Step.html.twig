@@ -1,8 +1,8 @@
-{# "Place · Status", as shown in every cross-tracker list. #}
-{% props status, label %}
+{# A place as users see it: its colour and its label. The status of the place is shown only with `withStatus`, in the configuration of the administration; users never see it. #}
+{% props status, label, withStatus = false %}
 {% set statusStepClasses = html_cva(base: 'inline-flex items-center gap-1.5') %}
 <span class="{{ statusStepClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
     <twig:Ui:Status:Dot status="{{ status }}" />
     <span class="text-gray-800">{{ label }}</span>
-    <span class="hidden lg:inline text-[11px] text-gray-400">· {{ ('status.' ~ status)|trans }}</span>
+    {% if withStatus %}<span class="text-[11px] text-gray-400">· {{ ('status.' ~ status)|trans }}</span>{% endif %}
 </span>

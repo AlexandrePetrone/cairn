@@ -2,3 +2,4 @@ component: Ui:Status:Step
 variants:
     default: { args: { status: waiting, label: À recetter } }
     closed: { args: { status: closed, label: Fermée } }
+    with_status: { args: { status: waiting, label: À recetter, withStatus: true } }

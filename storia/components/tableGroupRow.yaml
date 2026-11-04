@@ -1,0 +1,10 @@
+component: Ui:Table:GroupRow
+variants:
+    default:
+        args: { count: 12, colspan: 4 }
+        blocks:
+            content: 'À recetter'
+    collapsed:
+        args: { count: 3, colspan: 4, collapsed: true }
+        blocks:
+            content: 'Nadia Benali'

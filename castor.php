@@ -55,7 +55,7 @@ function storia(): int
 #[AsTask(description: 'Reset the dev database and load the development data')]
 function fixtures(): int
 {
-    return tool(['bin/console', 'foundry:load-fixtures', 'main', '--no-interaction']);
+    return tool(['bin/console', 'foundry:load-fixtures', 'main', 'volume', '--no-interaction']);
 }
 
 #[AsTask(description: 'Install the npm packages and build the assets with Vite')]

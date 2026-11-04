@@ -14,21 +14,26 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Every issue list is this query: a project, a workspace, my issues, the
- * ones I created. The controller builds it whole: the viewer and the scope
- * from where it stands, the filters from the request.
+ * ones I created. Its caller builds it whole: the viewer and the scope
+ * from where it stands, the filters, the sort and the grouping from the
+ * request. `status` is for the application's own lists (the home page):
+ * users filter by place.
  *
  * @implements Query<Pagination<Issue>>
  */
 final readonly class SearchIssues implements Query
 {
     /**
-     * @param list<PlaceStatus> $status
-     * @param list<int>         $project     among the projects of the scope
-     * @param list<int>         $tracker
-     * @param list<int>         $assignee    user ids, 0 for unassigned
-     * @param list<Criticality> $criticality
-     * @param ?string           $q           words of the title, a full key, or the start of a number
-     * @param bool              $closed      list closed issues too (implied when `status` names closed)
+     * @param list<PlaceStatus>  $status
+     * @param list<string>       $place       place keys, `workflow:place` (Workflow/PlaceCatalog::key()); closed issues are then listed when their place is chosen
+     * @param list<int>          $project     among the projects of the scope
+     * @param list<int>          $tracker
+     * @param list<int>          $assignee    user ids, 0 for unassigned
+     * @param list<Criticality>  $criticality
+     * @param ?string            $q           words of the title, a full key, or the start of a number
+     * @param bool               $closed      list closed issues too (implied when `status` names closed or `place` is set)
+     * @param IssueSort|null     $sort        the column to sort by, before the default order
+     * @param IssueGrouping|null $group       groups the issues, and counts each group (Pagination::$groupTotals)
      */
     public function __construct(
         public User $viewer,
@@ -37,6 +42,7 @@ final readonly class SearchIssues implements Query
         public ?int $assigneeId = null,
         public ?int $authorId = null,
         public array $status = [],
+        public array $place = [],
         public array $project = [],
         public array $tracker = [],
         public array $assignee = [],
@@ -45,6 +51,9 @@ final readonly class SearchIssues implements Query
         public bool $closed = false,
         #[Assert\Positive]
         public int $page = 1,
+        public ?IssueSort $sort = null,
+        public \SortDirection $order = \SortDirection::Ascending,
+        public ?IssueGrouping $group = null,
     ) {
     }
 }

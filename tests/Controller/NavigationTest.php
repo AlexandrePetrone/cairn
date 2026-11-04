@@ -55,7 +55,7 @@ final class NavigationTest extends WebTestCase
         self::assertSelectorTextContains('tbody', 'Site e-commerce', 'the project column');
         self::assertSelectorTextNotContains('tbody', 'Typo dans le pied de page', 'not hers');
 
-        $this->client->request('GET', '/issues/assigned', ['project' => [(int) $this->scene->intranet->getId()]]);
+        $this->client->request('GET', '/issues/assigned', ['projects' => [(int) $this->scene->intranet->getId()]]);
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('tbody', 'nothing of hers on the intranet');
 

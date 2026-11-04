@@ -114,7 +114,19 @@ issue:
             assigned: Issues assigned to me
             created: Issues created by me
         count: '{0}No issues|{1}1 issue|]1,Inf[ %count% issues'
-        show_closed: Show closed issues
+        display:
+            label: Display
+            grouped: 'Grouped by %grouping%'
+            closed: Finished issues
+        group:
+            label: Group by
+            none: No grouping
+            place: Step
+            criticality: Criticality
+            assignee: Assignee
+            project: Project
+            collapse: Fold the group
+            expand: Unfold the group
         empty: No issue matches
         empty_hint: Widen the filters or show closed issues.
         column:
@@ -126,6 +138,31 @@ issue:
             criticality: Criticality
             assignee: Assignee
             updated: Updated
+    bulk:
+        selected: '{1}1 issue selected|]1,Inf[ %count% issues selected'
+        select_page: Select the whole page
+        clear: Uncheck all
+        open: Bulk actions
+        choose: What to do with these issues?
+        nothing_in_common: No action applies to all these issues. Remove those that differ from the selection.
+        no_common_transition: No workflow action is common to all these issues.
+        assign: Assign
+        comment: Comment
+        criticality: Change criticality
+        applies_to: '{1}Applies to 1 issue.|]1,Inf[ Applies to the %count% issues.'
+        comment_label: Comment
+        comment_hint: The same message for every issue…
+        comment_each: The comment is posted on each issue.
+        confirm: '{1}Apply to 1 issue|]1,Inf[ Apply to the %count% issues'
+        done: '{1}1 issue updated.|]1,Inf[ %count% issues updated.'
+        partly_done: '{1}1 issue updated; refused for %refused%: %reason%|]1,Inf[ %count% issues updated; refused for %refused%: %reason%'
+        all_refused: 'No issue was updated: %reason%'
+    selection:
+        title: Bulk actions
+        back: Back to the list
+        issues: '{1}1 issue selected|]1,Inf[ %count% issues selected'
+        empty: No issue selected
+        empty_hint: Check issues in a list, or they are no longer visible to you.
 
 action:
     close: Close
@@ -136,6 +173,7 @@ panel:
 
 filter:
     search: Search…
+    place: Step
     status: Status
     project: Project
     tracker: Category

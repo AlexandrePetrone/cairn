@@ -13,13 +13,15 @@ namespace App\Repository;
 final readonly class Pagination
 {
     /**
-     * @param list<T> $items
+     * @param list<T>            $items
+     * @param array<string, int> $groupTotals when the list is grouped, how many items each group holds on every page
      */
     public function __construct(
         public array $items,
         public int $total,
         public int $page,
         public int $perPage,
+        public array $groupTotals = [],
     ) {
     }
 
