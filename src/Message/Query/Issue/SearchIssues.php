@@ -35,6 +35,7 @@ final readonly class SearchIssues implements Query
      * @param bool               $closed      list closed issues too (implied when `status` names closed or `place` is set)
      * @param IssueSort|null     $sort        the column to sort by, before the default order
      * @param IssueGrouping|null $group       groups the issues, and counts each group (Pagination::$groupTotals)
+     * @param int                $perPage     issues per page; a kanban column grows its single page by batches
      */
     public function __construct(
         public User $viewer,
@@ -56,6 +57,8 @@ final readonly class SearchIssues implements Query
         public ?IssueSort $sort = null,
         public \SortDirection $order = \SortDirection::Ascending,
         public ?IssueGrouping $group = null,
+        #[Assert\Range(min: 1, max: 200)]
+        public int $perPage = 50,
     ) {
     }
 }

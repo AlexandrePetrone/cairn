@@ -40,8 +40,9 @@ Decisions already taken:
   access, not its history), and a removed link between issues (the
   journal of both issues keeps it).
 - Interface: server-rendered Twig + Turbo + UX Twig/Live Components, Tailwind
-  for styling. The kanban is a React island; the rich-text editor is
-  TipTap driven by a Stimulus controller, no framework.
+  for styling, no JavaScript framework: the kanban is Live components
+  with SortableJS in a Stimulus controller, the rich-text editor is
+  TipTap driven by a Stimulus controller.
 - Auth: SecurityBundle `form_login` on `/login` (email + password, stateless
   CSRF, remember me), logout on `/logout`; every other route requires
   `ROLE_USER`. Emails are stored lowercase and `UserRepository` loads the
@@ -233,6 +234,22 @@ Rules:
   are `templates/issue/_filters.html.twig`, `_list.html.twig` and
   `_list_row.html.twig`. The home page keeps its own compact panels,
   outside the component.
+- **The kanban loads column by column.** A tracker shows as a list or a
+  kanban (`/MD/SPT/issues/tracker/{id}/board`, tabs between them),
+  never across trackers since a kanban has one workflow. Its filters
+  are a GET form (`Form/BoardFilters`), so a filtered board is an
+  address. Each place is an `Issue:BoardColumn` rendered with
+  `loading="lazy"`: it loads when it shows, asks `SearchIssues` for its
+  place only and grows by batches (`perPage`, the `load-more`
+  controller); a closed place starts folded. There is no pagination of
+  the whole board, and nothing loads it whole. Each card lists the
+  places the viewer may move it to (`AccessControl::transitionsFor()`),
+  so the `board` controller refuses the others while dragging, without
+  asking the server. `Issue:BoardMove` is the only component that acts:
+  it finds the transition again, applies it or asks in a dialog (a
+  required comment, several actions to the same place), and sends the
+  browser `board:moved` so that the two columns concerned redraw as the
+  server has them, whatever the outcome.
 - **Bulk actions go through a selection page.** Rows of `Issue:List` are
   checked page by page; the selection bar links to the selection page
   with the ids and the filtered list to come back to (`from`, kept only
@@ -548,8 +565,9 @@ Rules:
 - JavaScript is Stimulus only, one small controller per behaviour in
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`,
   `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`,
-  `workflow-diagram`, `sortable`, `list-filter`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
-  (`editor` with TipTap, `workflow-diagram` with Mermaid) so that Vite
+  `workflow-diagram`, `sortable`, `list-filter`, `board`, `load-more`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
+  (`editor` with TipTap, `workflow-diagram` with Mermaid, `board` with
+  SortableJS) so that Vite
   splits its imports into chunks only fetched on a page that uses it; write a new one when a component needs it, not before. No
   inline scripts.
 

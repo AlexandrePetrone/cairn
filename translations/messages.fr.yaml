@@ -11,6 +11,17 @@ criticality:
     blocking: Bloquante
 
 issue:
+    board:
+        title: Kanban
+        list: Liste
+        views: Vues de la catégorie
+        more: 'Afficher plus (%count%)'
+        fold: Replier
+        unfold: 'Déplier %place%'
+        not_allowed: Cette demande ne peut pas aller à cette étape.
+        choose: Quelle action ?
+        action: Action
+        apply: Appliquer
     links:
         title: Liens
         new: + Lier une demande

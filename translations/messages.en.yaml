@@ -11,6 +11,17 @@ criticality:
     blocking: Blocking
 
 issue:
+    board:
+        title: Kanban
+        list: List
+        views: Views of the category
+        more: 'Show more (%count%)'
+        fold: Fold
+        unfold: 'Unfold %place%'
+        not_allowed: This issue cannot go to that step.
+        choose: Which action?
+        action: Action
+        apply: Apply
     links:
         title: Links
         new: + Link an issue

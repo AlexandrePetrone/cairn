@@ -225,6 +225,19 @@ final class SearchIssuesHandlerTest extends KernelTestCase
         self::assertSame([], array_intersect(array_map(static fn (Issue $issue) => $issue->getId(), $first->items), array_map(static fn (Issue $issue) => $issue->getId(), $second->items)));
     }
 
+    public function testAPageHoldsTheSizeAsked(): void
+    {
+        foreach (range(1, 7) as $index) {
+            $this->builder->issue($this->bugs, $this->client, "Demande {$index}");
+        }
+
+        $page = self::queryBus()->ask(new SearchIssues($this->manager, projectId: $this->project->getId(), perPage: 5));
+
+        self::assertCount(5, $page->items);
+        self::assertSame(7, $page->total);
+        self::assertSame(2, $page->pageCount());
+    }
+
     public function testRelationsAreLoadedWithTheRows(): void
     {
         $this->builder->issue($this->bugs, $this->client, 'Avec assignée', assignee: $this->nadia);

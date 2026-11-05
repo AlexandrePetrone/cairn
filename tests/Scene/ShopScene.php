@@ -120,6 +120,26 @@ final class ShopScene
     }
 
     /**
+     * Another new bug on the shop, reported by Claire: for the tests that
+     * need more issues than the scene holds.
+     */
+    public function bug(string $title): Issue
+    {
+        $issue = $this->commands->dispatch(new CreateIssue(
+            actorId: (int) $this->user('claire.martin@maison-dupont.test')->getId(),
+            projectId: (int) $this->shop->getId(),
+            trackerId: (int) $this->bugs->getId(),
+            title: $title,
+            description: '',
+            fields: ['environment' => 'prod'],
+        ));
+        \assert($issue instanceof Issue);
+        $this->issues[$issue->getKey()] = $issue;
+
+        return $issue;
+    }
+
+    /**
      * An open release of the shop, which has none until then, holding the
      * issues named: Thomas, who manages the workspace, creates it.
      *

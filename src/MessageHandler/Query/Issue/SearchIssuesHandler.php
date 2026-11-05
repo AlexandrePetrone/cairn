@@ -29,6 +29,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 #[AsMessageHandler(bus: 'query.bus')]
 final class SearchIssuesHandler
 {
+    /** The default size of a page, SearchIssues::$perPage. */
     public const int PER_PAGE = 50;
 
     public function __construct(
@@ -52,8 +53,8 @@ final class SearchIssuesHandler
 
         $placeRanks = IssueGrouping::Place === $query->group || IssueSort::Place === $query->sort ? $this->places->ranks() : [];
         $rows = IssueOrder::apply($this->filtered($viewer, $query)->addSelect('t', 'p', 'w', 'a', 'r'), $query->group, $query->sort, $query->order, $placeRanks)
-            ->setFirstResult(($query->page - 1) * self::PER_PAGE)
-            ->setMaxResults(self::PER_PAGE)
+            ->setFirstResult(($query->page - 1) * $query->perPage)
+            ->setMaxResults($query->perPage)
             ->getQuery()
             ->getResult();
         if (!\is_array($rows)) {
@@ -61,7 +62,7 @@ final class SearchIssuesHandler
         }
         $issues = array_values(array_filter($rows, static fn (mixed $row): bool => $row instanceof Issue));
 
-        return new Pagination($issues, $total, $query->page, self::PER_PAGE, null === $query->group ? [] : $this->groupTotals($viewer, $query, $query->group));
+        return new Pagination($issues, $total, $query->page, $query->perPage, null === $query->group ? [] : $this->groupTotals($viewer, $query, $query->group));
     }
 
     /**

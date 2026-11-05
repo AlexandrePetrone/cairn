@@ -1,0 +1,57 @@
+{% extends 'layout/project.html.twig' %}
+
+{% block page_title %}{{ tracker.name }} · {{ 'issue.board.title'|trans }}{% endblock %}
+
+{# The kanban of a tracker: the filters as a GET form, then one column per place of its workflow, each loaded when it shows (loading="lazy") and by batches, the closed places folded, and the component that moves cards. Columns and the mover are siblings: none redraws another. #}
+{% block content %}
+    <div class="border-b border-gray-100 bg-white px-4 sm:px-6 pt-3">
+        <h1 class="font-semibold text-gray-900 text-base">{{ tracker.name }}</h1>
+        {{ include('project/_tracker_tabs.html.twig', { view: 'board' }) }}
+    </div>
+    <form method="get" role="search" class="flex flex-wrap items-center gap-2 px-4 sm:px-6 py-3" data-controller="autosubmit" data-action="change->autosubmit#submit">
+        <twig:Ui:Filter:Menu :label="'filter.criticality'|trans" :count="filters.criticality()|length">
+            {% for boardCriticality in enum_cases('App\\Entity\\Enum\\Criticality')|reverse %}
+                <twig:Ui:Filter:Option name="criticality[]" :value="boardCriticality.value" :checked="boardCriticality.value in filters.criticality()">{{ ('criticality.' ~ boardCriticality.value)|trans }}</twig:Ui:Filter:Option>
+            {% endfor %}
+        </twig:Ui:Filter:Menu>
+        <twig:Ui:Filter:Menu :label="'filter.assignee'|trans" :count="filters.assignees()|length">
+            <twig:Ui:Filter:Option name="assignees[]" value="0" :checked="0 in filters.assignees()">
+                <twig:Ui:Avatar size="xs" />{{ 'issue.unassigned'|trans }}
+            </twig:Ui:Filter:Option>
+            {% for member in members %}
+                <twig:Ui:Filter:Option name="assignees[]" :value="member.id" :checked="member.id in filters.assignees()">
+                    <twig:Ui:Avatar size="xs" :name="member.fullName" :kind="member.internal ? 'internal' : 'external'" />{{ member.fullName }}
+                </twig:Ui:Filter:Option>
+            {% endfor %}
+        </twig:Ui:Filter:Menu>
+        {% if releases is not empty %}
+            <twig:Ui:Filter:Menu :label="'filter.release'|trans" :count="filters.releases()|length">
+                <twig:Ui:Filter:Option name="releases[]" value="0" :checked="0 in filters.releases()">{{ 'issue.list.no_release'|trans }}</twig:Ui:Filter:Option>
+                {% for boardRelease in releases %}
+                    <twig:Ui:Filter:Option name="releases[]" :value="boardRelease.id" :checked="boardRelease.id in filters.releases()">
+                        <span class="truncate font-mono text-xs {{ boardRelease.open ? '' : 'text-gray-400' }}">{{ boardRelease.name }}</span>
+                    </twig:Ui:Filter:Option>
+                {% endfor %}
+            </twig:Ui:Filter:Menu>
+        {% endif %}
+        <twig:Ui:Filter:Search :value="filters.q" class="w-48 xl:w-60" />
+        {% if not filters.isEmpty() %}
+            <a href="{{ path('app_project_board', { workspaceKey: project.workspace.key, projectKey: project.key, tracker: tracker.id }) }}" class="text-xs text-indigo-600 hover:underline">{{ 'filter.clear'|trans }}</a>
+        {% endif %}
+    </form>
+    <div class="flex items-stretch gap-3 overflow-x-auto px-4 sm:px-6 pb-6" style="height: calc(100vh - 13rem)">
+        {% for place in workflow.places %}
+            <twig:Issue:BoardColumn
+                loading="lazy"
+                :tracker="tracker"
+                :placeId="place.id"
+                :open="place.status.value != 'closed'"
+                :criticality="filters.criticality()"
+                :assignees="filters.assignees()"
+                :releases="filters.releases()"
+                :q="filters.q"
+            />
+        {% endfor %}
+    </div>
+    <twig:Issue:BoardMove />
+{% endblock %}

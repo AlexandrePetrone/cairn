@@ -1,0 +1,6 @@
+component: Ui:BoardCard
+variants:
+    default: { args: { key: MD-SPT-12, title: Les frais de port ne s'affichent pas en Corse, assignee: Nadia Benali, release: 2.5.0 } }
+    blocking: { args: { key: MD-SPT-1, title: Spinner infini sur la page panier, criticality: blocking, assignee: Léa Fontaine } }
+    private: { args: { key: MD-SPT-16, title: Mettre à jour Symfony en 8.1, private: true, assignee: Nadia Benali } }
+    unassigned: { args: { key: MD-SPT-3, title: Typo dans le pied de page, criticality: low } }

@@ -1,0 +1,69 @@
+{# A column of the kanban: the place and its count, then its cards, by batches. The list carries the `board` controller: SortableJS drags a card to another column, which the card's `data-board-places` allows, and the controller calls Issue:BoardMove.
+   A folded column (the closed places, as the page sets it) is a narrow rail: the colour of the place, its count, its label written upwards; a click unfolds it. A card can still be dropped on it: its list fills the rail and hides the card SortableJS would show there, too wide for it, and the rail lights up while a card is over it (data-board-over).
+   The list is replaced whole on each redraw (data-skip-morph): Live would otherwise keep a card SortableJS dropped there as it was, with the places it could reach from its former column. #}
+{% set boardColumnPlace = this.place %}
+{% set boardColumnIssues = this.issues %}
+{% set boardColumnRemaining = this.remaining %}
+{% set boardColumnClasses = html_cva(
+    base: 'group/column relative flex shrink-0 flex-col rounded-lg border border-gray-200 bg-gray-100/80 transition-all',
+    variants: { open: { true: 'w-72', false: 'w-10 has-[[data-board-state=allowed]]:border-indigo-200 has-[[data-board-state=denied]]:opacity-40 has-[[data-board-over]]:border-indigo-400 has-[[data-board-over]]:bg-indigo-100' } },
+) %}
+{% set boardColumnListClasses = html_cva(
+    base: 'rounded-md transition data-[board-state=allowed]:bg-indigo-50 data-[board-state=allowed]:ring-2 data-[board-state=allowed]:ring-indigo-200 data-[board-state=denied]:opacity-40',
+    variants: { open: { true: 'flex min-h-24 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2 data-[board-over]:ring-indigo-400', false: 'absolute inset-0 overflow-hidden [&>li]:hidden data-[board-state=allowed]:bg-transparent' } },
+) %}
+<section {{ attributes.defaults({ class: boardColumnClasses.apply({ open: open }) }) }} data-board-column="{{ placeId }}" data-loading="addClass(opacity-70)">
+    {% if open %}
+        <header class="flex items-center gap-2 px-3 py-2.5">
+            <twig:Ui:Status:Step :status="boardColumnPlace.status.value" :label="boardColumnPlace.label" class="min-w-0 truncate text-sm font-medium text-gray-800" />
+            <span class="text-xs tabular-nums text-gray-400">{{ boardColumnIssues.total }}</span>
+            {% if boardColumnPlace.status.value == 'closed' %}
+                <twig:Ui:IconButton icon="x" size="sm" :label="'issue.board.fold'|trans" class="ml-auto" data-action="live#action" data-live-action-param="toggle" />
+            {% endif %}
+        </header>
+    {% else %}
+        <button type="button" class="relative z-10 flex h-full w-full flex-col items-center gap-2 py-3 text-gray-500 hover:text-gray-800 group-has-[[data-board-over]]/column:text-indigo-700"
+            title="{{ 'issue.board.unfold'|trans({ '%place%': boardColumnPlace.label }) }}" data-action="live#action" data-live-action-param="toggle">
+            <twig:Ui:Status:Dot :status="boardColumnPlace.status.value" />
+            <span class="rounded-full border border-gray-200 bg-white px-1.5 text-[11px] font-medium tabular-nums text-gray-600">{{ boardColumnIssues.total }}</span>
+            <span class="mt-1 rotate-180 text-xs font-medium [writing-mode:vertical-rl]">{{ boardColumnPlace.label }}</span>
+        </button>
+    {% endif %}
+    <ul class="{{ boardColumnListClasses.apply({ open: open }) }}"
+        data-controller="board" data-board-place-value="{{ placeId }}" data-skip-morph aria-label="{{ boardColumnPlace.label }}">
+        {% if open %}
+            {% for issue in boardColumnIssues.items %}
+                {% set boardCardPlaces = this.placesFor(issue) %}
+                <li id="board-card-{{ issue.id }}" data-board-key="{{ issue.key }}" data-board-places="{{ boardCardPlaces|join(' ') }}" class="{{ boardCardPlaces is empty ? 'board-locked' : 'cursor-grab' }}">
+                    <twig:Ui:BoardCard
+                        :key="issue.key"
+                        :title="issue.title"
+                        href="{{ path('app_issue_show', { workspaceKey: issue.project.workspace.key, projectKey: issue.project.key, number: issue.number }) }}"
+                        :criticality="issue.criticality.value"
+                        :assignee="issue.assignee ? issue.assignee.fullName : null"
+                        :assigneeKind="issue.assignee and not issue.assignee.internal ? 'external' : 'internal'"
+                        :private="issue.private or issue.tracker.private"
+                        :release="issue.release ? issue.release.name : null"
+                    />
+                </li>
+            {% endfor %}
+        {% endif %}
+    </ul>
+    {% if boardColumnRemaining > 0 %}
+        <div class="px-2 pb-2">
+            <button type="button" class="w-full rounded-md py-1.5 text-xs text-gray-600 hover:bg-gray-200/70"
+                data-controller="load-more" data-action="live#action" data-live-action-param="more">{{ 'issue.board.more'|trans({ '%count%': boardColumnRemaining }) }}</button>
+        </div>
+    {% endif %}
+</section>
+
+{% macro placeholder(props) %}
+    {% if props.open ?? true %}
+        <div class="flex w-72 shrink-0 flex-col gap-2 rounded-lg border border-gray-200 bg-gray-100/80 p-3" aria-busy="true">
+            <div class="h-4 w-32 animate-pulse rounded bg-gray-200"></div>
+            {% for i in 1..3 %}<div class="h-16 animate-pulse rounded-md bg-white/80"></div>{% endfor %}
+        </div>
+    {% else %}
+        <div class="w-10 shrink-0 animate-pulse rounded-lg border border-gray-200 bg-gray-100/80" aria-busy="true"></div>
+    {% endif %}
+{% endmacro %}
