@@ -178,6 +178,21 @@ class JournalEntry
         return new self($issue, $author, JournalEntryType::AttachmentRemoved, ['filename' => $attachment->getFilename()], $attachment->getComment()?->isPrivate() ?? false);
     }
 
+    /**
+     * The issue was linked to another one, or unlinked: the entry keeps the
+     * label read from this issue and the key and title of the other one.
+     * Private when the other issue may be hidden from the readers of this
+     * one: a private issue, or one of another project.
+     */
+    public static function linked(Issue $issue, User $author, string $label, Issue $other, bool $removed = false): self
+    {
+        return new self($issue, $author, $removed ? JournalEntryType::Unlinked : JournalEntryType::Linked, [
+            'label' => $label,
+            'key' => $other->getKey(),
+            'title' => $other->getTitle(),
+        ], $other->isPrivate() || $other->getTracker()->isPrivate() || $other->getProject() !== $issue->getProject());
+    }
+
     private static function scalar(mixed $value): ?string
     {
         return match (true) {

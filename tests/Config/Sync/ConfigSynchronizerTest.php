@@ -6,12 +6,14 @@ namespace App\Tests\Config\Sync;
 
 use App\Config\ConfigException;
 use App\Config\ConfigRegistry;
+use App\Config\Definition\LinkTypeDefinition;
 use App\Config\Definition\PlaceDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use App\Config\MigrationPolicy;
 use App\Config\Sync\ConfigSynchronizer;
 use App\Config\Sync\PlaceMigration;
 use App\Entity\Enum\PlaceStatus;
+use App\Entity\IssueLink;
 use App\Entity\Tracker;
 use App\Entity\User;
 use App\Factory\TrackerFactory;
@@ -140,6 +142,24 @@ final class ConfigSynchronizerTest extends KernelTestCase
         self::assertFalse($plan->isBlocked());
         self::assertNotNull($this->synchronizer->apply($plan)->getId());
         self::assertSame(2, $this->issues->countOnPlace('bug', 'new'), 'untouched');
+    }
+
+    public function testRemovingALinkTypeStillInUseIsBlocked(): void
+    {
+        $this->synchronizer->apply($this->synchronizer->plan(DefinitionFactory::definition()));
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist(new IssueLink($this->builder->issue($this->tracker, $this->author, 'Bloquante'), 'blocks', $this->builder->issue($this->tracker, $this->author, 'Bloquée'), $this->author));
+        $entityManager->flush();
+
+        $withoutBlocks = $this->synchronizer->plan(DefinitionFactory::definition(links: [new LinkTypeDefinition(id: 'related', label: 'Lié à')]));
+        self::assertTrue($withoutBlocks->isBlocked());
+        self::assertSame(['links.blocks: 1 links still use it'], $withoutBlocks->usedLinkTypes);
+
+        $withoutRelated = $this->synchronizer->plan(DefinitionFactory::definition(links: [new LinkTypeDefinition(id: 'blocks', label: 'Bloque', inverseLabel: 'Bloqué par')]));
+        self::assertFalse($withoutRelated->isBlocked(), 'an unused link type goes');
+
+        $this->expectException(ConfigException::class);
+        $this->synchronizer->apply($withoutBlocks);
     }
 
     public function testMigrateFromMovesTheIssuesOfARemovedPlace(): void

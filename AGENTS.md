@@ -33,11 +33,12 @@ Stimulus, Turbo, Scheduler, and Reprise (`symfony/reprise`) for the assets.
 Decisions already taken:
 
 - Persistence: Doctrine ORM, schema compatible with both MariaDB and
-  PostgreSQL. Nothing is ever physically deleted, with three exceptions:
+  PostgreSQL. Nothing is ever physically deleted, with four exceptions:
   a removed attachment (file and row, the journal keeps its name), a
   deleted comment (row and files, the journal keeps its text, author and
-  date), and a revoked membership (memberships are the current state of
-  access, not its history).
+  date), a revoked membership (memberships are the current state of
+  access, not its history), and a removed link between issues (the
+  journal of both issues keeps it).
 - Interface: server-rendered Twig + Turbo + UX Twig/Live Components, Tailwind
   for styling. The kanban is a React island; the rich-text editor is
   TipTap driven by a Stimulus controller, no framework.
@@ -133,7 +134,8 @@ Rules:
   `AccessDeniedException`; business refusals are a domain exception next to
   the handler (`IssueException`). The refusals the administration shows
   as they are (`WorkspaceException`, `ProjectException`,
-  `MembershipException`, `UserException`) implement
+  `MembershipException`, `UserException`), and those of the releases
+  and links pages (`ReleaseException`, `IssueLinkException`), implement
   `TranslatableInterface`: the message is for the logs, `trans()` gives
   the reason to the user, in a form error or a live component's `error`.
 - **One message to create a resource, one to change it.** `CreateX`
@@ -265,7 +267,20 @@ Rules:
   development dataset.
   The same holds for private comments and their files:
   `AccessControl::canSeeComment()` and `canSeeAttachment()` in PHP,
-  `ShowIssueHandler` in SQL, compared by `ShowIssueVisibilityTest`.
+  `ShowIssueHandler` in SQL, compared by `ShowIssueVisibilityTest`, and
+  for the links of an issue: `ListLinks` keeps those whose other end
+  the viewer sees, through `Visibility`, compared with `canSee()` by the
+  same test.
+- **Links read from each side.** An `IssueLink` goes from a source to a
+  target with a link type of the configuration: the source reads its
+  label (Bloque), the target its inverse (Bloqué par); a symmetric type
+  exists once whatever the direction. `AddLink` and `RemoveLink` need
+  `issue.link`; linking across projects is for internal users, and the
+  journal entry of a link (`linked`, `unlinked`, on both issues, with
+  the other's key and title of the time) is private when the other issue
+  is private or of another project. `Issue:Links` offers the inverse
+  labels too and then links the other way. The sync refuses to remove a
+  link type that links still use (`SyncPlan::$usedLinkTypes`).
 - **Who edits what: the author, or the right on others.** The content of
   an issue (title, description, fields, files on the issue) is its
   author's as long as their role still lets them create issues there;

@@ -11,6 +11,27 @@ criticality:
     blocking: Bloquante
 
 issue:
+    links:
+        title: Liens
+        new: + Lier une demande
+        kind: Type de lien
+        other: Autre demande
+        other_placeholder: Clé ou mots du titre
+        add: Lier
+        choose: Choisissez le type de lien et l'autre demande.
+        added: 'Liée à %key%.'
+        remove: Retirer le lien
+        remove_confirm: Retirer ce lien ?
+        remove_yes: Retirer
+        removed: Lien retiré.
+        refused:
+            not_found: 'Aucune demande %key% visible pour vous.'
+            link_not_found: Ce lien n'existe plus.
+            unknown_type: Ce type de lien n'existe plus dans la configuration.
+            itself: Une demande ne se lie pas à elle-même.
+            already: 'Déjà liée ainsi à %key%.'
+            other_project: '%key% appartient à un autre projet : seuls les internes lient entre projets.'
+            read_only: 'Le projet de %key% est archivé.'
     show:
         created_by: 'créée par %name% le %date%'
         no_description: Aucune description.
@@ -41,6 +62,8 @@ issue:
         transitioned: 'a appliqué « %transition% » : %from% → %to%'
         tracker_changed: 'a changé la catégorie : %from_tracker% → %to_tracker% (%to%)'
         field_changed: 'a changé « %field% » : %from% → %to%'
+        linked: 'a lié : %label% %key% « %title% »'
+        unlinked: 'a retiré le lien : %label% %key% « %title% »'
         comment_edited:
             own: a modifié son commentaire
             other: a modifié le commentaire de %author%
@@ -597,6 +620,9 @@ permission:
         set_private:
             label: Rendre une demande privée
             help: La cacher aux externes, ou la leur montrer à nouveau.
+        link:
+            label: Lier des demandes
+            help: Lier une demande à une autre, ou retirer un lien. Entre projets pour les internes seulement.
         set_release:
             label: Rattacher une demande à une version
             help: Placer une demande dans une version ouverte du projet, ou l'en retirer.

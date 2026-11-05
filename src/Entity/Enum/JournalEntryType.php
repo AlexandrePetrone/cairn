@@ -19,4 +19,6 @@ enum JournalEntryType: string
     case AttachmentRemoved = 'attachment_removed';
     case CommentEdited = 'comment_edited';
     case CommentDeleted = 'comment_deleted';
+    case Linked = 'linked';
+    case Unlinked = 'unlinked';
 }

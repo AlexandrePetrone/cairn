@@ -25,6 +25,7 @@ use App\Factory\WorkspaceFactory;
 use App\Message\Command\Attachment\AddAttachment;
 use App\Message\Command\Attachment\UploadAttachment;
 use App\Message\Command\Issue\AddComment;
+use App\Message\Command\Issue\AddLink;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\Command\Issue\CreateIssue;
 use App\Message\Command\Issue\UpdateIssue;
@@ -45,8 +46,9 @@ use Zenstruck\Foundry\Story;
 /**
  * Development data, close to the mockups: four workspaces, their projects
  * and trackers, internal and client users, issues spread over the last
- * two months at every place of the bug, evolution and task workflows, and
- * the releases of two projects.
+ * two months at every place of the bug, evolution and task workflows, the
+ * releases of two projects and a few links, one to an internal task and
+ * one across projects.
  *
  * Load it with `castor fixtures`. It applies config/instance.example.php,
  * whose workflows it is written for, and creates issues through the real
@@ -99,6 +101,7 @@ final class AppStory extends Story
                     $project->archive();
                 }
             }
+            $this->createLinks($now);
             $this->entityManager->flush();
         } finally {
             Clock::set(new NativeClock());
@@ -297,6 +300,23 @@ final class AppStory extends Story
         }
 
         return $issue;
+    }
+
+    /**
+     * Links between issues, made by the manager of Maison Dupont.
+     */
+    private function createLinks(\DateTimeImmutable $now): void
+    {
+        Clock::set(new MockClock($now->modify('-30 minutes')));
+        $thomas = (int) $this->users['thomas']->getId();
+        foreach ([
+            ['MD-SPT-4', 'blocks', 'MD-SPT-10'],
+            ['MD-SPT-1', 'related', 'MD-SPT-16'],
+            ['MD-SPT-8', 'duplicates', 'MD-SPT-2'],
+            ['MD-INT-2', 'related', 'MD-SPT-1'],
+        ] as [$key, $type, $otherKey]) {
+            $this->commands->dispatch(new AddLink($thomas, $key, $type, $otherKey));
+        }
     }
 
     /**

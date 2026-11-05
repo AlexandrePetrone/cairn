@@ -14,6 +14,7 @@ use App\Config\SnapshotCodec;
 use App\Entity\ConfigSnapshot;
 use App\Entity\Enum\PlaceStatus;
 use App\Repository\ConfigSnapshotRepository;
+use App\Repository\IssueLinkRepository;
 use App\Repository\IssueRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Clock\ClockInterface;
@@ -34,6 +35,7 @@ final class ConfigSynchronizer
         private readonly DiffCalculator $diffCalculator,
         private readonly ConfigSnapshotRepository $snapshots,
         private readonly IssueRepository $issues,
+        private readonly IssueLinkRepository $links,
         private readonly EntityManagerInterface $entityManager,
         private readonly LockFactory $lockFactory,
         private readonly ConfigRegistry $registry,
@@ -82,6 +84,18 @@ final class ConfigSynchronizer
             }
         }
 
+        // Links are never migrated: a type still in use stays in the file.
+        $usedLinkTypes = [];
+        $linkCounts = null;
+        foreach (array_keys($current->links ?? []) as $typeId) {
+            if (!$next->hasLink($typeId)) {
+                $count = ($linkCounts ??= $this->links->countByType())[$typeId] ?? 0;
+                if ($count > 0) {
+                    $usedLinkTypes[] = \sprintf('links.%s: %d links still use it', $typeId, $count);
+                }
+            }
+        }
+
         $warnings = [];
         foreach ($next->workflows as $workflow) {
             foreach ($workflow->places as $place) {
@@ -93,7 +107,7 @@ final class ConfigSynchronizer
             }
         }
 
-        return new SyncPlan($next, $encoded, $hash, $currentSnapshot?->getHash(), $violations, $diff, $migrations, $orphans, $warnings);
+        return new SyncPlan($next, $encoded, $hash, $currentSnapshot?->getHash(), $violations, $diff, $migrations, $orphans, $warnings, $usedLinkTypes);
     }
 
     /**
@@ -113,7 +127,7 @@ final class ConfigSynchronizer
             throw new ConfigException('Nothing to apply: the definition matches the snapshot in force.');
         }
         if ($plan->isBlocked()) {
-            throw new ConfigException('Some removed places still hold issues and have no migration target.');
+            throw new ConfigException('Some removed places still hold issues and have no migration target, or some removed link types are still used.');
         }
 
         $lock = $this->lockFactory->createLock(self::LOCK_NAME, ttl: 300, autoRelease: true);

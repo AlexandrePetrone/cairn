@@ -62,6 +62,7 @@ return new InstanceDefinition(
         Permission::IssueSetCriticality->value => $internalAndClient,
         Permission::IssueSetPrivate->value => $internal,
         Permission::IssueSetRelease->value => $internal,
+        Permission::IssueLink->value => $internal,
         Permission::CommentCreate->value => $internalAndClient,
         Permission::CommentSetPrivate->value => $internal,
         Permission::CommentEdit->value => $managers,

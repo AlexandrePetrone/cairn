@@ -114,6 +114,11 @@ final class ConfigSyncCommand extends Command
             $io->listing(array_map(strval(...), $plan->orphans));
         }
 
+        if ([] !== $plan->usedLinkTypes) {
+            $io->section('Removed link types still in use');
+            $io->listing($plan->usedLinkTypes);
+        }
+
         if ([] !== $plan->warnings) {
             $io->section('Warnings');
             $io->listing($plan->warnings);

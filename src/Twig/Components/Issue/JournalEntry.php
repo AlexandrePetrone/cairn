@@ -40,6 +40,7 @@ final class JournalEntry
                 \sprintf('issue.event.%s.%s', $type->value, ($data['author_id'] ?? null) === $this->entry->getAuthor()?->getId() ? 'own' : 'other'),
                 ['%author%' => $this->text($data, 'author')],
             ),
+            JournalEntryType::Linked, JournalEntryType::Unlinked => $this->translator->trans('issue.event.'.$type->value, ['%label%' => $this->text($data, 'label'), '%key%' => $this->text($data, 'key'), '%title%' => $this->text($data, 'title')]),
             JournalEntryType::AttachmentAdded, JournalEntryType::AttachmentRemoved => $this->translator->trans('issue.event.'.$type->value, ['%filename%' => $this->text($data, 'filename')]),
         };
     }

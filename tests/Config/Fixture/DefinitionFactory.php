@@ -88,6 +88,7 @@ final class DefinitionFactory
      * @param list<RoleDefinition>|null        $roles
      * @param list<FieldDefinition>|null       $fields
      * @param array<string, list<string>>|null $permissions
+     * @param list<LinkTypeDefinition>|null    $links
      */
     public static function definition(
         ?array $workflows = null,
@@ -95,6 +96,7 @@ final class DefinitionFactory
         ?array $fields = null,
         ?array $permissions = null,
         MigrationPolicy $migrationPolicy = MigrationPolicy::Strict,
+        ?array $links = null,
     ): InstanceDefinition {
         return new InstanceDefinition(
             migrationPolicy: $migrationPolicy,
@@ -106,6 +108,7 @@ final class DefinitionFactory
                 Permission::IssueSetCriticality->value => ['project_manager', 'developer', 'client'],
                 Permission::IssueSetPrivate->value => ['project_manager'],
                 Permission::IssueSetRelease->value => ['project_manager', 'developer'],
+                Permission::IssueLink->value => ['project_manager', 'developer'],
                 Permission::IssueChangeTracker->value => ['project_manager', 'developer'],
                 Permission::CommentCreate->value => ['project_manager', 'developer', 'client'],
                 Permission::CommentSetPrivate->value => ['project_manager', 'developer'],
@@ -115,7 +118,7 @@ final class DefinitionFactory
                 Permission::ReleaseManage->value => ['project_manager'],
             ],
             fields: $fields ?? self::fields(),
-            links: [
+            links: $links ?? [
                 new LinkTypeDefinition(id: 'related', label: 'Lié à'),
                 new LinkTypeDefinition(id: 'blocks', label: 'Bloque', inverseLabel: 'Bloqué par'),
             ],

@@ -44,6 +44,7 @@ final class DiffCalculatorTest extends TestCase
             '+ permissions.issue.change_tracker: [project_manager, developer]',
             '+ permissions.issue.create: [project_manager, developer, client]',
             '+ permissions.issue.edit: [project_manager]',
+            '+ permissions.issue.link: [project_manager, developer]',
             '+ permissions.issue.set_criticality: [project_manager, developer, client]',
             '+ permissions.issue.set_private: [project_manager]',
             '+ permissions.issue.set_release: [project_manager, developer]',

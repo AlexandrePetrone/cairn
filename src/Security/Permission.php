@@ -18,6 +18,8 @@ enum Permission: string
     case IssueAssign = 'issue.assign';
     case IssueSetCriticality = 'issue.set_criticality';
     case IssueSetPrivate = 'issue.set_private';
+    /** Link an issue to another one, or remove a link; across projects for internal users only. */
+    case IssueLink = 'issue.link';
     /** Schedule an issue in an open release of its project, or take it out. */
     case IssueSetRelease = 'issue.set_release';
     case CommentCreate = 'comment.create';

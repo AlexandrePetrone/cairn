@@ -14,13 +14,14 @@ use App\Config\Definition\InstanceDefinition;
 final readonly class SyncPlan
 {
     /**
-     * @param array<string, mixed>  $encoded     canonical form of the definition
-     * @param string|null           $currentHash hash of the snapshot in force when the plan was computed
+     * @param array<string, mixed>  $encoded       canonical form of the definition
+     * @param string|null           $currentHash   hash of the snapshot in force when the plan was computed
      * @param list<ConfigViolation> $violations
-     * @param list<string>          $diff        one line per change against the snapshot in force
+     * @param list<string>          $diff          one line per change against the snapshot in force
      * @param list<PlaceMigration>  $migrations
      * @param list<OrphanPlace>     $orphans
      * @param list<string>          $warnings
+     * @param list<string>          $usedLinkTypes removed link types that links still use
      */
     public function __construct(
         public InstanceDefinition $definition,
@@ -32,6 +33,7 @@ final readonly class SyncPlan
         public array $migrations,
         public array $orphans,
         public array $warnings,
+        public array $usedLinkTypes = [],
     ) {
     }
 
@@ -47,10 +49,13 @@ final readonly class SyncPlan
 
     /**
      * An orphan place still holding issues cannot be applied under the
-     * strict policy.
+     * strict policy, nor a removed link type that links still use.
      */
     public function isBlocked(): bool
     {
+        if ([] !== $this->usedLinkTypes) {
+            return true;
+        }
         foreach ($this->orphans as $orphan) {
             if ($orphan->count > 0) {
                 return true;
