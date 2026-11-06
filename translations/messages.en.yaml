@@ -208,6 +208,8 @@ issue:
         comment: Comment
         criticality: Change criticality
         release: Schedule in a release
+        move: Move
+        move_hint: 'Each issue is put on this step without an action of the workflow: the history keeps the move.'
         applies_to: '{1}Applies to 1 issue.|]1,Inf[ Applies to the %count% issues.'
         comment_label: Comment
         comment_hint: The same message for every issue…

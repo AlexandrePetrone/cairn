@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Twig\Components\Issue;
 
+use App\Config\Definition\PlaceDefinition;
 use App\Entity\Enum\Criticality;
+use App\Entity\Tracker;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
+use App\Message\Command\Issue\MoveIssue;
 use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
 use App\Message\Query\Issue\ListSelectionActions;
@@ -14,6 +17,7 @@ use App\Message\Query\Issue\SelectionActions;
 use App\Message\QueryBus;
 use App\Security\Viewer;
 use App\Twig\Components\DispatchesCommands;
+use App\Workflow\WorkflowProvider;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -46,7 +50,7 @@ final class Selection extends AbstractController
     #[LiveProp]
     public string $back = '/';
 
-    /** The action being prepared: `transition:<id>`, `assign`, `comment`, `criticality` or `release`. */
+    /** The action being prepared: `transition:<id>`, `assign`, `comment`, `criticality`, `release` or `move`. */
     #[LiveProp(writable: true)]
     public ?string $action = null;
 
@@ -68,12 +72,20 @@ final class Selection extends AbstractController
     #[LiveProp(writable: true)]
     public ?int $releaseId = null;
 
+    /** The tracker and the place of a move. */
+    #[LiveProp(writable: true, onUpdated: 'onMoveTrackerChanged')]
+    public ?int $moveTrackerId = null;
+
+    #[LiveProp(writable: true)]
+    public ?string $movePlaceId = null;
+
     private ?SelectionActions $selection = null;
 
     public function __construct(
         private readonly QueryBus $queries,
         private readonly Viewer $viewer,
         private readonly TranslatorInterface $translator,
+        private readonly WorkflowProvider $workflows,
     ) {
     }
 
@@ -94,6 +106,38 @@ final class Selection extends AbstractController
         return $this->getSelection()->transitionFor($this->action)->label ?? $this->translator->trans('issue.bulk.'.$this->action);
     }
 
+    /** The tracker chosen for a move among those offered, else the first; null when none is. */
+    public function getMoveTracker(): ?Tracker
+    {
+        $offered = $this->getSelection()->moveTrackers;
+
+        return array_find($offered, fn (Tracker $tracker): bool => $tracker->getId() === $this->moveTrackerId) ?? $offered[0] ?? null;
+    }
+
+    /**
+     * @return list<PlaceDefinition>
+     */
+    public function getMovePlaces(): array
+    {
+        $tracker = $this->getMoveTracker();
+
+        return null === $tracker ? [] : array_values($this->workflows->definition($tracker->getWorkflowId())->places);
+    }
+
+    /**
+     * Another tracker, another workflow: the place starts at its
+     * beginning. The browser sends the text value of the tracker select as
+     * updated on every request: the hook only acts when it really changed.
+     */
+    public function onMoveTrackerChanged(?int $previous = null): void
+    {
+        if (null !== $previous && $previous === $this->moveTrackerId) {
+            return;
+        }
+        $tracker = $this->getMoveTracker();
+        $this->movePlaceId = null === $tracker ? null : $this->workflows->definition($tracker->getWorkflowId())->initial;
+    }
+
     #[LiveAction]
     public function choose(#[LiveArg] string $choice): void
     {
@@ -106,6 +150,8 @@ final class Selection extends AbstractController
         $this->assigneeId = null;
         $this->criticality = Criticality::DEFAULT->value;
         $this->releaseId = null;
+        $this->moveTrackerId = $this->getMoveTracker()?->getId();
+        $this->onMoveTrackerChanged();
     }
 
     #[LiveAction]
@@ -152,6 +198,14 @@ final class Selection extends AbstractController
         } elseif ('release' === $this->action) {
             $releaseId = $this->releaseId ?? UpdateIssue::NOBODY;
             $build = static fn (string $key): object => new UpdateIssue($actorId, $key, releaseId: $releaseId);
+        } elseif ('move' === $this->action) {
+            $tracker = $this->getMoveTracker();
+            $placeId = $this->movePlaceId;
+            if (null === $tracker || null === $placeId) {
+                return null;
+            }
+            $trackerId = (int) $tracker->getId();
+            $build = static fn (string $key): object => new MoveIssue($actorId, $key, $trackerId, $placeId);
         } else {
             $criticality = Criticality::tryFrom($this->criticality);
             if (null === $criticality) {

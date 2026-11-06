@@ -118,6 +118,27 @@ final class SelectionTest extends KernelTestCase
         self::assertSame('2.5.0', $this->reloaded('MD-SPT-2')->getRelease()?->getName());
     }
 
+    public function testAManagerMovesSeveralIssuesToAnotherTrackerAtOnce(): void
+    {
+        $component = $this->selection('thomas.girard@cairn.test', 'MD-SPT-1', 'MD-SPT-2');
+
+        $component->call('choose', ['choice' => 'move']);
+        $render = (string) $component->render();
+        self::assertStringContainsString('<option value="new" selected>Nouveau</option>', $render, 'the first place of the chosen workflow');
+
+        $component->set('moveTrackerId', (string) $this->scene->evolutions->getId())->set('placeholder', 'x');
+        self::assertStringContainsString('À chiffrer', (string) $component->render());
+
+        $component->set('movePlaceId', 'to_estimate')->set('moveTrackerId', (string) $this->scene->evolutions->getId())->call('apply');
+
+        self::assertSame(302, $component->response()->getStatusCode());
+        foreach (['MD-SPT-1', 'MD-SPT-2'] as $key) {
+            $issue = $this->reloaded($key);
+            self::assertSame('Évolution', $issue->getTracker()->getName(), $key);
+            self::assertSame('to_estimate', $issue->getPlace(), $key);
+        }
+    }
+
     public function testEachIssueIsItsOwnCommandSoARefusalLeavesTheOthersDone(): void
     {
         $intranetBug = $this->scene->intranetBug();

@@ -62,7 +62,7 @@ final class ActivityTest extends KernelTestCase
         self::assertStringNotContainsString('Qualifier', $new);
 
         $toTest = (string) $this->activity($claire)->render();
-        self::assertStringContainsString('La correction vous convient', $toTest, 'the description of the configuration');
+        self::assertStringContainsString('La correction est acceptée', $toTest, 'the description of the configuration');
         self::assertStringContainsString('Commentaire obligatoire.', $toTest, 'under « Refuser »');
         self::assertStringContainsString('Poser une question, préciser ou signaler quelque chose.', $toTest);
 

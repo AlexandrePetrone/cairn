@@ -208,6 +208,8 @@ issue:
         comment: Commenter
         criticality: Changer la criticité
         release: Rattacher à une version
+        move: Déplacer
+        move_hint: 'Chaque demande est placée sur cette étape sans action du workflow : l''historique garde le déplacement.'
         applies_to: '{1}S''applique à 1 demande.|]1,Inf[ S''applique aux %count% demandes.'
         comment_label: Commentaire
         comment_hint: Le même message pour toutes les demandes…

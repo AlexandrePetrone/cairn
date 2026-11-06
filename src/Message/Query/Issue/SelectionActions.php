@@ -6,6 +6,7 @@ namespace App\Message\Query\Issue;
 
 use App\Entity\Issue;
 use App\Entity\Release;
+use App\Entity\Tracker;
 use App\Entity\User;
 
 /**
@@ -17,9 +18,11 @@ final readonly class SelectionActions
 {
     /**
      * @param list<Issue>               $issues
-     * @param list<SelectionTransition> $transitions common to every issue
-     * @param list<User>                $assignees   members of every project of the selection
-     * @param list<Release>             $releases    the open releases of the project, when the selection holds one project
+     * @param list<SelectionTransition> $transitions  common to every issue
+     * @param list<User>                $assignees    members of every project of the selection
+     * @param list<Release>             $releases     the open releases of the project, when the selection holds one project
+     * @param list<Tracker>             $moveTrackers the trackers every issue may be moved to (its own with `issue.force_place`,
+     *                                                another with `issue.change_tracker`), when the selection holds one project
      */
     public function __construct(
         public array $issues,
@@ -30,6 +33,7 @@ final readonly class SelectionActions
         public bool $canCommentPrivately = false,
         public bool $canSetCriticality = false,
         public array $releases = [],
+        public array $moveTrackers = [],
     ) {
     }
 
@@ -49,7 +53,8 @@ final readonly class SelectionActions
 
     /**
      * Whether the action, as the selection page names it, is offered:
-     * `transition:<id>`, `assign`, `comment`, `criticality` or `release`.
+     * `transition:<id>`, `assign`, `comment`, `criticality`, `release` or
+     * `move`.
      */
     public function offers(string $action): bool
     {
@@ -62,13 +67,14 @@ final readonly class SelectionActions
             'comment' => $this->canComment,
             'criticality' => $this->canSetCriticality,
             'release' => [] !== $this->releases,
+            'move' => [] !== $this->moveTrackers,
             default => false,
         };
     }
 
     public function hasAnything(): bool
     {
-        return [] !== $this->transitions || $this->canAssign || $this->canComment || $this->canSetCriticality || [] !== $this->releases;
+        return [] !== $this->transitions || $this->canAssign || $this->canComment || $this->canSetCriticality || [] !== $this->releases || [] !== $this->moveTrackers;
     }
 
     /**

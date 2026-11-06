@@ -92,6 +92,17 @@ final class ListSelectionActionsHandlerTest extends KernelTestCase
         self::assertFalse($refuse->requiresComment, 'the agency explains itself when it wants to');
     }
 
+    public function testAMoveIsOfferedToTheTrackersValidForEveryIssue(): void
+    {
+        $names = static fn (SelectionActions $actions): array => array_map(static fn ($tracker): string => $tracker->getName(), $actions->moveTrackers);
+
+        self::assertSame(['Anomalie', 'Évolution', 'Tâche interne'], $names($this->actions('thomas.girard@cairn.test', 'MD-SPT-1', 'MD-SPT-2')), 'force_place keeps the own tracker, change_tracker opens the others');
+        self::assertSame(['Évolution', 'Tâche interne'], $names($this->actions('nadia.benali@cairn.test', 'MD-SPT-1', 'MD-SPT-2')), 'without force_place the own tracker is out');
+        self::assertSame(['Tâche interne'], $names($this->actions('nadia.benali@cairn.test', 'MD-SPT-1', 'MD-SPT-7')), 'a bug and an evolution: only a third tracker suits both');
+        self::assertSame([], $names($this->actions('claire.martin@maison-dupont.test', 'MD-SPT-1', 'MD-SPT-2')));
+        self::assertSame([], $names($this->actions('thomas.girard@cairn.test', 'MD-SPT-1', $this->scene->intranetBug()->getKey())), 'trackers belong to one project');
+    }
+
     public function testUnknownIdsAreDropped(): void
     {
         $actions = self::getContainer()->get(QueryBus::class)->ask(new ListSelectionActions($this->user('nadia.benali@cairn.test'), [999_999]));

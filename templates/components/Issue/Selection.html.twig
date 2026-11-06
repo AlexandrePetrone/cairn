@@ -43,10 +43,13 @@
                         {% if selectionActions.canComment %}<twig:Ui:Button size="sm" icon="message-square" data-action="live#action" data-live-action-param="choose" data-live-choice-param="comment">{{ 'issue.bulk.comment'|trans }}</twig:Ui:Button>{% endif %}
                         {% if selectionActions.canSetCriticality %}<twig:Ui:Button size="sm" icon="flame" data-action="live#action" data-live-action-param="choose" data-live-choice-param="criticality">{{ 'issue.bulk.criticality'|trans }}</twig:Ui:Button>{% endif %}
                         {% if selectionActions.releases is not empty %}<twig:Ui:Button size="sm" icon="milestone" data-action="live#action" data-live-action-param="choose" data-live-choice-param="release">{{ 'issue.bulk.release'|trans }}</twig:Ui:Button>{% endif %}
+                        {% if selectionActions.moveTrackers is not empty %}<twig:Ui:Button size="sm" icon="workflow" data-action="live#action" data-live-action-param="choose" data-live-choice-param="move">{{ 'issue.bulk.move'|trans }}</twig:Ui:Button>{% endif %}
                     </div>
                 {% endif %}
             {% else %}
                 {% set selectionTransition = selectionActions.transitionFor(action) %}
+                {% set selectionMoveTracker = this.moveTracker %}
+                {% set selectionMovePlaces = this.movePlaces %}
                 <h2 class="font-semibold text-gray-900">{{ this.actionLabel }}</h2>
                 <p class="text-xs text-gray-500">{{ 'issue.bulk.applies_to'|trans({ '%count%': selectionActions.issues|length }) }}</p>
                 {% if action == 'assign' %}
@@ -75,6 +78,22 @@
                             {% endfor %}
                         </twig:Ui:Form:Select>
                     </label>
+                {% elseif action == 'move' %}
+                    <label class="block text-sm text-gray-700">{{ 'issue.move.tracker'|trans }}
+                        <twig:Ui:Form:Select model="moveTrackerId">
+                            {% for tracker in selectionActions.moveTrackers %}
+                                <option value="{{ tracker.id }}" {{ selectionMoveTracker and tracker.id == selectionMoveTracker.id ? 'selected' }}>{{ tracker.name }}</option>
+                            {% endfor %}
+                        </twig:Ui:Form:Select>
+                    </label>
+                    <label class="block text-sm text-gray-700">{{ 'issue.move.place'|trans }}
+                        <twig:Ui:Form:Select model="movePlaceId">
+                            {% for place in selectionMovePlaces %}
+                                <option value="{{ place.id }}" {{ place.id == movePlaceId ? 'selected' }}>{{ place.label }}</option>
+                            {% endfor %}
+                        </twig:Ui:Form:Select>
+                    </label>
+                    <twig:Ui:Callout tone="amber" size="sm">{{ 'issue.bulk.move_hint'|trans }}</twig:Ui:Callout>
                 {% endif %}
                 {% if action == 'comment' or (selectionTransition and selectionActions.canComment) %}
                     <label class="block text-sm text-gray-700">

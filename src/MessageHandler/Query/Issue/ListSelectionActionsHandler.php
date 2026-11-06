@@ -7,6 +7,7 @@ namespace App\MessageHandler\Query\Issue;
 use App\Config\Definition\TransitionDefinition;
 use App\Entity\Issue;
 use App\Entity\Project;
+use App\Entity\Tracker;
 use App\Entity\User;
 use App\Message\Query\Issue\ListSelectionActions;
 use App\Message\Query\Issue\SelectionActions;
@@ -15,6 +16,7 @@ use App\Message\Query\Project\ListProjectMembers;
 use App\Message\QueryBus;
 use App\Repository\IssueOrder;
 use App\Repository\ReleaseRepository;
+use App\Repository\TrackerRepository;
 use App\Repository\Visibility;
 use App\Security\AccessControl;
 use App\Security\Permission;
@@ -27,8 +29,9 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * the actions valid for all of them: the transitions available from each
  * issue's place to the viewer's role on its project, matched by id; the
  * rights that hold on every project; the people who are members of every
- * project, for the assignment; the open releases, when the selection
- * holds the issues of one project, since a release belongs to one.
+ * project, for the assignment; the open releases and the trackers a move
+ * may target, when the selection holds the issues of one project, since
+ * releases and trackers belong to one.
  */
 #[AsMessageHandler(bus: 'query.bus')]
 final class ListSelectionActionsHandler
@@ -39,6 +42,7 @@ final class ListSelectionActionsHandler
         private readonly AccessControl $access,
         private readonly QueryBus $queries,
         private readonly ReleaseRepository $releases,
+        private readonly TrackerRepository $trackers,
     ) {
     }
 
@@ -68,6 +72,7 @@ final class ListSelectionActionsHandler
             canCommentPrivately: $canComment && $everywhere(Permission::CommentSetPrivate),
             canSetCriticality: $everywhere(Permission::IssueSetCriticality),
             releases: null !== $project && $everywhere(Permission::IssueSetRelease) ? $this->releases->findByProject($project, openOnly: true) : [],
+            moveTrackers: null === $project ? [] : $this->moveTrackers($viewer, $project, $issues),
         );
     }
 
@@ -140,6 +145,44 @@ final class ListSelectionActionsHandler
         }
 
         return $transitions;
+    }
+
+    /**
+     * The trackers of the project every issue may be moved to: an issue
+     * stays in its own tracker with `issue.force_place`, goes to another
+     * with `issue.change_tracker`, so a tracker is offered only when the
+     * viewer holds the right it takes for each issue.
+     *
+     * @param non-empty-list<Issue> $issues
+     *
+     * @return list<Tracker>
+     */
+    private function moveTrackers(User $viewer, Project $project, array $issues): array
+    {
+        $force = $this->access->isGranted($viewer, Permission::IssueForcePlace, $project);
+        $change = $this->access->isGranted($viewer, Permission::IssueChangeTracker, $project);
+        if (!$force && !$change) {
+            return [];
+        }
+
+        $candidates = [];
+        foreach ($this->trackers->findByProject($project, includePrivate: $viewer->isInternal()) as $tracker) {
+            $candidates[(int) $tracker->getId()] = $tracker;
+        }
+        foreach ($issues as $issue) {
+            $candidates[(int) $issue->getTracker()->getId()] ??= $issue->getTracker();
+        }
+
+        return array_values(array_filter($candidates, static function (Tracker $tracker) use ($issues, $force, $change): bool {
+            foreach ($issues as $issue) {
+                $own = $issue->getTracker()->getId() === $tracker->getId();
+                if ($own ? !$force : (!$change || !$tracker->isActive())) {
+                    return false;
+                }
+            }
+
+            return true;
+        }));
     }
 
     /**

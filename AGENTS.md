@@ -177,8 +177,10 @@ Rules:
   workflow and dispatches `MoveIssue`, which writes the place without the
   state machine and journals `moved` (same tracker) or `tracker_changed`;
   the dialog warns when no action leads from the current place to the
-  chosen one. No reason is asked: the journal line is the trace. There is
-  no forced move from the kanban or the selection page yet.
+  chosen one. No reason is asked: the journal line is the trace. The
+  selection page offers the same move (`SelectionActions::$moveTrackers`:
+  the trackers of the project valid for every issue, one `MoveIssue` per
+  issue), the kanban does not.
 - **Forms feed commands.** A form binds to a mutable data object in
   `Form/` (`IssueData`) that carries the input constraints; the controller
   turns a valid submission into the readonly command and dispatches it.
@@ -593,10 +595,11 @@ Rules:
   screens. A deletion confirms in place, never through `confirm()`. What
   waits for a choice opens a `Ui:Dialog` rendered by the live component
   while its state says so (`closeAction` names the live action of the
-  backdrop and the cross). A `Ui:Dropdown:Item` without `href` is a
+  backdrop, the cross and Escape; the `dialog` controller focuses the
+  first field). A `Ui:Dropdown:Item` without `href` is a
   button, for a live action in a menu.
 - JavaScript is Stimulus only, one small controller per behaviour in
-  `assets/controllers/` (`dropdown`, `sidebar`, `drawer`,
+  `assets/controllers/` (`dropdown`, `sidebar`, `drawer`, `dialog`,
   `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`,
   `workflow-diagram`, `sortable`, `list-filter`, `board`, `load-more`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
   (`editor` with TipTap, `workflow-diagram` with Mermaid, `board` with
