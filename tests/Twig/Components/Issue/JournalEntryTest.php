@@ -88,5 +88,9 @@ final class JournalEntryTest extends KernelTestCase
 
         $this->component->entry = Entry::attachmentAdded($this->issue, $this->claire, new \App\Entity\Attachment($this->issue->getProject(), $this->issue, $this->claire, 'capture.png', 'image/png', 12));
         self::assertSame('a ajouté le fichier capture.png', $this->component->getLabel());
+
+        $workflow = DefinitionFactory::bugWorkflow();
+        $this->component->entry = Entry::moved($this->issue, $this->nadia, $workflow->place('new'), $workflow->place('in_progress'));
+        self::assertSame('a déplacé la demande sans action : Nouveau → En cours', $this->component->getLabel());
     }
 }

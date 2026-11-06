@@ -21,8 +21,9 @@ final readonly class TransitionDefinition
     /**
      * @param list<string> $from
      * @param list<string> $roles           roles allowed to trigger the transition
-     * @param bool         $requiresComment the user must comment when triggering it
-     * @param string|null  $commentPrompt   placeholder of the comment box when a comment is required
+     * @param bool         $requiresComment external users must comment when triggering it; internal users never have to
+     * @param string|null  $commentPrompt   placeholder of the comment box when a comment is required of them
+     * @param string|null  $description     what the action does, shown under it on the issue page
      */
     public function __construct(
         public string $id,
@@ -33,6 +34,7 @@ final readonly class TransitionDefinition
         public TransitionStyle $style = TransitionStyle::Default,
         public bool $requiresComment = false,
         public ?string $commentPrompt = null,
+        public ?string $description = null,
     ) {
         Definitions::assertId($id, 'transitions');
         Definitions::assertLabel($label, "transitions.$id.label");
@@ -47,6 +49,9 @@ final readonly class TransitionDefinition
         }
         if (null !== $commentPrompt && !$requiresComment) {
             throw new InvalidDefinitionException(\sprintf('transitions.%s: a comment prompt only makes sense when a comment is required.', $id));
+        }
+        if (null !== $description && '' === trim($description)) {
+            throw new InvalidDefinitionException(\sprintf('transitions.%s: the description cannot be blank, leave it null instead.', $id));
         }
     }
 }

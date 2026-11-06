@@ -38,6 +38,12 @@ final class IssueTest extends WebTestCase
         self::assertSelectorTextContains('main', 'Refuser');
         self::assertSelectorTextContains('main', 'a créé la demande');
         self::assertSelectorTextContains('main', 'a changé l\'assigné : Personne → Nadia Benali', 'assigned through the command in the fixtures');
+        self::assertSelectorTextContains('main [aria-label="Parcours"]', 'Nouveau');
+        self::assertSelectorNotExists('main [data-live-name-value="Issue:Move"] [data-live-action-param="open"]', 'a client may not move the issue');
+
+        $this->signInAs('thomas.girard@cairn.test');
+        $this->client->request('GET', '/MD/SPT/issues/4');
+        self::assertSelectorExists('main [data-live-name-value="Issue:Move"] [data-live-action-param="open"]', 'the manager has the « ⋯ » menu');
     }
 
     public function testPrivateCommentsAreForInternalsOnly(): void
@@ -72,10 +78,11 @@ final class IssueTest extends WebTestCase
             self::assertResponseIsSuccessful();
             self::assertSelectorTextContains('body', 'Ce projet est archivé');
             self::assertSelectorTextContains('h1', 'L\'export CSV des commandes est vide');
-            self::assertSelectorTextNotContains('main', 'Valider', $email);
-            self::assertSelectorTextNotContains('main', 'Refuser', $email);
-            self::assertSelectorNotExists('main [data-live-action-param="postComment"]', $email);
-            self::assertSelectorNotExists('main [data-live-action-param="apply"]', $email);
+            // The workflow drawer still names the actions in its Mermaid source; the activity offers none.
+            self::assertSelectorTextNotContains('main [data-live-name-value="Issue:Activity"]', 'Valider', $email);
+            self::assertSelectorTextNotContains('main [data-live-name-value="Issue:Activity"]', 'Refuser', $email);
+            self::assertSelectorNotExists('main [data-live-action-param="submit"]', $email);
+            self::assertSelectorNotExists('main [name="outcome"]', $email);
         }
     }
 

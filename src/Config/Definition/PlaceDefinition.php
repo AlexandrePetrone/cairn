@@ -16,14 +16,12 @@ final readonly class PlaceDefinition
     public array $migrateFrom;
 
     /**
-     * @param string|null  $hint        explanation shown on the issue page when it sits on this place
      * @param list<string> $migrateFrom ids of removed places whose issues move here on sync
      */
     public function __construct(
         public string $id,
         public string $label,
         public PlaceStatus $status,
-        public ?string $hint = null,
         array $migrateFrom = [],
     ) {
         Definitions::assertId($id, 'places');

@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Twig\Components\Issue;
 
 use App\Config\Definition\PlaceDefinition;
+use App\Entity\Enum\JournalEntryType;
 use App\Entity\Issue;
 use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
+use App\Repository\JournalEntryRepository;
 use App\Security\AccessControl;
 use App\Security\Viewer;
 use App\Twig\Components\DispatchesCommands;
@@ -22,8 +24,8 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
  * The top of the issue page, redrawn when another component of the page
- * changes the issue (`issue:changed`): privacy and place hint follow. The
- * title is edited here by whoever may edit the issue.
+ * changes the issue (`issue:changed`): privacy and the path the issue
+ * took follow. The title is edited here by whoever may edit the issue.
  */
 #[AsLiveComponent('Issue:Header')]
 final class Header
@@ -47,12 +49,34 @@ final class Header
         private readonly AccessControl $access,
         private readonly Viewer $viewer,
         private readonly TranslatorInterface $translator,
+        private readonly JournalEntryRepository $journal,
     ) {
     }
 
     public function getPlace(): ?PlaceDefinition
     {
         return $this->workflows->placeOf($this->issue);
+    }
+
+    /**
+     * The places the issue went through, as the journal tells it with the
+     * labels of the time: where it started, then every place it entered.
+     * A step entered without an action of the workflow (a forced place, a
+     * change of tracker) is marked.
+     *
+     * @return list<array{label: string, moved: bool}>
+     */
+    public function getPath(): array
+    {
+        $entries = $this->journal->findPlaceChanges($this->issue);
+        $start = ($entries[0] ?? null)?->text('from') ?: ($this->getPlace()->label ?? $this->issue->getPlace());
+
+        $steps = [['label' => $start, 'moved' => false]];
+        foreach ($entries as $entry) {
+            $steps[] = ['label' => $entry->text('to'), 'moved' => JournalEntryType::Transitioned !== $entry->getType()];
+        }
+
+        return $steps;
     }
 
     public function canEdit(): bool

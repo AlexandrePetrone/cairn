@@ -34,6 +34,7 @@ final class JournalEntry
             JournalEntryType::Created => $this->translator->trans('issue.event.created'),
             JournalEntryType::Transitioned => $this->translator->trans('issue.event.transitioned', ['%transition%' => $this->text($data, 'transition'), '%from%' => $this->text($data, 'from'), '%to%' => $this->text($data, 'to')]),
             JournalEntryType::TrackerChanged => $this->translator->trans('issue.event.tracker_changed', ['%from_tracker%' => $this->text($data, 'from_tracker'), '%to_tracker%' => $this->text($data, 'to_tracker'), '%to%' => $this->text($data, 'to')]),
+            JournalEntryType::Moved => $this->translator->trans('issue.event.moved', ['%from%' => $this->text($data, 'from'), '%to%' => $this->text($data, 'to')]),
             JournalEntryType::FieldChanged => $this->translator->trans('issue.event.field_changed', ['%field%' => $this->text($data, 'label'), '%from%' => $this->text($data, 'from', '—'), '%to%' => $this->text($data, 'to', '—')]),
             JournalEntryType::Changed => $this->changedLabel($data),
             JournalEntryType::CommentEdited, JournalEntryType::CommentDeleted => $this->translator->trans(
@@ -94,8 +95,6 @@ final class JournalEntry
      */
     private function text(array $data, string $key, string $default = ''): string
     {
-        $value = $data[$key] ?? null;
-
-        return \is_scalar($value) ? (string) $value : $default;
+        return $this->entry->text($key, $default);
     }
 }

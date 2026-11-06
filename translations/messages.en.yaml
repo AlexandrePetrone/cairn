@@ -44,6 +44,8 @@ issue:
             other_project: '%key% belongs to another project: only internal users link across projects.'
             read_only: 'The project of %key% is archived.'
     show:
+        path: Path
+        moved_step: Moved without an action
         created_by: 'created by %name% on %date%'
         no_description: No description.
         activity: Activity
@@ -72,6 +74,7 @@ issue:
             description: rewrote the description
         transitioned: 'applied "%transition%": %from% → %to%'
         tracker_changed: 'changed the category: %from_tracker% → %to_tracker% (%to%)'
+        moved: 'moved the issue without an action: %from% → %to%'
         field_changed: 'changed "%field%": %from% → %to%'
         linked: 'linked: %label% %key% "%title%"'
         unlinked: 'removed the link: %label% %key% "%title%"'
@@ -118,9 +121,25 @@ issue:
         done: '%key% updated.'
         refused: The action could not be applied.
     transition:
-        hint: 'Step %place% · your comment goes with the action.'
         comment_required: This action needs a comment.
         applied: '%key%: "%transition%" applied.'
+    respond:
+        question: What would you like to do?
+        comment_only: Comment only
+        comment_only_help: Ask a question, add a detail or point something out.
+        comment_required: Comment required.
+        submit: Send
+        choose: Choose what you would like to do.
+    menu:
+        more: More actions
+        move: Move…
+    move:
+        title: 'Move %key%'
+        tracker: Category
+        place: Step
+        no_transition: 'No action leads from %from% to %to%: the issue will be moved outside its workflow.'
+        submit: Move
+        done: '%key% moved to %place%.'
     unassigned: Unassigned
     private: Private
     create:
@@ -462,7 +481,7 @@ admin:
             steps_intro: In the order of the kanban. Under each place, the actions leaving it and the roles that may trigger them.
             initial_badge: Initial
             final_badge: Final
-            comment_required: Comment required
+            comment_required: Comment required (external users)
             fields: Fields
             no_field: No field.
             usage: Usage
@@ -569,7 +588,7 @@ project:
 workflow:
     diagram:
         dotted: 'Dotted: back to an earlier place'
-        comment: '💬: comment required'
+        comment: '💬: comment required of external users'
 
 release:
     title: Releases
@@ -622,6 +641,9 @@ permission:
         change_tracker:
             label: Change the tracker of an issue
             help: Move an issue to another tracker of the project, choosing its place in the new workflow.
+        force_place:
+            label: Move an issue to any step
+            help: Put an issue on any step of its workflow without going through an action, to fix a mistake; the history keeps the move.
         assign:
             label: Assign issues
             help: Choose who handles an issue, among the members of the project.

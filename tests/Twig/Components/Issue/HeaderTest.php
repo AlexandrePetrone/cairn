@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Tests\Twig\Components\Issue;
 
 use App\Entity\Issue;
+use App\Message\Command\Issue\MoveIssue;
 use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
 use App\Tests\Scene\ShopScene;
+use App\Twig\Components\Issue\Header;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
@@ -35,13 +37,35 @@ final class HeaderTest extends KernelTestCase
         $component = $this->createLiveComponent('Issue:Header', ['issue' => $this->issue])->actingAs($thomas);
 
         $before = (string) $component->render();
-        self::assertStringContainsString('La correction est en préproduction', $before, 'the hint of « À recetter »');
+        self::assertStringContainsString('À recetter', $before, 'the last step of the path');
         self::assertStringNotContainsString('Privée', $before);
 
         self::getContainer()->get(CommandBus::class)->dispatch(new UpdateIssue((int) $thomas->getId(), 'MD-SPT-4', private: true));
         $component->emit('issue:changed');
 
         self::assertStringContainsString('Privée', (string) $component->render());
+    }
+
+    public function testThePathIsTheOneTheJournalTells(): void
+    {
+        $thomas = $this->scene->user('thomas.girard@cairn.test');
+        $component = $this->createLiveComponent('Issue:Header', ['issue' => $this->issue])->actingAs($thomas);
+        $header = $component->component();
+        self::assertInstanceOf(Header::class, $header);
+
+        self::assertSame(['Nouveau', 'Qualifiée', 'En cours', 'À recetter'], array_column($header->getPath(), 'label'));
+        self::assertSame([false, false, false, false], array_column($header->getPath(), 'moved'));
+        $render = (string) $component->render();
+        self::assertStringContainsString('aria-label="Parcours"', $render);
+        self::assertStringNotContainsString('Déplacée sans action', $render);
+
+        self::getContainer()->get(CommandBus::class)->dispatch(new MoveIssue((int) $thomas->getId(), 'MD-SPT-4', null, 'qualified'));
+        $component->emit('issue:changed');
+
+        $header = $component->component();
+        self::assertInstanceOf(Header::class, $header);
+        self::assertSame(['label' => 'Qualifiée', 'moved' => true], $header->getPath()[4]);
+        self::assertStringContainsString('Déplacée sans action', (string) $component->render());
     }
 
     public function testThePencilFollowsTheRightToEditTheIssue(): void

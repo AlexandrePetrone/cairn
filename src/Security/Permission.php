@@ -15,6 +15,8 @@ enum Permission: string
     /** Edit the content of issues written by others; authors always edit their own. */
     case IssueEdit = 'issue.edit';
     case IssueChangeTracker = 'issue.change_tracker';
+    /** Put an issue on any place of its workflow without an action; journaled as `moved`. */
+    case IssueForcePlace = 'issue.force_place';
     case IssueAssign = 'issue.assign';
     case IssueSetCriticality = 'issue.set_criticality';
     case IssueSetPrivate = 'issue.set_private';
@@ -36,14 +38,15 @@ enum Permission: string
     /**
      * Whether the permission opens what external users never see: the
      * project configuration shows private trackers and their private
-     * issues, managing members shows every account of the instance. The
+     * issues, managing members shows every account of the instance; or
+     * what breaks the workflow clients are shown: forcing a place. The
      * configuration grants these to internal-only roles, which
      * ConfigValidator enforces.
      */
     public function internalOnly(): bool
     {
         return match ($this) {
-            self::ProjectConfigure, self::ProjectManageMembers => true,
+            self::ProjectConfigure, self::ProjectManageMembers, self::IssueForcePlace => true,
             default => false,
         };
     }

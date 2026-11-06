@@ -73,7 +73,7 @@ final class BoardMove
             return;
         }
 
-        if (1 === \count($transitions) && !$transitions[0]->requiresComment) {
+        if (1 === \count($transitions) && !$this->isCommentRequired($transitions[0])) {
             $this->apply($commands, $issue, $transitions[0], null, false);
 
             return;
@@ -101,7 +101,7 @@ final class BoardMove
             return;
         }
         $comment = '' === trim($this->comment) ? null : $this->comment;
-        if ($transition->requiresComment && null === $comment) {
+        if ($this->isCommentRequired($transition) && null === $comment) {
             $this->error = $transition->commentPrompt ?? $this->translator->trans('issue.transition.comment_required');
 
             return;
@@ -141,6 +141,11 @@ final class BoardMove
     public function getChosen(): ?TransitionDefinition
     {
         return array_find($this->getTransitions(), fn (TransitionDefinition $transition): bool => $transition->id === $this->transitionId);
+    }
+
+    public function isCommentRequired(TransitionDefinition $transition): bool
+    {
+        return $this->access->commentRequired($this->viewer->get(), $transition);
     }
 
     public function canCommentPrivately(Issue $issue): bool

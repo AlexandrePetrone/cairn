@@ -43,7 +43,7 @@ final class ApplyTransitionHandler
         }
 
         $body = trim((string) $command->comment);
-        if ('' === $body && $transition->requiresComment) {
+        if ('' === $body && $this->access->commentRequired($actor, $transition)) {
             throw IssueException::commentRequired($transition->id);
         }
 

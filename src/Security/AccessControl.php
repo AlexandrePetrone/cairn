@@ -169,6 +169,16 @@ final class AccessControl implements ResetInterface
     }
 
     /**
+     * Whether the comment a transition asks for is required of this user:
+     * external users must explain themselves, the agency never has to (and
+     * may leave the workflow altogether with MoveIssue).
+     */
+    public function commentRequired(User $user, TransitionDefinition $transition): bool
+    {
+        return $transition->requiresComment && !$user->isInternal();
+    }
+
+    /**
      * The actions of its workflow the user may take on the issue from where
      * it stands: those leaving its place that their role on its project
      * may trigger.

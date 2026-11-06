@@ -134,7 +134,7 @@ final class ListSelectionActionsHandler
                 id: (string) $id,
                 label: implode(' / ', array_values(array_unique(array_map(static fn (TransitionDefinition $transition): string => $transition->label, $definitions)))),
                 style: $first->style,
-                requiresComment: array_any($definitions, static fn (TransitionDefinition $transition): bool => $transition->requiresComment),
+                requiresComment: array_any($definitions, fn (TransitionDefinition $transition): bool => $this->access->commentRequired($viewer, $transition)),
                 commentPrompt: array_find($definitions, static fn (TransitionDefinition $transition): bool => null !== $transition->commentPrompt)?->commentPrompt,
             );
         }

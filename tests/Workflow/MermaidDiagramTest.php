@@ -14,10 +14,11 @@ use PHPUnit\Framework\TestCase;
 final class MermaidDiagramTest extends TestCase
 {
     private string $source;
+    private WorkflowDefinition $workflow;
 
     protected function setUp(): void
     {
-        $this->source = (new MermaidDiagram())->render(new WorkflowDefinition(
+        $this->workflow = new WorkflowDefinition(
             id: 'bug',
             label: 'Anomalie',
             initial: 'new',
@@ -33,7 +34,8 @@ final class MermaidDiagramTest extends TestCase
                 new TransitionDefinition(id: 'refuse', label: 'Refuser', from: ['to_test'], to: 'in_progress', roles: ['client'], requiresComment: true),
                 new TransitionDefinition(id: 'reject', label: 'Rejeter', from: ['new', 'in_progress'], to: 'rejected', roles: ['developer']),
             ],
-        ));
+        );
+        $this->source = (new MermaidDiagram())->render($this->workflow);
     }
 
     public function testEachPlaceIsANodeColouredByItsStatus(): void

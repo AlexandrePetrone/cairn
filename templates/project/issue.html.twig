@@ -7,8 +7,11 @@
 {% block content %}
     <div class="px-4 sm:px-6 py-5 max-w-screen-2xl lg:flex lg:gap-8">
         <div class="flex-1 min-w-0">
-            <twig:Issue:Header :issue="issue" />
             {# Siblings, not nested: a live component's redraw must not touch another one. #}
+            <div class="flex items-start gap-3">
+                <twig:Issue:Header :issue="issue" class="min-w-0 flex-1" />
+                <twig:Issue:Move :issue="issue" class="shrink-0" />
+            </div>
             <section class="mt-5 rounded-lg border border-gray-200 bg-white p-3 text-gray-800 leading-relaxed">
                 <twig:Issue:Description :issue="issue" />
                 <twig:Issue:Files :issue="issue" />

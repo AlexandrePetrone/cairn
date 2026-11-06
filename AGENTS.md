@@ -148,9 +148,37 @@ Rules:
   properties it edits, an API will expose one PATCH per resource; states
   such as archived or active are properties, not actions. A message of
   its own is kept for what is not a change of state: a business action
-  (`ApplyTransition`, `ChangeTracker`), a sub-resource (comments, files,
+  (`ApplyTransition`, `MoveIssue`), a sub-resource (comments, files,
   `GrantMembership` / `RevokeMembership`). Don't split an `UpdateX` per
   property or per form: a page edits a resource with one form.
+- **The response box asks what to do, and the workflow can be left on
+  purpose.** On the issue page `Issue:Activity` offers, above the comment
+  editor, the transitions the viewer may apply from the issue's place
+  (`AccessControl::transitionsFor()`), each with its configured
+  `description`, and « Commenter seulement » as one more choice; nothing
+  is chosen in advance, and the one button, inactive until then, takes
+  the name of the choice and sends the comment with it (`outcome`,
+  `submit()`). Without any transition, the box is the editor alone; the
+  actions of others are never shown, nor the place an action leads to:
+  clients act because they are asked to choose, not for the step. A
+  transition's `requiresComment` binds external users only
+  (`AccessControl::commentRequired()`, the one place that says so): the
+  agency applies any transition without a word, and `MoveIssue` asks for
+  none either. There is
+  no "whose turn" indicator: the action offered says it. The header
+  shows the path the issue took, as `JournalEntryRepository::findPlaceChanges()`
+  reads it from the journal with the labels of the time, private entries
+  included: a transition made with a private comment hides its comment
+  and its journal line from external users, never the place it led to,
+  which they read in the properties. Whoever holds
+  `issue.force_place` (internal-only) or `issue.change_tracker` gets a
+  « ⋯ » menu, `Issue:Move`, a sibling of `Issue:Header` laid out by the
+  page: one dialog chooses a tracker of the project and a place of its
+  workflow and dispatches `MoveIssue`, which writes the place without the
+  state machine and journals `moved` (same tracker) or `tracker_changed`;
+  the dialog warns when no action leads from the current place to the
+  chosen one. No reason is asked: the journal line is the trace. There is
+  no forced move from the kanban or the selection page yet.
 - **Forms feed commands.** A form binds to a mutable data object in
   `Form/` (`IssueData`) that carries the input constraints; the controller
   turns a valid submission into the readonly command and dispatches it.
@@ -246,7 +274,7 @@ Rules:
   places the viewer may move it to (`AccessControl::transitionsFor()`),
   so the `board` controller refuses the others while dragging, without
   asking the server. `Issue:BoardMove` is the only component that acts:
-  it finds the transition again, applies it or asks in a dialog (a
+  it finds the transition again, applies it or asks in a `Ui:Dialog` (a
   required comment, several actions to the same place), and sends the
   browser `board:moved` so that the two columns concerned redraw as the
   server has them, whatever the outcome.
@@ -353,7 +381,8 @@ Rules:
   act on that project only (never on a workspace membership) and never
   archives, since an archived project grants nobody the right to bring
   it back. Both permissions show what external users never see (private
-  trackers, every account of the instance), so the configuration grants
+  trackers, every account of the instance), and `issue.force_place`
+  breaks the workflow clients are shown, so the configuration grants
   them to internal-only roles: `Permission::internalOnly()` says which,
   `ConfigValidator` refuses the rest. Trackers are never deleted:
   `UpdateTracker` deactivates one (no new issue, out of the menu) or
@@ -561,7 +590,11 @@ Rules:
   deleting a title, a description or a comment go through
   `Ui:IconButton` (`pencil`, `trash-2`), in a `group` with the
   `hover-actions` utility: visible on hover and focus, always on touch
-  screens. A deletion confirms in place, never through `confirm()`.
+  screens. A deletion confirms in place, never through `confirm()`. What
+  waits for a choice opens a `Ui:Dialog` rendered by the live component
+  while its state says so (`closeAction` names the live action of the
+  backdrop and the cross). A `Ui:Dropdown:Item` without `href` is a
+  button, for a live action in a menu.
 - JavaScript is Stimulus only, one small controller per behaviour in
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`,
   `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`,

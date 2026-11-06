@@ -13,6 +13,8 @@ enum JournalEntryType: string
     case Created = 'created';
     case Transitioned = 'transitioned';
     case TrackerChanged = 'tracker_changed';
+    /** The place was set without a transition. */
+    case Moved = 'moved';
     case Changed = 'changed';
     case FieldChanged = 'field_changed';
     case AttachmentAdded = 'attachment_added';

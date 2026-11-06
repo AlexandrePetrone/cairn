@@ -31,32 +31,86 @@ final class ActivityTest extends KernelTestCase
         $this->issue = $this->scene->issue('MD-SPT-4');
     }
 
-    public function testTheActionsAreThoseOfTheViewersRole(): void
+    public function testTheBoxOffersTheActionsOfTheViewersRoleOrTheCommentAlone(): void
     {
         $client = (string) $this->activity('claire.martin@maison-dupont.test')->render();
-        self::assertStringContainsString('Valider', $client);
-        self::assertStringContainsString('Refuser', $client);
+        self::assertStringContainsString('Que souhaitez-vous faire ?', $client);
+        self::assertStringContainsString('value="accept"', $client);
+        self::assertStringContainsString('value="refuse"', $client);
+        self::assertStringContainsString('Commenter seulement', $client);
+        self::assertMatchesRegularExpression('/<button[^>]*disabled[^>]*data-live-action-param="submit"/', $client, 'nothing chosen yet');
         self::assertStringNotContainsString('Commenter en privé', $client);
 
         $developer = (string) $this->activity('nadia.benali@cairn.test')->render();
-        self::assertStringNotContainsString('data-live-transition-param="accept"', $developer, 'acceptance is for the client and the manager');
-        self::assertStringContainsString('data-live-action-param="postComment"', $developer);
+        self::assertStringNotContainsString('value="accept"', $developer, 'acceptance is for the client and the manager');
+        self::assertStringNotContainsString('Que souhaitez-vous faire ?', $developer, 'no action, no choice: the editor alone');
+        self::assertStringContainsString('data-live-action-param="submit"', $developer);
+        self::assertDoesNotMatchRegularExpression('/<button[^>]*disabled[^>]*data-live-action-param="submit"/', $developer);
 
         $readOnly = (string) $this->activity('paul.roussel@maison-dupont.test')->render();
-        self::assertStringNotContainsString('data-live-action-param="postComment"', $readOnly);
-        self::assertStringNotContainsString('data-live-transition-param', $readOnly);
+        self::assertStringNotContainsString('data-live-action-param="submit"', $readOnly);
+        self::assertStringNotContainsString('Valider', $readOnly, 'the actions of others are nobody\'s business');
         self::assertStringContainsString('a créé la demande', $readOnly, 'the thread is shown to everyone');
+    }
+
+    public function testEachChoiceSaysWhatItDoes(): void
+    {
+        $claire = 'claire.martin@maison-dupont.test';
+
+        $new = (string) $this->activityOn('MD-SPT-1', $claire)->render();
+        self::assertStringNotContainsString('name="outcome"', $new, 'qualifying is for the agency: Claire only comments');
+        self::assertStringNotContainsString('Qualifier', $new);
+
+        $toTest = (string) $this->activity($claire)->render();
+        self::assertStringContainsString('La correction vous convient', $toTest, 'the description of the configuration');
+        self::assertStringContainsString('Commentaire obligatoire.', $toTest, 'under « Refuser »');
+        self::assertStringContainsString('Poser une question, préciser ou signaler quelque chose.', $toTest);
+
+        $done = (string) $this->activityOn('MD-SPT-5', $claire)->render();
+        self::assertStringContainsString('value="reopen"', $done);
+    }
+
+    public function testTheAgencyIsNotHeldToTheCommentAskedOfClients(): void
+    {
+        $component = $this->activity('thomas.girard@cairn.test');
+        self::assertStringNotContainsString('Commentaire obligatoire.', (string) $component->render());
+
+        $component->set('outcome', 'refuse')->call('submit');
+
+        self::assertSame('in_progress', $this->reloaded()->getPlace(), 'refused without a word');
+    }
+
+    public function testNothingIsSentBeforeAChoice(): void
+    {
+        $component = $this->activity('claire.martin@maison-dupont.test');
+
+        $component->set('body', 'Merci.')->call('submit');
+
+        self::assertStringContainsString('Choisissez ce que vous souhaitez faire.', (string) $component->render());
+        self::assertNull(self::getContainer()->get(EntityManagerInterface::class)->getRepository(Comment::class)->findOneBy(['body' => 'Merci.']));
+        self::assertSame('to_test', $this->reloaded()->getPlace());
+    }
+
+    public function testTheButtonTakesTheNameOfTheChoice(): void
+    {
+        $component = $this->activity('claire.martin@maison-dupont.test');
+
+        $component->set('outcome', 'accept');
+        self::assertMatchesRegularExpression('/<button[^>]*data-live-action-param="submit"[^>]*>\\s*Valider\\s*<\\/button>/', (string) $component->render());
+
+        $component->set('outcome', 'comment');
+        self::assertMatchesRegularExpression('/<button[^>]*data-live-action-param="submit"[^>]*>\\s*Commenter\\s*<\\/button>/', (string) $component->render());
     }
 
     public function testARefusalNeedsItsCommentThenRedrawsInPlace(): void
     {
         $component = $this->activity('claire.martin@maison-dupont.test');
 
-        $component->call('apply', ['transition' => 'refuse']);
+        $component->set('outcome', 'refuse')->call('submit');
         self::assertStringContainsString('un commentaire est obligatoire pour refuser', (string) $component->render());
         self::assertSame('to_test', $this->reloaded()->getPlace());
 
-        $component->set('body', 'Toujours vide en production.')->call('apply', ['transition' => 'refuse']);
+        $component->set('body', 'Toujours vide en production.')->call('submit');
         $render = $component->render();
 
         self::assertSame(200, $component->response()->getStatusCode(), 'no redirect');
@@ -66,6 +120,7 @@ final class ActivityTest extends KernelTestCase
         $activity = $component->component();
         self::assertInstanceOf(Activity::class, $activity);
         self::assertSame('', $activity->body, 'the editor is emptied');
+        self::assertNull($activity->outcome, 'the next response starts from no choice');
         self::assertNotNull($component->getEmittedEvent($render, 'issue:changed'));
         self::assertSame(['message' => 'MD-SPT-4 : « Refuser » appliquée.'], $component->getDispatchedBrowserEvent($render, 'toast:show')['payload'] ?? null);
     }
@@ -74,7 +129,7 @@ final class ActivityTest extends KernelTestCase
     {
         $component = $this->activity('claire.martin@maison-dupont.test');
 
-        $component->set('body', 'Merci, je regarde demain.')->set('private', true)->call('postComment');
+        $component->set('body', 'Merci, je regarde demain.')->set('private', true)->set('outcome', 'comment')->call('submit');
 
         self::assertStringContainsString('Merci, je regarde demain.', (string) $component->render());
         $comment = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Comment::class)->findOneBy(['issue' => $this->issue], ['id' => 'DESC']);
@@ -86,7 +141,7 @@ final class ActivityTest extends KernelTestCase
     {
         $component = $this->activity('claire.martin@maison-dupont.test');
 
-        $component->set('body', 'Toujours **vide**, comme #MD-SPT-2.')->call('postComment');
+        $component->set('body', 'Toujours **vide**, comme #MD-SPT-2.')->set('outcome', 'comment')->call('submit');
         $render = $component->render();
 
         self::assertStringContainsString('Toujours <strong>vide</strong>, comme <a class="issue-reference" href="/MD/SPT/issues/2"', (string) $render);
@@ -104,7 +159,7 @@ final class ActivityTest extends KernelTestCase
         self::assertStringContainsString('brouillon.txt', (string) $component->render());
 
         $component->call('discard', ['uuid' => $activity->pending[1]]);
-        $component->set('body', 'Voici le devis.')->call('postComment');
+        $component->set('body', 'Voici le devis.')->set('outcome', 'comment')->call('submit');
         $render = (string) $component->render();
 
         $comment = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Comment::class)->findOneBy(['issue' => $this->issue], ['id' => 'DESC']);
@@ -120,7 +175,7 @@ final class ActivityTest extends KernelTestCase
     {
         $component = $this->activity('nadia.benali@cairn.test');
 
-        $component->set('body', '   ')->call('postComment');
+        $component->set('body', '   ')->call('submit');
 
         self::assertStringContainsString('Le commentaire est vide.', (string) $component->render());
     }
@@ -142,7 +197,7 @@ final class ActivityTest extends KernelTestCase
         $activity = $claire->component();
         self::assertInstanceOf(Activity::class, $activity);
         $remove = \sprintf('data-live-action-param="removeAttachment" data-live-uuid-param="%s"', $activity->pending[0]);
-        $claire->set('body', 'Voici le devis.')->call('postComment');
+        $claire->set('body', 'Voici le devis.')->set('outcome', 'comment')->call('submit');
         self::assertStringContainsString($remove, (string) $claire->render());
 
         $render = (string) $this->activity('nadia.benali@cairn.test')->render();
@@ -220,7 +275,7 @@ final class ActivityTest extends KernelTestCase
     /** Posts a comment from the composer and returns its id. */
     private function postedComment(TestLiveComponent $component, string $body): int
     {
-        $component->set('body', $body)->call('postComment');
+        $component->set('body', $body)->set('outcome', 'comment')->call('submit');
         $comment = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Comment::class)->findOneBy(['issue' => $this->issue], ['id' => 'DESC']);
         self::assertSame($body, $comment?->getBody());
 
@@ -242,6 +297,11 @@ final class ActivityTest extends KernelTestCase
     private function activity(string $email): TestLiveComponent
     {
         return $this->createLiveComponent('Issue:Activity', ['issue' => $this->issue])->actingAs($this->scene->user($email));
+    }
+
+    private function activityOn(string $key, string $email): TestLiveComponent
+    {
+        return $this->createLiveComponent('Issue:Activity', ['issue' => $this->scene->issue($key)])->actingAs($this->scene->user($email));
     }
 
     private function reloaded(): Issue

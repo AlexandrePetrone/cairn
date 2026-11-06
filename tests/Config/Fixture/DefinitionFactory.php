@@ -64,8 +64,8 @@ final class DefinitionFactory
         if ($withToTest) {
             $places[] = new PlaceDefinition(id: 'to_test', label: 'À recetter', status: PlaceStatus::Waiting);
             $transitions[] = new TransitionDefinition(id: 'deliver', label: 'Livrer', from: ['in_progress'], to: 'to_test', roles: ['developer']);
-            $transitions[] = new TransitionDefinition(id: 'accept', label: 'Valider', from: ['to_test'], to: 'done', roles: ['client', 'project_manager'], style: TransitionStyle::Primary);
-            $transitions[] = new TransitionDefinition(id: 'refuse', label: 'Refuser', from: ['to_test'], to: 'in_progress', roles: ['client'], style: TransitionStyle::Danger, requiresComment: true, commentPrompt: 'Pourquoi ?');
+            $transitions[] = new TransitionDefinition(id: 'accept', label: 'Valider', from: ['to_test'], to: 'done', roles: ['client', 'project_manager'], style: TransitionStyle::Primary, description: 'La correction est bonne.');
+            $transitions[] = new TransitionDefinition(id: 'refuse', label: 'Refuser', from: ['to_test'], to: 'in_progress', roles: ['client', 'project_manager'], style: TransitionStyle::Danger, requiresComment: true, commentPrompt: 'Pourquoi ?');
         } else {
             $transitions[] = new TransitionDefinition(id: 'finish', label: 'Terminer', from: ['in_progress'], to: 'done', roles: ['developer']);
         }
@@ -110,6 +110,7 @@ final class DefinitionFactory
                 Permission::IssueSetRelease->value => ['project_manager', 'developer'],
                 Permission::IssueLink->value => ['project_manager', 'developer'],
                 Permission::IssueChangeTracker->value => ['project_manager', 'developer'],
+                Permission::IssueForcePlace->value => ['project_manager'],
                 Permission::CommentCreate->value => ['project_manager', 'developer', 'client'],
                 Permission::CommentSetPrivate->value => ['project_manager', 'developer'],
                 Permission::CommentEdit->value => ['project_manager'],

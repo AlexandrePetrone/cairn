@@ -44,6 +44,7 @@ final class DiffCalculatorTest extends TestCase
             '+ permissions.issue.change_tracker: [project_manager, developer]',
             '+ permissions.issue.create: [project_manager, developer, client]',
             '+ permissions.issue.edit: [project_manager]',
+            '+ permissions.issue.force_place: [project_manager]',
             '+ permissions.issue.link: [project_manager, developer]',
             '+ permissions.issue.set_criticality: [project_manager, developer, client]',
             '+ permissions.issue.set_private: [project_manager]',
@@ -106,7 +107,7 @@ final class DiffCalculatorTest extends TestCase
             initial: 'a',
             places: [
                 new PlaceDefinition(id: 'a', label: 'A', status: PlaceStatus::Open),
-                new PlaceDefinition(id: 'b', label: 'B', status: PlaceStatus::Closed, hint: 'Done.'),
+                new PlaceDefinition(id: 'b', label: 'Faite', status: PlaceStatus::Closed),
             ],
             transitions: [new TransitionDefinition(id: 't', label: 'T', from: ['a'], to: 'b', roles: ['developer', 'client'], requiresComment: true)],
         );
@@ -117,8 +118,8 @@ final class DiffCalculatorTest extends TestCase
         );
 
         self::assertSame([
+            '~ workflows.w.places.b.label: B → Faite',
             '~ workflows.w.places.b.status: waiting → closed',
-            '~ workflows.w.places.b.hint: none → Done.',
             '~ workflows.w.transitions.t.roles: [developer] → [developer, client]',
             '~ workflows.w.transitions.t.requiresComment: no → yes',
         ], $diff);

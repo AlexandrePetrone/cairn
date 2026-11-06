@@ -28,7 +28,6 @@
                         {% if placeActions is empty %}<twig:Ui:Badge size="sm">{{ 'admin.configuration.workflow.final_badge'|trans }}</twig:Ui:Badge>{% endif %}
                         <span class="ml-auto font-mono text-[11px] text-gray-400">{{ place.id }}</span>
                     </div>
-                    {% if place.hint %}<p class="px-4 pt-2 text-xs text-gray-600 italic">{{ place.hint }}</p>{% endif %}
                     {% if placeActions is not empty %}
                         <ul class="divide-y divide-gray-50">
                             {% for transition in placeActions %}
@@ -43,6 +42,7 @@
                                             <twig:Ui:Badge size="sm">{{ definition.roles[roleId].label ?? roleId }}</twig:Ui:Badge>
                                         {% endfor %}
                                     </span>
+                                    {% if transition.description %}<span class="basis-full text-xs text-gray-600">{{ transition.description }}</span>{% endif %}
                                     {% if transition.commentPrompt %}<span class="basis-full text-xs text-gray-500">« {{ transition.commentPrompt }} »</span>{% endif %}
                                 </li>
                             {% endfor %}

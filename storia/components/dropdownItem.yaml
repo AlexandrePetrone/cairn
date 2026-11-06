@@ -1,4 +1,5 @@
 component: Ui:Dropdown:Item
 variants:
-    default: { args: { icon: inbox }, blocks: { content: Mes demandes } }
-    active: { args: { icon: home, active: true }, blocks: { content: Accueil } }
+    default: { args: { href: '#', icon: inbox }, blocks: { content: Mes demandes } }
+    active: { args: { href: '#', icon: home, active: true }, blocks: { content: Accueil } }
+    button: { args: { icon: workflow }, blocks: { content: Déplacer… } }

@@ -68,6 +68,16 @@ final class BoardMoveTest extends KernelTestCase
         self::assertStringNotContainsString('role="dialog"', (string) $mover->render());
     }
 
+    public function testTheAgencyDropsWithoutTheCommentAskedOfClients(): void
+    {
+        $mover = $this->mover('thomas.girard@cairn.test');
+
+        $mover->call('move', ['key' => 'MD-SPT-4', 'place' => 'in_progress']);
+
+        self::assertSame('in_progress', $this->reloaded('MD-SPT-4')->getPlace(), 'applied at once');
+        self::assertStringNotContainsString('role="dialog"', (string) $mover->render());
+    }
+
     public function testCancellingTheDialogAppliesNothingAndPutsTheCardBack(): void
     {
         $mover = $this->mover('claire.martin@maison-dupont.test');

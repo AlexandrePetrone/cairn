@@ -1,7 +1,8 @@
-{# Thread and comment editor of the issue page. The comment being written is the `body` prop, kept across every redraw, including those `issue:changed` triggers.
+{# Thread and response box of the issue page. The comment being written is the `body` prop, kept across every redraw, including those `issue:changed` triggers.
    The controls are plain HTML: a data-model attribute on a nested component would bind that component instead. #}
 {% set activityDetail = this.detail %}
 {% set activityTransitions = this.transitions %}
+{% set activityChosen = this.chosenTransition %}
 {% set activityCanComment = this.canComment %}
 {% set activityEditable = this.editableComments %}
 {% set activityPendingFiles = this.pendingFiles %}
@@ -95,18 +96,40 @@
             {% endfor %}
         </ol>
         <div class="mt-6">
-            {% if activityTransitions is not empty or activityCanComment %}
-                {% if error %}
-                    <twig:Ui:Callout tone="danger" size="sm" role="alert" class="mb-2">{{ error }}</twig:Ui:Callout>
-                {% endif %}
+            {% if activityCanComment or activityTransitions is not empty %}
+                {% set activityUndecided = activityTransitions is not empty and outcome is null %}
                 <div class="rounded-lg border border-gray-300 bg-white shadow-sm focus-within:border-indigo-400 {{ private ? 'border-amber-400 bg-amber-50 private-hatching' }}">
+                    {# The choice and the refusal keep their slot even when empty: the editor, whose inside the morph ignores, must stay the same sibling or it is recreated. #}
+                    <div>
+                    {% if activityTransitions is not empty %}
+                        {# The choice comes first: an action of the workflow, or a comment alone; nothing chosen in advance. #}
+                        <div role="radiogroup" aria-labelledby="activity-question" class="space-y-2 border-b border-gray-200 p-3">
+                            <p id="activity-question" class="text-sm font-medium text-gray-900">{{ 'issue.respond.question'|trans }}</p>
+                            {% for transition in activityTransitions %}
+                                {% set transitionNeedsComment = this.isCommentRequired(transition) %}
+                                <twig:Ui:Form:RadioCard name="outcome" :value="transition.id" model="outcome" :checked="outcome == transition.id" :title="transition.label" :description="transition.description">
+                                    {% if transitionNeedsComment %}<p class="mt-1 text-xs text-amber-800">{{ 'issue.respond.comment_required'|trans }}</p>{% endif %}
+                                </twig:Ui:Form:RadioCard>
+                            {% endfor %}
+                            {% if activityCanComment %}
+                                <twig:Ui:Form:RadioCard name="outcome" value="comment" model="outcome" :checked="outcome == 'comment'" :title="'issue.respond.comment_only'|trans" :description="'issue.respond.comment_only_help'|trans" />
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    </div>
+                    <div>
+                    {# A refusal (no choice, missing comment) sits between the choice and the editor, where the eye goes next. #}
+                    {% if error %}
+                        <twig:Ui:Callout tone="danger" size="sm" role="alert" class="rounded-none border-x-0 border-t-0 border-red-200 bg-red-50 text-red-800 {{ activityTransitions is empty ? 'rounded-t-lg' }}">{{ error }}</twig:Ui:Callout>
+                    {% endif %}
+                    </div>
                     {% if activityCanComment %}
-                        {# ⌘/Ctrl Enter posts; a posted comment empties the editor through editor:reset. #}
+                        {# ⌘/Ctrl Enter sends; a posted comment empties the editor through editor:reset. #}
                         <twig:Ui:Form:Editor model="norender|body" :rows="3"
-                                             class="mt-0 rounded-t-lg rounded-b-none border-0 bg-transparent focus-within:ring-0"
+                                             class="mt-0 rounded-none border-0 bg-transparent focus-within:ring-0 {{ activityTransitions is empty and not error ? 'rounded-t-lg' }}"
                                              :placeholder="'issue.comment.placeholder'|trans"
                                              :issuesUrl="activityEditorUrls.issues" :usersUrl="activityEditorUrls.users" :uploadUrl="activityEditorUrls.upload"
-                                             data-action="editor:submit->live#action editor:reset@window->editor#reset" data-live-action-param="postComment">{{ body }}</twig:Ui:Form:Editor>
+                                             data-action="editor:submit->live#action editor:reset@window->editor#reset" data-live-action-param="submit">{{ body }}</twig:Ui:Form:Editor>
                         {% if activityPendingFiles is not empty %}
                             <div class="flex flex-wrap gap-2 px-3 pb-2">
                                 {% for file in activityPendingFiles %}
@@ -127,30 +150,25 @@
                                 <input type="file" name="files[]" multiple class="sr-only" data-controller="file-picker"
                                        data-action="change->file-picker#chosen file-picker:chosen->live#action" data-live-action-param="files|attach">
                             </label>
-                        {% endif %}
-                        {% if activityCanComment and this.canMakePrivate %}
-                            <label class="inline-flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
-                                <input type="checkbox" data-model="private" {{ private ? 'checked' }} class="h-3.5 w-3.5 rounded border-gray-300 text-amber-600">
-                                <twig:ux:icon name="lucide:lock" class="h-3 w-3" />
-                                {{ 'issue.comment.private'|trans }}
-                            </label>
-                        {% endif %}
-                        <div class="ml-auto flex flex-wrap items-center gap-2">
-                            {% if activityCanComment %}
-                                <twig:Ui:Button data-action="live#action" data-live-action-param="postComment" data-loading="addAttribute(disabled)">{{ (private ? 'issue.comment.submit_private' : 'issue.comment.submit')|trans }}</twig:Ui:Button>
+                            {% if this.canMakePrivate %}
+                                <label class="inline-flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
+                                    <input type="checkbox" data-model="private" {{ private ? 'checked' }} class="h-3.5 w-3.5 rounded border-gray-300 text-amber-600">
+                                    <twig:ux:icon name="lucide:lock" class="h-3 w-3" />
+                                    {{ 'issue.comment.private'|trans }}
+                                </label>
                             {% endif %}
-                            {% if activityCanComment and activityTransitions is not empty %}<span class="h-5 w-px bg-gray-200"></span>{% endif %}
-                            {% for transition in activityTransitions %}
-                                <twig:Ui:Button :variant="transition.style.value == 'default' ? 'secondary' : transition.style.value" data-action="live#action" data-live-action-param="apply" data-live-transition-param="{{ transition.id }}" data-loading="addAttribute(disabled)">{{ transition.label }}</twig:Ui:Button>
-                            {% endfor %}
-                        </div>
+                        {% endif %}
+                        {# One button, named after the choice; inactive until there is one. #}
+                        <twig:Ui:Button class="ml-auto" :variant="activityChosen ? (activityChosen.style.value == 'default' ? 'secondary' : activityChosen.style.value) : 'secondary'" :disabled="activityUndecided" data-action="live#action" data-live-action-param="submit" data-loading="addAttribute(disabled)">
+                            {%- if activityChosen -%}
+                                {{ activityChosen.label }}
+                            {%- elseif activityUndecided -%}
+                                {{ 'issue.respond.submit'|trans }}
+                            {%- else -%}
+                                {{ (private ? 'issue.comment.submit_private' : 'issue.comment.submit')|trans }}
+                            {%- endif -%}
+                        </twig:Ui:Button>
                     </div>
-                    {% if activityTransitions is not empty %}
-                        <div class="flex items-center gap-2 border-t border-gray-100 bg-gray-50 px-3 py-1.5 text-xs text-gray-500 rounded-b-lg">
-                            <twig:Ui:Status:Dot :status="issue.status.value" />
-                            {{ 'issue.transition.hint'|trans({ '%place%': issue_place(issue) }) }}
-                        </div>
-                    {% endif %}
                 </div>
             {% endif %}
         </div>

@@ -44,6 +44,8 @@ issue:
             other_project: '%key% appartient à un autre projet : seuls les internes lient entre projets.'
             read_only: 'Le projet de %key% est archivé.'
     show:
+        path: Parcours
+        moved_step: Déplacée sans action
         created_by: 'créée par %name% le %date%'
         no_description: Aucune description.
         activity: Activité
@@ -72,6 +74,7 @@ issue:
             description: a modifié la description
         transitioned: 'a appliqué « %transition% » : %from% → %to%'
         tracker_changed: 'a changé la catégorie : %from_tracker% → %to_tracker% (%to%)'
+        moved: 'a déplacé la demande sans action : %from% → %to%'
         field_changed: 'a changé « %field% » : %from% → %to%'
         linked: 'a lié : %label% %key% « %title% »'
         unlinked: 'a retiré le lien : %label% %key% « %title% »'
@@ -118,9 +121,25 @@ issue:
         done: '%key% mise à jour.'
         refused: L'action n'a pas pu être appliquée.
     transition:
-        hint: 'Étape %place% · votre commentaire accompagne l''action.'
         comment_required: Cette action demande un commentaire.
         applied: '%key% : « %transition% » appliquée.'
+    respond:
+        question: Que souhaitez-vous faire ?
+        comment_only: Commenter seulement
+        comment_only_help: Poser une question, préciser ou signaler quelque chose.
+        comment_required: Commentaire obligatoire.
+        submit: Envoyer
+        choose: Choisissez ce que vous souhaitez faire.
+    menu:
+        more: Plus d'actions
+        move: Déplacer…
+    move:
+        title: 'Déplacer %key%'
+        tracker: Catégorie
+        place: Étape
+        no_transition: 'Aucune action ne mène de %from% à %to% : la demande sera déplacée hors de son workflow.'
+        submit: Déplacer
+        done: '%key% déplacée vers %place%.'
     unassigned: Non assigné
     private: Privée
     create:
@@ -462,7 +481,7 @@ admin:
             steps_intro: 'Dans l''ordre du kanban. Sous chaque étape, les actions qui en partent et les rôles qui peuvent les déclencher.'
             initial_badge: Initiale
             final_badge: Finale
-            comment_required: Commentaire obligatoire
+            comment_required: Commentaire obligatoire (externes)
             fields: Champs
             no_field: Aucun champ.
             usage: Utilisation
@@ -569,7 +588,7 @@ project:
 workflow:
     diagram:
         dotted: 'Pointillés : retour à une étape précédente'
-        comment: '💬 : commentaire obligatoire'
+        comment: '💬 : commentaire obligatoire pour les externes'
 
 release:
     title: Versions
@@ -622,6 +641,9 @@ permission:
         change_tracker:
             label: Changer la catégorie d'une demande
             help: Déplacer une demande vers une autre catégorie du projet, en choisissant son étape dans le nouveau workflow.
+        force_place:
+            label: Déplacer une demande sur n'importe quelle étape
+            help: Placer une demande sur une étape de son workflow sans passer par une action, pour corriger une erreur ; l'historique garde le déplacement.
         assign:
             label: Assigner les demandes
             help: Choisir qui traite une demande, parmi les membres du projet.

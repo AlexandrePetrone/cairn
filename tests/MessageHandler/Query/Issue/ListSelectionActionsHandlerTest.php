@@ -84,6 +84,14 @@ final class ListSelectionActionsHandlerTest extends KernelTestCase
         self::assertTrue($actions->canSetCriticality);
     }
 
+    public function testTheCommentIsRequiredOfTheViewerNotOfTheTransition(): void
+    {
+        $refuse = $this->actions('thomas.girard@cairn.test', 'MD-SPT-4')->transitionFor('transition:refuse');
+
+        self::assertInstanceOf(SelectionTransition::class, $refuse);
+        self::assertFalse($refuse->requiresComment, 'the agency explains itself when it wants to');
+    }
+
     public function testUnknownIdsAreDropped(): void
     {
         $actions = self::getContainer()->get(QueryBus::class)->ask(new ListSelectionActions($this->user('nadia.benali@cairn.test'), [999_999]));

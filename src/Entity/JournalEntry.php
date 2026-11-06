@@ -84,6 +84,17 @@ class JournalEntry
         ], $comment?->isPrivate() ?? false, $comment);
     }
 
+    /** The issue was put on a place without an action of the workflow. */
+    public static function moved(Issue $issue, User $author, PlaceDefinition $from, PlaceDefinition $to): self
+    {
+        return new self($issue, $author, JournalEntryType::Moved, [
+            'from' => $from->label,
+            'from_id' => $from->id,
+            'to' => $to->label,
+            'to_id' => $to->id,
+        ]);
+    }
+
     public static function trackerChanged(Issue $issue, User $author, Tracker $from, PlaceDefinition $fromPlace, Tracker $to, PlaceDefinition $toPlace): self
     {
         return new self($issue, $author, JournalEntryType::TrackerChanged, [
@@ -239,6 +250,14 @@ class JournalEntry
     public function getData(): array
     {
         return $this->data;
+    }
+
+    /** A recorded value as text: a label, an id, a body; `$default` when it is not there. */
+    public function text(string $key, string $default = ''): string
+    {
+        $value = $this->data[$key] ?? null;
+
+        return \is_scalar($value) ? (string) $value : $default;
     }
 
     public function getComment(): ?Comment

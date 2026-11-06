@@ -103,6 +103,19 @@ final class ApplyTransitionHandlerTest extends KernelTestCase
         self::assertSame($this->fixtures->client->getId(), $comment->getAuthor()->getId());
     }
 
+    public function testTheAgencyAppliesATransitionWithoutTheCommentItAsksOfClients(): void
+    {
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+        $developer = (int) $this->fixtures->developer->getId();
+        $this->commands->dispatch(new ApplyTransition($developer, $issue->getKey(), 'start'));
+        $this->commands->dispatch(new ApplyTransition($developer, $issue->getKey(), 'deliver'));
+
+        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->manager->getId(), $issue->getKey(), 'refuse'));
+
+        self::assertSame('in_progress', $issue->getPlace());
+        self::assertNull($this->lastEntry($issue->getId())->getComment(), 'no comment was required of the manager');
+    }
+
     public function testClosingSetsTheClosingDate(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);

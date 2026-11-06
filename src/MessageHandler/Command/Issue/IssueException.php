@@ -75,9 +75,9 @@ final class IssueException extends \DomainException
         return new self(\sprintf('Issues of tracker "%s" are private.', $trackerName));
     }
 
-    public static function sameTracker(string $trackerName): self
+    public static function samePlace(string $placeLabel): self
     {
-        return new self(\sprintf('The issue is already in tracker "%s".', $trackerName));
+        return new self(\sprintf('The issue is already on "%s".', $placeLabel));
     }
 
     public static function releaseOutsideProject(string $releaseName, string $projectName): self

@@ -36,11 +36,13 @@ use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
- * Thread and comment editor of the issue page: comment, and apply the
- * workflow actions of the viewer's role, the comment going with the
- * action. A success redraws the thread in place, tells the other
- * components of the page (`issue:changed`) and shows a toast; the comment
- * being written survives what the other components do.
+ * Thread and response box of the issue page. The box asks what to do:
+ * one of the workflow actions of the viewer's role, or a comment alone,
+ * nothing chosen in advance; one button sends the comment with the
+ * choice. Without any action, the box is the comment editor alone. A
+ * success redraws the thread in place, tells the other components of the
+ * page (`issue:changed`) and shows a toast; the comment being written
+ * survives what the other components do.
  */
 #[AsLiveComponent('Issue:Activity')]
 final class Activity
@@ -59,6 +61,10 @@ final class Activity
 
     #[LiveProp(writable: true)]
     public bool $private = false;
+
+    /** What the response does: `comment`, or the id of a transition; null until chosen. */
+    #[LiveProp(writable: true)]
+    public ?string $outcome = null;
 
     /** @var list<string> uuids of the files sent for the comment being written, pending until it is posted */
     #[LiveProp]
@@ -139,6 +145,17 @@ final class Activity
         return $this->access->transitionsFor($this->viewer->get(), $this->issue);
     }
 
+    public function isCommentRequired(TransitionDefinition $transition): bool
+    {
+        return $this->access->commentRequired($this->viewer->get(), $transition);
+    }
+
+    /** The transition chosen as the outcome, if it is one the viewer may apply. */
+    public function getChosenTransition(): ?TransitionDefinition
+    {
+        return array_find($this->getTransitions(), fn (TransitionDefinition $transition): bool => $transition->id === $this->outcome);
+    }
+
     public function canComment(): bool
     {
         return $this->access->isGranted($this->viewer->get(), Permission::CommentCreate, $this->issue->getProject());
@@ -168,9 +185,52 @@ final class Activity
         return $this->access->isGranted($this->viewer->get(), Permission::CommentSetPrivate, $this->issue->getProject());
     }
 
+    /**
+     * Sends the response: a comment alone, or the chosen transition with
+     * the comment as its own. The choice is implicit when there is none to
+     * make.
+     */
     #[LiveAction]
-    public function postComment(CommandBus $commands): void
+    public function submit(CommandBus $commands): void
     {
+        $transitions = $this->getTransitions();
+        $outcome = [] === $transitions ? 'comment' : $this->outcome;
+        if (null === $outcome) {
+            $this->error = $this->translator->trans('issue.respond.choose');
+
+            return;
+        }
+        if ('comment' === $outcome) {
+            $this->postComment($commands);
+
+            return;
+        }
+
+        $transition = $this->getChosenTransition();
+        if (null === $transition) {
+            $this->error = $this->translator->trans('issue.action.refused');
+
+            return;
+        }
+        if ($this->isCommentRequired($transition) && '' === trim($this->body)) {
+            $this->error = $transition->commentPrompt ?? $this->translator->trans('issue.transition.comment_required');
+
+            return;
+        }
+
+        $command = new ApplyTransition((int) $this->viewer->get()->getId(), $this->issue->getKey(), $transition->id, '' === trim($this->body) ? null : $this->body, $this->private && $this->canMakePrivate(), $this->pending);
+        if ($this->tryCommand($commands, $command)) {
+            $this->posted($this->translator->trans('issue.transition.applied', ['%key%' => $this->issue->getKey(), '%transition%' => $transition->label]));
+        }
+    }
+
+    private function postComment(CommandBus $commands): void
+    {
+        if (!$this->canComment()) {
+            $this->error = $this->translator->trans('issue.action.refused');
+
+            return;
+        }
         if ('' === trim($this->body)) {
             $this->error = $this->translator->trans('issue.comment.empty');
 
@@ -179,30 +239,6 @@ final class Activity
 
         if ($this->tryCommand($commands, new AddComment((int) $this->viewer->get()->getId(), $this->issue->getKey(), $this->body, $this->private && $this->canMakePrivate(), $this->pending))) {
             $this->posted($this->translator->trans('issue.comment.added'));
-        }
-    }
-
-    #[LiveAction]
-    public function apply(CommandBus $commands, #[LiveArg] string $transition): void
-    {
-        $definition = null;
-        foreach ($this->getTransitions() as $available) {
-            if ($available->id === $transition) {
-                $definition = $available;
-            }
-        }
-        if (null === $definition) {
-            return;
-        }
-        if ($definition->requiresComment && '' === trim($this->body)) {
-            $this->error = $definition->commentPrompt ?? $this->translator->trans('issue.transition.comment_required');
-
-            return;
-        }
-
-        $command = new ApplyTransition((int) $this->viewer->get()->getId(), $this->issue->getKey(), $definition->id, '' === trim($this->body) ? null : $this->body, $this->private && $this->canMakePrivate(), $this->pending);
-        if ($this->tryCommand($commands, $command)) {
-            $this->posted($this->translator->trans('issue.transition.applied', ['%key%' => $this->issue->getKey(), '%transition%' => $definition->label]));
         }
     }
 
@@ -342,6 +378,7 @@ final class Activity
         $this->body = '';
         $this->private = false;
         $this->pending = [];
+        $this->outcome = null;
         // The editor sits outside the morph (data-live-ignore): it is told to empty itself.
         $this->dispatchBrowserEvent('editor:reset');
         $this->announce($message);

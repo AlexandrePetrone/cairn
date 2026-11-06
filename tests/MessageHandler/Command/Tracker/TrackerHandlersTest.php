@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\MessageHandler\Command\Tracker;
 
 use App\Entity\Tracker;
-use App\Message\Command\Issue\ChangeTracker;
+use App\Message\Command\Issue\MoveIssue;
 use App\Message\Command\Tracker\CreateTracker;
 use App\Message\Command\Tracker\UpdateTracker;
 use App\Message\CommandBus;
@@ -81,7 +81,7 @@ final class TrackerHandlersTest extends KernelTestCase
         self::assertNotContains($bugs, $this->trackers->findByProject($this->fixtures->access->shop, includePrivate: true));
 
         try {
-            $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->manager->getId(), $task->getKey(), (int) $bugs->getId(), 'new'));
+            $this->commands->dispatch(new MoveIssue((int) $this->fixtures->manager->getId(), $task->getKey(), (int) $bugs->getId(), 'new'));
             self::fail('A deactivated tracker takes no issue from another one.');
         } catch (IssueException $e) {
             self::assertStringContainsString('deactivated', $e->getMessage());
