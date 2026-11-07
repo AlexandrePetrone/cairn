@@ -11,6 +11,7 @@ use App\Entity\JournalEntry;
 use App\Message\Query\Issue\IssueDetail;
 use App\Message\Query\Issue\ShowIssue;
 use App\Message\Query\Issue\TimelineEntry;
+use App\Repository\EntityList;
 use App\Security\AccessControl;
 use App\Workflow\WorkflowProvider;
 use Doctrine\ORM\EntityManagerInterface;
@@ -101,12 +102,7 @@ final class ShowIssueHandler
             $queryBuilder->andWhere('fc.id IS NULL OR fc.private = false');
         }
 
-        $rows = $queryBuilder->getQuery()->getResult();
-        if (!\is_array($rows)) {
-            throw new \LogicException('An object hydration query returns a list.');
-        }
-
-        return array_values(array_filter($rows, static fn (mixed $row): bool => $row instanceof Attachment));
+        return EntityList::of($queryBuilder->getQuery(), Attachment::class);
     }
 
     /**
@@ -136,11 +132,6 @@ final class ShowIssueHandler
             $queryBuilder->andWhere("$alias.private = false");
         }
 
-        $rows = $queryBuilder->getQuery()->getResult();
-        if (!\is_array($rows)) {
-            throw new \LogicException('An object hydration query returns a list.');
-        }
-
-        return array_values(array_filter($rows, static fn (mixed $row): bool => $row instanceof $class));
+        return EntityList::of($queryBuilder->getQuery(), $class);
     }
 }

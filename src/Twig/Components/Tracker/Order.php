@@ -54,7 +54,7 @@ final class Order
      */
     public function getTrackers(): array
     {
-        return $this->trackers->findByProject($this->project, includePrivate: true, includeInactive: true);
+        return $this->trackers->findByProject($this->project, includeInactive: true);
     }
 
     /**

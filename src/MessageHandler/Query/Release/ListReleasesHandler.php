@@ -10,7 +10,7 @@ use App\Entity\Release;
 use App\Message\Query\Release\ListReleases;
 use App\Message\Query\Release\ReleaseSummary;
 use App\Repository\ReleaseRepository;
-use App\Repository\Visibility;
+use App\Security\Visibility;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 

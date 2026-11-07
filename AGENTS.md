@@ -99,7 +99,9 @@ Symfony developer must find their bearings by opening `src/`.
 ```
 src/
   Entity/            single flat folder; persisted enums in Entity/Enum/
-  Repository/        one per entity: find by id/key and simple finders only
+  Repository/        one per entity: find by id/key and simple finders, never
+                     the viewer; plus the DQL pieces reads share (IssueOrder,
+                     SearchText, Pagination, EntityList)
   Message/           Command/<Domain>/ write commands, Query/<Domain>/ screen
                      reads and their result objects; CommandBus and QueryBus
   MessageHandler/    exact mirror of Message/, one handler per message
@@ -108,7 +110,8 @@ src/
   Controller/        one folder per zone of the application (Project/, Admin/,
                      Security/, Webhook/), application-level pages at the root
   Form/              form types and their data objects
-  Security/          voters, AccessControl, authenticators
+  Security/          voters, AccessControl and its SQL twin Visibility,
+                     authenticators
   Twig/Components/   PHP-backed Twig components, when a component needs logic
   Config/            instance config pipeline: Definition/, validator, diff,
                      sync, ConfigRegistry; config-only enums
@@ -194,24 +197,46 @@ Rules:
   and dispatches the command from its `LiveAction`; the controller only
   renders the page. Such a form carries no CSRF token: the live endpoint
   requires a custom header that keeps cross-origin requests out.
-- **Reads are queries.** A repository answers "give me this entity" (find
-  by id or key, simple finders, bulk updates). As soon as a read depends on
-  filters, on visibility or spans several entities, it is a message in
-  `Message/Query/<Domain>/` implementing `Query<TResult>` (readonly, the
-  filters as public properties, `#[Assert]` constraints) handled by
-  `MessageHandler/Query/<Domain>/` on the `query.bus` (validation only, no
-  transaction). Callers go through `Message/QueryBus::ask()`, typed by the
-  query. The handler holds all of its SQL, query builder included: nothing
-  is split into repositories or helper services until a second handler
-  needs the same piece. Queries never mutate; commands never return data
-  beyond the created identifier.
-  A query returns entities. It returns a result object next to it only
-  when the screen needs what no entity carries (a merge of several
-  tables, values resolved from the configuration), and that object
-  carries the entities instead of copying their fields: `IssueDetail`
-  holds the `Issue` plus its timeline and attachments. What only the
-  configuration resolves (the labels of an issue's field values,
-  `InstanceDefinition::fieldValues()`) is not a query: components call it.
+- **A read has three homes, by what it depends on.** A repository
+  answers "give me this entity": find by id or key, the simple finders of
+  one entity, the counts and bulk updates the configuration sync needs.
+  It never takes the viewer, nor a flag that stands for them
+  (`includePrivate`): what it returns is the same whoever asks, so a
+  handler, a component, a controller or a console command may call it.
+  As soon as a read depends on who is looking (visibility, privacy,
+  rights), on filters typed by the user, or merges several entities, it
+  is a message in `Message/Query/<Domain>/` implementing `Query<TResult>`
+  (readonly, the filters as public properties, `#[Assert]` constraints)
+  handled by `MessageHandler/Query/<Domain>/` on the `query.bus`
+  (validation only, no transaction), and the handler is the only place
+  that applies `Security/Visibility`. Callers go through
+  `Message/QueryBus::ask()`, typed by the query; a component that needs a
+  read depending on the viewer asks the bus (`ListTrackers`), never a
+  repository with a flag. The handler holds all of its SQL, query builder
+  included: nothing is split into repositories or helper services until
+  a second handler needs the same piece. Those shared pieces are the
+  third home: `Repository/` also holds the DQL that several reads share,
+  `IssueOrder`, `SearchText`, `Pagination`, and `EntityList::of()`, which
+  turns the result of an object-hydration query into a typed list.
+  Queries never mutate; commands never return data beyond the created
+  identifier.
+  **A query returns entities, not read models.** It returns a result
+  object next to it only when the screen needs what no entity carries (a
+  merge of several tables, counts, values resolved from the
+  configuration), and that object carries the entities instead of
+  copying their fields: `IssueDetail` holds the `Issue` plus its timeline
+  and attachments, `ProjectSummary` the `Project` plus its counts. This
+  is a decision, taken at the end of V1: the application is one
+  server-rendered instance on one database, without an API, its
+  entities hold no collection, and every handler joins what the screen
+  reads, so a second model of the same tables would change with every
+  screen and would break the pairing of `AccessControl` with its SQL
+  twin, which reason on the same objects. Revisit it only for a JSON
+  API (the Serializer's groups on the entities first, a DTO per resource
+  next), a dashboard heavy in aggregates, or a separate read store. What
+  only the configuration resolves (the labels of an issue's field
+  values, `InstanceDefinition::fieldValues()`) is not a query: components
+  call it.
 - **URLs carry keys, not ids, and one route per need.** A project page is
   `/MD/SPT/issues`: the workspace key, the project key, then the screen.
   An action receives it as `#[CurrentProject] Project $project`, resolved
@@ -306,9 +331,12 @@ Rules:
   (`DispatchesCommands::refusal()`). A common comment carries no file,
   since a pending file is claimed by one issue only.
 - **Visibility is written twice and tested as one.** `AccessControl::canSee()`
-  decides for one issue, `Repository/Visibility::restrictIssues()` applies
+  decides for one issue, `Security/Visibility::restrictIssues()` applies
   the same rule in SQL; `canView()` and `restrictProjects()` do the same
-  for projects. Every handler that lists issues or projects goes through
+  for projects, and `restrictTrackers()` hides the private trackers from
+  external users, for `ListTrackers` and the issue lists alike. The two
+  classes live side by side in `Security/` because they are one rule.
+  Every handler that lists issues, trackers or projects goes through
   `Visibility`. Change both sides together: `SearchIssuesVisibilityTest`
   and `ListVisibleProjectsTest` compare them for every user of the
   development dataset.

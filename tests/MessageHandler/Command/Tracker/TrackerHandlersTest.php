@@ -78,7 +78,7 @@ final class TrackerHandlersTest extends KernelTestCase
         self::assertNull($bugs->getDescription());
         self::assertTrue($bugs->isPrivate());
         self::assertFalse($bugs->isActive());
-        self::assertNotContains($bugs, $this->trackers->findByProject($this->fixtures->access->shop, includePrivate: true));
+        self::assertNotContains($bugs, $this->trackers->findByProject($this->fixtures->access->shop));
 
         try {
             $this->commands->dispatch(new MoveIssue((int) $this->fixtures->manager->getId(), $task->getKey(), (int) $bugs->getId(), 'new'));
@@ -122,7 +122,7 @@ final class TrackerHandlersTest extends KernelTestCase
      */
     private function all(): array
     {
-        return $this->trackers->findByProject($this->fixtures->access->shop, includePrivate: true, includeInactive: true);
+        return $this->trackers->findByProject($this->fixtures->access->shop, includeInactive: true);
     }
 
     /**

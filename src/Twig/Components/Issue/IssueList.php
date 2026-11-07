@@ -14,12 +14,12 @@ use App\Message\Query\Issue\IssueGrouping;
 use App\Message\Query\Issue\IssueSort;
 use App\Message\Query\Issue\SearchIssues;
 use App\Message\Query\Project\ListProjectMembers;
+use App\Message\Query\Project\ListTrackers;
 use App\Message\Query\Project\ListVisibleProjects;
 use App\Message\Query\Project\ProjectSummary;
 use App\Message\QueryBus;
 use App\Repository\Pagination;
 use App\Repository\ReleaseRepository;
-use App\Repository\TrackerRepository;
 use App\Security\Viewer;
 use App\Workflow\PlaceCatalog;
 use App\Workflow\PlaceChoice;
@@ -156,7 +156,6 @@ final class IssueList
     public function __construct(
         private readonly QueryBus $queries,
         private readonly Viewer $viewer,
-        private readonly TrackerRepository $trackerRepository,
         private readonly ReleaseRepository $releaseRepository,
         private readonly UrlGeneratorInterface $urls,
         private readonly RequestStack $requests,
@@ -548,7 +547,7 @@ final class IssueList
      */
     private function projectTrackers(): array
     {
-        return $this->projectTrackers ??= null === $this->project ? [] : $this->trackerRepository->findByProject($this->project, includePrivate: $this->viewer->get()->isInternal(), includeInactive: true);
+        return $this->projectTrackers ??= null === $this->project ? [] : $this->queries->ask(new ListTrackers($this->viewer->get(), $this->project, inactive: true));
     }
 
     /**

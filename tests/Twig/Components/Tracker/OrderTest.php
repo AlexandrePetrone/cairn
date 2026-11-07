@@ -55,7 +55,7 @@ final class OrderTest extends KernelTestCase
     {
         return array_map(
             static fn (Tracker $tracker): string => $tracker->getName(),
-            self::getContainer()->get(TrackerRepository::class)->findByProject($this->scene->shop, includePrivate: true, includeInactive: true),
+            self::getContainer()->get(TrackerRepository::class)->findByProject($this->scene->shop, includeInactive: true),
         );
     }
 }

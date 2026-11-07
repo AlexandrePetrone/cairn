@@ -20,18 +20,16 @@ class TrackerRepository extends ServiceEntityRepository
     }
 
     /**
-     * The trackers of a project in display order; private ones only when
-     * asked for, since external users never see them, and deactivated ones
-     * only for the project configuration.
+     * Every tracker of a project in display order, private ones included:
+     * for the commands and the project configuration, which see them all.
+     * A screen asks ListTrackers, which hides them from external users.
+     * Deactivated ones come only when asked for.
      *
      * @return list<Tracker>
      */
-    public function findByProject(Project $project, bool $includePrivate, bool $includeInactive = false): array
+    public function findByProject(Project $project, bool $includeInactive = false): array
     {
         $criteria = ['project' => $project];
-        if (!$includePrivate) {
-            $criteria['private'] = false;
-        }
         if (!$includeInactive) {
             $criteria['active'] = true;
         }

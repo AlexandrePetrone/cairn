@@ -6,8 +6,9 @@ namespace App\Twig\Components\Layout;
 
 use App\Entity\Project;
 use App\Entity\Tracker;
+use App\Message\Query\Project\ListTrackers;
+use App\Message\QueryBus;
 use App\Repository\ReleaseRepository;
-use App\Repository\TrackerRepository;
 use App\Security\Viewer;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 
@@ -21,7 +22,7 @@ final class ProjectNav
     public Project $project;
 
     public function __construct(
-        private readonly TrackerRepository $trackers,
+        private readonly QueryBus $queries,
         private readonly ReleaseRepository $releases,
         private readonly Viewer $viewer,
     ) {
@@ -34,7 +35,7 @@ final class ProjectNav
      */
     public function getTrackers(): array
     {
-        return $this->trackers->findByProject($this->project, includePrivate: $this->viewer->get()->isInternal());
+        return $this->queries->ask(new ListTrackers($this->viewer->get(), $this->project));
     }
 
     /**

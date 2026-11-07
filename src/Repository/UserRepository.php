@@ -28,6 +28,16 @@ class UserRepository extends ServiceEntityRepository implements UserLoaderInterf
     }
 
     /**
+     * The accounts that may be given a role, by name.
+     *
+     * @return list<User>
+     */
+    public function findActive(): array
+    {
+        return $this->findBy(['active' => true], ['lastName' => 'ASC', 'firstName' => 'ASC']);
+    }
+
+    /**
      * Who may still administer the instance: at least one must remain.
      */
     public function countActiveAdministrators(): int

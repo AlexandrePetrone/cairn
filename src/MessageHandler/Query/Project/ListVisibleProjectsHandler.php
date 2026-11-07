@@ -10,8 +10,9 @@ use App\Entity\Issue;
 use App\Entity\Project;
 use App\Message\Query\Project\ListVisibleProjects;
 use App\Message\Query\Project\ProjectSummary;
+use App\Repository\EntityList;
 use App\Repository\SearchText;
-use App\Repository\Visibility;
+use App\Security\Visibility;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -99,10 +100,8 @@ final class ListVisibleProjectsHandler
         }
 
         $projects = [];
-        foreach ($queryBuilder->getQuery()->getResult() as $project) {
-            if ($project instanceof Project) {
-                $projects[(int) $project->getId()] = $project;
-            }
+        foreach (EntityList::of($queryBuilder->getQuery(), Project::class) as $project) {
+            $projects[(int) $project->getId()] = $project;
         }
 
         return $projects;

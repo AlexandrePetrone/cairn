@@ -166,7 +166,7 @@ final class Grants
         $members = array_map(static fn (Membership $membership): ?int => $membership->getUser()->getId(), $this->getMemberships());
 
         return array_values(array_filter(
-            $this->users->findBy(['active' => true], ['lastName' => 'ASC', 'firstName' => 'ASC']),
+            $this->users->findActive(),
             fn (User $user): bool => !\in_array($user->getId(), $members, true) && [] !== $this->rolesFor($user),
         ));
     }

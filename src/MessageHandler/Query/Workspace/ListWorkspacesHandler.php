@@ -7,6 +7,7 @@ namespace App\MessageHandler\Query\Workspace;
 use App\Entity\Project;
 use App\Entity\Workspace;
 use App\Message\Query\Workspace\ListWorkspaces;
+use App\Repository\EntityList;
 use App\Repository\SearchText;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -44,11 +45,6 @@ final class ListWorkspacesHandler
                 ->setParameter('key', mb_strtoupper(trim($query->q)));
         }
 
-        $workspaces = $queryBuilder->getQuery()->getResult();
-        if (!\is_array($workspaces)) {
-            throw new \LogicException('An object hydration query returns a list.');
-        }
-
-        return array_values(array_filter($workspaces, static fn (mixed $workspace): bool => $workspace instanceof Workspace));
+        return EntityList::of($queryBuilder->getQuery(), Workspace::class);
     }
 }

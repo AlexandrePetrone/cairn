@@ -49,7 +49,7 @@ final class UpdateTrackerHandler
     private function move(Tracker $tracker, int $position): void
     {
         $others = array_values(array_filter(
-            $this->trackers->findByProject($tracker->getProject(), includePrivate: true, includeInactive: true),
+            $this->trackers->findByProject($tracker->getProject(), includeInactive: true),
             static fn (Tracker $other): bool => $other !== $tracker,
         ));
         array_splice($others, min($position, \count($others)), 0, [$tracker]);

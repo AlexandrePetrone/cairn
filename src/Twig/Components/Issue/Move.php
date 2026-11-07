@@ -10,7 +10,8 @@ use App\Entity\Issue;
 use App\Entity\Tracker;
 use App\Message\Command\Issue\MoveIssue;
 use App\Message\CommandBus;
-use App\Repository\TrackerRepository;
+use App\Message\Query\Project\ListTrackers;
+use App\Message\QueryBus;
 use App\Security\AccessControl;
 use App\Security\Permission;
 use App\Security\Viewer;
@@ -59,7 +60,7 @@ final class Move
     private ?array $offered = null;
 
     public function __construct(
-        private readonly TrackerRepository $trackers,
+        private readonly QueryBus $queries,
         private readonly AccessControl $access,
         private readonly Viewer $viewer,
         private readonly WorkflowProvider $workflows,
@@ -98,7 +99,7 @@ final class Move
         $current = $this->issue->getTracker();
         $offered = $this->canForcePlace() ? [$current] : [];
         if ($this->canChangeTracker()) {
-            foreach ($this->trackers->findByProject($this->issue->getProject(), includePrivate: $this->viewer->get()->isInternal()) as $tracker) {
+            foreach ($this->queries->ask(new ListTrackers($this->viewer->get(), $this->issue->getProject())) as $tracker) {
                 if ($tracker->getId() !== $current->getId()) {
                     $offered[] = $tracker;
                 }

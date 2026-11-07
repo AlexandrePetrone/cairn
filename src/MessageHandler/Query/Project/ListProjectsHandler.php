@@ -6,6 +6,7 @@ namespace App\MessageHandler\Query\Project;
 
 use App\Entity\Project;
 use App\Message\Query\Project\ListProjects;
+use App\Repository\EntityList;
 use App\Repository\SearchText;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -51,11 +52,6 @@ final class ListProjectsHandler
             $queryBuilder->andWhere('p.archived = true OR w.archived = true');
         }
 
-        $projects = $queryBuilder->getQuery()->getResult();
-        if (!\is_array($projects)) {
-            throw new \LogicException('An object hydration query returns a list.');
-        }
-
-        return array_values(array_filter($projects, static fn (mixed $project): bool => $project instanceof Project));
+        return EntityList::of($queryBuilder->getQuery(), Project::class);
     }
 }

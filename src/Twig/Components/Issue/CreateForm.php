@@ -14,10 +14,10 @@ use App\Form\IssueType;
 use App\Message\Command\Issue\CreateIssue;
 use App\Message\CommandBus;
 use App\Message\Query\Project\ListProjectMembers;
+use App\Message\Query\Project\ListTrackers;
 use App\Message\QueryBus;
 use App\MessageHandler\Command\Issue\IssueException;
 use App\Repository\AttachmentRepository;
-use App\Repository\TrackerRepository;
 use App\Security\AccessControl;
 use App\Security\Permission;
 use App\Security\Viewer;
@@ -66,7 +66,6 @@ final class CreateForm extends AbstractController
     public ?string $attachError = null;
 
     public function __construct(
-        private readonly TrackerRepository $trackers,
         private readonly ConfigRegistry $config,
         private readonly QueryBus $queries,
         private readonly FormFactoryInterface $forms,
@@ -84,7 +83,7 @@ final class CreateForm extends AbstractController
      */
     public function getTrackers(): array
     {
-        return $this->trackers->findByProject($this->project, includePrivate: $this->viewer->get()->isInternal());
+        return $this->queries->ask(new ListTrackers($this->viewer->get(), $this->project));
     }
 
     /**

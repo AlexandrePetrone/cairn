@@ -8,6 +8,7 @@ use App\Config\ConfigRegistry;
 use App\Entity\Membership;
 use App\Entity\User;
 use App\Message\Query\Project\ListProjectMembers;
+use App\Repository\EntityList;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -32,7 +33,7 @@ final class ListProjectMembersHandler
      */
     public function __invoke(ListProjectMembers $query): array
     {
-        $members = $this->entityManager->createQueryBuilder()
+        $query = $this->entityManager->createQueryBuilder()
             ->select('DISTINCT u')
             ->from(User::class, 'u')
             ->join(Membership::class, 'm', 'WITH', 'm.user = u')
@@ -44,12 +45,8 @@ final class ListProjectMembersHandler
             ->setParameter('project', $query->project)
             ->setParameter('workspace', $query->project->getWorkspace())
             ->setParameter('roles', $this->config->definition()->roleIds())
-            ->getQuery()
-            ->getResult();
-        if (!\is_array($members)) {
-            throw new \LogicException('An object hydration query returns a list.');
-        }
+            ->getQuery();
 
-        return array_values(array_filter($members, static fn (mixed $member): bool => $member instanceof User));
+        return EntityList::of($query, User::class);
     }
 }

@@ -10,10 +10,11 @@ use App\Entity\User;
 use App\Message\Query\Issue\IssueGrouping;
 use App\Message\Query\Issue\IssueSort;
 use App\Message\Query\Issue\SearchIssues;
+use App\Repository\EntityList;
 use App\Repository\IssueOrder;
 use App\Repository\Pagination;
 use App\Repository\SearchText;
-use App\Repository\Visibility;
+use App\Security\Visibility;
 use App\Workflow\PlaceCatalog;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
@@ -22,7 +23,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 /**
  * Lists issues in the order of every list (Repository/IssueOrder), grouped
  * and sorted as asked, restricted to what the viewer may see
- * (Repository/Visibility). Two queries per page: the total, then the rows
+ * (Security/Visibility). Two queries per page: the total, then the rows
  * with tracker, project, workspace and assignee loaded; a third one counts
  * the groups when the list is grouped.
  */
@@ -52,15 +53,13 @@ final class SearchIssuesHandler
             ->getSingleScalarResult();
 
         $placeRanks = IssueGrouping::Place === $query->group || IssueSort::Place === $query->sort ? $this->places->ranks() : [];
-        $rows = IssueOrder::apply($this->filtered($viewer, $query)->addSelect('t', 'p', 'w', 'a', 'r'), $query->group, $query->sort, $query->order, $placeRanks)
-            ->setFirstResult(($query->page - 1) * $query->perPage)
-            ->setMaxResults($query->perPage)
-            ->getQuery()
-            ->getResult();
-        if (!\is_array($rows)) {
-            throw new \LogicException('An object hydration query returns a list.');
-        }
-        $issues = array_values(array_filter($rows, static fn (mixed $row): bool => $row instanceof Issue));
+        $issues = EntityList::of(
+            IssueOrder::apply($this->filtered($viewer, $query)->addSelect('t', 'p', 'w', 'a', 'r'), $query->group, $query->sort, $query->order, $placeRanks)
+                ->setFirstResult(($query->page - 1) * $query->perPage)
+                ->setMaxResults($query->perPage)
+                ->getQuery(),
+            Issue::class,
+        );
 
         return new Pagination($issues, $total, $query->page, $query->perPage, null === $query->group ? [] : $this->groupTotals($viewer, $query, $query->group));
     }

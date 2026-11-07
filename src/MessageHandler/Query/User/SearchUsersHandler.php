@@ -6,6 +6,7 @@ namespace App\MessageHandler\Query\User;
 
 use App\Entity\User;
 use App\Message\Query\User\SearchUsers;
+use App\Repository\EntityList;
 use App\Repository\Pagination;
 use App\Repository\SearchText;
 use Doctrine\ORM\EntityManagerInterface;
@@ -29,20 +30,19 @@ final class SearchUsersHandler
     {
         $total = (int) $this->filtered($query)->select('COUNT(u.id)')->getQuery()->getSingleScalarResult();
 
-        $users = $this->filtered($query)
-            ->orderBy('u.active', 'DESC')
-            ->addOrderBy('u.internal', 'DESC')
-            ->addOrderBy('u.lastName')
-            ->addOrderBy('u.firstName')
-            ->setFirstResult(($query->page - 1) * self::PER_PAGE)
-            ->setMaxResults(self::PER_PAGE)
-            ->getQuery()
-            ->getResult();
-        if (!\is_array($users)) {
-            throw new \LogicException('An object hydration query returns a list.');
-        }
+        $users = EntityList::of(
+            $this->filtered($query)
+                ->orderBy('u.active', 'DESC')
+                ->addOrderBy('u.internal', 'DESC')
+                ->addOrderBy('u.lastName')
+                ->addOrderBy('u.firstName')
+                ->setFirstResult(($query->page - 1) * self::PER_PAGE)
+                ->setMaxResults(self::PER_PAGE)
+                ->getQuery(),
+            User::class,
+        );
 
-        return new Pagination(array_values(array_filter($users, static fn (mixed $user): bool => $user instanceof User)), $total, $query->page, self::PER_PAGE);
+        return new Pagination($users, $total, $query->page, self::PER_PAGE);
     }
 
     private function filtered(SearchUsers $query): QueryBuilder

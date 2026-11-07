@@ -57,14 +57,13 @@ class AttachmentRepository extends ServiceEntityRepository
      */
     public function findPendingBefore(\DateTimeImmutable $before): array
     {
-        $rows = $this->createQueryBuilder('a')
+        $query = $this->createQueryBuilder('a')
             ->where('a.issue IS NULL')
             ->andWhere('a.createdAt < :before')
             ->setParameter('before', $before)
-            ->getQuery()
-            ->getResult();
+            ->getQuery();
 
-        return \is_array($rows) ? array_values(array_filter($rows, static fn (mixed $row): bool => $row instanceof Attachment)) : [];
+        return EntityList::of($query, Attachment::class);
     }
 
     /**

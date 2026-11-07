@@ -6,13 +6,14 @@ namespace App\MessageHandler\Query\Issue;
 
 use App\Entity\IssueLink;
 use App\Message\Query\Issue\ListLinks;
-use App\Repository\Visibility;
+use App\Repository\EntityList;
+use App\Security\Visibility;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
  * One query per direction, the other end named `i` so that
- * Repository/Visibility restricts it as it restricts the lists: the SQL
+ * Security/Visibility restricts it as it restricts the lists: the SQL
  * side of AccessControl::canSee() on linked issues, which
  * ShowIssueVisibilityTest compares.
  */
@@ -43,11 +44,7 @@ final class ListLinksHandler
                 ->setParameter('issue', $query->issue);
             $this->visibility->restrictIssues($queryBuilder, $query->viewer);
 
-            foreach ($queryBuilder->getQuery()->getResult() as $link) {
-                if ($link instanceof IssueLink) {
-                    $links[] = $link;
-                }
-            }
+            $links = [...$links, ...EntityList::of($queryBuilder->getQuery(), IssueLink::class)];
         }
         usort($links, static fn (IssueLink $a, IssueLink $b): int => [$a->getCreatedAt(), $a->getId()] <=> [$b->getCreatedAt(), $b->getId()]);
 

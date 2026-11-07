@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Repository;
+namespace App\Security;
 
 use App\Config\ConfigRegistry;
 use App\Entity\Membership;
@@ -10,11 +10,12 @@ use App\Entity\User;
 use Doctrine\ORM\QueryBuilder;
 
 /**
- * The SQL side of AccessControl::canView() and canSee(), for the query
- * handlers that list projects or issues; both sides must always agree,
- * and SearchIssuesVisibilityTest and ListVisibleProjectsTest compare them
- * on the development dataset. The query builder names the project `p`
- * and, for issues, the issue `i` and its tracker `t`.
+ * The SQL side of AccessControl, for the query handlers that list
+ * projects, trackers or issues: restrictProjects() is canView(),
+ * restrictIssues() is canSee(). Both sides must always agree, and
+ * SearchIssuesVisibilityTest and ListVisibleProjectsTest compare them on
+ * the development dataset. The query builder names the project `p`, the
+ * tracker `t` and the issue `i`.
  */
 final class Visibility
 {
@@ -48,6 +49,19 @@ final class Visibility
     }
 
     /**
+     * An external user sees the public trackers only, of a project they
+     * see: the project is not restricted here, the caller resolved it.
+     */
+    public function restrictTrackers(QueryBuilder $queryBuilder, User $viewer): void
+    {
+        if ($viewer->isInternal()) {
+            return;
+        }
+
+        $queryBuilder->andWhere('t.private = false');
+    }
+
+    /**
      * An external user sees an issue of a project they see when neither
      * the issue nor its tracker is private.
      */
@@ -57,9 +71,8 @@ final class Visibility
             return;
         }
 
-        $queryBuilder
-            ->andWhere('i.private = false')
-            ->andWhere('t.private = false');
+        $queryBuilder->andWhere('i.private = false');
+        $this->restrictTrackers($queryBuilder, $viewer);
         $this->restrictProjects($queryBuilder, $viewer);
     }
 }

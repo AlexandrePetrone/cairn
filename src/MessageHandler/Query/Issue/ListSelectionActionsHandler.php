@@ -13,18 +13,19 @@ use App\Message\Query\Issue\ListSelectionActions;
 use App\Message\Query\Issue\SelectionActions;
 use App\Message\Query\Issue\SelectionTransition;
 use App\Message\Query\Project\ListProjectMembers;
+use App\Message\Query\Project\ListTrackers;
 use App\Message\QueryBus;
+use App\Repository\EntityList;
 use App\Repository\IssueOrder;
 use App\Repository\ReleaseRepository;
-use App\Repository\TrackerRepository;
-use App\Repository\Visibility;
 use App\Security\AccessControl;
 use App\Security\Permission;
+use App\Security\Visibility;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
- * Loads the selected issues the viewer sees (Repository/Visibility, an id
+ * Loads the selected issues the viewer sees (Security/Visibility, an id
  * they may not see is dropped), sorted as the lists sort them, then keeps
  * the actions valid for all of them: the transitions available from each
  * issue's place to the viewer's role on its project, matched by id; the
@@ -42,7 +43,6 @@ final class ListSelectionActionsHandler
         private readonly AccessControl $access,
         private readonly QueryBus $queries,
         private readonly ReleaseRepository $releases,
-        private readonly TrackerRepository $trackers,
     ) {
     }
 
@@ -99,12 +99,7 @@ final class ListSelectionActionsHandler
         IssueOrder::apply($queryBuilder);
         $this->visibility->restrictIssues($queryBuilder, $viewer);
 
-        $rows = $queryBuilder->getQuery()->getResult();
-        if (!\is_array($rows)) {
-            throw new \LogicException('An object hydration query returns a list.');
-        }
-
-        return array_values(array_filter($rows, static fn (mixed $row): bool => $row instanceof Issue));
+        return EntityList::of($queryBuilder->getQuery(), Issue::class);
     }
 
     /**
@@ -166,7 +161,7 @@ final class ListSelectionActionsHandler
         }
 
         $candidates = [];
-        foreach ($this->trackers->findByProject($project, includePrivate: $viewer->isInternal()) as $tracker) {
+        foreach ($this->queries->ask(new ListTrackers($viewer, $project)) as $tracker) {
             $candidates[(int) $tracker->getId()] = $tracker;
         }
         foreach ($issues as $issue) {
