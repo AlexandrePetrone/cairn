@@ -20,6 +20,7 @@ use League\CommonMark\Node\Inline\Text;
 use League\CommonMark\Node\Node;
 use League\CommonMark\Parser\MarkdownParser;
 use League\CommonMark\Renderer\HtmlRenderer;
+use Symfony\Component\HttpFoundation\UrlHelper;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
@@ -30,7 +31,9 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  * are parsed into nodes, then resolved in one query each: `#MD-SPT-12`
  * becomes a link when the reader may see that issue and stays text
  * otherwise, so that a private issue cannot be probed; `@[Name](user:12)`
- * shows the user's current name.
+ * shows the user's current name. Links and images are paths of the site,
+ * as the pages need them; a text read away from it, in a mail, asks for
+ * absolute URLs and gets them from the request context, like `absolute_url()`.
  */
 final class MarkdownRenderer
 {
@@ -44,6 +47,7 @@ final class MarkdownRenderer
         private readonly UserRepository $users,
         private readonly AccessControl $access,
         private readonly UrlGeneratorInterface $urls,
+        private readonly UrlHelper $urlHelper,
     ) {
         $environment = new Environment([
             'html_input' => 'escape',
@@ -61,14 +65,46 @@ final class MarkdownRenderer
         $this->renderer = new HtmlRenderer($environment);
     }
 
-    public function render(string $markdown, User $reader): string
+    public function render(string $markdown, User $reader, bool $absoluteUrls = false): string
     {
         $document = $this->parser->parse($markdown);
         $this->dropRemoteImages($document);
         $this->resolveIssueReferences($document, $reader);
         $this->resolveMentions($document);
+        if ($absoluteUrls) {
+            $this->absolutizeUrls($document);
+        }
 
         return (string) $this->renderer->renderDocument($document);
+    }
+
+    /**
+     * Every link and image written as a path of the site gets the site's
+     * base: attachments, issue references, links typed by hand.
+     */
+    private function absolutizeUrls(Document $document): void
+    {
+        foreach ([...$this->nodes($document, Link::class), ...$this->nodes($document, Image::class)] as $node) {
+            if (str_starts_with($node->getUrl(), '/') && !str_starts_with($node->getUrl(), '//')) {
+                $node->setUrl($this->urlHelper->getAbsoluteUrl($node->getUrl()));
+            }
+        }
+    }
+
+    /**
+     * The people a text mentions, by id, without rendering it: the
+     * subscription rules read them when the text is saved.
+     *
+     * @return list<int>
+     */
+    public function mentionedUserIds(string $markdown): array
+    {
+        $ids = [];
+        foreach ($this->nodes($this->parser->parse($markdown), Mention::class) as $mention) {
+            $ids[$mention->userId] = $mention->userId;
+        }
+
+        return array_values($ids);
     }
 
     private function resolveIssueReferences(Document $document, User $reader): void

@@ -29,6 +29,8 @@ final class SnapshotCodecTest extends TestCase
 
         self::assertEquals($definition, $decoded);
         self::assertSame($encoded, $this->codec->encode($decoded));
+        self::assertTrue($decoded->role('project_manager')->followsNewIssues);
+        self::assertFalse($decoded->role('developer')->followsNewIssues);
     }
 
     public function testHashIgnoresTheOrderOfPermissionKeys(): void

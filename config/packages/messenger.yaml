@@ -31,6 +31,19 @@ framework:
             Symfony\Component\Mailer\Messenger\SendEmailMessage: async
             Symfony\Component\Notifier\Message\ChatMessage: async
             Symfony\Component\Notifier\Message\SmsMessage: async
+            # Notifications leave after the command's transaction committed
+            # (Notification/NotificationDispatcher) and are handled by a
+            # worker: `messenger:consume async`.
+            App\Message\Notification\NotifyIssueChange: async
 
-            # Route your messages to the transports
-            # 'App\Message\YourMessage': async
+# Tests look at what a command dispatched (the `async` transport in
+# memory) and read the mails a notification built, so mails are sent on
+# the spot, to the `null://` mailer of the test environment.
+when@test:
+    framework:
+        messenger:
+            transports:
+                async: 'in-memory://'
+                sync: 'sync://'
+            routing:
+                Symfony\Component\Mailer\Messenger\SendEmailMessage: sync

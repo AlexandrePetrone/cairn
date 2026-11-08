@@ -11,6 +11,16 @@ criticality:
     blocking: Blocking
 
 issue:
+    follow:
+        follow: Follow
+        unfollow: Unfollow
+        follow_help: Get a mail for every change of this issue
+        following_help: You follow this issue and get a mail for every change
+        followed: You now follow this issue.
+        unfollowed: You no longer follow this issue.
+    subscribers:
+        title: Followers
+        none: Nobody follows this issue.
     board:
         title: Kanban
         list: List
@@ -461,6 +471,8 @@ admin:
             memberships: Access
             anyone: Internal and external users
             internal_only: Internal users only
+            follows_new_issues: New issues
+            follows_new_issues_help: Subscribed to every new issue of the project
             membership_count: '{0}no access|{1}1 access|]1,Inf[ %count% accesses'
             orphan: '%count% accesses carry the role "%role%", missing from the configuration: they grant nothing any more.'
         permissions:
@@ -701,3 +713,11 @@ migration_policy:
     fallback:
         label: Fallback
         help: the issues sitting on a place that disappears move to the fallback place of their workflow.
+
+email:
+    issue:
+        subject: '[%key%] %title%'
+        commented: commented
+        description: Description
+        view: View the issue
+        footer: 'You receive this message because you follow the issue %key%. To stop, open it and choose "Unfollow".'

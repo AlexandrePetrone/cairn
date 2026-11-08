@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\MessageHandler\Command\Issue;
 
 use App\Entity\JournalEntry;
+use App\Event\CommentDeleted;
 use App\Message\Command\Issue\DeleteComment;
 use App\Repository\AttachmentRepository;
 use App\Repository\JournalEntryRepository;
@@ -32,14 +33,14 @@ final class DeleteCommentHandler
         $comment = $this->support->editableComment($actor, $command->commentId);
         $issue = $comment->getIssue();
 
-        $this->entityManager->persist(JournalEntry::commentDeleted($issue, $actor, $comment));
-        foreach ($this->journal->findByComment($comment) as $entry) {
-            $entry->detachComment();
+        $entry = JournalEntry::commentDeleted($issue, $actor, $comment);
+        foreach ($this->journal->findByComment($comment) as $linked) {
+            $linked->detachComment();
         }
         foreach ($this->attachments->findBy(['comment' => $comment]) as $attachment) {
             $this->entityManager->remove($attachment);
         }
         $this->entityManager->remove($comment);
-        $issue->touch();
+        $this->support->record(new CommentDeleted($issue, $actor, [$entry]));
     }
 }

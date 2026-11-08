@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\MessageHandler\Command\Attachment;
 
 use App\Entity\JournalEntry;
+use App\Event\AttachmentRemoved;
 use App\Message\Command\Attachment\RemoveAttachment;
 use App\MessageHandler\Command\Issue\IssueException;
 use App\MessageHandler\Command\Issue\IssueHandlerSupport;
@@ -47,8 +48,8 @@ final class RemoveAttachmentHandler
             'remove a file of a text written by someone else',
         );
 
-        $this->entityManager->persist(JournalEntry::attachmentRemoved($issue, $actor, $attachment));
+        $entry = JournalEntry::attachmentRemoved($issue, $actor, $attachment);
         $this->entityManager->remove($attachment);
-        $issue->touch();
+        $this->support->record(new AttachmentRemoved($issue, $actor, [$entry]));
     }
 }

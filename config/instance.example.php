@@ -45,7 +45,7 @@ return new InstanceDefinition(
     // to external users. Internal users without a role see everything but
     // act nowhere.
     roles: [
-        new RoleDefinition(id: 'project_manager', label: 'Chef de projet', internalOnly: true),
+        new RoleDefinition(id: 'project_manager', label: 'Chef de projet', internalOnly: true, followsNewIssues: true),
         new RoleDefinition(id: 'developer', label: 'Développeur', internalOnly: true),
         new RoleDefinition(id: 'client', label: 'Client'),
         new RoleDefinition(id: 'client_readonly', label: 'Client (lecture)'),

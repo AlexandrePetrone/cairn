@@ -7,6 +7,7 @@ namespace App\MessageHandler\Command\Issue;
 use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
 use App\Entity\JournalEntry;
+use App\Event\IssueCreated;
 use App\Message\Command\Issue\CreateIssue;
 use App\Repository\ProjectRepository;
 use App\Repository\TrackerRepository;
@@ -71,10 +72,10 @@ final class CreateIssueHandler
         }
 
         $this->entityManager->persist($issue);
-        $this->entityManager->persist(JournalEntry::created($issue, $actor));
 
         // Files sent while writing the issue were uploaded before it existed.
         $this->support->claimAttachments($actor, $issue, $command->attachments, $command->description);
+        $this->support->record(new IssueCreated($issue, $actor, [JournalEntry::created($issue, $actor)]));
 
         return $issue;
     }

@@ -7,6 +7,7 @@ namespace App\MessageHandler\Command\Issue;
 use App\Entity\Comment;
 use App\Entity\Issue;
 use App\Entity\JournalEntry;
+use App\Event\IssueTransitioned;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Security\AccessControl;
 use App\Security\Permission;
@@ -60,7 +61,7 @@ final class ApplyTransitionHandler
         $workflow->apply($issue, $transition->id, ['actor' => $actor]);
         $to = $definition->place($issue->getPlace());
 
-        $this->entityManager->persist(JournalEntry::transitioned($issue, $actor, $transition->label, $from, $to, $comment));
+        $this->support->record(new IssueTransitioned($issue, $actor, [JournalEntry::transitioned($issue, $actor, $transition->label, $from, $to, $comment)], $comment));
 
         return $issue;
     }

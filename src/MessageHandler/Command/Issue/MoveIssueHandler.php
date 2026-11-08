@@ -6,12 +6,12 @@ namespace App\MessageHandler\Command\Issue;
 
 use App\Entity\Issue;
 use App\Entity\JournalEntry;
+use App\Event\IssueMoved;
 use App\Message\Command\Issue\MoveIssue;
 use App\Repository\TrackerRepository;
 use App\Security\AccessControl;
 use App\Security\Permission;
 use App\Workflow\WorkflowProvider;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -26,7 +26,6 @@ final class MoveIssueHandler
         private readonly TrackerRepository $trackers,
         private readonly AccessControl $access,
         private readonly WorkflowProvider $workflows,
-        private readonly EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -51,7 +50,7 @@ final class MoveIssueHandler
             }
 
             $issue->moveTo($to);
-            $this->entityManager->persist(JournalEntry::moved($issue, $actor, $from, $to));
+            $this->support->record(new IssueMoved($issue, $actor, [JournalEntry::moved($issue, $actor, $from, $to)]));
 
             return $issue;
         }
@@ -79,7 +78,7 @@ final class MoveIssueHandler
         $place = $workflow->place($command->placeId);
 
         $issue->changeTracker($tracker, $place);
-        $this->entityManager->persist(JournalEntry::trackerChanged($issue, $actor, $current, $previousPlace, $tracker, $place));
+        $this->support->record(new IssueMoved($issue, $actor, [JournalEntry::trackerChanged($issue, $actor, $current, $previousPlace, $tracker, $place)]));
 
         return $issue;
     }

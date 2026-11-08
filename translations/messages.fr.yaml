@@ -11,6 +11,16 @@ criticality:
     blocking: Bloquante
 
 issue:
+    follow:
+        follow: Suivre
+        unfollow: Ne plus suivre
+        follow_help: Recevoir un mail à chaque changement de cette demande
+        following_help: Vous suivez cette demande et recevez un mail à chaque changement
+        followed: Vous suivez cette demande.
+        unfollowed: Vous ne suivez plus cette demande.
+    subscribers:
+        title: Abonnés
+        none: Personne ne suit cette demande.
     board:
         title: Kanban
         list: Liste
@@ -461,6 +471,8 @@ admin:
             memberships: Accès
             anyone: Internes et externes
             internal_only: Internes seulement
+            follows_new_issues: Nouvelles demandes
+            follows_new_issues_help: Abonné d'office à chaque nouvelle demande du projet
             membership_count: '{0}aucun accès|{1}1 accès|]1,Inf[ %count% accès'
             orphan: '%count% accès portent le rôle « %role% », absent de la configuration : ils ne donnent plus aucun droit.'
         permissions:
@@ -701,3 +713,11 @@ migration_policy:
     fallback:
         label: Repli
         help: les demandes posées sur une étape qui disparaît vont à l'étape de repli de leur workflow.
+
+email:
+    issue:
+        subject: '[%key%] %title%'
+        commented: a commenté
+        description: Description
+        view: Voir la demande
+        footer: 'Vous recevez ce message parce que vous suivez la demande %key%. Pour ne plus la suivre, ouvrez-la et choisissez « Ne plus suivre ».'

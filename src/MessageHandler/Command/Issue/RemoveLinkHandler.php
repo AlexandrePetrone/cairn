@@ -6,6 +6,7 @@ namespace App\MessageHandler\Command\Issue;
 
 use App\Config\ConfigRegistry;
 use App\Entity\JournalEntry;
+use App\Event\IssuesUnlinked;
 use App\Message\Command\Issue\RemoveLink;
 use App\Repository\IssueLinkRepository;
 use App\Security\AccessControl;
@@ -45,10 +46,8 @@ final class RemoveLinkHandler
 
         $definition = $this->config->definition();
         $type = $definition->hasLink($link->getTypeId()) ? $definition->link($link->getTypeId()) : null;
-        $this->entityManager->persist(JournalEntry::linked($source, $actor, $type->label ?? $link->getTypeId(), $target, removed: true));
-        $this->entityManager->persist(JournalEntry::linked($target, $actor, $type?->labelFromTarget() ?? $link->getTypeId(), $source, removed: true));
-        $source->touch();
-        $target->touch();
         $this->entityManager->remove($link);
+        $this->support->record(new IssuesUnlinked($source, $actor, [JournalEntry::linked($source, $actor, $type->label ?? $link->getTypeId(), $target, removed: true)]));
+        $this->support->record(new IssuesUnlinked($target, $actor, [JournalEntry::linked($target, $actor, $type?->labelFromTarget() ?? $link->getTypeId(), $source, removed: true)]));
     }
 }

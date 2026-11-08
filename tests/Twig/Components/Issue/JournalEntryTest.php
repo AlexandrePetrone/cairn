@@ -12,13 +12,15 @@ use App\Entity\User;
 use App\Tests\Config\Fixture\DefinitionFactory;
 use App\Tests\Security\AccessFixtures;
 use App\Twig\Components\Issue\JournalEntry;
+use App\Twig\JournalLabelExtension;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The sentence of a journal line, built from what the entry recorded.
+ * The sentence of a journal line, built from what the entry recorded by
+ * the `journal_label` filter the component delegates to.
  */
 final class JournalEntryTest extends KernelTestCase
 {
@@ -30,7 +32,7 @@ final class JournalEntryTest extends KernelTestCase
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->component = new JournalEntry(self::getContainer()->get(TranslatorInterface::class));
+        $this->component = new JournalEntry(new JournalLabelExtension(self::getContainer()->get(TranslatorInterface::class)));
         $fixtures = new AccessFixtures(self::getContainer()->get(EntityManagerInterface::class));
         $this->claire = $fixtures->user('claire@client.test');
         $this->nadia = $fixtures->user('nadia@agency.test', internal: true);

@@ -48,6 +48,19 @@ final class MarkdownRendererTest extends KernelTestCase
         self::assertStringContainsString('https://tracker.example.test/p.gif', $html, 'left as text, nothing is lost');
     }
 
+    public function testAbsoluteUrlsAreMadeForATextReadAwayFromTheSite(): void
+    {
+        $markdown = "[ici](/MD/SPT/issues) et #MD-SPT-3\n\n![capture](/attachments/0f6e3e2a-1b2c-4d3e-8f90-a1b2c3d4e5f6/capture.png) [ailleurs](https://docs.example.test/a) [protocole](//cdn.example.test/x)";
+
+        $html = $this->renderer->render($markdown, $this->user('nadia.benali@cairn.test'), absoluteUrls: true);
+
+        self::assertStringContainsString('href="http://localhost/MD/SPT/issues"', $html, 'a link typed as a path');
+        self::assertStringContainsString('href="http://localhost/MD/SPT/issues/3"', $html, 'an issue reference');
+        self::assertStringContainsString('src="http://localhost/attachments/0f6e3e2a-1b2c-4d3e-8f90-a1b2c3d4e5f6/capture.png"', $html, 'an attachment');
+        self::assertStringContainsString('href="https://docs.example.test/a"', $html, 'another site is left alone');
+        self::assertStringContainsString('href="//cdn.example.test/x"', $html, 'a protocol-relative URL too');
+    }
+
     public function testReferencesInCodeStayText(): void
     {
         $html = $this->renderer->render("Tapez `#MD-SPT-2` ou :\n\n```\n#MD-SPT-2 @[Tom](user:1)\n```", $this->user('nadia.benali@cairn.test'));

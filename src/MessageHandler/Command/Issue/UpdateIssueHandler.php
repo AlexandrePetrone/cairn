@@ -9,11 +9,11 @@ use App\Entity\Issue;
 use App\Entity\JournalEntry;
 use App\Entity\Release;
 use App\Entity\User;
+use App\Event\IssueUpdated;
 use App\Message\Command\Issue\UpdateIssue;
 use App\Repository\ReleaseRepository;
 use App\Security\AccessControl;
 use App\Security\Permission;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -32,7 +32,6 @@ final class UpdateIssueHandler
         private readonly AccessControl $access,
         private readonly ConfigRegistry $config,
         private readonly ReleaseRepository $releases,
-        private readonly EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -66,15 +65,19 @@ final class UpdateIssueHandler
             $release = UpdateIssue::NOBODY === $command->releaseId ? null : $this->release($issue, $command->releaseId);
         }
 
+        $entries = [];
+        $newAssignee = null;
+        $descriptionChanged = false;
         if (null !== $command->title && $issue->getTitle() !== trim($command->title)) {
             $previous = $issue->getTitle();
             $issue->retitle($command->title);
-            $this->journal(JournalEntry::changed($issue, $actor, 'title', $previous, $issue->getTitle()));
+            $entries[] = JournalEntry::changed($issue, $actor, 'title', $previous, $issue->getTitle());
         }
         if (null !== $command->description && $issue->getDescription() !== $command->description) {
             $previous = $issue->getDescription();
             $issue->describe($command->description);
-            $this->journal(JournalEntry::changed($issue, $actor, 'description', $previous, $issue->getDescription()));
+            $entries[] = JournalEntry::changed($issue, $actor, 'description', $previous, $issue->getDescription());
+            $descriptionChanged = true;
             // Images pasted while rewriting it were uploaded pending.
             $this->support->claimAttachments($actor, $issue, [], $command->description);
         }
@@ -82,27 +85,33 @@ final class UpdateIssueHandler
             $previous = $issue->getFieldValues();
             $issue->changeFieldValues($fieldChanges);
             foreach ($fieldChanges as $fieldId => $value) {
-                $this->journal(JournalEntry::fieldChanged($issue, $actor, $this->config->definition()->fields[$fieldId], $previous[$fieldId] ?? null, $value));
+                $entries[] = JournalEntry::fieldChanged($issue, $actor, $this->config->definition()->fields[$fieldId], $previous[$fieldId] ?? null, $value);
             }
         }
         if (null !== $command->assigneeId && $issue->getAssignee()?->getId() !== $assignee?->getId()) {
             $previous = $issue->getAssignee();
             $issue->assignTo($assignee);
-            $this->journal(JournalEntry::changed($issue, $actor, 'assignee', $previous?->getFullName(), $assignee?->getFullName()));
+            $entries[] = JournalEntry::changed($issue, $actor, 'assignee', $previous?->getFullName(), $assignee?->getFullName());
+            $newAssignee = $assignee;
         }
         if (null !== $command->criticality && $issue->getCriticality() !== $command->criticality) {
             $previous = $issue->getCriticality();
             $issue->setCriticality($command->criticality);
-            $this->journal(JournalEntry::changed($issue, $actor, 'criticality', $previous->value, $command->criticality->value));
+            $entries[] = JournalEntry::changed($issue, $actor, 'criticality', $previous->value, $command->criticality->value);
         }
         if (null !== $command->releaseId && $issue->getRelease() !== $release) {
             $previous = $issue->getRelease();
             $issue->scheduleIn($release);
-            $this->journal(JournalEntry::changed($issue, $actor, 'release', $previous?->getName(), $release?->getName()));
+            $entries[] = JournalEntry::changed($issue, $actor, 'release', $previous?->getName(), $release?->getName());
         }
         if (null !== $command->private && $issue->isPrivate() !== $command->private) {
             $command->private ? $issue->makePrivate() : $issue->makePublic();
-            $this->journal(JournalEntry::changed($issue, $actor, 'visibility', $command->private ? 'public' : 'private', $command->private ? 'private' : 'public'));
+            $entries[] = JournalEntry::changed($issue, $actor, 'visibility', $command->private ? 'public' : 'private', $command->private ? 'private' : 'public');
+        }
+
+        // Nothing changed, nothing to tell.
+        if ([] !== $entries) {
+            $this->support->record(new IssueUpdated($issue, $actor, $entries, $newAssignee, $descriptionChanged));
         }
     }
 
@@ -155,10 +164,5 @@ final class UpdateIssueHandler
         }
 
         return $release;
-    }
-
-    private function journal(JournalEntry $entry): void
-    {
-        $this->entityManager->persist($entry);
     }
 }

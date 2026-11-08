@@ -10,17 +10,20 @@ use App\Entity\Comment;
 use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\User;
+use App\Event\IssueEvent;
 use App\Repository\AttachmentRepository;
 use App\Repository\CommentRepository;
 use App\Repository\IssueRepository;
 use App\Repository\UserRepository;
 use App\Security\AccessControl;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Loading, visibility checks and attachment claiming shared by the issue
- * handlers.
+ * Loading, visibility checks, attachment claiming and the recording of a
+ * change shared by the issue handlers.
  */
 final class IssueHandlerSupport
 {
@@ -30,7 +33,24 @@ final class IssueHandlerSupport
         private readonly AccessControl $access,
         private readonly AttachmentRepository $attachments,
         private readonly CommentRepository $comments,
+        private readonly EntityManagerInterface $entityManager,
+        private readonly EventDispatcherInterface $events,
     ) {
+    }
+
+    /**
+     * Records what a command did to an issue: its journal entries are
+     * persisted, the issue is touched, and the event is dispatched inside
+     * the transaction for the listeners that react to it (subscriptions,
+     * notifications). One call per command and per issue.
+     */
+    public function record(IssueEvent $event): void
+    {
+        foreach ($event->entries as $entry) {
+            $this->entityManager->persist($entry);
+        }
+        $event->issue->touch();
+        $this->events->dispatch($event);
     }
 
     public function actor(int $actorId): User

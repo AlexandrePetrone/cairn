@@ -29,7 +29,7 @@ final class DefinitionFactory
     public static function roles(): array
     {
         return [
-            new RoleDefinition(id: 'project_manager', label: 'Chef de projet', internalOnly: true),
+            new RoleDefinition(id: 'project_manager', label: 'Chef de projet', internalOnly: true, followsNewIssues: true),
             new RoleDefinition(id: 'developer', label: 'Développeur', internalOnly: true),
             new RoleDefinition(id: 'client', label: 'Client'),
         ];

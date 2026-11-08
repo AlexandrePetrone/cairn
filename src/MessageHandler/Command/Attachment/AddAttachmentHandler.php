@@ -7,6 +7,7 @@ namespace App\MessageHandler\Command\Attachment;
 use App\Attachment\AttachmentStorage;
 use App\Entity\Attachment;
 use App\Entity\JournalEntry;
+use App\Event\AttachmentAdded;
 use App\Message\Command\Attachment\AddAttachment;
 use App\MessageHandler\Command\Issue\IssueHandlerSupport;
 use App\Security\AccessControl;
@@ -37,8 +38,7 @@ final class AddAttachmentHandler
         $attachment = Attachment::fromUpload($command->file, $issue->getProject(), $issue, $actor);
         $this->storage->store($command->file, $attachment);
         $this->entityManager->persist($attachment);
-        $this->entityManager->persist(JournalEntry::attachmentAdded($issue, $actor, $attachment));
-        $issue->touch();
+        $this->support->record(new AttachmentAdded($issue, $actor, [JournalEntry::attachmentAdded($issue, $actor, $attachment)]));
 
         return $attachment;
     }

@@ -33,12 +33,13 @@ Stimulus, Turbo, Scheduler, and Reprise (`symfony/reprise`) for the assets.
 Decisions already taken:
 
 - Persistence: Doctrine ORM, schema compatible with both MariaDB and
-  PostgreSQL. Nothing is ever physically deleted, with four exceptions:
+  PostgreSQL. Nothing is ever physically deleted, with five exceptions:
   a removed attachment (file and row, the journal keeps its name), a
   deleted comment (row and files, the journal keeps its text, author and
   date), a revoked membership (memberships are the current state of
-  access, not its history), and a removed link between issues (the
-  journal of both issues keeps it).
+  access, not its history), a removed link between issues (the journal
+  of both issues keeps it), and an issue subscription a person ends
+  (following is the current state, personal and unjournaled).
 - Interface: server-rendered Twig + Turbo + UX Twig/Live Components, Tailwind
   for styling, no JavaScript framework: the kanban is Live components
   with SortableJS in a Stimulus controller, the rich-text editor is
@@ -105,8 +106,10 @@ src/
   Message/           Command/<Domain>/ write commands, Query/<Domain>/ screen
                      reads and their result objects; CommandBus and QueryBus
   MessageHandler/    exact mirror of Message/, one handler per message
-  Event/             domain events: IssueCreated, IssueTransitioned, …
-  EventListener/     journal recorder, notification dispatcher, …
+  Event/             domain events, one per command that changes an issue:
+                     IssueCreated, IssueTransitioned, CommentAdded, …
+  EventListener/     Doctrine entity listeners (AccessControlResetter,
+                     AttachmentFileRemover)
   Controller/        one folder per zone of the application (Project/, Admin/,
                      Security/, Webhook/), application-level pages at the root
   Form/              form types and their data objects
@@ -117,7 +120,8 @@ src/
                      sync, ConfigRegistry; config-only enums
   Workflow/          state machines built from the snapshot (WorkflowFactory,
                      WorkflowProvider), HasPlace for the objects they move
-  Notification/      subscription rules, mail builders, digest
+  Notification/      who follows an issue (SubscriptionRules), which events
+                     notify (NotificationDispatcher), the mail (IssueMailer)
   GitLab/            webhook payload, reference parser, related enums
   Markdown/          rendering of the text users write, references resolved
   Attachment/        where attachment files live (AttachmentStorage)
@@ -368,17 +372,56 @@ Rules:
   project managers. A rewritten description or comment, and a deleted
   comment, are journaled with the text before and after
   (`changed` with `from`/`to`, `comment_edited`, `comment_deleted`), shown
-  in the thread behind a disclosure. `Issue:JournalEntry` turns an entry
-  into its sentence: the only place that reads what each type recorded.
-- **The journal is written by the handler; side effects will go through
-  events.** What must be atomic with the write, the journal, is persisted
-  by the handler itself, in the transaction. There is no domain event yet
-  (`Event/` does not exist): the first consumer that needs one, the
-  notifications, brings `IssueCreated`, `IssueTransitioned`,
-  `CommentAdded`, dispatched with the EventDispatcher inside the
-  transaction. Whatever may fail independently, such as mail, is then
-  re-dispatched as an asynchronous Messenger message with
-  `DispatchAfterCurrentBusStamp` so it only leaves after commit.
+  in the thread behind a disclosure. The `journal_label` Twig filter
+  (`Twig/JournalLabelExtension`) turns an entry into its sentence, for
+  the thread (`Issue:JournalEntry`) and the mails alike: the only place
+  that reads what each type recorded.
+- **The handler records a change; side effects listen to it.** A command
+  that changes an issue ends with one call to
+  `IssueHandlerSupport::record()`, given the domain event of `Event/`
+  (`IssueCreated`, `IssueUpdated`, `IssueTransitioned`, `IssueMoved`,
+  `CommentAdded`, `CommentEdited`, `CommentDeleted`, `AttachmentAdded`,
+  `AttachmentRemoved`, `IssuesLinked`, `IssuesUnlinked`) carrying the
+  issue, the actor and the journal entries it wrote: `record()` persists
+  the entries, touches the issue and dispatches the event with the
+  EventDispatcher, inside the transaction, so a listener may still write
+  (`SubscriptionRules`). One event per command and per issue: linking
+  dispatches one for each end. Nothing has an id when the event fires;
+  `Notification/NotificationDispatcher` keeps the events it listens to
+  until Doctrine's `postFlush`, then dispatches `NotifyIssueChange` (ids
+  only) on the default bus with `DispatchAfterCurrentBusStamp`: the
+  message leaves after the command's transaction committed, and is
+  dropped with it when the command fails. If that deferred dispatch
+  itself fails, `CommandBus` logs it and still returns the handler's
+  result, since the change is committed.
+- **Notifications are subscriptions, and the events are the policy.**
+  `IssueSubscription` says who follows an issue; the recipients of a
+  change are its subscribers minus the actor. `Notification/SubscriptionRules`
+  listens to the events and subscribes the author at creation, the
+  members whose effective role has `followsNewIssues` in the configuration
+  (the project managers in the example), the assignee when assigned, the
+  author of a comment and the people a text mentions
+  (`MarkdownRenderer::mentionedUserIds()`), never someone who cannot see
+  the issue, or the private comment that mentions them. Unsubscribing
+  deletes the row (`UnfollowIssue`); taking part again subscribes again.
+  `Issue:Follow`, a sibling of `Issue:Header` on the issue page, is the
+  only setting; `Issue:Subscribers` lists them in the side panel through
+  `ListSubscribers`, which keeps those who still see the issue. The
+  `#[AsEventListener]` attributes of `NotificationDispatcher::collect()`
+  are the whole list of what notifies: an event it does not listen to
+  (GitLab's, later) notifies nobody, without touching the journal.
+  `NotifyIssueChangeHandler`, on the `async` transport, sends one mail per
+  recipient with what they may see (`AccessControl` at sending time: a
+  private journal line or comment goes to internal users only, nothing
+  visible means no mail), the comment rendered for them by
+  `MarkdownRenderer`, links made absolute. One template,
+  `templates/email/issue_changed.html.twig`; the mails of an issue form a
+  thread (`Message-ID` of the creation mail, `In-Reply-To` and
+  `References` on the others). Immediate sending only: a digest would
+  store instead of sending, nothing in the model waits for it. A worker
+  must consume `async` in production (`messenger:consume async
+  scheduler_default` in dev); `MAILER_FROM` and `DEFAULT_URI` are set per
+  environment.
 - **Releases are optional, without a setting.** A `Release` belongs to
   one project, its name unique there; `ReleaseStatus` (open, delivered,
   abandoned, in `Entity/Enum/`) is a property of `UpdateRelease`, and
@@ -712,6 +755,10 @@ by default). The journal is never migrated.
   Docker Compose Postgres service is there for testing against a real
   server when needed (`docker compose up -d database`, the Symfony CLI then
   injects its `DATABASE_URL`).
+- Mails: `MAILER_DSN` is `null://` by default; `docker compose up -d
+  mailer` starts Mailpit (port 8025) and the Symfony CLI injects its DSN.
+  The `messenger` worker of `symfony serve` consumes `async`, so a
+  comment on a followed issue shows up there.
 - `castor fixtures` resets the dev database and loads `src/Story/AppStory`
   (Foundry): workspaces, projects, trackers, users and issues close to the
   mockups, created through the real commands under a mocked clock, with

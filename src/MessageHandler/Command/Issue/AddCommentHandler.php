@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\MessageHandler\Command\Issue;
 
 use App\Entity\Comment;
+use App\Event\CommentAdded;
 use App\Message\Command\Issue\AddComment;
 use App\Security\AccessControl;
 use App\Security\Permission;
@@ -31,9 +32,9 @@ final class AddCommentHandler
         $this->support->denyUnless(!$command->private || $this->access->isGranted($actor, Permission::CommentSetPrivate, $project), 'make comments private');
 
         $comment = new Comment($issue, $actor, trim($command->body), $command->private);
-        $issue->touch();
         $this->entityManager->persist($comment);
         $this->support->claimAttachments($actor, $issue, $command->attachments, $comment->getBody(), $comment);
+        $this->support->record(new CommentAdded($issue, $actor, [], $comment));
 
         return $comment;
     }

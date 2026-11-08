@@ -7,6 +7,7 @@ namespace App\MessageHandler\Command\Issue;
 use App\Config\ConfigRegistry;
 use App\Entity\IssueLink;
 use App\Entity\JournalEntry;
+use App\Event\IssuesLinked;
 use App\Message\Command\Issue\AddLink;
 use App\Repository\IssueLinkRepository;
 use App\Repository\IssueRepository;
@@ -68,10 +69,8 @@ final class AddLinkHandler
 
         $link = new IssueLink($issue, $type->id, $other, $actor);
         $this->entityManager->persist($link);
-        $this->entityManager->persist(JournalEntry::linked($issue, $actor, $type->label, $other));
-        $this->entityManager->persist(JournalEntry::linked($other, $actor, $type->labelFromTarget(), $issue));
-        $issue->touch();
-        $other->touch();
+        $this->support->record(new IssuesLinked($issue, $actor, [JournalEntry::linked($issue, $actor, $type->label, $other)]));
+        $this->support->record(new IssuesLinked($other, $actor, [JournalEntry::linked($other, $actor, $type->labelFromTarget(), $issue)]));
 
         return $link;
     }

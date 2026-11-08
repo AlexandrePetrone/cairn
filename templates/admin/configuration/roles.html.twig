@@ -13,6 +13,7 @@
             <twig:block name="head">
                 <th class="px-4 py-2 text-left font-medium">{{ 'admin.configuration.roles.role'|trans }}</th>
                 <th class="px-3 py-2 text-left font-medium">{{ 'admin.configuration.roles.who'|trans }}</th>
+                <th class="px-3 py-2 text-center font-medium">{{ 'admin.configuration.roles.follows_new_issues'|trans }}</th>
                 <th class="px-4 py-2 text-right font-medium w-32">{{ 'admin.configuration.roles.memberships'|trans }}</th>
             </twig:block>
             {% for role in definition.roles %}
@@ -21,6 +22,7 @@
                         {{ role.label }} <span class="font-mono text-[11px] text-gray-400">{{ role.id }}</span>
                     </td>
                     <td class="sm:px-3 sm:py-2.5 order-3 basis-full sm:basis-auto text-xs text-gray-600">{{ (role.internalOnly ? 'admin.configuration.roles.internal_only' : 'admin.configuration.roles.anyone')|trans }}</td>
+                    <td class="sm:px-3 sm:py-2.5 order-4 text-center text-xs text-gray-600" title="{{ 'admin.configuration.roles.follows_new_issues_help'|trans }}">{{ role.followsNewIssues ? rolesCheck : rolesNone }}</td>
                     <td class="sm:px-4 sm:py-2.5 order-2 ml-auto text-right text-xs text-gray-600">{{ 'admin.configuration.roles.membership_count'|trans({ '%count%': memberships[role.id] ?? 0 }) }}</td>
                 </twig:Ui:Table:Row>
             {% endfor %}

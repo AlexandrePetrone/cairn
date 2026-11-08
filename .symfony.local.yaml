@@ -4,5 +4,6 @@ workers:
         cmd: ['npx', 'vite']
     storia:
         cmd: ['symfony', 'console', 'storia:watch']
-    scheduler:
-        cmd: ['symfony', 'console', 'messenger:consume', 'scheduler_default']
+    # Notification mails (`async`) and the daily tasks (`scheduler_default`).
+    messenger:
+        cmd: ['symfony', 'console', 'messenger:consume', 'async', 'scheduler_default']
