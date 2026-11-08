@@ -50,7 +50,7 @@ final class ReleaseTest extends WebTestCase
         $this->client->request('GET', '/MD/SPT/releases');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main', '2.5.0');
-        self::assertSelectorTextContains('main', '2 demandes');
+        self::assertSelectorTextContains('main', '2 issues');
         self::assertSelectorTextContains('main', '50 %');
         self::assertSelectorNotExists('form[name="release"]');
 
@@ -64,18 +64,18 @@ final class ReleaseTest extends WebTestCase
         $this->client->request('GET', '/MD/SPT/releases');
         self::assertResponseIsSuccessful();
 
-        $this->client->submitForm('Créer la version', ['release[name]' => ' '], 'POST');
+        $this->client->submitForm('Create the release', ['release[name]' => ' '], 'POST');
         self::assertResponseStatusCodeSame(422);
 
-        $this->client->submitForm('Créer la version', ['release[name]' => '2.5.0', 'release[plannedOn]' => '2026-11-20', 'release[description]' => 'Tunnel de commande.']);
+        $this->client->submitForm('Create the release', ['release[name]' => '2.5.0', 'release[plannedOn]' => '2026-11-20', 'release[description]' => 'Checkout.']);
         self::assertResponseRedirects('/MD/SPT/releases');
         $release = $this->release('2.5.0');
         self::assertSame('2026-11-20', $release->getPlannedOn()?->format('Y-m-d'));
 
         $this->client->followRedirect();
-        $this->client->submitForm('Créer la version', ['release[name]' => '2.5.0']);
+        $this->client->submitForm('Create the release', ['release[name]' => '2.5.0']);
         self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('form[name="release"]', 'déjà une version nommée 2.5.0');
+        self::assertSelectorTextContains('form[name="release"]', 'already has a release named 2.5.0');
     }
 
     public function testTheManagerEditsAndDeliversARelease(): void
@@ -85,16 +85,16 @@ final class ReleaseTest extends WebTestCase
 
         $this->client->request('GET', \sprintf('/MD/SPT/releases/%d', $release->getId()));
         self::assertResponseIsSuccessful();
-        $this->client->submitForm('Enregistrer', ['release[name]' => '2.5.1', 'release[plannedOn]' => '']);
+        $this->client->submitForm('Save', ['release[name]' => '2.5.1', 'release[plannedOn]' => '']);
         self::assertResponseRedirects('/MD/SPT/releases');
         self::assertNull($this->release('2.5.1')->getPlannedOn());
 
         $this->client->followRedirect();
-        $this->client->submitForm('Marquer comme livrée');
+        $this->client->submitForm('Mark as delivered');
         self::assertResponseRedirects('/MD/SPT/releases');
         self::assertSame(ReleaseStatus::Delivered, $this->release('2.5.1')->getStatus());
         $this->client->followRedirect();
-        self::assertSelectorTextContains('main', 'Livrées et abandonnées');
+        self::assertSelectorTextContains('main', 'Delivered and abandoned');
     }
 
     public function testADeveloperNeitherEditsNorDelivers(): void
@@ -119,7 +119,7 @@ final class ReleaseTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main', 'MD-SPT-3');
         self::assertSelectorTextNotContains('main', 'MD-SPT-1 ');
-        self::assertSelectorTextContains('main', '1 demande');
+        self::assertSelectorTextContains('main', '1 issue');
     }
 
     private function release(string $name): Release

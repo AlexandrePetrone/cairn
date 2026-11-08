@@ -35,7 +35,7 @@ final class SuggestTest extends WebTestCase
 
         self::assertContains('MD-SPT-1', $keys);
         self::assertContains('MD-SPT-10', $keys);
-        self::assertContains('MD-SPT-6', $keys, 'the title says « 8.1 »');
+        self::assertContains('MD-SPT-6', $keys, 'the title says "8.1"');
         self::assertNotContains('MD-SPT-2', $keys);
     }
 

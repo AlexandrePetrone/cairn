@@ -29,7 +29,7 @@ final class PlaceExtensionTest extends KernelTestCase
 
         $html = self::getContainer()->get(Environment::class)->createTemplate('{{ issue_place(issue) }}')->render(['issue' => $issue]);
 
-        self::assertSame('À recetter', $html);
+        self::assertSame('To test', $html);
     }
 
     public function testFallsBackToThePlaceIdWhenThePlaceNoLongerExists(): void

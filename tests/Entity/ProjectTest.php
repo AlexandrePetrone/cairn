@@ -12,7 +12,7 @@ final class ProjectTest extends TestCase
 {
     public function testTheIssuePrefixCombinesWorkspaceAndProjectKeys(): void
     {
-        $project = new Project(new Workspace('Maison Dupont', 'MD'), 'Site e-commerce', 'SPT');
+        $project = new Project(new Workspace('Maison Dupont', 'MD'), 'Online shop', 'SPT');
 
         self::assertSame('MD-SPT', $project->getIssuePrefix());
         self::assertFalse($project->isArchived());
@@ -23,7 +23,7 @@ final class ProjectTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('"spt" is not a valid project key');
 
-        new Project(new Workspace('Maison Dupont', 'MD'), 'Site e-commerce', 'spt');
+        new Project(new Workspace('Maison Dupont', 'MD'), 'Online shop', 'spt');
     }
 
     public function testWorkspaceKeysAreUppercaseLetters(): void
@@ -36,7 +36,7 @@ final class ProjectTest extends TestCase
     public function testBlankDescriptionsAndNotesBecomeNull(): void
     {
         $workspace = new Workspace('Maison Dupont', 'MD');
-        $project = new Project($workspace, 'Site e-commerce', 'SPT');
+        $project = new Project($workspace, 'Online shop', 'SPT');
 
         $project->setDescription('  ');
         $workspace->setNotes('');

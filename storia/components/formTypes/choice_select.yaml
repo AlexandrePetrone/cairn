@@ -1,5 +1,5 @@
 form: Symfony\Component\Form\Extension\Core\Type\ChoiceType
 options:
-    label: Environnement
-    placeholder: Choisir…
-    choices: { Production: prod, Préproduction: preprod, Recette: staging }
+    label: Environment
+    placeholder: Choose…
+    choices: { Production: prod, Pre-production: preprod, Staging: staging }

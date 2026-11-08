@@ -34,9 +34,9 @@ final class AddCommentHandlerTest extends KernelTestCase
         $issue = $this->fixtures->createIssue($this->fixtures->client);
 
         self::mockTime('2026-03-03 11:30:00');
-        $comment = $this->commands->dispatch(new AddComment((int) $this->fixtures->developer->getId(), $issue->getKey(), '  Je regarde.  ', private: true));
+        $comment = $this->commands->dispatch(new AddComment((int) $this->fixtures->developer->getId(), $issue->getKey(), '  I am looking into it.  ', private: true));
 
-        self::assertSame('Je regarde.', $comment->getBody());
+        self::assertSame('I am looking into it.', $comment->getBody());
         self::assertTrue($comment->isPrivate());
         self::assertSame($issue->getId(), $comment->getIssue()->getId());
         self::assertSame('2026-03-03 11:30:00', $issue->getUpdatedAt()->format('Y-m-d H:i:s'));

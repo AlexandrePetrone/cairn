@@ -42,12 +42,12 @@ final class AttachmentPrunerTest extends KernelTestCase
     {
         $clock = self::mockTime('2026-11-01 10:00:00');
         self::assertInstanceOf(MockClock::class, $clock);
-        $old = $this->upload('vieux.pdf');
+        $old = $this->upload('old.pdf');
         $clock->modify('+20 hours');
         $recent = $this->upload('recent.pdf');
         $issue = $this->fixtures->createIssue($this->fixtures->client);
-        $taken = $this->upload('pris.pdf');
-        $this->commands->dispatch(new AddComment((int) $this->fixtures->client->getId(), $issue->getKey(), 'Pris.', attachments: [$taken->getUuid()->toRfc4122()]));
+        $taken = $this->upload('taken.pdf');
+        $this->commands->dispatch(new AddComment((int) $this->fixtures->client->getId(), $issue->getKey(), 'Taken.', attachments: [$taken->getUuid()->toRfc4122()]));
         $storage = self::getContainer()->get(AttachmentStorage::class);
         $directory = \dirname($storage->path($old));
         $orphan = $directory.'/'.Uuid::v4()->toRfc4122();
@@ -75,7 +75,7 @@ final class AttachmentPrunerTest extends KernelTestCase
     private function upload(string $name): Attachment
     {
         $path = (string) tempnam(sys_get_temp_dir(), 'cairn');
-        file_put_contents($path, 'contenu de '.$name);
+        file_put_contents($path, 'content of '.$name);
         $attachment = $this->commands->dispatch(new UploadAttachment((int) $this->fixtures->client->getId(), (int) $this->fixtures->bugs->getProject()->getId(), new UploadedFile($path, $name, null, null, true)));
         self::assertInstanceOf(Attachment::class, $attachment);
 

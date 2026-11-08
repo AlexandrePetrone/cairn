@@ -1,5 +1,5 @@
 form: Symfony\Component\Form\Extension\Core\Type\DateType
 options:
-    label: Échéance souhaitée
+    label: Desired due date
     widget: single_text
     required: false

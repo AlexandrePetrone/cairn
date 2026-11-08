@@ -68,7 +68,7 @@ final class IssueTest extends TestCase
     {
         $issue = $this->issue();
         $issue->setFieldValues(['environment' => 'prod']);
-        $other = new Tracker($issue->getProject(), 'Tâche', 'bug');
+        $other = new Tracker($issue->getProject(), 'Task', 'bug');
 
         $issue->changeTracker($other, DefinitionFactory::bugWorkflow()->place('in_progress'));
 
@@ -79,8 +79,8 @@ final class IssueTest extends TestCase
 
     private function issue(): Issue
     {
-        $project = new Project(new Workspace('Maison Dupont', 'MD'), 'Site e-commerce', 'SPT');
+        $project = new Project(new Workspace('Maison Dupont', 'MD'), 'Online shop', 'SPT');
 
-        return new Issue($project, new Tracker($project, 'Anomalie', 'bug'), DefinitionFactory::bugWorkflow()->place('new'), 128, new User('claire@client.test', 'Claire', 'Martin'), ' Export CSV vide ', 'Le fichier est vide.');
+        return new Issue($project, new Tracker($project, 'Bug', 'bug'), DefinitionFactory::bugWorkflow()->place('new'), 128, new User('claire@client.test', 'Claire', 'Martin'), ' Empty CSV export ', 'The file is empty.');
     }
 }

@@ -28,7 +28,7 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
  * The links of an issue, a card of the side panel of its page, grouped by the
- * label read from this issue (Bloque, Bloqué par…); only those whose other
+ * label read from this issue (Blocks, Blocked by…); only those whose other
  * end the viewer sees (ListLinks). Whoever holds `issue.link` adds one,
  * choosing the label from this side and the other issue among the
  * project's or by its key, and removes one after confirming in place.

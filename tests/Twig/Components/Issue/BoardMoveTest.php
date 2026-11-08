@@ -57,13 +57,13 @@ final class BoardMoveTest extends KernelTestCase
         $mover = $this->mover('claire.martin@maison-dupont.test');
 
         $mover->call('move', ['key' => 'MD-SPT-4', 'place' => 'in_progress']);
-        self::assertStringContainsString('Refuser', (string) $mover->render());
+        self::assertStringContainsString('Refuse', (string) $mover->render());
         self::assertSame('to_test', $this->reloaded('MD-SPT-4')->getPlace(), 'nothing applied yet');
 
         $mover->call('confirm');
-        self::assertStringContainsString('commentaire est obligatoire', (string) $mover->render());
+        self::assertStringContainsString('comment is required', (string) $mover->render());
 
-        $mover->set('comment', 'Le fichier est toujours vide.')->call('confirm');
+        $mover->set('comment', 'The file is still empty.')->call('confirm');
         self::assertSame('in_progress', $this->reloaded('MD-SPT-4')->getPlace());
         self::assertStringNotContainsString('role="dialog"', (string) $mover->render());
     }

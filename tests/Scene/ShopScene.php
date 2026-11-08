@@ -101,7 +101,7 @@ final class ShopScene
      */
     public function intranetBug(): Issue
     {
-        $tracker = new Tracker($this->intranet, 'Anomalie', 'bug', 0);
+        $tracker = new Tracker($this->intranet, 'Bug', 'bug', 0);
         $this->entityManager->persist($tracker);
         $this->entityManager->flush();
 
@@ -109,7 +109,7 @@ final class ShopScene
             actorId: (int) $this->user('thomas.girard@cairn.test')->getId(),
             projectId: (int) $this->intranet->getId(),
             trackerId: (int) $tracker->getId(),
-            title: 'Le menu ne s\'ouvre plus',
+            title: 'The menu no longer opens',
             description: '',
             fields: ['environment' => 'prod'],
         ));
@@ -148,7 +148,7 @@ final class ShopScene
     public function release(string $name = '2.5.0', array $keys = []): Release
     {
         $thomas = (int) $this->user('thomas.girard@cairn.test')->getId();
-        $release = $this->commands->dispatch(new CreateRelease($thomas, (int) $this->shop->getId(), $name, description: 'Tunnel de commande.'));
+        $release = $this->commands->dispatch(new CreateRelease($thomas, (int) $this->shop->getId(), $name, description: 'Checkout.'));
         \assert($release instanceof Release);
         foreach ($keys as $key) {
             $this->commands->dispatch(new UpdateIssue($thomas, $key, releaseId: $release->getId()));
@@ -179,14 +179,14 @@ final class ShopScene
     private function places(): void
     {
         $this->dupont = new Workspace('Maison Dupont', 'MD');
-        $this->shop = new Project($this->dupont, 'Site e-commerce', 'SPT');
+        $this->shop = new Project($this->dupont, 'Online shop', 'SPT');
         $this->intranet = new Project($this->dupont, 'Intranet', 'INT');
         $travelia = new Workspace('Travelia', 'TR');
-        $this->booking = new Project($travelia, 'Site de réservation', 'RES');
+        $this->booking = new Project($travelia, 'Booking site', 'RES');
         $this->booking->archive();
-        $this->bugs = new Tracker($this->shop, 'Anomalie', 'bug', 0);
-        $this->evolutions = new Tracker($this->shop, 'Évolution', 'evolution', 1);
-        $this->tasks = new Tracker($this->shop, 'Tâche interne', 'task', 2);
+        $this->bugs = new Tracker($this->shop, 'Bug', 'bug', 0);
+        $this->evolutions = new Tracker($this->shop, 'Feature', 'evolution', 1);
+        $this->tasks = new Tracker($this->shop, 'Internal task', 'task', 2);
         $this->tasks->makePrivate();
 
         $memberships = [
@@ -208,16 +208,16 @@ final class ShopScene
     {
         // [tracker, title, target place, criticality, author, assignee]
         $definitions = [
-            [$this->bugs, 'Spinner infini sur la page panier', 'new', Criticality::Blocking, 'claire.martin@maison-dupont.test', null],
-            [$this->bugs, 'Typo dans le pied de page', 'new', Criticality::Low, 'claire.martin@maison-dupont.test', null],
-            [$this->bugs, 'Les frais de port ne s\'affichent pas en Corse', 'in_progress', Criticality::Normal, 'claire.martin@maison-dupont.test', 'nadia.benali@cairn.test'],
-            [$this->bugs, 'L\'export CSV des commandes est vide', 'to_test', Criticality::High, 'claire.martin@maison-dupont.test', 'nadia.benali@cairn.test'],
-            [$this->bugs, 'Image produit floue sur mobile', 'done', Criticality::Low, 'claire.martin@maison-dupont.test', 'lea.fontaine@cairn.test'],
-            [$this->tasks, 'Mettre à jour Symfony en 8.1', 'doing', Criticality::Normal, 'thomas.girard@cairn.test', 'nadia.benali@cairn.test'],
-            [$this->evolutions, 'Ajouter le paiement en trois fois', 'new', Criticality::Normal, 'claire.martin@maison-dupont.test', null],
-            [$this->evolutions, 'Export comptable mensuel au format FEC', 'to_estimate', Criticality::High, 'thomas.girard@cairn.test', null],
-            [$this->tasks, 'Purger le cache Varnish après déploiement', 'done', Criticality::Low, 'thomas.girard@cairn.test', 'lea.fontaine@cairn.test'],
-            [$this->evolutions, 'Recherche par référence fournisseur', 'planned', Criticality::Normal, 'claire.martin@maison-dupont.test', 'lea.fontaine@cairn.test'],
+            [$this->bugs, 'Endless spinner on the cart page', 'new', Criticality::Blocking, 'claire.martin@maison-dupont.test', null],
+            [$this->bugs, 'Typo in the footer', 'new', Criticality::Low, 'claire.martin@maison-dupont.test', null],
+            [$this->bugs, 'Shipping costs are not shown for Corsica', 'in_progress', Criticality::Normal, 'claire.martin@maison-dupont.test', 'nadia.benali@cairn.test'],
+            [$this->bugs, 'The CSV export of orders is empty', 'to_test', Criticality::High, 'claire.martin@maison-dupont.test', 'nadia.benali@cairn.test'],
+            [$this->bugs, 'Blurry product image on mobile', 'done', Criticality::Low, 'claire.martin@maison-dupont.test', 'lea.fontaine@cairn.test'],
+            [$this->tasks, 'Upgrade Symfony to 8.1', 'doing', Criticality::Normal, 'thomas.girard@cairn.test', 'nadia.benali@cairn.test'],
+            [$this->evolutions, 'Add payment in three instalments', 'new', Criticality::Normal, 'claire.martin@maison-dupont.test', null],
+            [$this->evolutions, 'Monthly accounting export in FEC format', 'to_estimate', Criticality::High, 'thomas.girard@cairn.test', null],
+            [$this->tasks, 'Purge the Varnish cache after deployment', 'done', Criticality::Low, 'thomas.girard@cairn.test', 'lea.fontaine@cairn.test'],
+            [$this->evolutions, 'Search by supplier reference', 'planned', Criticality::Normal, 'claire.martin@maison-dupont.test', 'lea.fontaine@cairn.test'],
         ];
         $thomas = $this->user('thomas.girard@cairn.test');
 
@@ -228,9 +228,9 @@ final class ShopScene
                 projectId: (int) $this->shop->getId(),
                 trackerId: (int) $tracker->getId(),
                 title: $title,
-                description: 'Constaté par '.$this->user($author)->getFullName().'.',
+                description: 'Reported by '.$this->user($author)->getFullName().'.',
                 criticality: $criticality,
-                fields: array_intersect_key(['environment' => 'prod', 'goal' => 'Faire gagner du temps aux équipes.'], $workflow->fields),
+                fields: array_intersect_key(['environment' => 'prod', 'goal' => 'Save time for the teams.'], $workflow->fields),
             ));
             \assert($issue instanceof Issue);
             $this->issues[$issue->getKey()] = $issue;
@@ -246,7 +246,7 @@ final class ShopScene
                     actorId: (int) $this->actorFor($transition->id, $issue)->getId(),
                     issueKey: $issue->getKey(),
                     transitionId: $transition->id,
-                    comment: $transition->requiresComment ? 'Toujours reproductible en préproduction.' : null,
+                    comment: $transition->requiresComment ? 'Still reproducible on pre-production.' : null,
                 ));
             }
         }
@@ -254,9 +254,9 @@ final class ShopScene
 
     private function thread(Issue $issue): void
     {
-        $this->commands->dispatch(new AddComment((int) $this->user('nadia.benali@cairn.test')->getId(), $issue->getKey(), 'Je regarde, je reviens vers vous dans la journée.'));
-        $this->commands->dispatch(new AddComment((int) $this->user('claire.martin@maison-dupont.test')->getId(), $issue->getKey(), 'Merci, c\'est bloquant pour nos équipes.'));
-        $this->commands->dispatch(new AddComment((int) $this->user('thomas.girard@cairn.test')->getId(), $issue->getKey(), 'À chiffrer avant de s\'engager sur une date.', private: true));
+        $this->commands->dispatch(new AddComment((int) $this->user('nadia.benali@cairn.test')->getId(), $issue->getKey(), 'I am looking into it, I will get back to you today.'));
+        $this->commands->dispatch(new AddComment((int) $this->user('claire.martin@maison-dupont.test')->getId(), $issue->getKey(), 'Thanks, it is blocking our teams.'));
+        $this->commands->dispatch(new AddComment((int) $this->user('thomas.girard@cairn.test')->getId(), $issue->getKey(), 'To estimate before committing to a date.', private: true));
     }
 
     /**

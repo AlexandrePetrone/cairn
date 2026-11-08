@@ -55,7 +55,7 @@ final class SelectionTest extends KernelTestCase
         $component = $this->selection('nadia.benali@cairn.test', 'MD-SPT-1', 'MD-SPT-2');
 
         $component->call('choose', ['choice' => 'transition:qualify'])
-            ->set('comment', 'Reproduit, à corriger dans le prochain lot.')
+            ->set('comment', 'Reproduced, to fix in the next batch.')
             ->call('apply');
 
         self::assertSame(302, $component->response()->getStatusCode());
@@ -65,7 +65,7 @@ final class SelectionTest extends KernelTestCase
             self::assertSame('qualified', $issue->getPlace());
             $comments = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Comment::class)->findBy(['issue' => $issue]);
             self::assertCount(1, $comments, 'one comment on each issue');
-            self::assertSame('Reproduit, à corriger dans le prochain lot.', $comments[0]->getBody());
+            self::assertSame('Reproduced, to fix in the next batch.', $comments[0]->getBody());
         }
     }
 
@@ -76,7 +76,7 @@ final class SelectionTest extends KernelTestCase
         $component->call('choose', ['choice' => 'transition:refuse'])->call('apply');
 
         self::assertSame(200, $component->response()->getStatusCode(), 'no redirect');
-        self::assertStringContainsString('Expliquez ce qui ne va pas', (string) $component->render(), 'in the words of the configuration');
+        self::assertStringContainsString('Explain what is wrong', (string) $component->render(), 'in the words of the configuration');
         self::assertSame('to_test', $this->reloaded('MD-SPT-4')->getPlace());
     }
 
@@ -124,17 +124,17 @@ final class SelectionTest extends KernelTestCase
 
         $component->call('choose', ['choice' => 'move']);
         $render = (string) $component->render();
-        self::assertStringContainsString('<option value="new" selected>Nouveau</option>', $render, 'the first place of the chosen workflow');
+        self::assertStringContainsString('<option value="new" selected>New</option>', $render, 'the first place of the chosen workflow');
 
         $component->set('moveTrackerId', (string) $this->scene->evolutions->getId())->set('placeholder', 'x');
-        self::assertStringContainsString('À chiffrer', (string) $component->render());
+        self::assertStringContainsString('To estimate', (string) $component->render());
 
         $component->set('movePlaceId', 'to_estimate')->set('moveTrackerId', (string) $this->scene->evolutions->getId())->call('apply');
 
         self::assertSame(302, $component->response()->getStatusCode());
         foreach (['MD-SPT-1', 'MD-SPT-2'] as $key) {
             $issue = $this->reloaded($key);
-            self::assertSame('Évolution', $issue->getTracker()->getName(), $key);
+            self::assertSame('Feature', $issue->getTracker()->getName(), $key);
             self::assertSame('to_estimate', $issue->getPlace(), $key);
         }
     }
@@ -160,7 +160,7 @@ final class SelectionTest extends KernelTestCase
         $component->call('choose', ['choice' => 'assign'])->set('assigneeId', $marc->getId())->call('apply');
 
         self::assertSame(200, $component->response()->getStatusCode(), 'no redirect');
-        self::assertStringContainsString('Aucune demande n&#039;a été mise à jour', (string) $component->render());
+        self::assertStringContainsString('No issue was updated', (string) $component->render());
         self::assertNull($this->reloaded('MD-SPT-1')->getAssignee());
     }
 

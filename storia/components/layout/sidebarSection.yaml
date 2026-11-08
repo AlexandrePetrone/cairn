@@ -1,4 +1,4 @@
 # Composite: rendered by sidebarSection.html.twig next to this file.
 variants:
-    default: { args: { label: Demandes } }
+    default: { args: { label: Issues } }
     without_label: { args: { label: null } }

@@ -32,8 +32,8 @@ final class IssueListTest extends KernelTestCase
     {
         $render = (string) $this->list(self::ALL)->render();
 
-        self::assertStringContainsString('Spinner infini sur la page panier', $render);
-        self::assertStringNotContainsString('Image produit floue sur mobile', $render, 'closed issues are hidden by default');
+        self::assertStringContainsString('Endless spinner on the cart page', $render);
+        self::assertStringNotContainsString('Blurry product image on mobile', $render, 'closed issues are hidden by default');
         self::assertStringContainsString('data-model="places"', $render);
         self::assertStringContainsString('data-model="trackers"', $render);
         self::assertStringContainsString('data-model="assignees"', $render);
@@ -51,12 +51,12 @@ final class IssueListTest extends KernelTestCase
         self::assertContains('task:doing', $places, 'the same label in another workflow is another place');
         self::assertContains('evolution:to_estimate', $places);
         $render = (string) $project->render();
-        self::assertStringContainsString('>Anomalie</p>', $render, 'the places of a list mixing workflows come under their workflow');
+        self::assertStringContainsString('>Bug</p>', $render, 'the places of a list mixing workflows come under their workflow');
 
         $bugs = $this->createLiveComponent('Issue:List', ['project' => $this->scene->shop, 'tracker' => $this->scene->bugs, 'dimensions' => ['place'], 'listPath' => '/MD/SPT/issues/tracker/1'])
             ->actingAs($this->user('nadia.benali@cairn.test'));
         self::assertSame(['bug:new', 'bug:qualified', 'bug:in_progress', 'bug:to_test', 'bug:done', 'bug:rejected'], $this->placeIds($bugs), 'the bug workflow, in its order');
-        self::assertStringNotContainsString('>Anomalie</p>', (string) $bugs->render(), 'no workflow heading for one workflow');
+        self::assertStringNotContainsString('>Bug</p>', (string) $bugs->render(), 'no workflow heading for one workflow');
     }
 
     public function testAGroupPerPlaceOfEachWorkflow(): void
@@ -67,10 +67,10 @@ final class IssueListTest extends KernelTestCase
 
         $render = (string) $component->render();
         self::assertStringContainsString('MD-SPT-3', $render, 'a bug in progress');
-        self::assertStringContainsString('Mettre à jour Symfony en 8.1', $render, 'a task doing');
+        self::assertStringContainsString('Upgrade Symfony to 8.1', $render, 'a task doing');
         self::assertSame(2, substr_count($render, 'scope="rowgroup"'), 'one group per workflow');
-        self::assertStringContainsString('Anomalie › En cours', $render);
-        self::assertStringContainsString('Tâche interne › En cours', $render);
+        self::assertStringContainsString('Bug › In progress', $render);
+        self::assertStringContainsString('Internal task › In progress', $render);
     }
 
     public function testAFilterRedrawsTheListFromItsFirstPage(): void
@@ -81,17 +81,17 @@ final class IssueListTest extends KernelTestCase
         $component->set('places', ['bug:done']);
 
         $render = (string) $component->render();
-        self::assertStringContainsString('Image produit floue sur mobile', $render, 'a finished place chosen is listed');
-        self::assertStringNotContainsString('Spinner infini sur la page panier', $render);
+        self::assertStringContainsString('Blurry product image on mobile', $render, 'a finished place chosen is listed');
+        self::assertStringNotContainsString('Endless spinner on the cart page', $render);
         self::assertSame(1, $this->state($component)->page);
 
-        $component->set('places', [])->set('q', 'panier');
+        $component->set('places', [])->set('q', 'cart');
         $render = (string) $component->render();
-        self::assertStringContainsString('Spinner infini sur la page panier', $render);
-        self::assertStringNotContainsString('Typo dans le pied de page', $render);
+        self::assertStringContainsString('Endless spinner on the cart page', $render);
+        self::assertStringNotContainsString('Typo in the footer', $render);
 
         $component->call('clearFilters');
-        self::assertStringContainsString('Typo dans le pied de page', (string) $component->render());
+        self::assertStringContainsString('Typo in the footer', (string) $component->render());
     }
 
     public function testAColumnHeaderSortsAscendingThenDescendingThenNoMore(): void
@@ -102,7 +102,7 @@ final class IssueListTest extends KernelTestCase
         self::assertSame(['title', 'asc'], [$this->state($component)->sort, $this->state($component)->order]);
         $render = (string) $component->render();
         self::assertStringContainsString('aria-sort=ascending', $render);
-        self::assertLessThan(strpos($render, 'Typo dans le pied de page'), strpos($render, 'Ajouter le paiement en trois fois'), 'A before T');
+        self::assertLessThan(strpos($render, 'Typo in the footer'), strpos($render, 'Add payment in three instalments'), 'A before T');
 
         $component->call('sortBy', ['column' => 'title']);
         self::assertSame(['title', 'desc'], [$this->state($component)->sort, $this->state($component)->order]);
@@ -121,17 +121,17 @@ final class IssueListTest extends KernelTestCase
         $component->set('group', 'assignee');
 
         $render = (string) $component->render();
-        self::assertStringContainsString('Non assigné', $render);
+        self::assertStringContainsString('Unassigned', $render);
         self::assertStringContainsString('Nadia Benali', $render);
-        self::assertStringContainsString('Spinner infini sur la page panier', $render);
+        self::assertStringContainsString('Endless spinner on the cart page', $render);
 
         $component->call('toggleGroup', ['key' => 'none']);
         $render = (string) $component->render();
         self::assertStringContainsString('aria-expanded="false"', $render);
-        self::assertStringNotContainsString('Spinner infini sur la page panier', $render, 'the rows of a folded group are not drawn');
+        self::assertStringNotContainsString('Endless spinner on the cart page', $render, 'the rows of a folded group are not drawn');
 
         $component->call('clearSelection');
-        self::assertStringNotContainsString('Spinner infini sur la page panier', (string) $component->render(), 'it stays folded while the list redraws');
+        self::assertStringNotContainsString('Endless spinner on the cart page', (string) $component->render(), 'it stays folded while the list redraws');
 
         $component->set('group', 'criticality');
         self::assertSame([], $this->state($component)->collapsed, 'another grouping opens every group');
@@ -150,15 +150,15 @@ final class IssueListTest extends KernelTestCase
         $state = $this->state($component);
         self::assertCount(4, $state->selected, 'the new issues and the one to estimate');
         $render = (string) $component->render();
-        self::assertStringContainsString('aria-label="Sélectionner toute la page" checked', $render, 'the header box says the page is checked');
-        self::assertStringContainsString('4 demandes sélectionnées', $render);
+        self::assertStringContainsString('aria-label="Select the whole page" checked', $render, 'the header box says the page is checked');
+        self::assertStringContainsString('4 issues selected', $render);
         $url = $state->getSelectionUrl();
         self::assertStringStartsWith('/MD/SPT/issues/selection?', $url, 'the selection page of the project');
         parse_str((string) parse_url($url, \PHP_URL_QUERY), $parameters);
         self::assertSame(array_map(strval(...), $state->selected), $parameters['ids'] ?? null);
         self::assertSame('/MD/SPT/issues?'.http_build_query(['places' => ['bug:new', 'evolution:new', 'evolution:to_estimate']]), $parameters['from'] ?? null, 'back to the list as it was filtered');
 
-        $component->set('q', 'panier');
+        $component->set('q', 'cart');
         self::assertSame([], $this->state($component)->selected, 'a filter forgets the selection');
 
         $component->call('togglePage')->call('togglePage');

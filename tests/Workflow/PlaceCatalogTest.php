@@ -35,9 +35,9 @@ final class PlaceCatalogTest extends KernelTestCase
         $choices = $this->catalog->choices(['task', 'bug']);
 
         self::assertSame(['bug:new', 'bug:qualified', 'bug:in_progress', 'bug:to_test', 'bug:done', 'bug:rejected', 'task:todo', 'task:doing', 'task:done'], self::keys($choices), 'workflow by workflow, in the order of the instance file');
-        self::assertSame('En cours', $choices[2]->label);
-        self::assertSame('Anomalie', $choices[2]->workflowLabel);
-        self::assertSame('En cours', $choices[7]->label, 'the same label, another place');
+        self::assertSame('In progress', $choices[2]->label);
+        self::assertSame('Bug', $choices[2]->workflowLabel);
+        self::assertSame('In progress', $choices[7]->label, 'the same label, another place');
     }
 
     public function testEveryPlaceOfTheInstanceHasARank(): void

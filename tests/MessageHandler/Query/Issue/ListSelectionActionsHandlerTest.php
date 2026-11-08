@@ -53,8 +53,8 @@ final class ListSelectionActionsHandlerTest extends KernelTestCase
 
         $actions = $this->actions('nadia.benali@cairn.test', 'MD-SPT-3', 'MD-SPT-10');
 
-        self::assertSame(['deliver'], $this->transitionIds($actions), 'a bug and an evolution in progress are both delivered');
-        self::assertSame('Livrer en recette', $actions->transitions[0]->label, 'one label when the workflows agree');
+        self::assertSame(['deliver'], $this->transitionIds($actions), 'a bug and a feature in progress are both delivered');
+        self::assertSame('Deliver for testing', $actions->transitions[0]->label, 'one label when the workflows agree');
         self::assertTrue($actions->offers('transition:deliver'));
         self::assertFalse($actions->offers('transition:qualify'));
     }
@@ -63,7 +63,7 @@ final class ListSelectionActionsHandlerTest extends KernelTestCase
     {
         $actions = $this->actions('nadia.benali@cairn.test', 'MD-SPT-1', 'MD-SPT-8');
 
-        self::assertSame([], $this->transitionIds($actions), 'a new bug and an evolution to estimate have no action in common');
+        self::assertSame([], $this->transitionIds($actions), 'a new bug and a feature to estimate have no action in common');
         self::assertTrue($actions->canAssign, 'what does not depend on the workflow stays');
         self::assertTrue($actions->hasAnything());
     }
@@ -96,9 +96,9 @@ final class ListSelectionActionsHandlerTest extends KernelTestCase
     {
         $names = static fn (SelectionActions $actions): array => array_map(static fn ($tracker): string => $tracker->getName(), $actions->moveTrackers);
 
-        self::assertSame(['Anomalie', 'Évolution', 'Tâche interne'], $names($this->actions('thomas.girard@cairn.test', 'MD-SPT-1', 'MD-SPT-2')), 'force_place keeps the own tracker, change_tracker opens the others');
-        self::assertSame(['Évolution', 'Tâche interne'], $names($this->actions('nadia.benali@cairn.test', 'MD-SPT-1', 'MD-SPT-2')), 'without force_place the own tracker is out');
-        self::assertSame(['Tâche interne'], $names($this->actions('nadia.benali@cairn.test', 'MD-SPT-1', 'MD-SPT-7')), 'a bug and an evolution: only a third tracker suits both');
+        self::assertSame(['Bug', 'Feature', 'Internal task'], $names($this->actions('thomas.girard@cairn.test', 'MD-SPT-1', 'MD-SPT-2')), 'force_place keeps the own tracker, change_tracker opens the others');
+        self::assertSame(['Feature', 'Internal task'], $names($this->actions('nadia.benali@cairn.test', 'MD-SPT-1', 'MD-SPT-2')), 'without force_place the own tracker is out');
+        self::assertSame(['Internal task'], $names($this->actions('nadia.benali@cairn.test', 'MD-SPT-1', 'MD-SPT-7')), 'a bug and a feature: only a third tracker suits both');
         self::assertSame([], $names($this->actions('claire.martin@maison-dupont.test', 'MD-SPT-1', 'MD-SPT-2')));
         self::assertSame([], $names($this->actions('thomas.girard@cairn.test', 'MD-SPT-1', $this->scene->intranetBug()->getKey())), 'trackers belong to one project');
     }

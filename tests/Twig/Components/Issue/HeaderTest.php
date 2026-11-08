@@ -15,7 +15,7 @@ use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
 /**
  * The header of MD-SPT-4 of the scene, which Claire wrote and which waits
- * on « À recetter ».
+ * on "To test".
  */
 final class HeaderTest extends KernelTestCase
 {
@@ -37,13 +37,13 @@ final class HeaderTest extends KernelTestCase
         $component = $this->createLiveComponent('Issue:Header', ['issue' => $this->issue])->actingAs($thomas);
 
         $before = (string) $component->render();
-        self::assertStringContainsString('À recetter', $before, 'the last step of the path');
-        self::assertStringNotContainsString('Privée', $before);
+        self::assertStringContainsString('To test', $before, 'the last step of the path');
+        self::assertStringNotContainsString('Private', $before);
 
         self::getContainer()->get(CommandBus::class)->dispatch(new UpdateIssue((int) $thomas->getId(), 'MD-SPT-4', private: true));
         $component->emit('issue:changed');
 
-        self::assertStringContainsString('Privée', (string) $component->render());
+        self::assertStringContainsString('Private', (string) $component->render());
     }
 
     public function testThePathIsTheOneTheJournalTells(): void
@@ -53,19 +53,19 @@ final class HeaderTest extends KernelTestCase
         $header = $component->component();
         self::assertInstanceOf(Header::class, $header);
 
-        self::assertSame(['Nouveau', 'Qualifiée', 'En cours', 'À recetter'], array_column($header->getPath(), 'label'));
+        self::assertSame(['New', 'Qualified', 'In progress', 'To test'], array_column($header->getPath(), 'label'));
         self::assertSame([false, false, false, false], array_column($header->getPath(), 'moved'));
         $render = (string) $component->render();
-        self::assertStringContainsString('aria-label="Parcours"', $render);
-        self::assertStringNotContainsString('Déplacée sans action', $render);
+        self::assertStringContainsString('aria-label="Path"', $render);
+        self::assertStringNotContainsString('Moved without an action', $render);
 
         self::getContainer()->get(CommandBus::class)->dispatch(new MoveIssue((int) $thomas->getId(), 'MD-SPT-4', null, 'qualified'));
         $component->emit('issue:changed');
 
         $header = $component->component();
         self::assertInstanceOf(Header::class, $header);
-        self::assertSame(['label' => 'Qualifiée', 'moved' => true], $header->getPath()[4]);
-        self::assertStringContainsString('Déplacée sans action', (string) $component->render());
+        self::assertSame(['label' => 'Qualified', 'moved' => true], $header->getPath()[4]);
+        self::assertStringContainsString('Moved without an action', (string) $component->render());
     }
 
     public function testThePencilFollowsTheRightToEditTheIssue(): void
@@ -81,11 +81,11 @@ final class HeaderTest extends KernelTestCase
         $component = $this->createLiveComponent('Issue:Header', ['issue' => $this->issue])->actingAs($this->scene->user('claire.martin@maison-dupont.test'));
 
         $component->call('editTitle')->set('title', '')->call('saveTitle');
-        self::assertStringContainsString('Le titre est obligatoire', (string) $component->render());
+        self::assertStringContainsString('The title is required', (string) $component->render());
 
-        $component->set('title', 'L\'export CSV des commandes est vide depuis lundi')->call('saveTitle');
+        $component->set('title', 'The CSV export of orders is empty since Monday')->call('saveTitle');
         $render = $component->render();
-        self::assertStringContainsString('depuis lundi</h1>', (string) $render);
+        self::assertStringContainsString('since Monday</h1>', (string) $render);
         self::assertNotNull($component->getEmittedEvent($render, 'issue:changed'));
     }
 }

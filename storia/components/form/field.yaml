@@ -1,11 +1,11 @@
 component: Ui:Form:Field
 variants:
     required:
-        args: { label: URL concernée, for: url, required: true }
+        args: { label: Affected URL, for: url, required: true }
         blocks: { content: '<input id="url" type="url" placeholder="https://…" class="mt-1 w-full h-9 rounded-md border border-gray-300 px-3 text-sm">' }
     optional_with_help:
-        args: { label: URL concernée, for: url, optional: true, help: La page où le problème se produit. }
+        args: { label: Affected URL, for: url, optional: true, help: The URL where the problem occurs. }
         blocks: { content: '<input id="url" type="url" placeholder="https://…" class="mt-1 w-full h-9 rounded-md border border-gray-300 px-3 text-sm">' }
     compact:
-        args: { label: Société, for: company, compact: true }
+        args: { label: Company, for: company, compact: true }
         blocks: { content: '<input id="company" value="Maison Dupont" class="mt-1 w-full h-9 rounded-md border border-gray-300 px-3 text-sm">' }

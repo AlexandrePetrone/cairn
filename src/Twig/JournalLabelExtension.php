@@ -11,7 +11,7 @@ use Twig\Attribute\AsTwigFilter;
 
 /**
  * The sentence of a journal entry, without its subject: "created the
- * issue", "applied « Validate »: To test → Done". The entry keeps ids and
+ * issue", "applied "Accept": To test → Done". The entry keeps ids and
  * labels of the time; this is the only place that reads what each type
  * recorded, for the thread of the issue page (Issue:JournalEntry) and for
  * the mails alike. Values that are ours are translated (criticality,

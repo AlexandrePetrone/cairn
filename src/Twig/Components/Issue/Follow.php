@@ -20,7 +20,7 @@ use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
- * The « Follow » / « Unfollow » button at the top of the issue page: the
+ * The "Follow" / "Unfollow" button at the top of the issue page: the
  * only setting of the notifications. Redrawn on `issue:changed`, since a
  * comment or an assignment may have subscribed the viewer.
  */

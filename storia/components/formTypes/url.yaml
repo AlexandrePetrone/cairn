@@ -1,6 +1,6 @@
 form: Symfony\Component\Form\Extension\Core\Type\UrlType
 options:
-    label: URL concernée
+    label: Affected URL
     required: false
-    help: La page où le problème se produit.
+    help: The URL where the problem occurs.
     attr: { placeholder: 'https://…' }

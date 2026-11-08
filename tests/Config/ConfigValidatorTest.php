@@ -114,8 +114,8 @@ final class ConfigValidatorTest extends TestCase
                 new PlaceDefinition(id: 'b', label: 'B', status: PlaceStatus::Closed),
             ],
             transitions: [
-                new TransitionDefinition(id: 'close', label: 'Fermer', from: ['a'], to: 'b', roles: ['developer']),
-                new TransitionDefinition(id: 'reject', label: 'Rejeter', from: ['a'], to: 'b', roles: ['developer']),
+                new TransitionDefinition(id: 'close', label: 'Close', from: ['a'], to: 'b', roles: ['developer']),
+                new TransitionDefinition(id: 'reject', label: 'Reject', from: ['a'], to: 'b', roles: ['developer']),
             ],
         );
 

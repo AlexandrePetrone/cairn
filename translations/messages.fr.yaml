@@ -517,6 +517,7 @@ admin:
             initial_badge: Initiale
             final_badge: Finale
             comment_required: Commentaire obligatoire (externes)
+            comment_prompt: '« %prompt% »'
             fields: Champs
             no_field: Aucun champ.
             usage: Utilisation

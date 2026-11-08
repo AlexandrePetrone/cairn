@@ -47,7 +47,7 @@ final class WorkflowProviderTest extends KernelTestCase
 
         self::assertSame('bug', $workflow->getName());
         self::assertSame($workflow, $this->provider->get('bug'), 'built once per process');
-        self::assertSame('Anomalie', $this->provider->definition('bug')->label);
+        self::assertSame('Bug', $this->provider->definition('bug')->label);
 
         $subject = new Subject();
         $workflow->apply($subject, 'start');

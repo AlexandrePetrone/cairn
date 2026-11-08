@@ -1,5 +1,5 @@
 form: App\Form\Type\MarkdownType
 options:
     label: Description
-    help: Mise en forme, #demande et @personne.
-    attr: { rows: 6, placeholder: 'Ce qui se passe, ce que vous attendiez…' }
+    help: Formatting, #issue and @person.
+    attr: { rows: 6, placeholder: 'What happens, what you expected…' }

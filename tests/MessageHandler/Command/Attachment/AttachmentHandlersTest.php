@@ -67,8 +67,8 @@ final class AttachmentHandlersTest extends KernelTestCase
 
     public function testAnyFileUpTo10MegabytesIsAccepted(): void
     {
-        $pdf = $this->upload($this->fixtures->client, $this->file('devis.pdf', '%PDF-1.4'));
-        self::assertSame('devis.pdf', $pdf->getFilename());
+        $pdf = $this->upload($this->fixtures->client, $this->file('quote.pdf', '%PDF-1.4'));
+        self::assertSame('quote.pdf', $pdf->getFilename());
         self::assertTrue($pdf->isPending());
         self::assertFalse($pdf->isImage());
 
@@ -122,13 +122,13 @@ final class AttachmentHandlersTest extends KernelTestCase
         $issue = $this->fixtures->createIssue($this->fixtures->client);
         $developer = $this->fixtures->developer;
         $sent = $this->upload($developer, $this->file('trace.log', 'stack'));
-        $pasted = $this->upload($developer, $this->file('capture.png', self::png()));
+        $pasted = $this->upload($developer, $this->file('screenshot.png', self::png()));
         $someoneElses = $this->upload($this->fixtures->manager, $this->file('autre.log', 'x'));
 
         $comment = $this->commands->dispatch(new AddComment(
             (int) $developer->getId(),
             $issue->getKey(),
-            \sprintf('Voir la capture ![capture](/attachments/%s/capture.png)', $pasted->getUuid()->toRfc4122()),
+            \sprintf('See the screenshot ![screenshot](/attachments/%s/screenshot.png)', $pasted->getUuid()->toRfc4122()),
             private: true,
             attachments: [$sent->getUuid()->toRfc4122(), $someoneElses->getUuid()->toRfc4122()],
         ));
@@ -152,16 +152,16 @@ final class AttachmentHandlersTest extends KernelTestCase
             actorId: (int) $client->getId(),
             projectId: (int) $this->fixtures->bugs->getProject()->getId(),
             trackerId: (int) $this->fixtures->bugs->getId(),
-            title: 'Export CSV vide',
-            description: 'Voir le brief.',
+            title: 'Empty CSV export',
+            description: 'See the brief.',
             fields: ['environment' => 'prod'],
             attachments: [$sent->getUuid()->toRfc4122()],
         ));
         self::assertInstanceOf(Issue::class, $issue);
         self::assertSame($issue, $sent->getIssue());
 
-        $pasted = $this->upload($client, $this->file('capture.png', self::png()));
-        $this->commands->dispatch(new UpdateIssue((int) $client->getId(), $issue->getKey(), description: \sprintf('![capture](/attachments/%s/capture.png)', $pasted->getUuid()->toRfc4122())));
+        $pasted = $this->upload($client, $this->file('screenshot.png', self::png()));
+        $this->commands->dispatch(new UpdateIssue((int) $client->getId(), $issue->getKey(), description: \sprintf('![screenshot](/attachments/%s/screenshot.png)', $pasted->getUuid()->toRfc4122())));
         self::assertSame($issue, $pasted->getIssue());
         self::assertNull($pasted->getComment());
     }

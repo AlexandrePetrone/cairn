@@ -52,8 +52,8 @@ final class SearchIssuesHandlerTest extends KernelTestCase
         $this->builder = new IssueBuilder(self::getContainer()->get(EntityManagerInterface::class));
 
         $this->project = ProjectFactory::createOne();
-        $this->bugs = TrackerFactory::createOne(['project' => $this->project, 'name' => 'Anomalie']);
-        $this->tasks = TrackerFactory::createOne(['project' => $this->project, 'name' => 'Tâche', 'private' => true]);
+        $this->bugs = TrackerFactory::createOne(['project' => $this->project, 'name' => 'Bug']);
+        $this->tasks = TrackerFactory::createOne(['project' => $this->project, 'name' => 'Task', 'private' => true]);
         $this->manager = UserFactory::new()->internal()->create();
         $this->nadia = UserFactory::new()->internal()->create();
         $this->client = UserFactory::createOne();
@@ -63,83 +63,84 @@ final class SearchIssuesHandlerTest extends KernelTestCase
     public function testListsAProjectSortedByStatusThenCriticalityThenLatestActivity(): void
     {
         self::mockTime('2026-10-01 10:00');
-        $oldBlocking = $this->builder->issue($this->bugs, $this->client, 'Ancienne bloquante', criticality: Criticality::Blocking);
+        $oldBlocking = $this->builder->issue($this->bugs, $this->client, 'Old blocking', criticality: Criticality::Blocking);
         self::mockTime('2026-10-02 10:00');
-        $waiting = $this->builder->issue($this->bugs, $this->client, 'En recette', 'to_test', Criticality::Blocking);
-        $newNormal = $this->builder->issue($this->bugs, $this->client, 'Récente normale');
-        $newBlocking = $this->builder->issue($this->bugs, $this->client, 'Récente bloquante', criticality: Criticality::Blocking);
-        $inProgress = $this->builder->issue($this->bugs, $this->client, 'En cours', 'in_progress', Criticality::Low);
-        $this->builder->issue($this->bugs, $this->client, 'Fermée', 'done');
-        $this->builder->issue(TrackerFactory::createOne(), $this->client, 'Autre projet');
+        $waiting = $this->builder->issue($this->bugs, $this->client, 'To test', 'to_test', Criticality::Blocking);
+        $newNormal = $this->builder->issue($this->bugs, $this->client, 'Recent normal');
+        $newBlocking = $this->builder->issue($this->bugs, $this->client, 'Recent blocking', criticality: Criticality::Blocking);
+        $inProgress = $this->builder->issue($this->bugs, $this->client, 'In progress', 'in_progress', Criticality::Low);
+        $this->builder->issue($this->bugs, $this->client, 'Closed', 'done');
+        $this->builder->issue(TrackerFactory::createOne(), $this->client, 'Other project');
 
         $result = $this->inProject();
 
-        self::assertSame(['Récente bloquante', 'Ancienne bloquante', 'Récente normale', 'En cours', 'En recette'], self::titles($result->items));
+        self::assertSame(['Recent blocking', 'Old blocking', 'Recent normal', 'In progress', 'To test'], self::titles($result->items));
         self::assertSame(5, $result->total, 'closed issues are hidden by default');
         self::assertSame([$newBlocking, $oldBlocking, $newNormal, $inProgress, $waiting], $result->items);
     }
 
     public function testClosedIssuesAreListedOnRequest(): void
     {
-        $this->builder->issue($this->bugs, $this->client, 'Ouverte');
-        $this->builder->issue($this->bugs, $this->client, 'Fermée', 'done');
+        $this->builder->issue($this->bugs, $this->client, 'Open');
+        $this->builder->issue($this->bugs, $this->client, 'Closed', 'done');
 
-        self::assertSame(['Ouverte', 'Fermée'], self::titles($this->inProject(closed: true)->items));
-        self::assertSame(['Fermée'], self::titles($this->inProject(status: [PlaceStatus::Closed])->items), 'asking for closed issues lists them');
+        self::assertSame(['Open', 'Closed'], self::titles($this->inProject(closed: true)->items));
+        self::assertSame(['Closed'], self::titles($this->inProject(status: [PlaceStatus::Closed])->items), 'asking for closed issues lists them');
     }
 
     public function testEachFilter(): void
     {
-        $this->builder->issue($this->bugs, $this->client, 'Export CSV vide', criticality: Criticality::High, assignee: $this->nadia);
-        $this->builder->issue($this->bugs, $this->client, 'Spinner infini', 'in_progress');
-        $this->builder->issue($this->tasks, $this->manager, 'Mettre à jour Symfony', assignee: $this->manager);
+        $this->builder->issue($this->bugs, $this->client, 'Empty CSV export', criticality: Criticality::High, assignee: $this->nadia);
+        $this->builder->issue($this->bugs, $this->client, 'Endless spinner', 'in_progress');
+        $this->builder->issue($this->tasks, $this->manager, 'Upgrade Symfony', assignee: $this->manager);
 
-        self::assertSame(['Spinner infini'], self::titles($this->inProject(status: [PlaceStatus::InProgress])->items));
-        self::assertSame(['Mettre à jour Symfony'], self::titles($this->inProject(tracker: [(int) $this->tasks->getId()])->items));
-        self::assertSame(['Export CSV vide'], self::titles($this->inProject(criticality: [Criticality::High])->items));
-        self::assertSame(['Export CSV vide'], self::titles($this->inProject(assignee: [(int) $this->nadia->getId()])->items));
-        self::assertSame(['Spinner infini'], self::titles($this->inProject(assignee: [0])->items), '0 means unassigned');
-        self::assertSame(['Export CSV vide', 'Spinner infini'], self::titles($this->inProject(assignee: [0, (int) $this->nadia->getId()])->items));
+        self::assertSame(['Endless spinner'], self::titles($this->inProject(status: [PlaceStatus::InProgress])->items));
+        self::assertSame(['Upgrade Symfony'], self::titles($this->inProject(tracker: [(int) $this->tasks->getId()])->items));
+        self::assertSame(['Empty CSV export'], self::titles($this->inProject(criticality: [Criticality::High])->items));
+        self::assertSame(['Empty CSV export'], self::titles($this->inProject(assignee: [(int) $this->nadia->getId()])->items));
+        self::assertSame(['Endless spinner'], self::titles($this->inProject(assignee: [0])->items), '0 means unassigned');
+        self::assertSame(['Empty CSV export', 'Endless spinner'], self::titles($this->inProject(assignee: [0, (int) $this->nadia->getId()])->items));
     }
 
     public function testAPlaceFilterListsTheChosenPlacesClosedOnesToo(): void
     {
-        $this->builder->issue($this->bugs, $this->client, 'Nouvelle');
-        $this->builder->issue($this->bugs, $this->client, 'En cours', 'in_progress');
-        $this->builder->issue($this->bugs, $this->client, 'Terminée', 'done');
+        $this->builder->issue($this->bugs, $this->client, 'Fresh');
+        $this->builder->issue($this->bugs, $this->client, 'In progress', 'in_progress');
+        $this->builder->issue($this->bugs, $this->client, 'Finished', 'done');
 
-        self::assertSame(['En cours'], self::titles($this->search(place: ['bug:in_progress'])->items));
-        self::assertSame(['Nouvelle', 'Terminée'], self::titles($this->search(place: ['bug:new', 'bug:done'])->items), 'a closed place chosen is listed');
+        self::assertSame(['In progress'], self::titles($this->search(place: ['bug:in_progress'])->items));
+        self::assertSame(['Fresh', 'Finished'], self::titles($this->search(place: ['bug:new', 'bug:done'])->items), 'a closed place chosen is listed');
     }
 
     public function testAColumnSortsTheListBeforeTheDefaultOrder(): void
     {
-        $this->builder->issue($this->bugs, $this->client, 'banane');
-        $this->builder->issue($this->bugs, $this->client, 'Abricot', 'in_progress');
-        $this->builder->issue($this->bugs, $this->client, 'Cerise', criticality: Criticality::Blocking);
+        $this->builder->issue($this->bugs, $this->client, 'banana');
+        $this->builder->issue($this->bugs, $this->client, 'Apricot', 'in_progress');
+        $this->builder->issue($this->bugs, $this->client, 'Cherry', criticality: Criticality::Blocking);
 
-        self::assertSame(['Abricot', 'banane', 'Cerise'], self::titles($this->search(sort: IssueSort::Title)->items), 'whatever the case');
-        self::assertSame(['Cerise', 'banane', 'Abricot'], self::titles($this->search(sort: IssueSort::Title, order: \SortDirection::Descending)->items));
-        self::assertSame(['Cerise', 'banane', 'Abricot'], self::titles($this->search(sort: IssueSort::Criticality, order: \SortDirection::Descending)->items), 'blocking first, then the default order');
-        self::assertSame(['Cerise', 'banane', 'Abricot'], self::titles($this->search(sort: IssueSort::Place)->items), 'in the order of the workflow, then the default order');
+        self::assertSame(['Apricot', 'banana', 'Cherry'], self::titles($this->search(sort: IssueSort::Title)->items), 'whatever the case');
+        self::assertSame(['Cherry', 'banana', 'Apricot'], self::titles($this->search(sort: IssueSort::Title, order: \SortDirection::Descending)->items));
+        self::assertSame(['Cherry', 'banana', 'Apricot'], self::titles($this->search(sort: IssueSort::Criticality, order: \SortDirection::Descending)->items), 'blocking first, then the default order');
+        self::assertSame(['Cherry', 'banana', 'Apricot'], self::titles($this->search(sort: IssueSort::Place)->items), 'in the order of the workflow, then the default order');
     }
 
     public function testAGroupedListKeepsEachGroupTogetherAndCountsIt(): void
     {
         $zoe = UserFactory::new()->internal()->create(['firstName' => 'Zoé', 'lastName' => 'Arnaud']);
         $marc = UserFactory::new()->internal()->create(['firstName' => 'Marc', 'lastName' => 'Petit']);
-        $this->builder->issue($this->bugs, $this->client, 'Pour Marc', criticality: Criticality::Blocking, assignee: $marc);
-        $this->builder->issue($this->bugs, $this->client, 'Personne');
-        $this->builder->issue($this->bugs, $this->client, 'Pour Zoé', assignee: $zoe);
-        $this->builder->issue($this->bugs, $this->client, 'Encore Marc', assignee: $marc);
+        $this->builder->issue($this->bugs, $this->client, 'For Marc', criticality: Criticality::Blocking, assignee: $marc);
+        $this->builder->issue($this->bugs, $this->client, 'Nobody');
+        $this->builder->issue($this->bugs, $this->client, 'For Zoé', assignee: $zoe);
+        $this->builder->issue($this->bugs, $this->client, 'Again Marc', assignee: $marc);
 
         $result = $this->search(group: IssueGrouping::Assignee);
 
-        self::assertSame(['Personne', 'Pour Zoé', 'Pour Marc', 'Encore Marc'], self::titles($result->items), 'nobody first, then by name, the default order inside');
-        self::assertSame([IssueGrouping::NOBODY => 1, (string) $zoe->getId() => 1, (string) $marc->getId() => 2], $result->groupTotals);
+        self::assertSame(['Nobody', 'For Zoé', 'For Marc', 'Again Marc'], self::titles($result->items), 'nobody first, then by name, the default order inside');
+        // The totals are read by key: the database returns them in no particular order.
+        self::assertEquals([IssueGrouping::NOBODY => 1, (string) $zoe->getId() => 1, (string) $marc->getId() => 2], $result->groupTotals);
 
         $sorted = $this->search(group: IssueGrouping::Assignee, sort: IssueSort::Title);
-        self::assertSame(['Personne', 'Pour Zoé', 'Encore Marc', 'Pour Marc'], self::titles($sorted->items), 'the sort applies inside each group');
+        self::assertSame(['Nobody', 'For Zoé', 'Again Marc', 'For Marc'], self::titles($sorted->items), 'the sort applies inside each group');
 
         self::assertSame(['bug:new' => 4], $this->search(group: IssueGrouping::Place)->groupTotals, 'a place is named with its workflow');
         self::assertSame([], $this->search()->groupTotals, 'nothing counted when not grouped');
@@ -147,8 +148,8 @@ final class SearchIssuesHandlerTest extends KernelTestCase
 
     public function testTextSearchMatchesTitlesAndExactKeys(): void
     {
-        $export = $this->builder->issue($this->bugs, $this->client, 'L\'export CSV des commandes est vide');
-        $this->builder->issue($this->bugs, $this->client, 'Spinner infini');
+        $export = $this->builder->issue($this->bugs, $this->client, 'The CSV export of orders is empty');
+        $this->builder->issue($this->bugs, $this->client, 'Endless spinner');
 
         self::assertSame([$export], $this->inProject(q: 'csv')->items);
         self::assertSame([$export], $this->inProject(q: mb_strtolower($export->getKey()))->items);
@@ -158,13 +159,13 @@ final class SearchIssuesHandlerTest extends KernelTestCase
     public function testScopesAcrossProjects(): void
     {
         $other = TrackerFactory::createOne(['project' => ProjectFactory::createOne(['workspace' => $this->project->getWorkspace()])]);
-        $mine = $this->builder->issue($this->bugs, $this->client, 'Assignée ici', assignee: $this->nadia);
-        $mineElsewhere = $this->builder->issue($other, $this->manager, 'Assignée ailleurs', assignee: $this->nadia);
-        $this->builder->issue($this->bugs, $this->manager, 'Pas à moi');
+        $mine = $this->builder->issue($this->bugs, $this->client, 'Assigned here', assignee: $this->nadia);
+        $mineElsewhere = $this->builder->issue($other, $this->manager, 'Assigned elsewhere', assignee: $this->nadia);
+        $this->builder->issue($this->bugs, $this->manager, 'Not mine');
 
         // Same status and criticality: the latest activity comes first.
         self::assertSame([$mineElsewhere, $mine], self::queryBus()->ask(new SearchIssues($this->nadia, assigneeId: $this->nadia->getId()))->items);
-        self::assertSame(['Pas à moi', 'Assignée ailleurs'], self::titles(self::queryBus()->ask(new SearchIssues($this->manager, authorId: $this->manager->getId()))->items));
+        self::assertSame(['Not mine', 'Assigned elsewhere'], self::titles(self::queryBus()->ask(new SearchIssues($this->manager, authorId: $this->manager->getId()))->items));
         self::assertSame(3, self::queryBus()->ask(new SearchIssues($this->manager, workspaceId: $this->project->getWorkspace()->getId()))->total);
         self::assertSame([$mineElsewhere], self::queryBus()->ask(new SearchIssues($this->nadia, assigneeId: $this->nadia->getId(), project: [(int) $other->getProject()->getId()]))->items, 'the project filter');
     }
@@ -177,11 +178,11 @@ final class SearchIssuesHandlerTest extends KernelTestCase
 
     public function testExternalUsersDoNotSeePrivateIssues(): void
     {
-        $this->builder->issue($this->bugs, $this->client, 'Publique');
-        $this->builder->issue($this->bugs, $this->manager, 'Privée', private: true);
-        $this->builder->issue($this->tasks, $this->manager, 'Tâche interne');
+        $this->builder->issue($this->bugs, $this->client, 'Public');
+        $this->builder->issue($this->bugs, $this->manager, 'Private', private: true);
+        $this->builder->issue($this->tasks, $this->manager, 'Internal task');
 
-        self::assertSame(['Publique'], self::titles($this->inProject(viewer: $this->client)->items));
+        self::assertSame(['Public'], self::titles($this->inProject(viewer: $this->client)->items));
         self::assertSame(3, $this->inProject(viewer: $this->manager)->total);
     }
 
@@ -194,25 +195,25 @@ final class SearchIssuesHandlerTest extends KernelTestCase
         $sooner->plan(new \DateTimeImmutable('2026-11-15'));
         $entityManager->persist($later);
         $entityManager->persist($sooner);
-        $inSooner = $this->builder->issue($this->bugs, $this->client, 'Dans la 2.5.0');
+        $inSooner = $this->builder->issue($this->bugs, $this->client, 'In 2.5.0');
         $inSooner->scheduleIn($sooner);
-        $inLater = $this->builder->issue($this->bugs, $this->client, 'Dans la 2.6.0');
+        $inLater = $this->builder->issue($this->bugs, $this->client, 'In 2.6.0');
         $inLater->scheduleIn($later);
-        $this->builder->issue($this->bugs, $this->client, 'Sans version');
+        $this->builder->issue($this->bugs, $this->client, 'In no release');
         $entityManager->flush();
 
-        self::assertSame(['Dans la 2.5.0'], self::titles(self::queryBus()->ask(new SearchIssues($this->manager, projectId: $this->project->getId(), release: [(int) $sooner->getId()]))->items));
-        self::assertEqualsCanonicalizing(['Dans la 2.6.0', 'Sans version'], self::titles(self::queryBus()->ask(new SearchIssues($this->manager, projectId: $this->project->getId(), release: [(int) $later->getId(), 0]))->items));
+        self::assertSame(['In 2.5.0'], self::titles(self::queryBus()->ask(new SearchIssues($this->manager, projectId: $this->project->getId(), release: [(int) $sooner->getId()]))->items));
+        self::assertEqualsCanonicalizing(['In 2.6.0', 'In no release'], self::titles(self::queryBus()->ask(new SearchIssues($this->manager, projectId: $this->project->getId(), release: [(int) $later->getId(), 0]))->items));
 
         $grouped = $this->search(group: IssueGrouping::Release);
-        self::assertSame(['Dans la 2.5.0', 'Dans la 2.6.0', 'Sans version'], self::titles($grouped->items), 'the release planned first comes first, the issues in no release last');
+        self::assertSame(['In 2.5.0', 'In 2.6.0', 'In no release'], self::titles($grouped->items), 'the release planned first comes first, the issues in no release last');
         self::assertEquals([(string) $sooner->getId() => 1, (string) $later->getId() => 1, IssueGrouping::NOBODY => 1], $grouped->groupTotals);
     }
 
     public function testPagination(): void
     {
         foreach (range(1, SearchIssuesHandler::PER_PAGE + 3) as $index) {
-            $this->builder->issue($this->bugs, $this->client, "Demande {$index}");
+            $this->builder->issue($this->bugs, $this->client, "Issue {$index}");
         }
 
         $first = $this->inProject();
@@ -228,7 +229,7 @@ final class SearchIssuesHandlerTest extends KernelTestCase
     public function testAPageHoldsTheSizeAsked(): void
     {
         foreach (range(1, 7) as $index) {
-            $this->builder->issue($this->bugs, $this->client, "Demande {$index}");
+            $this->builder->issue($this->bugs, $this->client, "Issue {$index}");
         }
 
         $page = self::queryBus()->ask(new SearchIssues($this->manager, projectId: $this->project->getId(), perPage: 5));
@@ -240,7 +241,7 @@ final class SearchIssuesHandlerTest extends KernelTestCase
 
     public function testRelationsAreLoadedWithTheRows(): void
     {
-        $this->builder->issue($this->bugs, $this->client, 'Avec assignée', assignee: $this->nadia);
+        $this->builder->issue($this->bugs, $this->client, 'With an assignee', assignee: $this->nadia);
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $entityManager->clear();
 

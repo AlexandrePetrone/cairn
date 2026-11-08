@@ -1,6 +1,6 @@
 form: Symfony\Component\Form\Extension\Core\Type\ChoiceType
 options:
-    label: Navigateurs concernés
+    label: Affected browsers
     expanded: true
     multiple: true
     required: false

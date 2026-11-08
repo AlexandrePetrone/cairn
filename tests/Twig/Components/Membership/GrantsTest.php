@@ -51,7 +51,7 @@ final class GrantsTest extends KernelTestCase
 
         $component->set('newUserId', $sophie->getId())->set('newRole', 'developer')->call('grant');
 
-        self::assertStringContainsString('réservé aux internes', (string) $component->render());
+        self::assertStringContainsString('is for internal users only', (string) $component->render());
         self::assertNull($this->roleOf($sophie, 'MD'));
     }
 
@@ -65,7 +65,7 @@ final class GrantsTest extends KernelTestCase
         self::assertSame('client', $this->roleOf($paul, 'MD'));
 
         $component->call('confirmRevoke', ['membership' => $membership->getId()]);
-        self::assertStringContainsString('Retirer cet accès ?', (string) $component->render());
+        self::assertStringContainsString('Revoke this access?', (string) $component->render());
         $component->call('revoke');
 
         self::assertNull($this->roleOf($paul, 'MD'));
@@ -99,7 +99,7 @@ final class GrantsTest extends KernelTestCase
 
         $membership = self::getContainer()->get(MembershipRepository::class)->findOneBy(['user' => $paul, 'project' => $this->scene->shop]);
         self::assertSame('client', $membership?->getRole());
-        self::assertStringContainsString('hérite « Client (lecture) »', (string) $component->render());
+        self::assertStringContainsString('inherits &quot;Client (read-only)&quot;', (string) $component->render());
     }
 
     public function testOnAProjectTheViewerActsWithTheirOwnRights(): void

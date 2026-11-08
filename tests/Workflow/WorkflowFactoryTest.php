@@ -62,7 +62,7 @@ final class WorkflowFactoryTest extends TestCase
         self::assertSame('in_progress', $subject->getPlace());
         self::assertNotNull($subject->lastPlace);
         self::assertSame(PlaceStatus::InProgress, $subject->lastPlace->status);
-        self::assertSame('En cours', $subject->lastPlace->label);
+        self::assertSame('In progress', $subject->lastPlace->label);
     }
 
     public function testApplyingAnUnavailableTransitionFails(): void

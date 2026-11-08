@@ -45,7 +45,7 @@ final class CreateIssueHandlerTest extends KernelTestCase
         self::assertSame('new', $first->getPlace());
         self::assertSame(PlaceStatus::Open, $first->getStatus());
         self::assertSame(Criticality::Normal, $first->getCriticality());
-        self::assertSame('Export CSV vide', $first->getTitle());
+        self::assertSame('Empty CSV export', $first->getTitle());
         self::assertSame(['environment' => 'prod'], $first->getFieldValues());
         self::assertFalse($first->isPrivate());
         self::assertNotNull($first->getId(), 'flushed by the transaction middleware');
@@ -62,7 +62,7 @@ final class CreateIssueHandlerTest extends KernelTestCase
             actorId: (int) $this->fixtures->manager->getId(),
             projectId: (int) $this->fixtures->access->shop->getId(),
             trackerId: (int) $this->fixtures->bugs->getId(),
-            title: 'Spinner infini',
+            title: 'Endless spinner',
             criticality: Criticality::Blocking,
             assigneeId: $this->fixtures->client->getId(),
             private: true,
@@ -84,7 +84,7 @@ final class CreateIssueHandlerTest extends KernelTestCase
             actorId: (int) $this->fixtures->manager->getId(),
             projectId: (int) $this->fixtures->access->shop->getId(),
             trackerId: (int) $this->fixtures->bugs->getId(),
-            title: 'Pour un inconnu',
+            title: 'For a stranger',
             assigneeId: $outsider->getId(),
             fields: ['environment' => 'prod'],
         ));
@@ -114,7 +114,7 @@ final class CreateIssueHandlerTest extends KernelTestCase
             actorId: (int) $this->fixtures->client->getId(),
             projectId: (int) $this->fixtures->access->shop->getId(),
             trackerId: (int) $this->fixtures->bugs->getId(),
-            title: 'Caché',
+            title: 'Hidden',
             private: true,
             fields: ['environment' => 'prod'],
         ));

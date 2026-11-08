@@ -43,7 +43,7 @@
                                         {% endfor %}
                                     </span>
                                     {% if transition.description %}<span class="basis-full text-xs text-gray-600">{{ transition.description }}</span>{% endif %}
-                                    {% if transition.commentPrompt %}<span class="basis-full text-xs text-gray-500">« {{ transition.commentPrompt }} »</span>{% endif %}
+                                    {% if transition.commentPrompt %}<span class="basis-full text-xs text-gray-500">{{ 'admin.configuration.workflow.comment_prompt'|trans({ '%prompt%': transition.commentPrompt }) }}</span>{% endif %}
                                 </li>
                             {% endfor %}
                         </ul>

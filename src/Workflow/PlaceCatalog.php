@@ -8,8 +8,8 @@ use App\Config\ConfigRegistry;
 
 /**
  * The places a list offers, workflow by workflow: a list mixing several
- * workflows keeps their places apart ("Anomalie › En cours", "Tâche ›
- * En cours"), each named by its key, `workflow:place`, which the SQL
+ * workflows keeps their places apart ("Bug › In progress", "Task ›
+ * In progress"), each named by its key, `workflow:place`, which the SQL
  * builds the same way (Repository/IssueOrder::PLACE_KEY). Workflows come in
  * the order of the instance file, places in the order of their workflow.
  */

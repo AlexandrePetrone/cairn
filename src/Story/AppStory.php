@@ -148,74 +148,74 @@ final class AppStory extends Story
     private function projects(): iterable
     {
         // Managers and clients hold their role on the workspace, developers on each project.
-        $dupont = $this->workspace('Maison Dupont', 'MD', notes: 'Contact principal : Claire Martin (direction e-commerce). Paul Roussel (compta) ne valide pas les recettes : lecture seule.', manager: 'thomas', clients: ['claire' => 'client', 'paul' => 'client_readonly']);
-        $vallier = $this->workspace('Groupe Vallier', 'GV', notes: 'Deux projets, un seul interlocuteur DSI.', manager: 'thomas', clients: ['ines' => 'client']);
-        $natura = $this->workspace('Natura Cosmétiques', 'NC', notes: 'Refonte livrée en novembre, back-office en TMA.', manager: 'yann', clients: ['remi' => 'client']);
-        $travelia = $this->workspace('Travelia', 'TR', notes: 'Contrat terminé en août 2026.', manager: 'yann', clients: ['sophie' => 'client']);
+        $dupont = $this->workspace('Maison Dupont', 'MD', notes: 'Main contact: Claire Martin (head of e-commerce). Paul Roussel (accounting) does not sign off deliveries: read-only.', manager: 'thomas', clients: ['claire' => 'client', 'paul' => 'client_readonly']);
+        $vallier = $this->workspace('Vallier Group', 'GV', notes: 'Two projects, a single IT contact.', manager: 'thomas', clients: ['ines' => 'client']);
+        $natura = $this->workspace('Natura Cosmetics', 'NC', notes: 'Redesign delivered in November, back office under maintenance.', manager: 'yann', clients: ['remi' => 'client']);
+        $travelia = $this->workspace('Travelia', 'TR', notes: 'Contract ended in August 2026.', manager: 'yann', clients: ['sophie' => 'client']);
 
         // [tracker, title, target place, criticality, assignee, private]
-        yield ['project' => $this->project($dupont, 'Site e-commerce', 'SPT', 'Boutique en ligne et tunnel de commande.', developers: ['nadia', 'lea']), 'people' => ['manager' => 'thomas', 'developers' => ['nadia', 'lea'], 'client' => 'claire'], 'issues' => [
-            ['bug', 'Spinner infini sur la page panier', 'new', Criticality::Blocking],
-            ['bug', 'Le code promo n\'est pas appliqué aux produits soldés', 'qualified', Criticality::High, 'lea'],
-            ['bug', 'Typo dans le pied de page', 'new', Criticality::Low],
-            ['bug', 'L\'export CSV des commandes est vide', 'to_test', Criticality::High, 'nadia'],
-            ['bug', 'Les frais de port ne s\'affichent pas en Corse', 'in_progress', Criticality::Normal, 'nadia'],
-            ['bug', 'Image produit floue sur mobile', 'done', Criticality::Low, 'lea'],
-            ['bug', 'Erreur 500 à la validation d\'une adresse sans numéro', 'done', Criticality::High, 'nadia'],
-            ['bug', 'Le filtre par taille ignore les produits épuisés', 'rejected', Criticality::Normal],
-            ['evolution', 'Ajouter le paiement en trois fois', 'to_estimate', Criticality::Normal, 'thomas'],
-            ['evolution', 'Export comptable mensuel au format FEC', 'in_progress', Criticality::High, 'nadia'],
-            ['evolution', 'Recherche par référence fournisseur', 'planned', Criticality::Normal, 'lea'],
-            ['evolution', 'Nouvelle bannière de la page d\'accueil', 'to_test', Criticality::Normal, 'lea'],
-            ['evolution', 'Programme de fidélité', 'new', Criticality::Low],
-            ['evolution', 'Avis clients sur les fiches produit', 'delivered', Criticality::Normal, 'nadia'],
-            ['evolution', 'Liste de souhaits partagée', 'declined', Criticality::Low],
-            ['task', 'Mettre à jour Symfony en 8.1', 'doing', Criticality::Normal, 'nadia'],
-            ['task', 'Purger le cache Varnish après déploiement', 'done', Criticality::Low, 'lea'],
-            ['task', 'Revoir les index de la table des commandes', 'todo', Criticality::Normal],
+        yield ['project' => $this->project($dupont, 'Online shop', 'SPT', 'Online shop and checkout.', developers: ['nadia', 'lea']), 'people' => ['manager' => 'thomas', 'developers' => ['nadia', 'lea'], 'client' => 'claire'], 'issues' => [
+            ['bug', 'Endless spinner on the cart page', 'new', Criticality::Blocking],
+            ['bug', 'The promo code is not applied to discounted products', 'qualified', Criticality::High, 'lea'],
+            ['bug', 'Typo in the footer', 'new', Criticality::Low],
+            ['bug', 'The CSV export of orders is empty', 'to_test', Criticality::High, 'nadia'],
+            ['bug', 'Shipping costs are not shown for Corsica', 'in_progress', Criticality::Normal, 'nadia'],
+            ['bug', 'Blurry product image on mobile', 'done', Criticality::Low, 'lea'],
+            ['bug', 'Error 500 when validating an address without a number', 'done', Criticality::High, 'nadia'],
+            ['bug', 'The size filter ignores sold-out products', 'rejected', Criticality::Normal],
+            ['evolution', 'Add payment in three instalments', 'to_estimate', Criticality::Normal, 'thomas'],
+            ['evolution', 'Monthly accounting export in FEC format', 'in_progress', Criticality::High, 'nadia'],
+            ['evolution', 'Search by supplier reference', 'planned', Criticality::Normal, 'lea'],
+            ['evolution', 'New home page banner', 'to_test', Criticality::Normal, 'lea'],
+            ['evolution', 'Loyalty programme', 'new', Criticality::Low],
+            ['evolution', 'Customer reviews on product pages', 'delivered', Criticality::Normal, 'nadia'],
+            ['evolution', 'Shared wish list', 'declined', Criticality::Low],
+            ['task', 'Upgrade Symfony to 8.1', 'doing', Criticality::Normal, 'nadia'],
+            ['task', 'Purge the Varnish cache after deployment', 'done', Criticality::Low, 'lea'],
+            ['task', 'Review the indexes of the orders table', 'todo', Criticality::Normal],
         ], 'releases' => [
             // [name, planned in days from now, description, status, indexes of its issues]
-            ['2.4.0', -10, 'Corrections d\'affichage et avis clients.', ReleaseStatus::Delivered, [5, 6, 13]],
-            ['2.5.0', 14, 'Tunnel de commande et export comptable.', ReleaseStatus::Open, [1, 3, 4, 9, 11, 15]],
-            ['2.6.0', 45, 'Paiement en trois fois et recherche fournisseur.', ReleaseStatus::Open, [8, 10]],
-            ['2.3.1', -40, 'Correctif annulé, repris dans la 2.4.0.', ReleaseStatus::Abandoned, []],
+            ['2.4.0', -10, 'Display fixes and customer reviews.', ReleaseStatus::Delivered, [5, 6, 13]],
+            ['2.5.0', 14, 'Checkout and accounting export.', ReleaseStatus::Open, [1, 3, 4, 9, 11, 15]],
+            ['2.6.0', 45, 'Payment in three instalments and supplier search.', ReleaseStatus::Open, [8, 10]],
+            ['2.3.1', -40, 'Patch cancelled, taken over by 2.4.0.', ReleaseStatus::Abandoned, []],
         ]];
-        yield ['project' => $this->project($dupont, 'Intranet', 'INT', 'Outil interne des magasins.', developers: ['marc']), 'people' => ['manager' => 'thomas', 'developers' => ['marc'], 'client' => 'claire'], 'issues' => [
-            ['bug', 'Le planning n\'affiche pas les jours fériés', 'qualified', Criticality::Normal, 'marc'],
-            ['bug', 'Connexion impossible depuis le magasin de Lyon', 'in_progress', Criticality::Blocking, 'marc'],
-            ['evolution', 'Annuaire des collaborateurs', 'to_estimate', Criticality::Low],
-            ['evolution', 'Demandes de congés en ligne', 'delivered', Criticality::Normal, 'marc'],
-            ['task', 'Renouveler le certificat TLS', 'done', Criticality::High, 'marc'],
+        yield ['project' => $this->project($dupont, 'Intranet', 'INT', 'Internal tool of the stores.', developers: ['marc']), 'people' => ['manager' => 'thomas', 'developers' => ['marc'], 'client' => 'claire'], 'issues' => [
+            ['bug', 'The schedule does not show public holidays', 'qualified', Criticality::Normal, 'marc'],
+            ['bug', 'Cannot log in from the Lyon store', 'in_progress', Criticality::Blocking, 'marc'],
+            ['evolution', 'Staff directory', 'to_estimate', Criticality::Low],
+            ['evolution', 'Online leave requests', 'delivered', Criticality::Normal, 'marc'],
+            ['task', 'Renew the TLS certificate', 'done', Criticality::High, 'marc'],
         ]];
-        yield ['project' => $this->project($vallier, 'Portail fournisseurs', 'PRT', 'Dépôt et suivi des factures fournisseurs.', developers: ['lea', 'marc']), 'people' => ['manager' => 'thomas', 'developers' => ['lea', 'marc'], 'client' => 'ines'], 'issues' => [
-            ['bug', 'Le dépôt de facture échoue au-delà de 5 Mo', 'to_test', Criticality::High, 'marc'],
-            ['bug', 'Mauvais format de date dans l\'export', 'new', Criticality::Normal],
-            ['bug', 'Le mot de passe oublié n\'envoie pas de mail', 'done', Criticality::Blocking, 'lea'],
-            ['evolution', 'Signature électronique des bons de commande', 'planned', Criticality::High, 'lea'],
-            ['evolution', 'Tableau de bord des paiements', 'in_progress', Criticality::Normal, 'marc'],
-            ['evolution', 'Relance automatique des factures en retard', 'new', Criticality::Normal],
-            ['task', 'Migrer le stockage vers S3', 'doing', Criticality::Normal, 'marc'],
+        yield ['project' => $this->project($vallier, 'Supplier portal', 'PRT', 'Upload and tracking of supplier invoices.', developers: ['lea', 'marc']), 'people' => ['manager' => 'thomas', 'developers' => ['lea', 'marc'], 'client' => 'ines'], 'issues' => [
+            ['bug', 'Invoice upload fails above 5 MB', 'to_test', Criticality::High, 'marc'],
+            ['bug', 'Wrong date format in the export', 'new', Criticality::Normal],
+            ['bug', 'Forgotten password sends no email', 'done', Criticality::Blocking, 'lea'],
+            ['evolution', 'Electronic signature of purchase orders', 'planned', Criticality::High, 'lea'],
+            ['evolution', 'Payments dashboard', 'in_progress', Criticality::Normal, 'marc'],
+            ['evolution', 'Automatic reminders for overdue invoices', 'new', Criticality::Normal],
+            ['task', 'Move the storage to S3', 'doing', Criticality::Normal, 'marc'],
         ]];
-        yield ['project' => $this->project($vallier, 'Application mobile', 'APP', 'Application des commerciaux terrain.', developers: ['nadia']), 'people' => ['manager' => 'thomas', 'developers' => ['nadia'], 'client' => 'ines'], 'issues' => [
-            ['bug', 'Crash au démarrage sur Android 12', 'qualified', Criticality::Blocking, 'nadia'],
-            ['bug', 'La synchronisation hors ligne perd les notes', 'in_progress', Criticality::High, 'nadia'],
-            ['evolution', 'Mode sombre', 'to_estimate', Criticality::Low],
-            ['evolution', 'Scanner de codes-barres', 'to_test', Criticality::Normal, 'nadia'],
+        yield ['project' => $this->project($vallier, 'Mobile app', 'APP', 'App of the field sales team.', developers: ['nadia']), 'people' => ['manager' => 'thomas', 'developers' => ['nadia'], 'client' => 'ines'], 'issues' => [
+            ['bug', 'Crash on startup on Android 12', 'qualified', Criticality::Blocking, 'nadia'],
+            ['bug', 'Offline sync loses the notes', 'in_progress', Criticality::High, 'nadia'],
+            ['evolution', 'Dark mode', 'to_estimate', Criticality::Low],
+            ['evolution', 'Barcode scanner', 'to_test', Criticality::Normal, 'nadia'],
         ]];
-        yield ['project' => $this->project($natura, 'Back-office', 'BO', 'Gestion du catalogue et des commandes.', developers: ['lea']), 'people' => ['manager' => 'yann', 'developers' => ['lea'], 'client' => 'remi'], 'issues' => [
-            ['bug', 'Les variantes de couleur se dupliquent à l\'import', 'in_progress', Criticality::High, 'lea'],
-            ['bug', 'Le tri par date de commande est inversé', 'to_test', Criticality::Normal, 'lea'],
-            ['bug', 'Libellé tronqué dans la fiche client', 'new', Criticality::Low],
-            ['evolution', 'Import des stocks par fichier', 'delivered', Criticality::Normal, 'lea'],
-            ['evolution', 'Historique des prix', 'to_estimate', Criticality::Normal],
-            ['task', 'Supprimer les comptes de test', 'todo', Criticality::Low, 'lea', true],
+        yield ['project' => $this->project($natura, 'Back-office', 'BO', 'Catalogue and order management.', developers: ['lea']), 'people' => ['manager' => 'yann', 'developers' => ['lea'], 'client' => 'remi'], 'issues' => [
+            ['bug', 'Colour variants are duplicated on import', 'in_progress', Criticality::High, 'lea'],
+            ['bug', 'Sorting by order date is reversed', 'to_test', Criticality::Normal, 'lea'],
+            ['bug', 'Truncated label on the customer page', 'new', Criticality::Low],
+            ['evolution', 'Stock import from a file', 'delivered', Criticality::Normal, 'lea'],
+            ['evolution', 'Price history', 'to_estimate', Criticality::Normal],
+            ['task', 'Delete the test accounts', 'todo', Criticality::Low, 'lea', true],
         ], 'releases' => [
-            ['1.3.0', 20, 'Import du catalogue et tri des commandes.', ReleaseStatus::Open, [0, 1, 5]],
+            ['1.3.0', 20, 'Catalogue import and order sorting.', ReleaseStatus::Open, [0, 1, 5]],
         ]];
-        yield ['project' => $this->project($travelia, 'Site de réservation', 'RES', 'Réservation de séjours.', developers: ['marc']), 'people' => ['manager' => 'yann', 'developers' => ['marc'], 'client' => 'sophie'], 'archived' => true, 'issues' => [
-            ['bug', 'Double réservation possible sur le dernier créneau', 'done', Criticality::Blocking, 'marc'],
-            ['evolution', 'Paiement en plusieurs devises', 'delivered', Criticality::Normal, 'marc'],
-            ['evolution', 'Comparateur de séjours', 'declined', Criticality::Low],
+        yield ['project' => $this->project($travelia, 'Booking site', 'RES', 'Holiday booking.', developers: ['marc']), 'people' => ['manager' => 'yann', 'developers' => ['marc'], 'client' => 'sophie'], 'archived' => true, 'issues' => [
+            ['bug', 'Double booking possible on the last slot', 'done', Criticality::Blocking, 'marc'],
+            ['evolution', 'Payment in several currencies', 'delivered', Criticality::Normal, 'marc'],
+            ['evolution', 'Holiday comparison', 'declined', Criticality::Low],
         ]];
     }
 
@@ -252,9 +252,9 @@ final class AppStory extends Story
     private function createTrackers(Project $project): array
     {
         return [
-            'bug' => TrackerFactory::createOne(['project' => $project, 'name' => 'Anomalie', 'workflowId' => 'bug', 'position' => 0, 'description' => 'Quelque chose ne fonctionne plus comme avant.']),
-            'evolution' => TrackerFactory::createOne(['project' => $project, 'name' => 'Évolution', 'workflowId' => 'evolution', 'position' => 1, 'description' => 'Une nouvelle fonctionnalité ou une amélioration.']),
-            'task' => TrackerFactory::createOne(['project' => $project, 'name' => 'Tâche interne', 'workflowId' => 'task', 'position' => 2, 'description' => 'Travail technique sans demande client.', 'private' => true]),
+            'bug' => TrackerFactory::createOne(['project' => $project, 'name' => $this->workflows->definition('bug')->label, 'workflowId' => 'bug', 'position' => 0, 'description' => 'Something no longer works as before.']),
+            'evolution' => TrackerFactory::createOne(['project' => $project, 'name' => $this->workflows->definition('evolution')->label, 'workflowId' => 'evolution', 'position' => 1, 'description' => 'A new feature or an improvement.']),
+            'task' => TrackerFactory::createOne(['project' => $project, 'name' => $this->workflows->definition('task')->label, 'workflowId' => 'task', 'position' => 2, 'description' => 'Technical work without a client request.', 'private' => true]),
         ];
     }
 
@@ -278,7 +278,7 @@ final class AppStory extends Story
             projectId: (int) $project->getId(),
             trackerId: (int) $tracker->getId(),
             title: $title,
-            description: 'Constaté par '.$author->getFullName().'. Voir les détails ci-dessous.',
+            description: 'Reported by '.$author->getFullName().'. See the details below.',
             criticality: $criticality,
             private: $definition[5] ?? false,
             fields: self::fieldsFor($workflow, $index),
@@ -304,7 +304,7 @@ final class AppStory extends Story
                 actorId: (int) $this->actorFor($transition, $project, $people)->getId(),
                 issueKey: $issue->getKey(),
                 transitionId: $transition->id,
-                comment: $transition->requiresComment ? 'Toujours reproductible en préproduction, voir la capture.' : null,
+                comment: $transition->requiresComment ? 'Still reproducible on pre-production, see the screenshot.' : null,
             ));
         }
 
@@ -343,20 +343,20 @@ final class AppStory extends Story
         $id = (int) $repository->getId();
         $base = 'https://gitlab.example/maison-dupont/shop/-/';
         $commit = static fn (string $sha, string $title, string $author): CommitPayload => new CommitPayload($sha, $title, $title, $base.'commit/'.$sha, $author);
-        $mergeRequest = static fn (MergeRequestState $state): MergeRequestPayload => new MergeRequestPayload(431, "fix(export): paginer l'export CSV des commandes", '', $base.'merge_requests/431', 'fix/MD-SPT-4-export-csv', $state, 'Nadia Benali');
+        $mergeRequest = static fn (MergeRequestState $state): MergeRequestPayload => new MergeRequestPayload(431, 'fix(export): paginate the CSV export of orders', '', $base.'merge_requests/431', 'fix/MD-SPT-4-export-csv', $state, 'Nadia Benali');
 
         Clock::set(new MockClock($now->modify('-2 days 14:00')));
         $this->commands->dispatch(new RecordMergeRequest($id, 'MD-SPT-4', $mergeRequest(MergeRequestState::Opened)));
         Clock::set(new MockClock($now->modify('-2 days 16:20')));
         $this->commands->dispatch(new RecordCommits($id, 'MD-SPT-4', 'main', $base.'tree/main', [
-            $commit('b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327', "fix(export): paginer l'export CSV des commandes (MD-SPT-4)", 'Nadia Benali'),
-            $commit('da1560886d4f094c3e6c9ef40349f7d38b5d27d7', 'test(export): cas des 8 000 commandes MD-SPT-4', 'Nadia Benali'),
+            $commit('b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327', 'fix(export): paginate the CSV export of orders (MD-SPT-4)', 'Nadia Benali'),
+            $commit('da1560886d4f094c3e6c9ef40349f7d38b5d27d7', 'test(export): the 8,000 orders case MD-SPT-4', 'Nadia Benali'),
             $commit('1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b', 'chore: changelog MD-SPT-4', 'Léa Fontaine'),
         ]));
         $this->commands->dispatch(new RecordMergeRequest($id, 'MD-SPT-4', $mergeRequest(MergeRequestState::Merged)));
         Clock::set(new MockClock($now->modify('-1 day 10:12')));
         $this->commands->dispatch(new RecordCommits($id, 'MD-SPT-3', 'feat/md-spt-3-filtres', $base.'tree/feat/md-spt-3-filtres', [
-            $commit('9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d', 'feat(catalogue): filtres par taille, premier jet (MD-SPT-3)', 'Léa Fontaine'),
+            $commit('9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d', 'feat(catalogue): size filters, first draft (MD-SPT-3)', 'Léa Fontaine'),
         ]));
     }
 
@@ -392,11 +392,11 @@ final class AppStory extends Story
     {
         $clock->modify(\sprintf('+%d hours +%d minutes', 1 + $index % 6, ($index * 17) % 60));
         $developer = $people['developers'][$index % \count($people['developers'])];
-        $this->commands->dispatch(new AddComment((int) $this->users[$developer]->getId(), $issue->getKey(), 'Je regarde, je reviens vers vous dans la journée.', attachments: [$this->upload($this->users[$developer], $issue, 'trace.log')]));
+        $this->commands->dispatch(new AddComment((int) $this->users[$developer]->getId(), $issue->getKey(), 'I am looking into it, I will get back to you today.', attachments: [$this->upload($this->users[$developer], $issue, 'trace.log')]));
 
         if (null !== $people['client'] && !$issue->isPrivate()) {
             $clock->modify(\sprintf('+%d hours +%d minutes', 1 + ($index * 5) % 6, ($index * 23) % 60));
-            $this->commands->dispatch(new AddComment((int) $this->users[$people['client']]->getId(), $issue->getKey(), 'Merci, c\'est bloquant pour nos équipes.'));
+            $this->commands->dispatch(new AddComment((int) $this->users[$people['client']]->getId(), $issue->getKey(), 'Thanks, it is blocking our teams.'));
             if ($issue->getAuthor() === $this->users[$people['client']]) {
                 $this->upload($issue->getAuthor(), $issue, 'capture.png', toIssue: true);
             }
@@ -404,7 +404,7 @@ final class AppStory extends Story
         // One thread out of three ends with a private note of the manager.
         if (0 === $index % 3) {
             $manager = $this->users[$people['manager']];
-            $this->commands->dispatch(new AddComment((int) $manager->getId(), $issue->getKey(), 'À chiffrer avant de s\'engager sur une date.', private: true, attachments: [$this->upload($manager, $issue, 'chiffrage.pdf')]));
+            $this->commands->dispatch(new AddComment((int) $manager->getId(), $issue->getKey(), 'To estimate before committing to a date.', private: true, attachments: [$this->upload($manager, $issue, 'estimate.pdf')]));
         }
     }
 
@@ -472,8 +472,8 @@ final class AppStory extends Story
         $values = [
             'environment' => ['prod', 'preprod', 'staging'][$index % 3],
             'url' => 'https://www.example.test/'.['panier', 'compte', 'catalogue', 'commande'][$index % 4],
-            'browser' => ['Chrome 130 sur macOS', 'Safari sur iPhone', 'Firefox sur Windows'][($index + 1) % 3],
-            'goal' => 'Faire gagner du temps aux équipes qui traitent les commandes au quotidien.',
+            'browser' => ['Chrome 130 on macOS', 'Safari on iPhone', 'Firefox on Windows'][($index + 1) % 3],
+            'goal' => 'Save time for the teams who handle orders every day.',
             'due_date' => '2026-12-15',
         ];
 

@@ -38,22 +38,22 @@ final class ListTrackersHandlerTest extends KernelTestCase
     {
         $project = $this->project();
 
-        self::assertSame(['Anomalie', 'Évolution'], $this->names($this->external, $project));
+        self::assertSame(['Bug', 'Feature'], $this->names($this->external, $project));
     }
 
     public function testAnInternalUserGetsThePrivateOnesToo(): void
     {
         $project = $this->project();
 
-        self::assertSame(['Anomalie', 'Tâche interne', 'Évolution'], $this->names($this->internal, $project));
+        self::assertSame(['Bug', 'Internal task', 'Feature'], $this->names($this->internal, $project));
     }
 
     public function testDeactivatedTrackersComeOnlyWhenAskedFor(): void
     {
         $project = $this->project();
 
-        self::assertSame(['Anomalie', 'Évolution', 'Support'], $this->names($this->external, $project, inactive: true));
-        self::assertSame(['Anomalie', 'Tâche interne', 'Évolution', 'Support'], $this->names($this->internal, $project, inactive: true));
+        self::assertSame(['Bug', 'Feature', 'Support'], $this->names($this->external, $project, inactive: true));
+        self::assertSame(['Bug', 'Internal task', 'Feature', 'Support'], $this->names($this->internal, $project, inactive: true));
     }
 
     public function testTheTrackersOfAnotherProjectStayOut(): void
@@ -65,18 +65,18 @@ final class ListTrackersHandlerTest extends KernelTestCase
     }
 
     /**
-     * Anomalie (public), Tâche interne (private), Évolution (public) and
+     * Bug (public), Internal task (private), Feature (public) and
      * Support (public, deactivated), in that order.
      */
     private function project(): Project
     {
         $project = ProjectFactory::createOne();
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        $tasks = new Tracker($project, 'Tâche interne', 'task', 1);
+        $tasks = new Tracker($project, 'Internal task', 'task', 1);
         $tasks->makePrivate();
         $support = new Tracker($project, 'Support', 'bug', 3);
         $support->deactivate();
-        foreach ([new Tracker($project, 'Évolution', 'evolution', 2), $tasks, new Tracker($project, 'Anomalie', 'bug', 0), $support] as $tracker) {
+        foreach ([new Tracker($project, 'Feature', 'evolution', 2), $tasks, new Tracker($project, 'Bug', 'bug', 0), $support] as $tracker) {
             $entityManager->persist($tracker);
         }
         $entityManager->flush();

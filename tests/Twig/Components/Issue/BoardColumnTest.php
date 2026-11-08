@@ -56,16 +56,16 @@ final class BoardColumnTest extends KernelTestCase
     public function testAColumnGrowsByBatches(): void
     {
         foreach (range(1, BoardColumn::BATCH + 5) as $index) {
-            $this->scene->bug("Anomalie {$index}");
+            $this->scene->bug("Bug {$index}");
         }
         $column = $this->column('new', 'thomas.girard@cairn.test');
 
         self::assertSame(BoardColumn::BATCH, substr_count((string) $column->render(), 'data-board-key='));
-        self::assertStringContainsString('Afficher plus (7)', (string) $column->render());
+        self::assertStringContainsString('Show more (7)', (string) $column->render());
 
         $column->call('more');
         self::assertSame(BoardColumn::BATCH + 7, substr_count((string) $column->render(), 'data-board-key='));
-        self::assertStringNotContainsString('Afficher plus', (string) $column->render());
+        self::assertStringNotContainsString('Show more', (string) $column->render());
     }
 
     public function testAFoldedColumnIsARailThatCountsItsIssuesUntilUnfolded(): void

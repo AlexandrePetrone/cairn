@@ -54,8 +54,8 @@ final class SubscriptionRulesTest extends KernelTestCase
             actorId: (int) $this->fixtures->manager->getId(),
             projectId: (int) $this->fixtures->access->shop->getId(),
             trackerId: (int) $this->fixtures->bugs->getId(),
-            title: 'Export CSV vide',
-            description: 'Le fichier est vide.',
+            title: 'Empty CSV export',
+            description: 'The file is empty.',
             fields: ['environment' => 'prod'],
             assigneeId: (int) $this->fixtures->developer->getId(),
         ));
@@ -72,7 +72,7 @@ final class SubscriptionRulesTest extends KernelTestCase
         $lea = $this->fixtures->access->user('lea@agency.test', internal: true);
         $this->fixtures->access->grantOnProject($lea, $this->fixtures->access->shop, 'developer');
 
-        $this->commands->dispatch(new AddComment((int) $this->fixtures->developer->getId(), $issue->getKey(), \sprintf('Je regarde avec @[Léa](user:%d).', $lea->getId())));
+        $this->commands->dispatch(new AddComment((int) $this->fixtures->developer->getId(), $issue->getKey(), \sprintf('Looking into it with @[Léa](user:%d).', $lea->getId())));
 
         self::assertSame(['claire@client.test', 'lea@agency.test', 'nadia@agency.test', 'thomas@agency.test'], $this->subscribers($issue));
     }
@@ -82,7 +82,7 @@ final class SubscriptionRulesTest extends KernelTestCase
         $issue = $this->fixtures->createIssue($this->fixtures->manager);
         $claire = $this->fixtures->client;
 
-        $this->commands->dispatch(new AddComment((int) $this->fixtures->developer->getId(), $issue->getKey(), \sprintf('Attention à @[Claire](user:%d).', $claire->getId()), private: true));
+        $this->commands->dispatch(new AddComment((int) $this->fixtures->developer->getId(), $issue->getKey(), \sprintf('Careful with @[Claire](user:%d).', $claire->getId()), private: true));
 
         self::assertSame(['nadia@agency.test', 'thomas@agency.test'], $this->subscribers($issue));
     }
@@ -94,8 +94,8 @@ final class SubscriptionRulesTest extends KernelTestCase
             actorId: (int) $this->fixtures->manager->getId(),
             projectId: (int) $this->fixtures->access->shop->getId(),
             trackerId: (int) $this->fixtures->tasks->getId(),
-            title: 'Tâche interne',
-            description: \sprintf('Pour @[Claire](user:%d), sans le dire.', $claire->getId()),
+            title: 'Internal task',
+            description: \sprintf('For @[Claire](user:%d), without telling her.', $claire->getId()),
             fields: ['environment' => 'prod'],
         ));
 
@@ -110,7 +110,7 @@ final class SubscriptionRulesTest extends KernelTestCase
         $this->commands->dispatch(new UnfollowIssue($claire, $issue->getKey()));
         self::assertSame(['thomas@agency.test'], $this->subscribers($issue));
 
-        $this->commands->dispatch(new AddComment($claire, $issue->getKey(), 'Du nouveau ?'));
+        $this->commands->dispatch(new AddComment($claire, $issue->getKey(), 'Any news?'));
         self::assertSame(['claire@client.test', 'thomas@agency.test'], $this->subscribers($issue));
     }
 
@@ -118,7 +118,7 @@ final class SubscriptionRulesTest extends KernelTestCase
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
 
-        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->developer->getId(), $issue->getKey(), 'start', comment: 'Je prends.'));
+        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->developer->getId(), $issue->getKey(), 'start', comment: 'I am on it.'));
 
         self::assertSame(['claire@client.test', 'nadia@agency.test', 'thomas@agency.test'], $this->subscribers($issue));
     }

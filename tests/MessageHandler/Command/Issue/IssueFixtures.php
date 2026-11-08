@@ -31,8 +31,8 @@ final class IssueFixtures
     ) {
         $this->access = new AccessFixtures($entityManager);
 
-        $this->bugs = new Tracker($this->access->shop, 'Anomalie', 'bug');
-        $this->tasks = new Tracker($this->access->shop, 'Tâche interne', 'bug', 1);
+        $this->bugs = new Tracker($this->access->shop, 'Bug', 'bug');
+        $this->tasks = new Tracker($this->access->shop, 'Internal task', 'bug', 1);
         $this->tasks->makePrivate();
         $entityManager->persist($this->bugs);
         $entityManager->persist($this->tasks);
@@ -49,7 +49,7 @@ final class IssueFixtures
     /**
      * @param array<string, mixed> $fields
      */
-    public function createIssue(User $actor, ?Tracker $tracker = null, string $title = 'Export CSV vide', array $fields = ['environment' => 'prod']): Issue
+    public function createIssue(User $actor, ?Tracker $tracker = null, string $title = 'Empty CSV export', array $fields = ['environment' => 'prod']): Issue
     {
         $tracker ??= $this->bugs;
 
@@ -58,7 +58,7 @@ final class IssueFixtures
             projectId: (int) $tracker->getProject()->getId(),
             trackerId: (int) $tracker->getId(),
             title: $title,
-            description: 'Le fichier téléchargé est vide.',
+            description: 'The downloaded file is empty.',
             fields: $fields,
         ));
     }

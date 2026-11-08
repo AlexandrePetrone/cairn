@@ -41,11 +41,11 @@ final class ReleaseHandlersTest extends KernelTestCase
 
     public function testAManagerCreatesAnOpenRelease(): void
     {
-        $release = $this->create('  2.5.0 ', new \DateTimeImmutable('2026-11-20 15:30'), 'Tunnel de commande.');
+        $release = $this->create('  2.5.0 ', new \DateTimeImmutable('2026-11-20 15:30'), 'Checkout.');
 
         self::assertSame('2.5.0', $release->getName());
         self::assertSame('2026-11-20 00:00', $release->getPlannedOn()?->format('Y-m-d H:i'));
-        self::assertSame('Tunnel de commande.', $release->getDescription());
+        self::assertSame('Checkout.', $release->getDescription());
         self::assertSame(ReleaseStatus::Open, $release->getStatus());
         self::assertSame($this->fixtures->access->shop, $release->getProject());
     }
@@ -111,7 +111,7 @@ final class ReleaseHandlersTest extends KernelTestCase
 
     public function testAPropertyLeftNullKeepsItsValue(): void
     {
-        $release = $this->create('2.5.0', new \DateTimeImmutable('2026-11-20'), 'Tunnel de commande.');
+        $release = $this->create('2.5.0', new \DateTimeImmutable('2026-11-20'), 'Checkout.');
 
         $this->update($release, description: '');
         self::assertSame('2.5.0', $release->getName());

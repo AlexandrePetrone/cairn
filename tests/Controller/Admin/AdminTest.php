@@ -51,11 +51,11 @@ final class AdminTest extends WebTestCase
         self::assertResponseRedirects('/admin/projects');
         $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'Maison Dupont');
-        self::assertSelectorTextContains('main', 'Site de réservation');
-        self::assertSelectorTextContains('main', 'Archivé');
+        self::assertSelectorTextContains('main', 'Booking site');
+        self::assertSelectorTextContains('main', 'Archived');
 
         $this->client->request('GET', '/admin/projects?state[]=active');
-        self::assertSelectorTextNotContains('main', 'Site de réservation');
+        self::assertSelectorTextNotContains('main', 'Booking site');
 
         $this->client->request('GET', '/admin/projects?state[]=nonsense');
         self::assertResponseStatusCodeSame(404);
@@ -66,11 +66,11 @@ final class AdminTest extends WebTestCase
         $this->signInAsAdmin();
         $this->client->request('GET', '/admin/projects/new?workspace=MD');
 
-        $this->client->submitForm('Créer', ['project[name]' => 'Application', 'project[key]' => 'spt']);
+        $this->client->submitForm('Create', ['project[name]' => 'Application', 'project[key]' => 'spt']);
         self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('form', 'Un projet de Maison Dupont utilise déjà le code SPT.');
+        self::assertSelectorTextContains('form', 'A project of Maison Dupont already uses the key SPT.');
 
-        $this->client->submitForm('Créer', ['project[name]' => 'Application', 'project[key]' => 'app']);
+        $this->client->submitForm('Create', ['project[name]' => 'Application', 'project[key]' => 'app']);
         self::assertResponseRedirects('/admin/workspaces/MD');
         self::assertNotNull($this->entity(Project::class, ['key' => 'APP']));
     }
@@ -79,11 +79,11 @@ final class AdminTest extends WebTestCase
     {
         $this->signInAsAdmin();
         $this->client->request('GET', '/admin/workspaces/new');
-        $this->client->submitForm('Créer', ['workspace[name]' => 'Atelier Morel', 'workspace[key]' => 'am']);
+        $this->client->submitForm('Create', ['workspace[name]' => 'Atelier Morel', 'workspace[key]' => 'am']);
         self::assertResponseRedirects('/admin/workspaces/AM');
 
         $this->client->request('GET', '/admin/workspaces/MD/settings');
-        $this->client->submitForm('Enregistrer', ['workspace[name]' => 'Maison Dupont & fils', 'workspace[archived]' => true]);
+        $this->client->submitForm('Save', ['workspace[name]' => 'Maison Dupont & fils', 'workspace[archived]' => true]);
         self::assertResponseRedirects('/admin/workspaces/MD/settings');
 
         $workspace = $this->entity(Workspace::class, ['key' => 'MD']) ?? self::fail('MD vanished');
@@ -110,23 +110,23 @@ final class AdminTest extends WebTestCase
     {
         $this->signInAsAdmin();
         $this->client->request('GET', '/admin/users/new');
-        $this->client->submitForm('Créer', [
+        $this->client->submitForm('Create', [
             'user[firstName]' => 'Inès',
             'user[lastName]' => 'Garnier',
             'user[email]' => 'ines@natura.test',
             'user[type]' => 'external',
-            'user[password]' => 'court',
+            'user[password]' => 'short',
         ]);
         self::assertResponseStatusCodeSame(422, 'password too short');
 
-        $this->client->submitForm('Créer', ['user[password]' => 'un mot de passe']);
+        $this->client->submitForm('Create', ['user[password]' => 'a long password']);
         $ines = $this->entity(User::class, ['email' => 'ines@natura.test']);
         self::assertNotNull($ines);
         self::assertFalse($ines->isInternal());
         self::assertResponseRedirects('/admin/users/'.$ines->getId());
 
         $this->client->followRedirect();
-        $this->client->submitForm('Enregistrer', ['user[lastName]' => 'Garnier-Roy', 'user[type]' => 'internal', 'user[password]' => '']);
+        $this->client->submitForm('Save', ['user[lastName]' => 'Garnier-Roy', 'user[type]' => 'internal', 'user[password]' => '']);
         self::assertResponseRedirects();
         $ines = $this->entity(User::class, ['email' => 'ines@natura.test']) ?? self::fail('Inès vanished');
         self::assertSame('Inès Garnier-Roy', $ines->getFullName());
@@ -144,7 +144,7 @@ final class AdminTest extends WebTestCase
         $this->client->submit($form);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('form[name="user"]', 'Thomas Girard a des rôles réservés aux internes (Maison Dupont)');
+        self::assertSelectorTextContains('form[name="user"]', 'Thomas Girard holds roles for internal users only (Maison Dupont)');
     }
 
     public function testTheLastAdministratorIsNotDeactivated(): void
@@ -153,10 +153,10 @@ final class AdminTest extends WebTestCase
         $julie = $this->scene->user('julie.admin@cairn.test');
         $this->client->request('GET', '/admin/users/'.$julie->getId());
 
-        $this->client->submitForm('Enregistrer', ['user[active]' => false]);
+        $this->client->submitForm('Save', ['user[active]' => false]);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('form[name="user"]', 'Il doit rester au moins un administrateur actif.');
+        self::assertSelectorTextContains('form[name="user"]', 'At least one active administrator must remain.');
     }
 
     public function testTheUsersAreFiltered(): void

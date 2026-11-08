@@ -30,7 +30,7 @@ final class FollowTest extends KernelTestCase
     public function testTheAuthorFollowsAndMayStop(): void
     {
         $component = $this->follow('claire.martin@maison-dupont.test');
-        self::assertStringContainsString('Ne plus suivre', (string) $component->render());
+        self::assertStringContainsString('Unfollow', (string) $component->render());
 
         $component->call('unfollow');
         $render = $component->render();
@@ -47,7 +47,7 @@ final class FollowTest extends KernelTestCase
 
         $component->call('follow');
 
-        self::assertStringContainsString('Ne plus suivre', (string) $component->render());
+        self::assertStringContainsString('Unfollow', (string) $component->render());
         self::assertNotNull($this->subscription('lea.fontaine@cairn.test'));
     }
 

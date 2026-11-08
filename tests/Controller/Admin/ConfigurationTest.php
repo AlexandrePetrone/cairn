@@ -40,14 +40,14 @@ final class ConfigurationTest extends WebTestCase
         self::assertResponseRedirects('/admin/configuration/roles');
         $crawler = $this->client->followRedirect();
 
-        self::assertSelectorTextContains('aside', 'Rôles et droits', 'the configuration has its own section in the navigation');
-        self::assertSelectorTextContains('main', 'Chef de projet');
-        self::assertSelectorTextContains('main', 'Internes seulement');
-        self::assertSelectorTextContains('main', '1 accès', 'Thomas on Maison Dupont');
+        self::assertSelectorTextContains('aside', 'Roles and rights', 'the configuration has its own section in the navigation');
+        self::assertSelectorTextContains('main', 'Project manager');
+        self::assertSelectorTextContains('main', 'Internal users only');
+        self::assertSelectorTextContains('main', '1 access', 'Thomas on Maison Dupont');
 
-        $assign = $crawler->filter('main tbody tr')->reduce(static fn ($row): bool => str_contains($row->text(), 'Assigner les demandes'));
+        $assign = $crawler->filter('main tbody tr')->reduce(static fn ($row): bool => str_contains($row->text(), 'Assign issues'));
         self::assertCount(1, $assign);
-        // Chef de projet, Développeur, Client, Client (lecture), Administrateur
+        // Project manager, Developer, Client, Client (read-only), Administrator
         self::assertSame([true, true, false, false, true], $assign->filter('td')->slice(1)->each(static fn ($cell): bool => $cell->filter('svg')->count() > 0));
     }
 
@@ -57,24 +57,24 @@ final class ConfigurationTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/admin/configuration/workflows');
         self::assertSelectorExists('#bug [data-controller="workflow-diagram"]');
-        self::assertStringContainsString('to_test -.->|"Refuser 💬"| in_progress', $crawler->filter('#bug [data-workflow-diagram-target="source"]')->text(), 'the graph, drawn by the browser');
-        self::assertSelectorTextContains('#bug', 'Anomalie');
-        self::assertSelectorTextContains('#bug', '1 catégorie');
-        self::assertSelectorTextContains('#bug', 'Environnement');
-        self::assertSelectorTextContains('#bug', 'Obligatoire');
-        self::assertSelectorTextContains('#bug', 'Expliquez ce qui ne va pas', 'the comment prompt of Refuser');
+        self::assertStringContainsString('to_test -.->|"Refuse 💬"| in_progress', $crawler->filter('#bug [data-workflow-diagram-target="source"]')->text(), 'the graph, drawn by the browser');
+        self::assertSelectorTextContains('#bug', 'Bug');
+        self::assertSelectorTextContains('#bug', '1 tracker');
+        self::assertSelectorTextContains('#bug', 'Environment');
+        self::assertSelectorTextContains('#bug', 'Required');
+        self::assertSelectorTextContains('#bug', 'Explain what is wrong', 'the comment prompt of Refuse');
 
-        $accept = $crawler->filter('#bug tbody tr')->reduce(static fn ($row): bool => str_starts_with(trim($row->text()), 'Valider'));
+        $accept = $crawler->filter('#bug tbody tr')->reduce(static fn ($row): bool => str_starts_with(trim($row->text()), 'Accept'));
         self::assertCount(1, $accept);
-        self::assertStringContainsString('À recetter', $accept->text());
-        // Chef de projet, Développeur, Client, Client (lecture), Administrateur
+        self::assertStringContainsString('To test', $accept->text());
+        // Project manager, Developer, Client, Client (read-only), Administrator
         self::assertSame([true, false, true, false, true], $accept->filter('td')->slice(3)->each(static fn ($cell): bool => $cell->filter('svg')->count() > 0));
 
         $this->client->request('GET', '/admin/configuration/workflows/bug');
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('main', 'Une nouvelle demande commence à l\'étape « Nouveau ».');
-        self::assertSelectorTextContains('main', 'Commentaire obligatoire');
-        self::assertSelectorTextContains('main table', 'Site e-commerce');
+        self::assertSelectorTextContains('main', 'A new issue starts on "New".');
+        self::assertSelectorTextContains('main', 'Comment required');
+        self::assertSelectorTextContains('main table', 'Online shop');
 
         $this->client->request('GET', '/admin/configuration/workflows/nonsense');
         self::assertResponseStatusCodeSame(404);
@@ -85,14 +85,14 @@ final class ConfigurationTest extends WebTestCase
         $this->signInAsAdmin();
 
         $this->client->request('GET', '/admin/configuration/fields');
-        self::assertSelectorTextContains('main', 'Préproduction');
-        self::assertSelectorTextContains('main', 'Anomalie (obligatoire)');
-        self::assertSelectorTextContains('main', 'Dupliqué par');
+        self::assertSelectorTextContains('main', 'Pre-production');
+        self::assertSelectorTextContains('main', 'Bug (required)');
+        self::assertSelectorTextContains('main', 'Duplicated by');
 
         $this->client->request('GET', '/admin/configuration/history');
-        self::assertSelectorTextContains('main', 'Stricte');
-        self::assertSelectorTextContains('main', 'En vigueur');
-        self::assertSelectorTextContains('main', 'par tests');
+        self::assertSelectorTextContains('main', 'Strict');
+        self::assertSelectorTextContains('main', 'In force');
+        self::assertSelectorTextContains('main', 'by tests');
     }
 
     private function signInAsAdmin(): void

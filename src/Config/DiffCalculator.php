@@ -122,7 +122,7 @@ final class DiffCalculator
     private static function summarize(mixed $value): string
     {
         if (\is_array($value) && isset($value['label'])) {
-            return \sprintf('«%s»', $value['label']);
+            return \sprintf('"%s"', $value['label']);
         }
         if (self::isMap($value)) {
             $parts = [];

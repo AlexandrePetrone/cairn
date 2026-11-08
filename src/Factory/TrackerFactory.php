@@ -22,7 +22,7 @@ final class TrackerFactory extends PersistentObjectFactory
     {
         return [
             'project' => ProjectFactory::new(),
-            'name' => 'Anomalie',
+            'name' => 'Bug',
             'workflowId' => 'bug',
         ];
     }

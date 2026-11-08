@@ -27,7 +27,7 @@ final class UserCreateCommandTest extends KernelTestCase
 
     public function testCreatesAnAdministratorWhoCanSignIn(): void
     {
-        $exitCode = $this->answer(['Julie@Agency.test', 'Julie', 'Morel', 'Administrateur', 'correct horse', 'correct horse']);
+        $exitCode = $this->answer(['Julie@Agency.test', 'Julie', 'Morel', 'Administrator', 'correct horse', 'correct horse']);
 
         self::assertSame(Command::SUCCESS, $exitCode, $this->tester->getDisplay());
         $user = self::getContainer()->get(UserRepository::class)->findOneBy(['email' => 'julie@agency.test']);
@@ -45,7 +45,7 @@ final class UserCreateCommandTest extends KernelTestCase
 
     public function testRefusesDifferentPasswords(): void
     {
-        self::assertSame(Command::FAILURE, $this->answer(['nadia@agency.test', 'Nadia', 'Benali', 'Interne (agence)', 'correct horse', 'correct house']));
+        self::assertSame(Command::FAILURE, $this->answer(['nadia@agency.test', 'Nadia', 'Benali', 'Internal', 'correct horse', 'correct house']));
         self::assertStringContainsString('differ', $this->tester->getDisplay());
         self::assertNull(self::getContainer()->get(UserRepository::class)->findOneBy(['email' => 'nadia@agency.test']));
     }

@@ -47,7 +47,7 @@ final class ApplyTransitionHandlerTest extends KernelTestCase
 
         $entry = $this->lastEntry($issue->getId());
         self::assertSame(JournalEntryType::Transitioned, $entry->getType());
-        self::assertSame(['transition' => 'Démarrer', 'from' => 'Nouveau', 'from_id' => 'new', 'to' => 'En cours', 'to_id' => 'in_progress'], $entry->getData());
+        self::assertSame(['transition' => 'Start', 'from' => 'New', 'from_id' => 'new', 'to' => 'In progress', 'to_id' => 'in_progress'], $entry->getData());
         self::assertNull($entry->getComment());
     }
 
@@ -92,13 +92,13 @@ final class ApplyTransitionHandlerTest extends KernelTestCase
             self::assertStringContainsString('requires a comment', $e->getMessage());
         }
 
-        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->client->getId(), $issue->getKey(), 'refuse', comment: 'Toujours vide en production.'));
+        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->client->getId(), $issue->getKey(), 'refuse', comment: 'Still empty in production.'));
 
         self::assertSame('in_progress', $issue->getPlace());
         $entry = $this->lastEntry($issue->getId());
         $comment = $entry->getComment();
         self::assertNotNull($comment);
-        self::assertSame('Toujours vide en production.', $comment->getBody());
+        self::assertSame('Still empty in production.', $comment->getBody());
         self::assertFalse($entry->isPrivate());
         self::assertSame($this->fixtures->client->getId(), $comment->getAuthor()->getId());
     }

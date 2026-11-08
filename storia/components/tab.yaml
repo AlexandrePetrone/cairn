@@ -1,5 +1,5 @@
 component: Ui:Tab
 variants:
-    active: { args: { active: true, count: 3 }, blocks: { content: Projets } }
-    inactive: { args: { count: 12 }, blocks: { content: Demandes } }
-    with_icon: { args: { icon: settings, right: true }, blocks: { content: Paramètres } }
+    active: { args: { active: true, count: 3 }, blocks: { content: Projects } }
+    inactive: { args: { count: 12 }, blocks: { content: Issues } }
+    with_icon: { args: { icon: settings, right: true }, blocks: { content: Settings } }

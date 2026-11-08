@@ -128,8 +128,8 @@ final class UserHandlersTest extends KernelTestCase
     {
         $claire = $this->fixtures->user('claire@client.test');
 
-        $this->commands->dispatch(new UpdateUser((int) $claire->getId(), plainPassword: 'un mot de passe'));
+        $this->commands->dispatch(new UpdateUser((int) $claire->getId(), plainPassword: 'a password'));
 
-        self::assertTrue(self::getContainer()->get(UserPasswordHasherInterface::class)->isPasswordValid($claire, 'un mot de passe'));
+        self::assertTrue(self::getContainer()->get(UserPasswordHasherInterface::class)->isPasswordValid($claire, 'a password'));
     }
 }

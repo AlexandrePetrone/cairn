@@ -59,7 +59,7 @@ final class RepositoriesTest extends WebTestCase
         self::assertSelectorExists('a[href="/MD/SPT/settings/repositories"]');
         $this->client->request('GET', '/MD/SPT/settings/repositories');
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('main', 'Aucun dépôt lié');
+        self::assertSelectorTextContains('main', 'No linked repository');
     }
 
     public function testLinkingInstallsTheWebhookWhenTheInstanceTokenAllowsIt(): void
@@ -68,7 +68,7 @@ final class RepositoriesTest extends WebTestCase
         $this->signInAs('thomas.girard@cairn.test');
         $this->client->request('GET', '/MD/SPT/settings/repositories');
 
-        $this->client->submitForm('Lier', ['code_repository[path]' => 'Maison-Dupont/Shop']);
+        $this->client->submitForm('Link', ['code_repository[path]' => 'Maison-Dupont/Shop']);
 
         self::assertResponseRedirects('/MD/SPT/settings/repositories');
         $linked = $this->linked();
@@ -77,9 +77,9 @@ final class RepositoriesTest extends WebTestCase
         self::assertSame('42', $linked[0]->getHookId());
         $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'maison-dupont/shop');
-        self::assertSelectorTextContains('main', 'Webhook installé');
+        self::assertSelectorTextContains('main', 'Webhook installed');
         self::assertSelectorNotExists('code.select-all', 'nothing to paste once installed');
-        self::assertSelectorTextContains('body', 'webhook installé.');
+        self::assertSelectorTextContains('body', 'webhook installed.');
     }
 
     public function testWithoutATokenTheManagerInstallsByHand(): void
@@ -87,24 +87,24 @@ final class RepositoriesTest extends WebTestCase
         $this->gitlab('');
         $this->signInAs('thomas.girard@cairn.test');
         $this->client->request('GET', '/MD/SPT/settings/repositories');
-        self::assertSelectorTextContains('main', "Aucun jeton d'instance");
+        self::assertSelectorTextContains('main', 'No instance token');
 
-        $this->client->submitForm('Lier', ['code_repository[path]' => ' /maison-dupont/shop/ ']);
+        $this->client->submitForm('Link', ['code_repository[path]' => ' /maison-dupont/shop/ ']);
         self::assertResponseRedirects('/MD/SPT/settings/repositories');
         $this->client->followRedirect();
 
         $linked = $this->linked();
         self::assertCount(1, $linked);
         self::assertFalse($linked[0]->isInstalled());
-        self::assertSelectorTextContains('body', 'Installez le webhook à la main');
-        self::assertSelectorTextContains('main', 'Webhook à installer');
+        self::assertSelectorTextContains('body', 'Install the webhook by hand');
+        self::assertSelectorTextContains('main', 'Webhook to install');
         self::assertSelectorTextContains('main', 'https://cairn.test/webhook/gitlab');
         self::assertSelectorTextContains('main', $linked[0]->getSecret());
-        self::assertSelectorNotExists('button:contains("Installer le webhook")', 'no button without a token');
+        self::assertSelectorNotExists('button:contains("Install the webhook")', 'no button without a token');
 
-        $this->client->submitForm('Lier', ['code_repository[path]' => 'maison-dupont/shop']);
+        $this->client->submitForm('Link', ['code_repository[path]' => 'maison-dupont/shop']);
         self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('form[name="code_repository"]', 'déjà lié');
+        self::assertSelectorTextContains('form[name="code_repository"]', 'already linked');
     }
 
     public function testTheActionsOnALinkedRepository(): void
@@ -112,7 +112,7 @@ final class RepositoriesTest extends WebTestCase
         $this->gitlab('glpat-test', new MockResponse('{"id": 42}', ['http_code' => 201]), new MockResponse('{"id": 42}'), new MockResponse('', ['http_code' => 204]), new MockResponse('{"message": "403 Forbidden"}', ['http_code' => 403]), new MockResponse('{"id": 43}', ['http_code' => 201]), new MockResponse('', ['http_code' => 204]));
         $this->signInAs('thomas.girard@cairn.test');
         $this->client->request('GET', '/MD/SPT/settings/repositories');
-        $this->client->submitForm('Lier', ['code_repository[path]' => 'maison-dupont/shop']);
+        $this->client->submitForm('Link', ['code_repository[path]' => 'maison-dupont/shop']);
         $repository = $this->linked()[0];
         $secret = $repository->getSecret();
         $url = \sprintf('/MD/SPT/settings/repositories/%d/', $repository->getId());
@@ -122,27 +122,27 @@ final class RepositoriesTest extends WebTestCase
         self::assertCount(1, $this->linked());
 
         $this->client->request('GET', '/MD/SPT/settings/repositories');
-        $this->client->submitForm('Régénérer le secret');
+        $this->client->submitForm('Regenerate the secret');
         self::assertResponseRedirects('/MD/SPT/settings/repositories');
         $this->client->followRedirect();
-        self::assertSelectorTextContains('body', 'Nouveau secret');
+        self::assertSelectorTextContains('body', 'New secret');
         self::assertNotSame($secret, $this->linked()[0]->getSecret());
 
-        $this->client->submitForm('Retirer le webhook');
+        $this->client->submitForm('Remove the webhook');
         self::assertFalse($this->linked()[0]->isInstalled());
 
         $this->client->followRedirect();
-        $this->client->submitForm('Installer le webhook');
+        $this->client->submitForm('Install the webhook');
         $this->client->followRedirect();
-        self::assertSelectorTextContains('body', 'La forge a refusé', 'a refusal is told');
+        self::assertSelectorTextContains('body', 'The forge refused', 'a refusal is told');
         self::assertFalse($this->linked()[0]->isInstalled());
 
-        $this->client->submitForm('Installer le webhook');
+        $this->client->submitForm('Install the webhook');
         self::assertSame('43', $this->linked()[0]->getHookId());
 
         $this->client->followRedirect();
-        self::assertSelectorTextContains('main', 'Délier ce dépôt ?', 'unlinking confirms in place');
-        $this->client->submitForm('Délier');
+        self::assertSelectorTextContains('main', 'Unlink this repository?', 'unlinking confirms in place');
+        $this->client->submitForm('Unlink');
         self::assertResponseRedirects('/MD/SPT/settings/repositories');
         self::assertSame([], $this->linked());
     }

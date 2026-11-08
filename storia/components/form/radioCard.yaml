@@ -1,8 +1,8 @@
 # Composite: rendered by radioCard.html.twig next to this file.
 variants:
     default:
-        args: { title: Haute, description: 'Gêne importante, contournement difficile' }
+        args: { title: High, description: 'Serious trouble, hard to work around' }
     checked_large:
-        args: { title: Anomalie, description: Quelque chose ne fonctionne plus comme avant., checked: true, large: true }
+        args: { title: Bug, description: Something no longer works as before., checked: true, large: true }
     dashed_with_badge:
-        args: { title: Tâche interne, description: Travail technique sans demande client., large: true, dashed: true, badge: Interne }
+        args: { title: Internal task, description: Technical work without a client request., large: true, dashed: true, badge: Internal }

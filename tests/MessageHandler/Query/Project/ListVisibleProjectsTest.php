@@ -63,11 +63,11 @@ final class ListVisibleProjectsTest extends KernelTestCase
         $project = ProjectFactory::createOne();
         $tracker = TrackerFactory::createOne(['project' => $project]);
         $author = UserFactory::new()->internal()->create();
-        $builder->issue($tracker, $author, 'Nouvelle');
-        $builder->issue($tracker, $author, 'En recette', place: 'to_test');
-        $builder->issue($tracker, $author, 'Bloquante', criticality: Criticality::Blocking);
-        $builder->issue($tracker, $author, 'Terminée', place: 'done', criticality: Criticality::Blocking);
-        $builder->issue($tracker, $author, 'Privée', place: 'to_test', private: true);
+        $builder->issue($tracker, $author, 'Fresh');
+        $builder->issue($tracker, $author, 'To test', place: 'to_test');
+        $builder->issue($tracker, $author, 'Blocking', criticality: Criticality::Blocking);
+        $builder->issue($tracker, $author, 'Finished', place: 'done', criticality: Criticality::Blocking);
+        $builder->issue($tracker, $author, 'Private', place: 'to_test', private: true);
         $client = UserFactory::createOne();
         MembershipFactory::createOne(['user' => $client, 'project' => $project, 'role' => 'client']);
 
@@ -81,25 +81,25 @@ final class ListVisibleProjectsTest extends KernelTestCase
         self::applyConfiguration();
         $builder = new IssueBuilder(self::getContainer()->get(EntityManagerInterface::class));
         $viewer = UserFactory::new()->internal()->create();
-        ProjectFactory::createOne(['name' => 'A calme']);
-        $old = ProjectFactory::createOne(['name' => 'B ancien']);
-        $busy = ProjectFactory::createOne(['name' => 'C actif']);
-        $archived = ProjectFactory::createOne(['name' => 'D archivé']);
-        $inArchivedWorkspace = ProjectFactory::createOne(['name' => 'E espace archivé', 'workspace' => WorkspaceFactory::createOne()]);
+        ProjectFactory::createOne(['name' => 'A quiet']);
+        $old = ProjectFactory::createOne(['name' => 'B old']);
+        $busy = ProjectFactory::createOne(['name' => 'C busy']);
+        $archived = ProjectFactory::createOne(['name' => 'D archived']);
+        $inArchivedWorkspace = ProjectFactory::createOne(['name' => 'E archived workspace', 'workspace' => WorkspaceFactory::createOne()]);
 
         self::mockTime('2026-10-01 10:00');
-        $builder->issue(TrackerFactory::createOne(['project' => $old]), $viewer, 'Ancienne');
+        $builder->issue(TrackerFactory::createOne(['project' => $old]), $viewer, 'Old');
         self::mockTime('2026-10-02 10:00');
-        $builder->issue(TrackerFactory::createOne(['project' => $busy]), $viewer, 'Récente');
-        $builder->issue(TrackerFactory::createOne(['project' => $archived]), $viewer, 'Archivée');
+        $builder->issue(TrackerFactory::createOne(['project' => $busy]), $viewer, 'Recent');
+        $builder->issue(TrackerFactory::createOne(['project' => $archived]), $viewer, 'Archived');
         $archived->archive();
         $inArchivedWorkspace->getWorkspace()->archive();
         self::getContainer()->get(EntityManagerInterface::class)->flush();
 
         $names = static fn (array $summaries): array => array_map(static fn (ProjectSummary $summary): string => $summary->project->getName(), $summaries);
-        self::assertSame(['C actif', 'B ancien', 'A calme'], $names(self::queryBus()->ask(new ListVisibleProjects($viewer, recent: 8))));
-        self::assertSame(['C actif', 'B ancien'], $names(self::queryBus()->ask(new ListVisibleProjects($viewer, recent: 2))));
-        self::assertContains('D archivé', $names(self::queryBus()->ask(new ListVisibleProjects($viewer))), 'the full list keeps the archived ones');
-        self::assertSame(['B ancien'], $names(self::queryBus()->ask(new ListVisibleProjects($viewer, q: 'ancien'))));
+        self::assertSame(['C busy', 'B old', 'A quiet'], $names(self::queryBus()->ask(new ListVisibleProjects($viewer, recent: 8))));
+        self::assertSame(['C busy', 'B old'], $names(self::queryBus()->ask(new ListVisibleProjects($viewer, recent: 2))));
+        self::assertContains('D archived', $names(self::queryBus()->ask(new ListVisibleProjects($viewer))), 'the full list keeps the archived ones');
+        self::assertSame(['B old'], $names(self::queryBus()->ask(new ListVisibleProjects($viewer, q: 'old'))));
     }
 }

@@ -36,13 +36,21 @@ final class LoginTest extends WebTestCase
         self::assertResponseRedirects('/login');
     }
 
+    public function testThePageIsInTheLanguageOfTheInstance(): void
+    {
+        $this->client->request('GET', '/login');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('html[lang="en"]', 'CAIRN_LOCALE is English by default');
+    }
+
     public function testAUserSignsInWithEmailAndPassword(): void
     {
         $this->signIn('Claire@Client.test', UserFactory::DEFAULT_PASSWORD);
 
         self::assertResponseRedirects('/');
         $this->client->followRedirect();
-        self::assertSelectorTextContains('h1', 'Bonjour Claire');
+        self::assertSelectorTextContains('h1', 'Hello Claire');
     }
 
     public function testAWrongPasswordKeepsTheEmailAndShowsAnError(): void
@@ -62,7 +70,7 @@ final class LoginTest extends WebTestCase
         $this->signIn('paul@client.test', UserFactory::DEFAULT_PASSWORD);
         $this->client->followRedirect();
 
-        self::assertSelectorTextContains('[role="alert"]', 'Ce compte est désactivé.');
+        self::assertSelectorTextContains('[role="alert"]', 'This account is disabled.');
     }
 
     public function testADeactivatedAccountLosesItsOpenSession(): void
@@ -89,7 +97,7 @@ final class LoginTest extends WebTestCase
         $this->signIn('claire@client.test', UserFactory::DEFAULT_PASSWORD);
         self::assertResponseRedirects('/login');
         $this->client->followRedirect();
-        self::assertSelectorTextContains('[role="alert"]', 'Trop de tentatives de connexion');
+        self::assertSelectorTextContains('[role="alert"]', 'Too many failed login attempts');
     }
 
     public function testRememberMeSetsALongLivedCookie(): void
@@ -104,7 +112,7 @@ final class LoginTest extends WebTestCase
         $this->signIn('claire@client.test', UserFactory::DEFAULT_PASSWORD);
         $this->client->followRedirect();
 
-        $this->client->clickLink('Se déconnecter');
+        $this->client->clickLink('Log out');
         self::assertResponseRedirects('/login');
 
         $this->client->request('GET', '/');
@@ -129,6 +137,6 @@ final class LoginTest extends WebTestCase
         if ($rememberMe) {
             $values['_remember_me'] = '1';
         }
-        $this->client->submit($crawler->selectButton('Se connecter')->form($values));
+        $this->client->submit($crawler->selectButton('Sign in')->form($values));
     }
 }

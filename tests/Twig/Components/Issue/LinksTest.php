@@ -33,7 +33,7 @@ final class LinksTest extends KernelTestCase
     {
         $component = $this->links('nadia.benali@cairn.test');
         $component->call('open');
-        self::assertStringContainsString('Bloqué par', (string) $component->render(), 'the inverse labels are offered too');
+        self::assertStringContainsString('Blocked by', (string) $component->render(), 'the inverse labels are offered too');
 
         $component->set('kind', 'blocks:inverse')->set('otherKey', 'export');
         self::assertStringNotContainsString('data-live-key-param="MD-SPT-4"', (string) $component->render(), 'the issue itself is not suggested');
@@ -53,7 +53,7 @@ final class LinksTest extends KernelTestCase
 
         $component->call('open')->set('kind', 'related')->set('otherKey', 'MD-SPT-99')->call('add');
 
-        self::assertStringContainsString('Aucune demande MD-SPT-99 visible pour vous', (string) $component->render());
+        self::assertStringContainsString('No issue MD-SPT-99 that you can see', (string) $component->render());
     }
 
     public function testAClientReadsTheLinksHeSeesWithoutControls(): void
@@ -79,7 +79,7 @@ final class LinksTest extends KernelTestCase
         $component = $this->links('nadia.benali@cairn.test');
 
         $component->call('confirmRemove', ['id' => $link->getId()]);
-        self::assertStringContainsString('Retirer ce lien ?', (string) $component->render());
+        self::assertStringContainsString('Remove this link?', (string) $component->render());
         $component->call('remove');
 
         self::assertStringNotContainsString('MD-SPT-3', (string) $component->render());

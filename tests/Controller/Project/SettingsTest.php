@@ -53,16 +53,16 @@ final class SettingsTest extends WebTestCase
         $this->signInAs('thomas.girard@cairn.test');
         $this->client->request('GET', '/MD/SPT/settings');
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('main', 'Tâche interne');
+        self::assertSelectorTextContains('main', 'Internal task');
 
-        $this->client->submitForm('Créer la catégorie', ['tracker[name]' => ''], 'POST');
+        $this->client->submitForm('Create the tracker', ['tracker[name]' => ''], 'POST');
         self::assertResponseStatusCodeSame(422);
-        $this->client->submitForm('Créer la catégorie', ['tracker[name]' => '   ', 'tracker[workflowId]' => 'task'], 'POST');
+        $this->client->submitForm('Create the tracker', ['tracker[name]' => '   ', 'tracker[workflowId]' => 'task'], 'POST');
         self::assertResponseStatusCodeSame(422, 'a blank name is refused by the form, not by the bus');
 
-        $this->client->submitForm('Créer la catégorie', [
+        $this->client->submitForm('Create the tracker', [
             'tracker[name]' => 'Support',
-            'tracker[description]' => 'Une question sur le site.',
+            'tracker[description]' => 'A question about the site.',
             'tracker[workflowId]' => 'task',
         ]);
 
@@ -82,12 +82,12 @@ final class SettingsTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('[data-controller="workflow-diagram"]');
 
-        $this->client->submitForm('Enregistrer', ['tracker[name]' => 'Évolutions', 'tracker[active]' => false]);
+        $this->client->submitForm('Save', ['tracker[name]' => 'Features', 'tracker[active]' => false]);
         self::assertResponseRedirects($url);
 
         $evolutions = self::getContainer()->get(TrackerRepository::class)->find($this->scene->evolutions->getId());
         self::assertInstanceOf(Tracker::class, $evolutions);
-        self::assertSame('Évolutions', $evolutions->getName());
+        self::assertSame('Features', $evolutions->getName());
         self::assertFalse($evolutions->isActive());
 
         $this->client->request('GET', '/MD/SPT/issues');
@@ -108,15 +108,15 @@ final class SettingsTest extends WebTestCase
         $this->signInAs('thomas.girard@cairn.test');
         $this->client->request('GET', '/MD/SPT/settings/general');
 
-        $this->client->submitForm('Enregistrer', [
-            'project_settings[name]' => 'Boutique en ligne',
-            'project_settings[description]' => 'Le site public et le back-office.',
+        $this->client->submitForm('Save', [
+            'project_settings[name]' => 'Web shop',
+            'project_settings[description]' => 'The public site and the back office.',
         ]);
 
         self::assertResponseRedirects('/MD/SPT/settings/general');
         $this->client->followRedirect();
-        self::assertInputValueSame('project_settings[name]', 'Boutique en ligne');
-        self::assertSelectorTextContains('textarea', 'Le site public et le back-office.');
+        self::assertInputValueSame('project_settings[name]', 'Web shop');
+        self::assertSelectorTextContains('textarea', 'The public site and the back office.');
     }
 
     public function testTheAccessPageShowsTheInheritedRolesThenTheDirectOnes(): void

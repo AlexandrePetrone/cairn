@@ -1,5 +1,5 @@
 component: Ui:Form:Input
 variants:
-    text: { args: { name: title, placeholder: Décrivez le problème en une phrase } }
+    text: { args: { name: title, placeholder: Describe the problem in one sentence } }
     readonly: { args: { readonly: true }, blocks: { content: MD-SPT } }
     disabled: { args: { name: title, value: Export CSV, disabled: true } }

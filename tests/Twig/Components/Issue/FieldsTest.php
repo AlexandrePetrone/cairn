@@ -53,12 +53,12 @@ final class FieldsTest extends KernelTestCase
         $render = $component->render();
 
         self::assertSame(200, $component->response()->getStatusCode());
-        self::assertStringContainsString('Préproduction', (string) $render);
+        self::assertStringContainsString('Pre-production', (string) $render);
         self::assertStringNotContainsString('fields[environment]', (string) $render, 'back to reading');
         self::assertNotNull($component->getEmittedEvent($render, 'issue:changed'));
         self::assertNotNull($component->getDispatchedBrowserEvent($render, 'toast:show'));
         $entry = self::getContainer()->get(EntityManagerInterface::class)->getRepository(JournalEntry::class)->findOneBy(['issue' => $this->issue, 'type' => JournalEntryType::FieldChanged], ['id' => 'DESC']);
-        self::assertSame('Préproduction', $entry?->getData()['to'] ?? null);
+        self::assertSame('Pre-production', $entry?->getData()['to'] ?? null);
     }
 
     public function testARequiredFieldCannotBeEmptied(): void

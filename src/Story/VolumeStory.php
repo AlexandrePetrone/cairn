@@ -39,10 +39,10 @@ final class VolumeStory extends Story
 {
     private const int ISSUES = 200;
 
-    private const array BUG_PROBLEMS = ['Erreur 500', 'Affichage cassé', 'Lenteur', 'Mauvais calcul du total', 'Bouton sans effet', 'Traduction manquante', 'Doublon', 'Tri incorrect'];
-    private const array EVOLUTION_WISHES = ['Ajouter un export', 'Filtrer par marque', 'Afficher l\'historique', 'Envoyer une notification', 'Importer par fichier', 'Personnaliser les colonnes', 'Ajouter un raccourci'];
-    private const array TASK_CHORES = ['Mettre à jour les dépendances', 'Nettoyer les logs', 'Revoir un index', 'Ajouter un test', 'Documenter l\'API'];
-    private const array SCREENS = ['la fiche produit', 'la liste des commandes', 'le tableau de bord', 'la fiche client', 'les promotions', 'les stocks', 'les fournisseurs', 'la facturation', 'les retours', 'les avis clients'];
+    private const array BUG_PROBLEMS = ['Error 500', 'Broken display', 'Slowness', 'Wrong total', 'Button does nothing', 'Missing translation', 'Duplicate', 'Wrong sort order'];
+    private const array EVOLUTION_WISHES = ['Add an export', 'Filter by brand', 'Show the history', 'Send a notification', 'Import from a file', 'Customise the columns', 'Add a shortcut'];
+    private const array TASK_CHORES = ['Update the dependencies', 'Clean the logs', 'Review an index', 'Add a test', 'Document the API'];
+    private const array SCREENS = ['the product page', 'the order list', 'the dashboard', 'the customer page', 'the promotions', 'the stock', 'the suppliers', 'the invoicing', 'the returns', 'the customer reviews'];
 
     /** @var array<string, User> */
     private array $users = [];
@@ -62,14 +62,14 @@ final class VolumeStory extends Story
         }
         $natura = $this->entityManager->getRepository(Workspace::class)->findOneBy(['key' => 'NC']) ?? throw new \LogicException('Load AppStory first: no NC workspace.');
 
-        $project = ProjectFactory::createOne(['workspace' => $natura, 'name' => 'Catalogue B2B', 'key' => 'CAT', 'description' => 'Catalogue des revendeurs, beaucoup de demandes pour essayer les listes.']);
+        $project = ProjectFactory::createOne(['workspace' => $natura, 'name' => 'B2B catalogue', 'key' => 'CAT', 'description' => 'Catalogue of the resellers, many issues to try the lists.']);
         foreach (['lea', 'nadia'] as $developer) {
             MembershipFactory::createOne(['user' => $this->users[$developer], 'project' => $project, 'role' => 'developer']);
         }
         $trackers = [
-            'bug' => TrackerFactory::createOne(['project' => $project, 'name' => 'Anomalie', 'workflowId' => 'bug', 'position' => 0]),
-            'evolution' => TrackerFactory::createOne(['project' => $project, 'name' => 'Évolution', 'workflowId' => 'evolution', 'position' => 1]),
-            'task' => TrackerFactory::createOne(['project' => $project, 'name' => 'Tâche interne', 'workflowId' => 'task', 'position' => 2, 'private' => true]),
+            'bug' => TrackerFactory::createOne(['project' => $project, 'name' => $this->workflows->definition('bug')->label, 'workflowId' => 'bug', 'position' => 0]),
+            'evolution' => TrackerFactory::createOne(['project' => $project, 'name' => $this->workflows->definition('evolution')->label, 'workflowId' => 'evolution', 'position' => 1]),
+            'task' => TrackerFactory::createOne(['project' => $project, 'name' => $this->workflows->definition('task')->label, 'workflowId' => 'task', 'position' => 2, 'private' => true]),
         ];
 
         $now = (new NativeClock())->now();
@@ -102,7 +102,7 @@ final class VolumeStory extends Story
             projectId: (int) $project->getId(),
             trackerId: (int) $trackerId,
             title: self::title($workflowId, $index),
-            description: 'Demande générée pour essayer les listes.',
+            description: 'Issue generated to try the lists.',
             criticality: [Criticality::Normal, Criticality::Low, Criticality::High, Criticality::Normal, Criticality::Blocking, Criticality::Low, Criticality::Normal][$index % 7],
             fields: AppStory::fieldsFor($workflow, $index),
         ));
@@ -125,7 +125,7 @@ final class VolumeStory extends Story
                 actorId: (int) $this->actorFor($transition, $project)->getId(),
                 issueKey: $issue->getKey(),
                 transitionId: $transition->id,
-                comment: $transition->requiresComment ? 'Toujours reproductible.' : null,
+                comment: $transition->requiresComment ? 'Still reproducible.' : null,
             ));
         }
     }
@@ -135,8 +135,8 @@ final class VolumeStory extends Story
         $screen = self::SCREENS[intdiv($index, 3) % \count(self::SCREENS)];
 
         return match ($workflowId) {
-            'bug' => self::BUG_PROBLEMS[$index % \count(self::BUG_PROBLEMS)].' sur '.$screen,
-            'evolution' => self::EVOLUTION_WISHES[$index % \count(self::EVOLUTION_WISHES)].' dans '.$screen,
+            'bug' => self::BUG_PROBLEMS[$index % \count(self::BUG_PROBLEMS)].' on '.$screen,
+            'evolution' => self::EVOLUTION_WISHES[$index % \count(self::EVOLUTION_WISHES)].' in '.$screen,
             default => self::TASK_CHORES[$index % \count(self::TASK_CHORES)].' ('.$screen.')',
         };
     }

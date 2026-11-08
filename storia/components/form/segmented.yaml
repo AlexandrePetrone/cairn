@@ -1,8 +1,8 @@
 component: Ui:Form:Segmented
 variants:
     default:
-        args: { name: reproducible, options: { always: 'Oui, systématiquement', sometimes: Parfois, once: Une seule fois } }
+        args: { name: reproducible, options: { always: 'Yes, every time', sometimes: Sometimes, once: Only once } }
     with_selection:
-        args: { name: type, value: internal, options: { internal: Interne, admin: Administrateur, external: Externe } }
+        args: { name: type, value: internal, options: { internal: Internal, admin: Administrator, external: External } }
     disabled:
         args: { name: type, value: internal, disabled: true, options: { internal: Interne, admin: Administrateur, external: Externe } }

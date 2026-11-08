@@ -1,5 +1,5 @@
 component: Ui:StatTile
 variants:
-    new: { args: { label: Nouvelles, value: 7, caption: à qualifier, status: open } }
-    testing: { args: { label: En recette, value: 3, caption: chez le client, status: waiting } }
-    critical: { args: { label: Critiques ouvertes, value: 2 } }
+    new: { args: { label: New, value: 7, caption: to qualify, status: open } }
+    testing: { args: { label: Testing, value: 3, caption: with the client, status: waiting } }
+    critical: { args: { label: Open critical, value: 2 } }

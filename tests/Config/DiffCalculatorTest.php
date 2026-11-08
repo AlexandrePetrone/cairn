@@ -28,14 +28,14 @@ final class DiffCalculatorTest extends TestCase
     public function testFirstSyncAddsEverythingItemByItem(): void
     {
         self::assertSame([
-            '+ roles.project_manager: «Chef de projet»',
-            '+ roles.developer: «Développeur»',
-            '+ roles.client: «Client»',
-            '+ fields.url: «URL»',
-            '+ fields.environment: «Environnement»',
-            '+ links.related: «Lié à»',
-            '+ links.blocks: «Bloque»',
-            '+ workflows.bug: «Anomalie»',
+            '+ roles.project_manager: "Project manager"',
+            '+ roles.developer: "Developer"',
+            '+ roles.client: "Client"',
+            '+ fields.url: "URL"',
+            '+ fields.environment: "Environment"',
+            '+ links.related: "Related to"',
+            '+ links.blocks: "Blocks"',
+            '+ workflows.bug: "Bug"',
             '+ migrationPolicy: strict',
             '+ permissions.comment.create: [project_manager, developer, client]',
             '+ permissions.comment.edit: [project_manager]',
@@ -64,11 +64,11 @@ final class DiffCalculatorTest extends TestCase
     {
         $diff = $this->calculator->between(
             DefinitionFactory::definition(),
-            DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(label: 'Bug')], migrationPolicy: MigrationPolicy::Fallback),
+            DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(label: 'Defect')], migrationPolicy: MigrationPolicy::Fallback),
         );
 
         self::assertSame([
-            '~ workflows.bug.label: Anomalie → Bug',
+            '~ workflows.bug.label: Bug → Defect',
             '~ migrationPolicy: strict → fallback',
         ], $diff);
     }
@@ -81,11 +81,11 @@ final class DiffCalculatorTest extends TestCase
         );
 
         self::assertSame([
-            '- workflows.bug.places.to_test: «À recetter»',
-            '+ workflows.bug.transitions.finish: «Terminer»',
-            '- workflows.bug.transitions.deliver: «Livrer»',
-            '- workflows.bug.transitions.accept: «Valider»',
-            '- workflows.bug.transitions.refuse: «Refuser»',
+            '- workflows.bug.places.to_test: "To test"',
+            '+ workflows.bug.transitions.finish: "Finish"',
+            '- workflows.bug.transitions.deliver: "Deliver"',
+            '- workflows.bug.transitions.accept: "Accept"',
+            '- workflows.bug.transitions.refuse: "Refuse"',
         ], $diff);
     }
 
@@ -107,7 +107,7 @@ final class DiffCalculatorTest extends TestCase
             initial: 'a',
             places: [
                 new PlaceDefinition(id: 'a', label: 'A', status: PlaceStatus::Open),
-                new PlaceDefinition(id: 'b', label: 'Faite', status: PlaceStatus::Closed),
+                new PlaceDefinition(id: 'b', label: 'Done', status: PlaceStatus::Closed),
             ],
             transitions: [new TransitionDefinition(id: 't', label: 'T', from: ['a'], to: 'b', roles: ['developer', 'client'], requiresComment: true)],
         );
@@ -118,7 +118,7 @@ final class DiffCalculatorTest extends TestCase
         );
 
         self::assertSame([
-            '~ workflows.w.places.b.label: B → Faite',
+            '~ workflows.w.places.b.label: B → Done',
             '~ workflows.w.places.b.status: waiting → closed',
             '~ workflows.w.transitions.t.roles: [developer] → [developer, client]',
             '~ workflows.w.transitions.t.requiresComment: no → yes',
@@ -128,19 +128,19 @@ final class DiffCalculatorTest extends TestCase
     public function testMapsAndRemovedWorkflows(): void
     {
         $before = DefinitionFactory::definition(
-            workflows: [DefinitionFactory::bugWorkflow(), new WorkflowDefinition(id: 'task', label: 'Tâche', initial: 'todo', places: [new PlaceDefinition(id: 'todo', label: 'À faire', status: PlaceStatus::Open)], transitions: [])],
+            workflows: [DefinitionFactory::bugWorkflow(), new WorkflowDefinition(id: 'task', label: 'Task', initial: 'todo', places: [new PlaceDefinition(id: 'todo', label: 'To do', status: PlaceStatus::Open)], transitions: [])],
             permissions: ['issue.create' => ['client']],
         );
         $after = DefinitionFactory::definition(
-            fields: [...DefinitionFactory::fields(), new FieldDefinition(id: 'browser', label: 'Navigateur', type: FieldType::Text)],
+            fields: [...DefinitionFactory::fields(), new FieldDefinition(id: 'browser', label: 'Browser', type: FieldType::Text)],
             permissions: ['issue.create' => ['client', 'developer'], 'issue.assign' => ['developer']],
         );
 
         $diff = $this->calculator->between($before, $after);
 
         self::assertSame([
-            '+ fields.browser: «Navigateur»',
-            '- workflows.task: «Tâche»',
+            '+ fields.browser: "Browser"',
+            '- workflows.task: "Task"',
             '+ permissions.issue.assign: [developer]',
             '~ permissions.issue.create: [client] → [client, developer]',
         ], $diff);

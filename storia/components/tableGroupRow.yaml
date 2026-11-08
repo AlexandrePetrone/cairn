@@ -3,7 +3,7 @@ variants:
     default:
         args: { count: 12, colspan: 4 }
         blocks:
-            content: 'À recetter'
+            content: 'To test'
     collapsed:
         args: { count: 3, colspan: 4, collapsed: true }
         blocks:

@@ -33,14 +33,14 @@ final class NavigationTest extends WebTestCase
         $this->client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('h1', 'Bonjour Claire');
-        self::assertSelectorTextContains('main', 'Site e-commerce');
+        self::assertSelectorTextContains('h1', 'Hello Claire');
+        self::assertSelectorTextContains('main', 'Online shop');
         self::assertSelectorTextContains('main', 'Intranet');
-        self::assertSelectorTextNotContains('main', 'Site de réservation', 'not her workspace');
-        self::assertSelectorTextContains('main section.border-amber-200', 'L\'export CSV des commandes est vide', 'her issue waits for her');
-        self::assertSelectorTextContains('main section.border-amber-200', 'Votre demande est en attente');
-        self::assertSelectorTextContains('main', 'Créées par moi');
-        self::assertSelectorTextContains('main', 'Spinner infini sur la page panier');
+        self::assertSelectorTextNotContains('main', 'Booking site', 'not her workspace');
+        self::assertSelectorTextContains('main section.border-amber-200', 'The CSV export of orders is empty', 'her issue waits for her');
+        self::assertSelectorTextContains('main section.border-amber-200', 'Your issue is waiting');
+        self::assertSelectorTextContains('main', 'Created by me');
+        self::assertSelectorTextContains('main', 'Endless spinner on the cart page');
     }
 
     public function testMyIssuesListAcrossProjectsWhatIsVisible(): void
@@ -50,10 +50,10 @@ final class NavigationTest extends WebTestCase
         $this->client->request('GET', '/issues/assigned');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('tbody', 'Les frais de port ne s\'affichent pas en Corse');
-        self::assertSelectorTextContains('tbody', 'Mettre à jour Symfony en 8.1', 'internal users see the internal tasks');
-        self::assertSelectorTextContains('tbody', 'Site e-commerce', 'the project column');
-        self::assertSelectorTextNotContains('tbody', 'Typo dans le pied de page', 'not hers');
+        self::assertSelectorTextContains('tbody', 'Shipping costs are not shown for Corsica');
+        self::assertSelectorTextContains('tbody', 'Upgrade Symfony to 8.1', 'internal users see the internal tasks');
+        self::assertSelectorTextContains('tbody', 'Online shop', 'the project column');
+        self::assertSelectorTextNotContains('tbody', 'Typo in the footer', 'not hers');
 
         $this->client->request('GET', '/issues/assigned', ['projects' => [(int) $this->scene->intranet->getId()]]);
         self::assertResponseIsSuccessful();
@@ -62,8 +62,8 @@ final class NavigationTest extends WebTestCase
         $this->signInAs('claire.martin@maison-dupont.test');
         $this->client->request('GET', '/issues/created');
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('tbody', 'Spinner infini sur la page panier');
-        self::assertSelectorTextNotContains('tbody', 'Export comptable mensuel au format FEC', 'written by Thomas');
+        self::assertSelectorTextContains('tbody', 'Endless spinner on the cart page');
+        self::assertSelectorTextNotContains('tbody', 'Monthly accounting export in FEC format', 'written by Thomas');
     }
 
     public function testTheProjectsPageGroupsWhatTheViewerMayOpen(): void
@@ -71,18 +71,18 @@ final class NavigationTest extends WebTestCase
         $this->signInAs('sophie.bernard@travelia.test');
         $this->client->request('GET', '/projects');
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('main', 'Site de réservation');
-        self::assertSelectorTextContains('main', 'Archivé · lecture seule');
-        self::assertSelectorTextNotContains('main', 'Site e-commerce');
+        self::assertSelectorTextContains('main', 'Booking site');
+        self::assertSelectorTextContains('main', 'Archived · read-only');
+        self::assertSelectorTextNotContains('main', 'Online shop');
 
         $this->signInAs('thomas.girard@cairn.test');
         $this->client->request('GET', '/projects');
         self::assertSelectorTextContains('main', 'Maison Dupont');
-        self::assertSelectorTextContains('main', 'Site de réservation', 'internal users see every project');
+        self::assertSelectorTextContains('main', 'Booking site', 'internal users see every project');
 
         $this->client->request('GET', '/projects', ['q' => 'intra']);
         self::assertSelectorTextContains('main', 'Intranet');
-        self::assertSelectorTextNotContains('main', 'Site e-commerce');
+        self::assertSelectorTextNotContains('main', 'Online shop');
     }
 
     public function testTheTabsAreForTheApplicationLevelAndTheProjectSwitcherForProjects(): void

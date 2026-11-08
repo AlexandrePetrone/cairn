@@ -16,7 +16,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
- * In the scene, MD-SPT-4, « L'export CSV des commandes est vide », waits
+ * In the scene, MD-SPT-4, "The CSV export of orders is empty", waits
  * for Claire's acceptance; MD-SPT-6 is an internal task.
  */
 final class IssueTest extends WebTestCase
@@ -39,18 +39,18 @@ final class IssueTest extends WebTestCase
         $this->client->request('GET', '/MD/SPT/issues/4');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('h1', 'L\'export CSV des commandes est vide');
-        self::assertSelectorTextContains('main aside', 'Environnement');
-        self::assertSelectorTextContains('main', 'Valider');
-        self::assertSelectorTextContains('main', 'Refuser');
-        self::assertSelectorTextContains('main', 'a créé la demande');
-        self::assertSelectorTextContains('main', 'a changé l\'assigné : Personne → Nadia Benali', 'assigned through the command in the fixtures');
-        self::assertSelectorTextContains('main [aria-label="Parcours"]', 'Nouveau');
+        self::assertSelectorTextContains('h1', 'The CSV export of orders is empty');
+        self::assertSelectorTextContains('main aside', 'Environment');
+        self::assertSelectorTextContains('main', 'Accept');
+        self::assertSelectorTextContains('main', 'Refuse');
+        self::assertSelectorTextContains('main', 'created the issue');
+        self::assertSelectorTextContains('main', 'changed the assignee: Nobody → Nadia Benali', 'assigned through the command in the fixtures');
+        self::assertSelectorTextContains('main [aria-label="Path"]', 'New');
         self::assertSelectorNotExists('main [data-live-name-value="Issue:Move"] [data-live-action-param="open"]', 'a client may not move the issue');
 
         $this->signInAs('thomas.girard@cairn.test');
         $this->client->request('GET', '/MD/SPT/issues/4');
-        self::assertSelectorExists('main [data-live-name-value="Issue:Move"] [data-live-action-param="open"]', 'the manager has the « ⋯ » menu');
+        self::assertSelectorExists('main [data-live-name-value="Issue:Move"] [data-live-action-param="open"]', 'the manager has the "⋯" menu');
     }
 
     public function testPrivateCommentsAreForInternalsOnly(): void
@@ -61,7 +61,7 @@ final class IssueTest extends WebTestCase
         $this->signInAs('nadia.benali@cairn.test');
         $this->client->request('GET', $url);
         self::assertSelectorTextContains('main', $comment->getBody());
-        self::assertSelectorTextContains('main', 'Privé · invisible pour les externes');
+        self::assertSelectorTextContains('main', 'Private · hidden from external users');
 
         $this->signInAs('claire.martin@maison-dupont.test');
         $this->client->request('GET', $url);
@@ -73,7 +73,7 @@ final class IssueTest extends WebTestCase
     {
         $this->signInAs('claire.martin@maison-dupont.test');
         $this->client->request('GET', '/MD/SPT/issues/4');
-        self::assertSelectorTextNotContains('body', 'est archivé', 'no banner on an active project');
+        self::assertSelectorTextNotContains('body', 'is archived', 'no banner on an active project');
 
         $this->scene->shop->archive();
         self::getContainer()->get(EntityManagerInterface::class)->flush();
@@ -83,11 +83,11 @@ final class IssueTest extends WebTestCase
             $this->client->request('GET', '/MD/SPT/issues/4');
 
             self::assertResponseIsSuccessful();
-            self::assertSelectorTextContains('body', 'Ce projet est archivé');
-            self::assertSelectorTextContains('h1', 'L\'export CSV des commandes est vide');
+            self::assertSelectorTextContains('body', 'This project is archived');
+            self::assertSelectorTextContains('h1', 'The CSV export of orders is empty');
             // The workflow drawer still names the actions in its Mermaid source; the activity offers none.
-            self::assertSelectorTextNotContains('main [data-live-name-value="Issue:Activity"]', 'Valider', $email);
-            self::assertSelectorTextNotContains('main [data-live-name-value="Issue:Activity"]', 'Refuser', $email);
+            self::assertSelectorTextNotContains('main [data-live-name-value="Issue:Activity"]', 'Accept', $email);
+            self::assertSelectorTextNotContains('main [data-live-name-value="Issue:Activity"]', 'Refuse', $email);
             self::assertSelectorNotExists('main [data-live-action-param="submit"]', $email);
             self::assertSelectorNotExists('main [name="outcome"]', $email);
         }
@@ -118,9 +118,9 @@ final class IssueTest extends WebTestCase
         $this->signInAs('thomas.girard@cairn.test');
         $this->client->request('GET', $url);
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('main', '2 commits sur main');
+        self::assertSelectorTextContains('main', '2 commits on main');
         self::assertSelectorTextContains('main', 'Merge request !431');
-        self::assertSelectorTextContains('main', 'Fusionnée');
+        self::assertSelectorTextContains('main', 'Merged');
         self::assertSelectorTextContains('main aside', '!431', 'the card of the panel, folded, sums the code up');
         self::assertSelectorExists('main span[title="GitLab"]', 'the marker names the forge');
         self::assertSelectorExists('a[href="https://gitlab.test/maison-dupont/shop/-/commit/a1b2c3d4e5f6"]');

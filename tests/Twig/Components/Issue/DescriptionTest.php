@@ -34,13 +34,13 @@ final class DescriptionTest extends KernelTestCase
     {
         $component = $this->description('claire.martin@maison-dupont.test');
 
-        $component->call('editDescription')->set('description', 'Le fichier ne contient que l\'en-tête.')->call('saveDescription');
+        $component->call('editDescription')->set('description', 'The file only holds the header.')->call('saveDescription');
         $render = $component->render();
 
-        self::assertStringContainsString('<p>Le fichier ne contient que l\'en-tête.</p>', (string) $render);
+        self::assertStringContainsString('<p>The file only holds the header.</p>', (string) $render);
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $entityManager->clear();
-        self::assertSame('Le fichier ne contient que l\'en-tête.', $entityManager->find(Issue::class, $this->issue->getId())?->getDescription());
+        self::assertSame('The file only holds the header.', $entityManager->find(Issue::class, $this->issue->getId())?->getDescription());
         self::assertNotNull($component->getEmittedEvent($render, 'issue:changed'));
     }
 

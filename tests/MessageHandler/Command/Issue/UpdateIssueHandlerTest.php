@@ -48,12 +48,12 @@ final class UpdateIssueHandlerTest extends KernelTestCase
         $issue = $this->fixtures->createIssue($this->fixtures->client);
         $client = (int) $this->fixtures->client->getId();
 
-        $this->commands->dispatch(new UpdateIssue($client, $issue->getKey(), title: '  Export CSV des commandes vide  '));
-        self::assertSame('Export CSV des commandes vide', $issue->getTitle());
-        self::assertSame(['field' => 'title', 'from' => 'Export CSV vide', 'to' => 'Export CSV des commandes vide'], $this->lastEntry($issue, JournalEntryType::Changed)->getData());
+        $this->commands->dispatch(new UpdateIssue($client, $issue->getKey(), title: '  Empty CSV export of orders  '));
+        self::assertSame('Empty CSV export of orders', $issue->getTitle());
+        self::assertSame(['field' => 'title', 'from' => 'Empty CSV export', 'to' => 'Empty CSV export of orders'], $this->lastEntry($issue, JournalEntryType::Changed)->getData());
 
-        $this->commands->dispatch(new UpdateIssue($client, $issue->getKey(), description: 'Le fichier ne contient que l\'en-tête.'));
-        self::assertSame('Le fichier ne contient que l\'en-tête.', $issue->getDescription());
+        $this->commands->dispatch(new UpdateIssue($client, $issue->getKey(), description: 'The file only holds the header.'));
+        self::assertSame('The file only holds the header.', $issue->getDescription());
         self::assertSame('description', $this->lastEntry($issue, JournalEntryType::Changed)->getData()['field']);
     }
 
@@ -62,16 +62,16 @@ final class UpdateIssueHandlerTest extends KernelTestCase
         $issue = $this->fixtures->createIssue($this->fixtures->client);
         $manager = (int) $this->fixtures->manager->getId();
 
-        $this->commands->dispatch(new UpdateIssue($manager, $issue->getKey(), description: 'Réécrit par le chef de projet.'));
-        self::assertSame('Réécrit par le chef de projet.', $issue->getDescription());
-        self::assertSame(['field' => 'description', 'from' => 'Le fichier téléchargé est vide.', 'to' => 'Réécrit par le chef de projet.'], $this->lastEntry($issue, JournalEntryType::Changed)->getData(), 'both versions are kept');
-        $this->commands->dispatch(new UpdateIssue($manager, $issue->getKey(), title: 'Export CSV vide (prod)'));
+        $this->commands->dispatch(new UpdateIssue($manager, $issue->getKey(), description: 'Rewritten by the project manager.'));
+        self::assertSame('Rewritten by the project manager.', $issue->getDescription());
+        self::assertSame(['field' => 'description', 'from' => 'The downloaded file is empty.', 'to' => 'Rewritten by the project manager.'], $this->lastEntry($issue, JournalEntryType::Changed)->getData(), 'both versions are kept');
+        $this->commands->dispatch(new UpdateIssue($manager, $issue->getKey(), title: 'Empty CSV export (prod)'));
         $this->commands->dispatch(new UpdateIssue($manager, $issue->getKey(), fields: ['environment' => 'preprod']));
 
         $developer = (int) $this->fixtures->developer->getId();
         foreach ([
-            new UpdateIssue($developer, $issue->getKey(), description: 'Pas la mienne.'),
-            new UpdateIssue($developer, $issue->getKey(), title: 'Pas la mienne'),
+            new UpdateIssue($developer, $issue->getKey(), description: 'Not mine.'),
+            new UpdateIssue($developer, $issue->getKey(), title: 'Not mine'),
             new UpdateIssue($developer, $issue->getKey(), fields: ['environment' => 'staging']),
         ] as $command) {
             try {
@@ -80,7 +80,7 @@ final class UpdateIssueHandlerTest extends KernelTestCase
             } catch (AccessDeniedException) {
             }
         }
-        self::assertSame('Export CSV vide (prod)', $issue->getTitle());
+        self::assertSame('Empty CSV export (prod)', $issue->getTitle());
     }
 
     public function testABlankTitleIsRefused(): void
@@ -99,7 +99,7 @@ final class UpdateIssueHandlerTest extends KernelTestCase
         $this->commands->dispatch(new UpdateIssue($client, $issue->getKey(), fields: ['environment' => 'preprod']));
         self::assertSame(['environment' => 'preprod', 'url' => 'https://shop.test/a'], $issue->getFieldValues());
         $entry = $this->lastEntry($issue, JournalEntryType::FieldChanged);
-        self::assertSame(['field' => 'environment', 'label' => 'Environnement', 'from' => 'Production', 'to' => 'Préproduction'], $entry->getData());
+        self::assertSame(['field' => 'environment', 'label' => 'Environment', 'from' => 'Production', 'to' => 'Pre-production'], $entry->getData());
         self::assertFalse($entry->isPrivate());
 
         $this->commands->dispatch(new UpdateIssue($client, $issue->getKey(), fields: ['url' => '', 'environment' => 'preprod']));
@@ -131,7 +131,7 @@ final class UpdateIssueHandlerTest extends KernelTestCase
         $outsider = $this->fixtures->access->user('paul@other.test', internal: true);
 
         $this->expectException(AccessDeniedException::class);
-        $this->commands->dispatch(new UpdateIssue((int) $outsider->getId(), $issue->getKey(), title: 'Autre titre'));
+        $this->commands->dispatch(new UpdateIssue((int) $outsider->getId(), $issue->getKey(), title: 'Another title'));
     }
 
     public function testAnIssueIsAssignedToAMemberAndBackToNobody(): void
@@ -228,7 +228,7 @@ final class UpdateIssueHandlerTest extends KernelTestCase
         $this->commands->dispatch(new UpdateIssue(
             (int) $this->fixtures->manager->getId(),
             $issue->getKey(),
-            title: 'Export CSV vide en production',
+            title: 'Empty CSV export in production',
             assigneeId: $this->fixtures->developer->getId(),
             criticality: Criticality::High,
         ));
@@ -248,14 +248,14 @@ final class UpdateIssueHandlerTest extends KernelTestCase
             $this->commands->dispatch(new UpdateIssue(
                 (int) $this->fixtures->client->getId(),
                 $issue->getKey(),
-                title: 'Nouveau titre',
+                title: 'New title',
                 assigneeId: $this->fixtures->developer->getId(),
             ));
             self::fail('A client may not assign.');
         } catch (AccessDeniedException) {
         }
 
-        self::assertSame('Export CSV vide', $issue->getTitle(), 'checked before anything changes');
+        self::assertSame('Empty CSV export', $issue->getTitle(), 'checked before anything changes');
     }
 
     public function testAnIssueIsScheduledInAReleaseThenTakenOut(): void

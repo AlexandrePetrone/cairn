@@ -57,10 +57,10 @@ final class NotifyIssueChangeHandlerTest extends KernelTestCase
         self::assertEmailCount(1, message: 'the author does not receive their own creation');
         $email = $this->email(0);
         self::assertEmailAddressContains($email, 'to', 'thomas@agency.test');
-        self::assertEmailHeaderSame($email, 'subject', \sprintf('[%s] Export CSV vide', $issue->getKey()));
+        self::assertEmailHeaderSame($email, 'subject', \sprintf('[%s] Empty CSV export', $issue->getKey()));
         self::assertEmailHeaderSame($email, 'Message-ID', \sprintf('<issue-%d@localhost>', $issue->getId()));
-        self::assertEmailHtmlBodyContains($email, 'a créé la demande');
-        self::assertEmailHtmlBodyContains($email, 'Le fichier téléchargé est vide.', 'the description comes along');
+        self::assertEmailHtmlBodyContains($email, 'created the issue');
+        self::assertEmailHtmlBodyContains($email, 'The downloaded file is empty.', 'the description comes along');
         self::assertEmailHtmlBodyContains($email, \sprintf('http://localhost/MD/SPT/issues/%d', $issue->getNumber()));
     }
 
@@ -68,7 +68,7 @@ final class NotifyIssueChangeHandlerTest extends KernelTestCase
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
         $this->commands->dispatch(new FollowIssue((int) $this->fixtures->developer->getId(), $issue->getKey()));
-        $this->commands->dispatch(new AddComment((int) $this->fixtures->manager->getId(), $issue->getKey(), 'Entre nous : **urgent**.', private: true));
+        $this->commands->dispatch(new AddComment((int) $this->fixtures->manager->getId(), $issue->getKey(), 'Between us: **urgent**.', private: true));
 
         $this->handleLast();
 
@@ -76,42 +76,42 @@ final class NotifyIssueChangeHandlerTest extends KernelTestCase
         $email = $this->email(0);
         self::assertEmailAddressContains($email, 'to', 'nadia@agency.test');
         self::assertEmailHtmlBodyContains($email, '<strong>urgent</strong>');
-        self::assertEmailHtmlBodyContains($email, 'a commenté');
+        self::assertEmailHtmlBodyContains($email, 'commented');
         self::assertEmailHeaderSame($email, 'In-Reply-To', \sprintf('<issue-%d@localhost>', $issue->getId()));
     }
 
     public function testAnActionMadeWithAPrivateCommentIsToldToInternalSubscribersOnly(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
-        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->developer->getId(), $issue->getKey(), 'start', comment: 'Je prends, le client ne lit pas ceci.', commentPrivate: true));
+        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->developer->getId(), $issue->getKey(), 'start', comment: 'I am on it, the client does not read this.', commentPrivate: true));
 
         $this->handleLast();
 
         // The journal line of such an action is private too: the client reads the new place on the issue.
         self::assertEmailCount(1);
         $toThomas = $this->emailTo('thomas@agency.test');
-        self::assertEmailHtmlBodyContains($toThomas, 'a appliqué « Démarrer »');
-        self::assertEmailHtmlBodyContains($toThomas, 'le client ne lit pas ceci');
+        self::assertEmailHtmlBodyContains($toThomas, 'applied &quot;Start&quot;');
+        self::assertEmailHtmlBodyContains($toThomas, 'the client does not read this');
     }
 
     public function testAnActionWithAPublicCommentIsToldToEverySubscriber(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
-        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->developer->getId(), $issue->getKey(), 'start', comment: 'Je prends.'));
+        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->developer->getId(), $issue->getKey(), 'start', comment: 'I am on it.'));
 
         $this->handleLast();
 
         self::assertEmailCount(2);
-        self::assertEmailHtmlBodyContains($this->emailTo('claire@client.test'), 'a appliqué « Démarrer »');
-        self::assertEmailHtmlBodyContains($this->emailTo('claire@client.test'), 'Je prends.');
-        self::assertEmailHtmlBodyContains($this->emailTo('thomas@agency.test'), 'Je prends.');
+        self::assertEmailHtmlBodyContains($this->emailTo('claire@client.test'), 'applied &quot;Start&quot;');
+        self::assertEmailHtmlBodyContains($this->emailTo('claire@client.test'), 'I am on it.');
+        self::assertEmailHtmlBodyContains($this->emailTo('thomas@agency.test'), 'I am on it.');
     }
 
     public function testAReferenceToAnInvisibleIssueStaysTextForAnExternalReader(): void
     {
-        $task = $this->fixtures->createIssue($this->fixtures->manager, $this->fixtures->tasks, title: 'Tâche interne');
+        $task = $this->fixtures->createIssue($this->fixtures->manager, $this->fixtures->tasks, title: 'Internal task');
         $issue = $this->fixtures->createIssue($this->fixtures->client);
-        $this->commands->dispatch(new AddComment((int) $this->fixtures->developer->getId(), $issue->getKey(), \sprintf('Voir #%s.', $task->getKey())));
+        $this->commands->dispatch(new AddComment((int) $this->fixtures->developer->getId(), $issue->getKey(), \sprintf('See #%s.', $task->getKey())));
 
         $this->handleLast();
 

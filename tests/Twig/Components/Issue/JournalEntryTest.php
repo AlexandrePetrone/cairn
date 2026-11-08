@@ -40,7 +40,7 @@ final class JournalEntryTest extends KernelTestCase
         $fixtures = new AccessFixtures(self::getContainer()->get(EntityManagerInterface::class));
         $this->claire = $fixtures->user('claire@client.test');
         $this->nadia = $fixtures->user('nadia@agency.test', internal: true);
-        $this->issue = new Issue($fixtures->shop, new Tracker($fixtures->shop, 'Anomalie', 'bug'), DefinitionFactory::bugWorkflow()->place('new'), 4, $this->claire, 'Export vide', '');
+        $this->issue = new Issue($fixtures->shop, new Tracker($fixtures->shop, 'Bug', 'bug'), DefinitionFactory::bugWorkflow()->place('new'), 4, $this->claire, 'Empty export', '');
     }
 
     #[DataProvider('changes')]
@@ -58,46 +58,46 @@ final class JournalEntryTest extends KernelTestCase
      */
     public static function changes(): iterable
     {
-        yield 'assignee given' => ['assignee', null, 'Nadia Test', 'a changé l\'assigné : Personne → Nadia Test'];
-        yield 'assignee taken away' => ['assignee', 'Nadia Test', null, 'a changé l\'assigné : Nadia Test → Personne'];
-        yield 'criticality' => ['criticality', 'normal', 'blocking', 'a changé la criticité : Normale → Bloquante'];
-        yield 'visibility' => ['visibility', 'public', 'private', 'a changé la visibilité : Tous les membres → Internes seulement'];
-        yield 'title' => ['title', 'Export vide', 'Export CSV vide', 'a changé le titre : « Export vide » → « Export CSV vide »'];
+        yield 'assignee given' => ['assignee', null, 'Nadia Test', 'changed the assignee: Nobody → Nadia Test'];
+        yield 'assignee taken away' => ['assignee', 'Nadia Test', null, 'changed the assignee: Nadia Test → Nobody'];
+        yield 'criticality' => ['criticality', 'normal', 'blocking', 'changed the criticality: Normal → Blocking'];
+        yield 'visibility' => ['visibility', 'public', 'private', 'changed the visibility: All members → Internal users only'];
+        yield 'title' => ['title', 'Empty export', 'Empty CSV export', 'changed the title: "Empty export" → "Empty CSV export"'];
     }
 
     public function testARewrittenDescriptionKeepsBothVersions(): void
     {
-        $this->component->entry = Entry::changed($this->issue, $this->claire, 'description', 'Avant', 'Après');
+        $this->component->entry = Entry::changed($this->issue, $this->claire, 'description', 'Before', 'After');
 
-        self::assertSame('a modifié la description', $this->component->getLabel());
-        self::assertSame(['from' => 'Avant', 'to' => 'Après'], $this->component->getVersions());
+        self::assertSame('rewrote the description', $this->component->getLabel());
+        self::assertSame(['from' => 'Before', 'to' => 'After'], $this->component->getVersions());
     }
 
     public function testCommentEventsNameTheAuthorWhenItIsSomeoneElse(): void
     {
-        $comment = new Comment($this->issue, $this->claire, 'Merci.');
+        $comment = new Comment($this->issue, $this->claire, 'Thanks.');
 
-        $this->component->entry = Entry::commentEdited($this->issue, $this->claire, $comment, 'Merci.', 'Merci !');
-        self::assertSame('a modifié son commentaire', $this->component->getLabel());
-        self::assertSame(['from' => 'Merci.', 'to' => 'Merci !'], $this->component->getVersions());
+        $this->component->entry = Entry::commentEdited($this->issue, $this->claire, $comment, 'Thanks.', 'Thanks!');
+        self::assertSame('edited their comment', $this->component->getLabel());
+        self::assertSame(['from' => 'Thanks.', 'to' => 'Thanks!'], $this->component->getVersions());
 
         $this->component->entry = Entry::commentDeleted($this->issue, $this->nadia, $comment);
-        self::assertSame('a supprimé le commentaire de Claire Test', $this->component->getLabel());
+        self::assertSame('deleted the comment of Claire Test', $this->component->getLabel());
         self::assertNull($this->component->getVersions());
-        self::assertSame('Merci.', $this->component->getDeletedBody());
+        self::assertSame('Thanks.', $this->component->getDeletedBody());
     }
 
     public function testTheOtherEventsReadTheirLabelsOfTheTime(): void
     {
         $this->component->entry = Entry::created($this->issue, $this->claire);
-        self::assertSame('a créé la demande', $this->component->getLabel());
+        self::assertSame('created the issue', $this->component->getLabel());
 
         $this->component->entry = Entry::attachmentAdded($this->issue, $this->claire, new \App\Entity\Attachment($this->issue->getProject(), $this->issue, $this->claire, 'capture.png', 'image/png', 12));
-        self::assertSame('a ajouté le fichier capture.png', $this->component->getLabel());
+        self::assertSame('added the file capture.png', $this->component->getLabel());
 
         $workflow = DefinitionFactory::bugWorkflow();
         $this->component->entry = Entry::moved($this->issue, $this->nadia, $workflow->place('new'), $workflow->place('in_progress'));
-        self::assertSame('a déplacé la demande sans action : Nouveau → En cours', $this->component->getLabel());
+        self::assertSame('moved the issue without an action: New → In progress', $this->component->getLabel());
     }
 
     public function testAPushIsOnePrivateEntryWithoutAuthorListingItsCommits(): void
@@ -111,7 +111,7 @@ final class JournalEntryTest extends KernelTestCase
         self::assertNull($this->component->entry->getAuthor());
         self::assertTrue($this->component->entry->isPrivate());
         self::assertTrue($this->component->entry->getType()->isCode());
-        self::assertSame('a relevé 2 commits sur main dans maison-dupont/shop', $this->component->getLabel());
+        self::assertSame('noted 2 commits on main in maison-dupont/shop', $this->component->getLabel());
         self::assertSame(['a1b2c3d4', 'e4f5a6b7'], array_column($this->component->entry->getData()['commits'], 'sha'));
         self::assertSame('gitlab', $this->component->entry->text('forge'));
         self::assertNull($this->component->getVersions());
@@ -122,7 +122,7 @@ final class JournalEntryTest extends KernelTestCase
         $mergeRequest = CodeReference::mergeRequest($this->issue, Forge::GitLab, 'maison-dupont/shop', '431', 'fix(export): paginate', 'https://gitlab.test/mr/431', 'fix/MD-SPT-4-export', 'Nadia Benali', MergeRequestState::Opened);
         $this->component->entry = Entry::mergeRequest($this->issue, $mergeRequest, JournalEntryType::MergeRequestReopened);
 
-        self::assertSame('a relevé la réouverture de la merge request !431 « fix(export): paginate » dans maison-dupont/shop', $this->component->getLabel());
+        self::assertSame('noted that the merge request !431 “fix(export): paginate” in maison-dupont/shop was reopened', $this->component->getLabel());
         self::assertSame('opened', $this->component->entry->text('state'));
         self::assertSame('fix/MD-SPT-4-export', $this->component->entry->text('branch'));
         self::assertTrue($this->component->entry->isPrivate());

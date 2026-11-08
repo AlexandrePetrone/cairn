@@ -1,5 +1,5 @@
 component: Ui:Form:Checkbox
 variants:
-    plain: { args: { label: Demande privée, name: private, tone: amber } }
-    boxed: { args: { label: Visible par les externes, name: visible, checked: true, boxed: true } }
-    disabled: { args: { label: Demande privée, name: private, disabled: true } }
+    plain: { args: { label: Private issue, name: private, tone: amber } }
+    boxed: { args: { label: Visible to external users, name: visible, checked: true, boxed: true } }
+    disabled: { args: { label: Private issue, name: private, disabled: true } }

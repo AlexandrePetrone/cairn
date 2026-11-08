@@ -1,6 +1,6 @@
 component: Ui:Status:Step
 variants:
-    default: { args: { status: waiting, label: À recetter } }
-    closed: { args: { status: closed, label: Fermée } }
-    pill: { args: { status: waiting, label: À recetter, pill: true } }
-    with_status: { args: { status: waiting, label: À recetter, withStatus: true } }
+    default: { args: { status: waiting, label: To test } }
+    closed: { args: { status: closed, label: Closed } }
+    pill: { args: { status: waiting, label: To test, pill: true } }
+    with_status: { args: { status: waiting, label: To test, withStatus: true } }

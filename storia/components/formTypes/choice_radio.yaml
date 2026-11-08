@@ -4,4 +4,4 @@ options:
     expanded: true
     required: false
     placeholder: false
-    choices: { 'Oui, systématiquement': always, Parfois: sometimes, Une seule fois: once }
+    choices: { 'Yes, every time': always, Sometimes: sometimes, Only once: once }

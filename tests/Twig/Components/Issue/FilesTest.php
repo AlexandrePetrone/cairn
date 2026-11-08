@@ -37,18 +37,18 @@ final class FilesTest extends KernelTestCase
     public function testTheAuthorAddsFilesToTheIssue(): void
     {
         $component = $this->files('claire.martin@maison-dupont.test');
-        self::assertStringContainsString('Ajouter', (string) $component->render());
+        self::assertStringContainsString('Add', (string) $component->render());
         $before = \count(self::getContainer()->get(AttachmentRepository::class)->findByIssue($this->issue));
 
-        $component->call('upload', [], ['files' => [self::file('export.log'), self::file('devis.pdf')]]);
+        $component->call('upload', [], ['files' => [self::file('export.log'), self::file('quote.pdf')]]);
         $render = $component->render();
 
         self::assertStringContainsString('export.log', (string) $render);
-        self::assertStringContainsString('devis.pdf', (string) $render);
+        self::assertStringContainsString('quote.pdf', (string) $render);
         self::assertCount($before + 2, self::getContainer()->get(AttachmentRepository::class)->findByIssue($this->issue));
         self::assertSame(JournalEntryType::AttachmentAdded, $this->lastEntry()?->getType());
         self::assertNotNull($component->getEmittedEvent($render, 'issue:changed'));
-        self::assertSame(['message' => '2 fichier(s) ajouté(s).'], $component->getDispatchedBrowserEvent($render, 'toast:show')['payload'] ?? null);
+        self::assertSame(['message' => '2 file(s) added.'], $component->getDispatchedBrowserEvent($render, 'toast:show')['payload'] ?? null);
     }
 
     public function testAFileIsRemovedFromTheBlock(): void
@@ -62,7 +62,7 @@ final class FilesTest extends KernelTestCase
 
         $render = $component->render();
         self::assertStringNotContainsString('data-live-name-param="export.log"', (string) $render);
-        self::assertSame(['message' => 'export.log retiré.'], $component->getDispatchedBrowserEvent($render, 'toast:show')['payload'] ?? null);
+        self::assertSame(['message' => 'export.log removed.'], $component->getDispatchedBrowserEvent($render, 'toast:show')['payload'] ?? null);
         self::assertNotContains('export.log', array_map(static fn ($file) => $file->getFilename(), self::getContainer()->get(AttachmentRepository::class)->findByIssue($this->issue)));
         self::assertSame(JournalEntryType::AttachmentRemoved, $this->lastEntry()?->getType());
     }
@@ -74,7 +74,7 @@ final class FilesTest extends KernelTestCase
         foreach (['nadia.benali@cairn.test', 'paul.roussel@maison-dupont.test'] as $email) {
             $render = (string) $this->files($email)->render();
             self::assertStringContainsString('export.log', $render, $email);
-            self::assertStringNotContainsString('Ajouter', $render, $email);
+            self::assertStringNotContainsString('Add', $render, $email);
             self::assertStringNotContainsString('data-live-action-param="remove"', $render, $email);
         }
     }
@@ -82,7 +82,7 @@ final class FilesTest extends KernelTestCase
     public static function file(string $name): UploadedFile
     {
         $path = (string) tempnam(sys_get_temp_dir(), 'cairn');
-        file_put_contents($path, 'contenu de '.$name);
+        file_put_contents($path, 'content of '.$name);
 
         return new UploadedFile($path, $name, null, null, true);
     }

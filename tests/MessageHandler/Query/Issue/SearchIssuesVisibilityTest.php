@@ -66,11 +66,11 @@ final class SearchIssuesVisibilityTest extends KernelTestCase
         $elsewhereTracker = TrackerFactory::createOne(['project' => $elsewhere]);
         $author = UserFactory::new()->internal()->create();
 
-        $public = $builder->issue($tracker, $author, 'Publique');
-        $privateIssue = $builder->issue($tracker, $author, 'Privée', private: true);
-        $inPrivateTracker = $builder->issue($privateTracker, $author, 'Catégorie privée');
-        $inSibling = $builder->issue($siblingTracker, $author, 'Projet voisin');
-        $inElsewhere = $builder->issue($elsewhereTracker, $author, 'Ailleurs');
+        $public = $builder->issue($tracker, $author, 'Public');
+        $privateIssue = $builder->issue($tracker, $author, 'Private', private: true);
+        $inPrivateTracker = $builder->issue($privateTracker, $author, 'Private tracker');
+        $inSibling = $builder->issue($siblingTracker, $author, 'Sibling project');
+        $inElsewhere = $builder->issue($elsewhereTracker, $author, 'Elsewhere');
 
         $stranger = UserFactory::createOne();
         self::assertSame([], $this->visibleIds($stranger), 'no membership');

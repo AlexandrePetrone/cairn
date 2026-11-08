@@ -1,5 +1,5 @@
 component: Ui:Form:Select
 variants:
-    default: { args: { name: environment }, blocks: { content: '<option>Choisir…</option><option>Production</option><option>Préproduction</option>' } }
-    disabled: { args: { name: workflow, disabled: true }, blocks: { content: '<option selected>Anomalie</option>' } }
-    inline: { args: { name: role, inline: true }, blocks: { content: '<option>Chef de projet</option><option selected>Développeur</option><option>Client</option>' } }
+    default: { args: { name: environment }, blocks: { content: '<option>Choose…</option><option>Production</option><option>Pre-production</option>' } }
+    disabled: { args: { name: workflow, disabled: true }, blocks: { content: '<option selected>Bug</option>' } }
+    inline: { args: { name: role, inline: true }, blocks: { content: '<option>Project manager</option><option selected>Developer</option><option>Client</option>' } }

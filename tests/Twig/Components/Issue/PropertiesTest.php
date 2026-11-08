@@ -43,7 +43,7 @@ final class PropertiesTest extends KernelTestCase
         self::assertStringContainsString('data-live-property-param="criticality"', $client);
         self::assertStringNotContainsString('data-live-property-param="assignee"', $client);
         self::assertStringNotContainsString('data-live-property-param="visibility"', $client);
-        self::assertStringNotContainsString('Visibilité', $client, 'not even shown to external users');
+        self::assertStringNotContainsString('Visibility', $client, 'not even shown to external users');
     }
 
     public function testAManagerAssignsTheIssue(): void
@@ -79,7 +79,7 @@ final class PropertiesTest extends KernelTestCase
 
         $component->emit('issue:changed');
 
-        self::assertStringContainsString('Fermée', (string) $component->render());
+        self::assertStringContainsString('Closed', (string) $component->render());
     }
 
     public function testTheReleaseShowsOnceTheProjectHasReleases(): void
@@ -103,7 +103,7 @@ final class PropertiesTest extends KernelTestCase
 
         $component->call('change', ['property' => 'assignee', 'value' => (string) $sophie->getId()]);
 
-        self::assertStringContainsString('pas pu être appliquée', (string) $component->render());
+        self::assertStringContainsString('could not be applied', (string) $component->render());
         self::assertNotSame('sophie.bernard@travelia.test', $this->reloaded()->getAssignee()?->getEmail());
     }
 

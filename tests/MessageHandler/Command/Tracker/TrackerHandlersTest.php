@@ -19,8 +19,8 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 /**
- * CreateTracker and UpdateTracker. The shop holds Anomalie (0) and the
- * private Tâche interne (1); project managers configure it.
+ * CreateTracker and UpdateTracker. The shop holds Bug (0) and the
+ * private Internal task (1); project managers configure it.
  */
 final class TrackerHandlersTest extends KernelTestCase
 {
@@ -45,7 +45,7 @@ final class TrackerHandlersTest extends KernelTestCase
 
         self::assertSame(2, $tracker->getPosition());
         self::assertSame('bug', $tracker->getWorkflowId());
-        self::assertSame('Pour les questions.', $tracker->getDescription());
+        self::assertSame('For the questions.', $tracker->getDescription());
         self::assertTrue($tracker->isPrivate());
         self::assertTrue($tracker->isActive());
     }
@@ -65,16 +65,16 @@ final class TrackerHandlersTest extends KernelTestCase
         }
 
         $this->expectException(AccessDeniedException::class);
-        $this->commands->dispatch(new UpdateTracker((int) $this->fixtures->client->getId(), (int) $this->fixtures->bugs->getId(), name: 'Bogue'));
+        $this->commands->dispatch(new UpdateTracker((int) $this->fixtures->client->getId(), (int) $this->fixtures->bugs->getId(), name: 'Defect'));
     }
 
     public function testATrackerIsRenamedAndDeactivatedThenTakesNoNewIssue(): void
     {
         $task = $this->fixtures->createIssue($this->fixtures->manager, $this->fixtures->tasks);
-        $this->update(name: 'Bogue', description: '', private: true, active: false);
+        $this->update(name: 'Defect', description: '', private: true, active: false);
 
         $bugs = $this->fixtures->bugs;
-        self::assertSame('Bogue', $bugs->getName());
+        self::assertSame('Defect', $bugs->getName());
         self::assertNull($bugs->getDescription());
         self::assertTrue($bugs->isPrivate());
         self::assertFalse($bugs->isActive());
@@ -97,16 +97,16 @@ final class TrackerHandlersTest extends KernelTestCase
         $support = $this->create('Support');
 
         $this->commands->dispatch(new UpdateTracker((int) $this->fixtures->manager->getId(), (int) $support->getId(), position: 0));
-        self::assertSame(['Support', 'Anomalie', 'Tâche interne'], $this->names());
+        self::assertSame(['Support', 'Bug', 'Internal task'], $this->names());
 
         $this->commands->dispatch(new UpdateTracker((int) $this->fixtures->manager->getId(), (int) $support->getId(), position: 9));
-        self::assertSame(['Anomalie', 'Tâche interne', 'Support'], $this->names());
+        self::assertSame(['Bug', 'Internal task', 'Support'], $this->names());
         self::assertSame([0, 1, 2], array_map(static fn (Tracker $tracker): int => $tracker->getPosition(), $this->all()));
     }
 
     private function create(string $name, string $workflowId = 'bug', bool $private = false): Tracker
     {
-        $tracker = $this->commands->dispatch(new CreateTracker((int) $this->fixtures->manager->getId(), (int) $this->fixtures->access->shop->getId(), $name, $workflowId, 'Pour les questions.', $private));
+        $tracker = $this->commands->dispatch(new CreateTracker((int) $this->fixtures->manager->getId(), (int) $this->fixtures->access->shop->getId(), $name, $workflowId, 'For the questions.', $private));
         self::assertInstanceOf(Tracker::class, $tracker);
 
         return $tracker;

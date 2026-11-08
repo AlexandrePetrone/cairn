@@ -1,5 +1,5 @@
 component: Ui:Attachment
 variants:
-    default: { args: { name: export-erreur.log, size: 12288, href: '#', uploader: Nadia Benali } }
-    image: { args: { name: capture-spinner.png, size: 245760, href: '#', image: true, uploader: Claire Martin } }
-    pending: { args: { name: devis-v2.pdf, size: 2516582 } }
+    default: { args: { name: export-error.log, size: 12288, href: '#', uploader: Nadia Benali } }
+    image: { args: { name: spinner-screenshot.png, size: 245760, href: '#', image: true, uploader: Claire Martin } }
+    pending: { args: { name: quote-v2.pdf, size: 2516582 } }

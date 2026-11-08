@@ -26,8 +26,8 @@ use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
- * The « ⋯ » menu of the issue page, for whoever may take the issue out of
- * its workflow: « Move… » opens a dialog choosing a tracker of the project
+ * The "⋯" menu of the issue page, for whoever may take the issue out of
+ * its workflow: "Move…" opens a dialog choosing a tracker of the project
  * and a place of its workflow. The current tracker is offered with
  * `issue.force_place`, the others with `issue.change_tracker`; nothing
  * shows to someone holding neither. The dialog warns when no action leads

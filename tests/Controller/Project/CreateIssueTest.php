@@ -30,8 +30,8 @@ final class CreateIssueTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('[data-controller~="live"]');
-        self::assertSelectorTextContains('main', 'Anomalie');
-        self::assertSelectorTextNotContains('main', 'Tâche interne', 'private trackers are not offered');
+        self::assertSelectorTextContains('main', 'Bug');
+        self::assertSelectorTextNotContains('main', 'Internal task', 'private trackers are not offered');
     }
 
     public function testWhoMayNotCreateIsRefused(): void

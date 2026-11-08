@@ -43,7 +43,7 @@ final class InstanceDefinitionTest extends TestCase
     {
         $this->expectException(InvalidDefinitionException::class);
 
-        new RoleDefinition(id: 'Chef de projet', label: 'Chef de projet');
+        new RoleDefinition(id: 'Project manager', label: 'Project manager');
     }
 
     public function testLabelsCannotBeBlank(): void
@@ -70,14 +70,14 @@ final class InstanceDefinitionTest extends TestCase
         $this->expectException(InvalidDefinitionException::class);
         $this->expectExceptionMessage('at least one role');
 
-        new TransitionDefinition(id: 'start', label: 'Démarrer', from: ['new'], to: 'done', roles: []);
+        new TransitionDefinition(id: 'start', label: 'Start', from: ['new'], to: 'done', roles: []);
     }
 
     public function testCommentPromptRequiresAComment(): void
     {
         $this->expectException(InvalidDefinitionException::class);
 
-        new TransitionDefinition(id: 'refuse', label: 'Refuser', from: ['new'], to: 'done', roles: ['client'], commentPrompt: 'Pourquoi ?');
+        new TransitionDefinition(id: 'refuse', label: 'Refuse', from: ['new'], to: 'done', roles: ['client'], commentPrompt: 'Why?');
     }
 
     public function testUnknownPlaceLookupThrows(): void

@@ -1,5 +1,5 @@
 component: Ui:Form:Toggle
 variants:
-    off: { args: { name: private, label: Commentaire privé } }
-    on: { args: { name: private, label: Commentaire privé, checked: true } }
-    disabled: { args: { name: private, label: Commentaire privé, disabled: true } }
+    off: { args: { name: private, label: Private comment } }
+    on: { args: { name: private, label: Private comment, checked: true } }
+    disabled: { args: { name: private, label: Private comment, disabled: true } }

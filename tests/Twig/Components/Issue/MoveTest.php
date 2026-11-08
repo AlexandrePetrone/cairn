@@ -14,8 +14,8 @@ use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
 
 /**
- * The « ⋯ › Déplacer… » menu on MD-SPT-4 of the scene (an « Anomalie »
- * on « À recetter »): Thomas, project manager, may force a place and
+ * The "⋯ › Move…" menu on MD-SPT-4 of the scene (a "Bug"
+ * on "To test"): Thomas, project manager, may force a place and
  * change the tracker; Nadia, developer, only the latter; clients neither.
  */
 final class MoveTest extends KernelTestCase
@@ -44,14 +44,14 @@ final class MoveTest extends KernelTestCase
     {
         $developer = (string) $this->move('nadia.benali@cairn.test')->call('open')->render();
         self::assertStringContainsString('role="dialog"', $developer);
-        self::assertStringContainsString('Évolution', $developer);
-        self::assertStringContainsString('Tâche interne', $developer, 'private, but Nadia is internal');
-        self::assertStringNotContainsString('>Anomalie<', $developer, 'the current tracker needs force_place');
-        self::assertStringContainsString('<option value="new" selected>Nouveau</option>', $developer, 'the initial place of the chosen workflow');
+        self::assertStringContainsString('Feature', $developer);
+        self::assertStringContainsString('Internal task', $developer, 'private, but Nadia is internal');
+        self::assertStringNotContainsString('>Bug<', $developer, 'the current tracker needs force_place');
+        self::assertStringContainsString('<option value="new" selected>New</option>', $developer, 'the initial place of the chosen workflow');
 
         $manager = (string) $this->move('thomas.girard@cairn.test')->call('open')->render();
-        self::assertStringContainsString('>Anomalie<', $manager);
-        self::assertStringContainsString('<option value="to_test" selected>À recetter</option>', $manager, 'the current place');
+        self::assertStringContainsString('>Bug<', $manager);
+        self::assertStringContainsString('<option value="to_test" selected>To test</option>', $manager, 'the current place');
     }
 
     public function testAPlaceNoActionLeadsToIsForcedWithAWarning(): void
@@ -59,10 +59,10 @@ final class MoveTest extends KernelTestCase
         $component = $this->move('thomas.girard@cairn.test')->call('open');
 
         $component->set('placeId', 'done');
-        self::assertStringNotContainsString('Aucune action ne mène', (string) $component->render(), '« Valider » leads there');
+        self::assertStringNotContainsString('No action leads', (string) $component->render(), '"Accept" leads there');
 
         $component->set('placeId', 'qualified');
-        self::assertStringContainsString('Aucune action ne mène de À recetter à Qualifiée', (string) $component->render());
+        self::assertStringContainsString('No action leads from To test to Qualified', (string) $component->render());
 
         $component->call('confirm');
         $render = $component->render();
@@ -70,7 +70,7 @@ final class MoveTest extends KernelTestCase
         self::assertSame('qualified', $this->reloaded()->getPlace());
         self::assertStringNotContainsString('role="dialog"', (string) $render);
         self::assertNotNull($component->getEmittedEvent($render, 'issue:changed'));
-        self::assertSame(['message' => 'MD-SPT-4 déplacée vers Qualifiée.'], $component->getDispatchedBrowserEvent($render, 'toast:show')['payload'] ?? null);
+        self::assertSame(['message' => 'MD-SPT-4 moved to Qualified.'], $component->getDispatchedBrowserEvent($render, 'toast:show')['payload'] ?? null);
         $entry = self::getContainer()->get(EntityManagerInterface::class)->getRepository(JournalEntry::class)->findOneBy(['issue' => $this->issue], ['id' => 'DESC']);
         self::assertSame(JournalEntryType::Moved, $entry?->getType());
     }
@@ -84,10 +84,10 @@ final class MoveTest extends KernelTestCase
         $component->set('trackerId', $current)->set('placeId', 'qualified')->set('trackerId', $current);
         $render = (string) $component->render();
         self::assertStringContainsString('<option value="qualified" selected>', $render);
-        self::assertStringContainsString('Aucune action ne mène', $render);
+        self::assertStringContainsString('No action leads', $render);
 
         $component->set('trackerId', (string) $this->scene->evolutions->getId());
-        self::assertStringContainsString('<option value="new" selected>Nouveau</option>', (string) $component->render(), 'another tracker starts from its first place');
+        self::assertStringContainsString('<option value="new" selected>New</option>', (string) $component->render(), 'another tracker starts from its first place');
     }
 
     public function testNothingIsOfferedWhileTheIssueStaysWhereItIs(): void
@@ -107,14 +107,14 @@ final class MoveTest extends KernelTestCase
         $component = $this->move('nadia.benali@cairn.test')->call('open');
 
         $component->set('trackerId', $this->scene->evolutions->getId());
-        self::assertStringContainsString('À chiffrer', (string) $component->render());
+        self::assertStringContainsString('To estimate', (string) $component->render());
 
         $component->set('placeId', 'to_estimate')->call('confirm');
 
         $issue = $this->reloaded();
-        self::assertSame('Évolution', $issue->getTracker()->getName());
+        self::assertSame('Feature', $issue->getTracker()->getName());
         self::assertSame('to_estimate', $issue->getPlace());
-        self::assertSame(['message' => 'MD-SPT-4 déplacée vers À chiffrer.'], $component->getDispatchedBrowserEvent($component->render(), 'toast:show')['payload'] ?? null);
+        self::assertSame(['message' => 'MD-SPT-4 moved to To estimate.'], $component->getDispatchedBrowserEvent($component->render(), 'toast:show')['payload'] ?? null);
     }
 
     public function testAnArchivedProjectOffersNoMove(): void

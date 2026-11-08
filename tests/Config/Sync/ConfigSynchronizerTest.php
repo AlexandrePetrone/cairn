@@ -148,14 +148,14 @@ final class ConfigSynchronizerTest extends KernelTestCase
     {
         $this->synchronizer->apply($this->synchronizer->plan(DefinitionFactory::definition()));
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        $entityManager->persist(new IssueLink($this->builder->issue($this->tracker, $this->author, 'Bloquante'), 'blocks', $this->builder->issue($this->tracker, $this->author, 'Bloquée'), $this->author));
+        $entityManager->persist(new IssueLink($this->builder->issue($this->tracker, $this->author, 'Blocking'), 'blocks', $this->builder->issue($this->tracker, $this->author, 'Blocked'), $this->author));
         $entityManager->flush();
 
-        $withoutBlocks = $this->synchronizer->plan(DefinitionFactory::definition(links: [new LinkTypeDefinition(id: 'related', label: 'Lié à')]));
+        $withoutBlocks = $this->synchronizer->plan(DefinitionFactory::definition(links: [new LinkTypeDefinition(id: 'related', label: 'Related to')]));
         self::assertTrue($withoutBlocks->isBlocked());
         self::assertSame(['links.blocks: 1 links still use it'], $withoutBlocks->usedLinkTypes);
 
-        $withoutRelated = $this->synchronizer->plan(DefinitionFactory::definition(links: [new LinkTypeDefinition(id: 'blocks', label: 'Bloque', inverseLabel: 'Bloqué par')]));
+        $withoutRelated = $this->synchronizer->plan(DefinitionFactory::definition(links: [new LinkTypeDefinition(id: 'blocks', label: 'Blocks', inverseLabel: 'Blocked by')]));
         self::assertFalse($withoutRelated->isBlocked(), 'an unused link type goes');
 
         $this->expectException(ConfigException::class);
@@ -216,7 +216,7 @@ final class ConfigSynchronizerTest extends KernelTestCase
     public function testAStalePlanIsRefused(): void
     {
         $stale = $this->synchronizer->plan(DefinitionFactory::definition());
-        $this->synchronizer->apply($this->synchronizer->plan(DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(label: 'Bug')])));
+        $this->synchronizer->apply($this->synchronizer->plan(DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(label: 'Defect')])));
 
         $this->expectException(ConfigException::class);
         $this->expectExceptionMessage('changed since the plan was computed');

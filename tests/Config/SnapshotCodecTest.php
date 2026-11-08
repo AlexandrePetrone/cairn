@@ -46,7 +46,7 @@ final class SnapshotCodecTest extends TestCase
         $hash = static fn (SnapshotCodec $codec, $definition) => $codec->hash($codec->encode($definition));
 
         self::assertNotSame(
-            $hash($this->codec, DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(label: 'Anomalie')])),
+            $hash($this->codec, DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(label: 'Defect')])),
             $hash($this->codec, DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(label: 'Bug')])),
         );
     }

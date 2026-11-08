@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Entity\User;
+use App\Form\UserData;
 use App\Message\Command\User\CreateUser;
 use App\Message\CommandBus;
 use App\MessageHandler\Command\User\UserException;
@@ -13,6 +14,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Messenger\Exception\ValidationFailedException;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Creates an account, typically the first administrator of an instance.
@@ -21,10 +23,16 @@ use Symfony\Component\Messenger\Exception\ValidationFailedException;
 #[AsCommand(name: 'app:user:create', description: 'Create a user account (interactive)')]
 final class UserCreateCommand
 {
-    private const array TYPES = ['external' => 'Externe (client)', 'internal' => 'Interne (agence)', 'admin' => 'Administrateur'];
+    /** The account types and their label, as the administration offers them (Form/UserType). */
+    private const array TYPES = [
+        UserData::EXTERNAL => 'admin.user.type.external',
+        UserData::INTERNAL => 'admin.user.type.internal',
+        UserData::ADMIN => 'admin.user.type.admin',
+    ];
 
     public function __construct(
         private readonly CommandBus $commands,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
@@ -39,8 +47,9 @@ final class UserCreateCommand
         $email = (string) $io->ask('Email address (used to sign in)');
         $firstName = (string) $io->ask('First name');
         $lastName = (string) $io->ask('Last name');
-        $type = $io->choice('Account type', self::TYPES, 'external');
-        if (!\is_string($type) || !isset(self::TYPES[$type])) {
+        $types = array_map($this->translator->trans(...), self::TYPES);
+        $type = $io->choice('Account type', $types, UserData::EXTERNAL);
+        if (!\is_string($type) || !isset($types[$type])) {
             throw new \LogicException('The choice question only returns one of the account types.');
         }
         $password = (string) $io->askHidden('Password (8 characters or more)');
@@ -51,7 +60,7 @@ final class UserCreateCommand
         }
 
         try {
-            $user = $this->commands->dispatch(new CreateUser($email, $firstName, $lastName, $password, internal: 'external' !== $type, admin: 'admin' === $type));
+            $user = $this->commands->dispatch(new CreateUser($email, $firstName, $lastName, $password, internal: UserData::EXTERNAL !== $type, admin: UserData::ADMIN === $type));
         } catch (ValidationFailedException $e) {
             foreach ($e->getViolations() as $violation) {
                 $io->error(\sprintf('%s: %s', $violation->getPropertyPath(), $violation->getMessage()));
@@ -65,7 +74,7 @@ final class UserCreateCommand
         }
         \assert($user instanceof User);
 
-        $io->success(\sprintf('%s created (%s).', $user->getEmail(), self::TYPES[$type]));
+        $io->success(\sprintf('%s created (%s).', $user->getEmail(), $types[$type]));
 
         return Command::SUCCESS;
     }

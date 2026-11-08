@@ -1,6 +1,6 @@
 component: Ui:Filter:Option
 variants:
-    default: { args: {  count: 2 }, blocks: { content: Haute } }
+    default: { args: {  count: 2 }, blocks: { content: High } }
     checked: { args: { count: 2, checked: true }, blocks: { content: Haute } }
-    empty_count: { args: { count: 0 }, blocks: { content: Basse } }
-    single: { args: { single: true, checked: true }, blocks: { content: Étape } }
+    empty_count: { args: { count: 0 }, blocks: { content: Low } }
+    single: { args: { single: true, checked: true }, blocks: { content: Step } }

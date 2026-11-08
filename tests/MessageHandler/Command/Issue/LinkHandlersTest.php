@@ -20,7 +20,7 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 /**
  * AddLink and RemoveLink. Test link types: `related` (symmetric) and
- * `blocks` (Bloque / Bloqué par); issue.link for managers and developers.
+ * `blocks` (Blocks / Blocked by); issue.link for managers and developers.
  */
 final class LinkHandlersTest extends KernelTestCase
 {
@@ -39,8 +39,8 @@ final class LinkHandlersTest extends KernelTestCase
         $this->commands = self::commandBus();
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $this->fixtures = new IssueFixtures($this->entityManager, $this->commands);
-        $this->export = $this->fixtures->createIssue($this->fixtures->client, title: 'Export CSV vide');
-        $this->accounting = $this->fixtures->createIssue($this->fixtures->client, title: 'Export comptable');
+        $this->export = $this->fixtures->createIssue($this->fixtures->client, title: 'Empty CSV export');
+        $this->accounting = $this->fixtures->createIssue($this->fixtures->client, title: 'Accounting export');
     }
 
     public function testALinkReadsFromEachSideAndIsJournaledOnBoth(): void
@@ -49,9 +49,9 @@ final class LinkHandlersTest extends KernelTestCase
 
         self::assertSame($this->export, $link->getSource());
         self::assertSame($this->accounting, $link->getTarget());
-        self::assertSame(['label' => 'Bloque', 'key' => 'MD-SPT-2', 'title' => 'Export comptable'], $this->lastEntry($this->export, JournalEntryType::Linked)->getData());
+        self::assertSame(['label' => 'Blocks', 'key' => 'MD-SPT-2', 'title' => 'Accounting export'], $this->lastEntry($this->export, JournalEntryType::Linked)->getData());
         $onTarget = $this->lastEntry($this->accounting, JournalEntryType::Linked);
-        self::assertSame(['label' => 'Bloqué par', 'key' => 'MD-SPT-1', 'title' => 'Export CSV vide'], $onTarget->getData());
+        self::assertSame(['label' => 'Blocked by', 'key' => 'MD-SPT-1', 'title' => 'Empty CSV export'], $onTarget->getData());
         self::assertFalse($onTarget->isPrivate(), 'both issues are public, in the same project');
     }
 
@@ -93,11 +93,11 @@ final class LinkHandlersTest extends KernelTestCase
 
     public function testALinkToAPrivateIssueOrAnotherProjectIsJournaledPrivately(): void
     {
-        $task = $this->fixtures->createIssue($this->fixtures->manager, $this->fixtures->tasks, title: 'Tâche interne');
-        $intranetBugs = new Tracker($this->fixtures->access->intranet, 'Anomalie', 'bug');
+        $task = $this->fixtures->createIssue($this->fixtures->manager, $this->fixtures->tasks, title: 'Internal task');
+        $intranetBugs = new Tracker($this->fixtures->access->intranet, 'Bug', 'bug');
         $this->entityManager->persist($intranetBugs);
         $this->entityManager->flush();
-        $intranetBug = $this->fixtures->createIssue($this->fixtures->manager, $intranetBugs, title: 'Menu cassé');
+        $intranetBug = $this->fixtures->createIssue($this->fixtures->manager, $intranetBugs, title: 'Broken menu');
 
         $this->link($this->export, 'related', $task);
         self::assertTrue($this->lastEntry($this->export, JournalEntryType::Linked)->isPrivate(), 'the client must not read the private task');
@@ -116,8 +116,8 @@ final class LinkHandlersTest extends KernelTestCase
         $this->commands->dispatch(new RemoveLink((int) $this->fixtures->manager->getId(), $id));
 
         self::assertNull($this->entityManager->find(IssueLink::class, $id));
-        self::assertSame('Bloque', $this->lastEntry($this->export, JournalEntryType::Unlinked)->getData()['label']);
-        self::assertSame('Bloqué par', $this->lastEntry($this->accounting, JournalEntryType::Unlinked)->getData()['label']);
+        self::assertSame('Blocks', $this->lastEntry($this->export, JournalEntryType::Unlinked)->getData()['label']);
+        self::assertSame('Blocked by', $this->lastEntry($this->accounting, JournalEntryType::Unlinked)->getData()['label']);
     }
 
     public function testAClientMayNotRemoveALink(): void

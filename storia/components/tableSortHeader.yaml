@@ -2,12 +2,12 @@ component: Ui:Table:SortHeader
 variants:
     default:
         blocks:
-            content: Mis à jour
+            content: Updated
     ascending:
         args: { direction: asc }
         blocks:
-            content: Mis à jour
+            content: Updated
     descending:
         args: { direction: desc, align: right }
         blocks:
-            content: Mis à jour
+            content: Updated

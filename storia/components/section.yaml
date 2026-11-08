@@ -1,5 +1,5 @@
 # Composite: rendered by section.html.twig next to this file. The card of a side panel, a <details> unless `foldable` is off.
 variants:
-    default: { args: { title: Liens, icon: link, tone: indigo, count: 2, open: true, foldable: true, summary: 'Bloque MD-SPT-10, MD-SPT-12', action: Modifier, content: 'Les liens de la demande, un par ligne.' } }
-    folded: { args: { title: Liens, icon: link, tone: indigo, count: 2, open: false, foldable: true, summary: 'Bloque MD-SPT-10, MD-SPT-12', action: Modifier, content: 'Les liens de la demande, un par ligne.' } }
-    static: { args: { title: Liens, icon: link, tone: indigo, count: 2, open: true, foldable: false, summary: 'Bloque MD-SPT-10, MD-SPT-12', action: Modifier, content: 'Les liens de la demande, un par ligne.' } }
+    default: { args: { title: Links, icon: link, tone: indigo, count: 2, open: true, foldable: true, summary: 'Blocks MD-SPT-10, MD-SPT-12', action: Edit, content: 'The links of the issue, one per line.' } }
+    folded: { args: { title: Links, icon: link, tone: indigo, count: 2, open: false, foldable: true, summary: 'Blocks MD-SPT-10, MD-SPT-12', action: Edit, content: 'The links of the issue, one per line.' } }
+    static: { args: { title: Links, icon: link, tone: indigo, count: 2, open: true, foldable: false, summary: 'Blocks MD-SPT-10, MD-SPT-12', action: Edit, content: 'The links of the issue, one per line.' } }

@@ -1,13 +1,13 @@
 component: Ui:EmptyState
 variants:
     default:
-        args: { title: Aucune demande ne correspond, icon: search }
+        args: { title: No issue matches, icon: search }
         blocks:
-            content: Essayez d'élargir les filtres ou d'afficher les demandes fermées.
-            actions: '<a href="#" class="inline-flex h-7 items-center rounded-md border border-gray-300 bg-white px-2 text-xs text-gray-700 hover:bg-gray-50">Tout effacer</a>'
+            content: Try widening the filters or showing closed issues.
+            actions: '<a href="#" class="inline-flex h-7 items-center rounded-md border border-gray-300 bg-white px-2 text-xs text-gray-700 hover:bg-gray-50">Clear all</a>'
     small_bordered:
-        args: { title: Aucune demande, icon: kanban, size: sm, bordered: true }
+        args: { title: No issues, icon: kanban, size: sm, bordered: true }
     amber:
-        args: { title: Aucun accès, icon: lock, tone: amber, bordered: true }
+        args: { title: No access, icon: lock, tone: amber, bordered: true }
         blocks:
-            content: Cet utilisateur ne voit aucun projet tant qu'on ne lui donne pas un accès à un espace ou à un projet.
+            content: This user sees no project until they are given access to a workspace or a project.

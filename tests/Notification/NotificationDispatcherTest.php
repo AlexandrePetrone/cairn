@@ -47,7 +47,7 @@ final class NotificationDispatcherTest extends KernelTestCase
         $issue = $this->fixtures->createIssue($this->fixtures->client);
         $this->async->reset();
 
-        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->developer->getId(), $issue->getKey(), 'start', comment: 'Je prends.'));
+        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->developer->getId(), $issue->getKey(), 'start', comment: 'I am on it.'));
 
         $messages = $this->notifications();
         self::assertCount(1, $messages);
@@ -71,7 +71,7 @@ final class NotificationDispatcherTest extends KernelTestCase
     public function testLinkingTwoIssuesNotifiesBoth(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
-        $other = $this->fixtures->createIssue($this->fixtures->client, title: 'Autre');
+        $other = $this->fixtures->createIssue($this->fixtures->client, title: 'Other');
         $this->async->reset();
 
         $this->commands->dispatch(new AddLink((int) $this->fixtures->developer->getId(), $issue->getKey(), 'related', $other->getKey()));

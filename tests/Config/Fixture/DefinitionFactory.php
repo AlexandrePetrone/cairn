@@ -29,8 +29,8 @@ final class DefinitionFactory
     public static function roles(): array
     {
         return [
-            new RoleDefinition(id: 'project_manager', label: 'Chef de projet', internalOnly: true, followsNewIssues: true),
-            new RoleDefinition(id: 'developer', label: 'Développeur', internalOnly: true),
+            new RoleDefinition(id: 'project_manager', label: 'Project manager', internalOnly: true, followsNewIssues: true),
+            new RoleDefinition(id: 'developer', label: 'Developer', internalOnly: true),
             new RoleDefinition(id: 'client', label: 'Client'),
         ];
     }
@@ -42,7 +42,7 @@ final class DefinitionFactory
     {
         return [
             new FieldDefinition(id: 'url', label: 'URL', type: FieldType::Url),
-            new FieldDefinition(id: 'environment', label: 'Environnement', type: FieldType::Select, options: ['prod' => 'Production', 'preprod' => 'Préproduction']),
+            new FieldDefinition(id: 'environment', label: 'Environment', type: FieldType::Select, options: ['prod' => 'Production', 'preprod' => 'Pre-production']),
         ];
     }
 
@@ -51,26 +51,26 @@ final class DefinitionFactory
      *
      * @param list<string> $migrateInProgressFrom
      */
-    public static function bugWorkflow(bool $withToTest = true, array $migrateInProgressFrom = [], string $label = 'Anomalie'): WorkflowDefinition
+    public static function bugWorkflow(bool $withToTest = true, array $migrateInProgressFrom = [], string $label = 'Bug'): WorkflowDefinition
     {
         $places = [
-            new PlaceDefinition(id: 'new', label: 'Nouveau', status: PlaceStatus::Open),
-            new PlaceDefinition(id: 'in_progress', label: 'En cours', status: PlaceStatus::InProgress, migrateFrom: $migrateInProgressFrom),
+            new PlaceDefinition(id: 'new', label: 'New', status: PlaceStatus::Open),
+            new PlaceDefinition(id: 'in_progress', label: 'In progress', status: PlaceStatus::InProgress, migrateFrom: $migrateInProgressFrom),
         ];
         $transitions = [
-            new TransitionDefinition(id: 'start', label: 'Démarrer', from: ['new'], to: 'in_progress', roles: ['developer']),
+            new TransitionDefinition(id: 'start', label: 'Start', from: ['new'], to: 'in_progress', roles: ['developer']),
         ];
 
         if ($withToTest) {
-            $places[] = new PlaceDefinition(id: 'to_test', label: 'À recetter', status: PlaceStatus::Waiting);
-            $transitions[] = new TransitionDefinition(id: 'deliver', label: 'Livrer', from: ['in_progress'], to: 'to_test', roles: ['developer']);
-            $transitions[] = new TransitionDefinition(id: 'accept', label: 'Valider', from: ['to_test'], to: 'done', roles: ['client', 'project_manager'], style: TransitionStyle::Primary, description: 'La correction est bonne.');
-            $transitions[] = new TransitionDefinition(id: 'refuse', label: 'Refuser', from: ['to_test'], to: 'in_progress', roles: ['client', 'project_manager'], style: TransitionStyle::Danger, requiresComment: true, commentPrompt: 'Pourquoi ?');
+            $places[] = new PlaceDefinition(id: 'to_test', label: 'To test', status: PlaceStatus::Waiting);
+            $transitions[] = new TransitionDefinition(id: 'deliver', label: 'Deliver', from: ['in_progress'], to: 'to_test', roles: ['developer']);
+            $transitions[] = new TransitionDefinition(id: 'accept', label: 'Accept', from: ['to_test'], to: 'done', roles: ['client', 'project_manager'], style: TransitionStyle::Primary, description: 'The fix is right.');
+            $transitions[] = new TransitionDefinition(id: 'refuse', label: 'Refuse', from: ['to_test'], to: 'in_progress', roles: ['client', 'project_manager'], style: TransitionStyle::Danger, requiresComment: true, commentPrompt: 'Why?');
         } else {
-            $transitions[] = new TransitionDefinition(id: 'finish', label: 'Terminer', from: ['in_progress'], to: 'done', roles: ['developer']);
+            $transitions[] = new TransitionDefinition(id: 'finish', label: 'Finish', from: ['in_progress'], to: 'done', roles: ['developer']);
         }
 
-        $places[] = new PlaceDefinition(id: 'done', label: 'Fermée', status: PlaceStatus::Closed);
+        $places[] = new PlaceDefinition(id: 'done', label: 'Closed', status: PlaceStatus::Closed);
 
         return new WorkflowDefinition(
             id: 'bug',
@@ -120,8 +120,8 @@ final class DefinitionFactory
             ],
             fields: $fields ?? self::fields(),
             links: $links ?? [
-                new LinkTypeDefinition(id: 'related', label: 'Lié à'),
-                new LinkTypeDefinition(id: 'blocks', label: 'Bloque', inverseLabel: 'Bloqué par'),
+                new LinkTypeDefinition(id: 'related', label: 'Related to'),
+                new LinkTypeDefinition(id: 'blocks', label: 'Blocks', inverseLabel: 'Blocked by'),
             ],
             workflows: $workflows ?? [self::bugWorkflow()],
         );

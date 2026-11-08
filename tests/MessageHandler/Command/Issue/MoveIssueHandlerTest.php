@@ -49,7 +49,7 @@ final class MoveIssueHandlerTest extends KernelTestCase
 
         $entry = $this->lastEntry($issue);
         self::assertSame(JournalEntryType::TrackerChanged, $entry->getType());
-        self::assertSame(['from_tracker' => 'Anomalie', 'from' => 'Nouveau', 'from_id' => 'new', 'to_tracker' => 'Tâche interne', 'to' => 'En cours', 'to_id' => 'in_progress'], $entry->getData());
+        self::assertSame(['from_tracker' => 'Bug', 'from' => 'New', 'from_id' => 'new', 'to_tracker' => 'Internal task', 'to' => 'In progress', 'to_id' => 'in_progress'], $entry->getData());
     }
 
     public function testClientsCannotChangeTheTracker(): void
@@ -72,7 +72,7 @@ final class MoveIssueHandlerTest extends KernelTestCase
     public function testTheTrackerMustBelongToTheSameProject(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
-        $elsewhere = new Tracker($this->fixtures->access->otherProject, 'Ailleurs', 'bug');
+        $elsewhere = new Tracker($this->fixtures->access->otherProject, 'Elsewhere', 'bug');
         $this->entityManager->persist($elsewhere);
         $this->entityManager->flush();
 
@@ -107,14 +107,14 @@ final class MoveIssueHandlerTest extends KernelTestCase
         self::assertNull($issue->getClosedAt());
         $entry = $this->lastEntry($issue);
         self::assertSame(JournalEntryType::Moved, $entry->getType());
-        self::assertSame(['from' => 'Nouveau', 'from_id' => 'new', 'to' => 'À recetter', 'to_id' => 'to_test'], $entry->getData());
+        self::assertSame(['from' => 'New', 'from_id' => 'new', 'to' => 'To test', 'to_id' => 'to_test'], $entry->getData());
         self::assertFalse($entry->isPrivate());
 
         $this->commands->dispatch(new MoveIssue($manager, $issue->getKey(), (int) $this->fixtures->bugs->getId(), 'done'));
 
         self::assertSame('done', $issue->getPlace());
         self::assertNotNull($issue->getClosedAt());
-        self::assertSame(['from' => 'À recetter', 'from_id' => 'to_test', 'to' => 'Fermée', 'to_id' => 'done'], $this->lastEntry($issue)->getData());
+        self::assertSame(['from' => 'To test', 'from_id' => 'to_test', 'to' => 'Closed', 'to_id' => 'done'], $this->lastEntry($issue)->getData());
     }
 
     public function testForcingAPlaceIsARightOfItsOwn(): void

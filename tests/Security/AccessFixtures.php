@@ -26,10 +26,10 @@ final class AccessFixtures
         private readonly EntityManagerInterface $entityManager,
     ) {
         $this->workspace = new Workspace('Maison Dupont', 'MD');
-        $this->shop = new Project($this->workspace, 'Site e-commerce', 'SPT');
+        $this->shop = new Project($this->workspace, 'Online shop', 'SPT');
         $this->intranet = new Project($this->workspace, 'Intranet', 'INT');
-        $this->otherWorkspace = new Workspace('Groupe Vallier', 'GV');
-        $this->otherProject = new Project($this->otherWorkspace, 'Portail', 'PRT');
+        $this->otherWorkspace = new Workspace('Vallier Group', 'GV');
+        $this->otherProject = new Project($this->otherWorkspace, 'Portal', 'PRT');
 
         foreach ([$this->workspace, $this->shop, $this->intranet, $this->otherWorkspace, $this->otherProject] as $entity) {
             $entityManager->persist($entity);

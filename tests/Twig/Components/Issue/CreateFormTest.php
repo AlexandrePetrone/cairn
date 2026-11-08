@@ -19,8 +19,8 @@ use Symfony\UX\LiveComponent\Test\TestLiveComponent;
 
 /**
  * In the scene, the Maison Dupont shop (MD-SPT) has ten issues, a public
- * "Anomalie" tracker on the bug workflow (environment required, estimate
- * internal only) and a private "Tâche interne" one.
+ * "Bug" tracker on the bug workflow (environment required, estimate
+ * internal only) and a private "Internal task" one.
  */
 final class CreateFormTest extends KernelTestCase
 {
@@ -45,8 +45,8 @@ final class CreateFormTest extends KernelTestCase
         $component = $this->form('claire.martin@maison-dupont.test');
 
         $rendered = (string) $component->render();
-        self::assertStringContainsString('Anomalie', $rendered);
-        self::assertStringNotContainsString('Tâche interne', $rendered, 'private trackers are not offered');
+        self::assertStringContainsString('Bug', $rendered);
+        self::assertStringNotContainsString('Internal task', $rendered, 'private trackers are not offered');
         self::assertStringNotContainsString('issue[title]', $rendered, 'no form before the choice');
 
         $rendered = (string) $component->set('trackerId', $this->bugs->getId())->render();
@@ -56,9 +56,9 @@ final class CreateFormTest extends KernelTestCase
         self::assertStringNotContainsString('issue[private]', $rendered, 'clients do not hide');
 
         $component->submitForm(['issue' => [
-            'title' => '  Le panier se vide tout seul  ',
-            'description' => 'Après dix minutes, le panier est vide.',
-            'fields' => ['environment' => 'prod', 'url' => 'https://shop.test/panier'],
+            'title' => '  The cart empties itself  ',
+            'description' => 'After ten minutes, the cart is empty.',
+            'fields' => ['environment' => 'prod', 'url' => 'https://shop.test/cart'],
             'criticality' => 'high',
         ]], 'save');
 
@@ -67,9 +67,9 @@ final class CreateFormTest extends KernelTestCase
         self::assertSame('/MD/SPT/issues/11', $response->headers->get('Location'));
 
         $issue = $this->issue('MD-SPT-11');
-        self::assertSame('Le panier se vide tout seul', $issue->getTitle());
+        self::assertSame('The cart empties itself', $issue->getTitle());
         self::assertSame(Criticality::High, $issue->getCriticality());
-        self::assertSame(['environment' => 'prod', 'url' => 'https://shop.test/panier'], $issue->getFieldValues());
+        self::assertSame(['environment' => 'prod', 'url' => 'https://shop.test/cart'], $issue->getFieldValues());
         self::assertSame('new', $issue->getPlace());
         self::assertFalse($issue->isPrivate());
         self::assertSame('claire.martin@maison-dupont.test', $issue->getAuthor()->getEmail());
@@ -83,8 +83,8 @@ final class CreateFormTest extends KernelTestCase
         $component->call('attach', [], ['files' => [FilesTest::file('trace.log')]]);
         self::assertStringContainsString('trace.log', (string) $component->render());
         $component->submitForm(['issue' => [
-            'title' => 'Le panier se vide tout seul',
-            'description' => 'Voir la trace.',
+            'title' => 'The cart empties itself',
+            'description' => 'See the trace.',
             'fields' => ['environment' => 'prod'],
             'criticality' => 'normal',
         ]], 'save');
@@ -100,11 +100,11 @@ final class CreateFormTest extends KernelTestCase
 
         // The test client lets the 422 of an invalid form through as the exception it comes from.
         try {
-            $component->submitForm(['issue' => ['title' => '', 'description' => 'Sans titre ni environnement.']], 'save');
+            $component->submitForm(['issue' => ['title' => '', 'description' => 'Neither title nor environment.']], 'save');
             self::fail('The form is invalid');
         } catch (UnprocessableEntityHttpException $e) {
-            self::assertStringContainsString('issue.title: Cette valeur ne doit pas être vide.', $e->getMessage());
-            self::assertStringContainsString('issue.fields.environment: Cette valeur ne doit pas être vide.', $e->getMessage());
+            self::assertStringContainsString('issue.title: This value should not be blank.', $e->getMessage());
+            self::assertStringContainsString('issue.fields.environment: This value should not be blank.', $e->getMessage());
         }
         self::assertNull(self::getContainer()->get(IssueRepository::class)->findOneByKey('MD-SPT-11'));
     }
@@ -119,8 +119,8 @@ final class CreateFormTest extends KernelTestCase
         self::assertStringContainsString('issue[private]', (string) $component->set('trackerId', $this->bugs->getId())->render(), 'offered on a public tracker');
 
         $component->set('trackerId', $this->tasks->getId())->submitForm(['issue' => [
-            'title' => 'Purger les sessions expirées',
-            'description' => 'Le cron ne tourne plus.',
+            'title' => 'Purge the expired sessions',
+            'description' => 'The cron no longer runs.',
             'assignee' => (string) $lea->getId(),
         ]], 'save');
 
@@ -137,7 +137,7 @@ final class CreateFormTest extends KernelTestCase
 
         self::assertStringNotContainsString('issue[title]', (string) $component->render(), 'a private tracker is no choice for a client');
 
-        $component->submitForm(['issue' => ['title' => 'Caché', 'description' => 'x']], 'save');
+        $component->submitForm(['issue' => ['title' => 'Hidden', 'description' => 'x']], 'save');
         self::assertSame(200, $component->response()->getStatusCode(), 'nothing happens');
         self::assertNull(self::getContainer()->get(IssueRepository::class)->findOneByKey('MD-SPT-11'));
     }

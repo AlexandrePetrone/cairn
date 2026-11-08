@@ -2,17 +2,17 @@
 variants:
     default:
         args:
-            label: Criticité
+            label: Criticality
             count: 0
             options:
-                - { value: blocking, label: Bloquante, count: 1 }
-                - { value: high, label: Haute, count: 2 }
-                - { value: normal, label: Normale, count: 9 }
+                - { value: blocking, label: Blocking, count: 1 }
+                - { value: high, label: High, count: 2 }
+                - { value: normal, label: Normal, count: 9 }
     with_selection:
         args:
-            label: Criticité
+            label: Criticality
             count: 1
             options:
-                - { value: blocking, label: Bloquante, count: 1, checked: true }
-                - { value: high, label: Haute, count: 2 }
-                - { value: normal, label: Normale, count: 9 }
+                - { value: blocking, label: Blocking, count: 1, checked: true }
+                - { value: high, label: High, count: 2 }
+                - { value: normal, label: Normal, count: 9 }

@@ -42,21 +42,21 @@ final class AttachmentTest extends WebTestCase
         $this->signInAs('claire.martin@maison-dupont.test');
         $url = $this->upload();
 
-        self::assertMatchesRegularExpression('#^/attachments/[0-9a-f-]{36}/capture\.png$#', $url);
+        self::assertMatchesRegularExpression('#^/attachments/[0-9a-f-]{36}/screenshot\.png$#', $url);
         $this->client->request('GET', $url);
         self::assertResponseIsSuccessful();
         self::assertResponseHeaderSame('Content-Type', 'image/png');
-        self::assertResponseHeaderSame('Content-Disposition', 'inline; filename=capture.png');
+        self::assertResponseHeaderSame('Content-Disposition', 'inline; filename=screenshot.png');
         self::assertResponseHeaderSame('X-Content-Type-Options', 'nosniff');
         self::assertResponseHasHeader('Last-Modified');
-        $this->client->request('GET', str_replace('capture.png', 'other.png', $url));
+        $this->client->request('GET', str_replace('screenshot.png', 'other.png', $url));
         self::assertResponseStatusCodeSame(404, 'the name is part of the address');
 
         $this->signInAs('thomas.girard@cairn.test');
         $this->client->request('GET', $url);
         self::assertResponseStatusCodeSame(404, 'nobody else sees a pending file');
 
-        $this->commands()->dispatch(new AddComment((int) $this->user('claire.martin@maison-dupont.test')->getId(), 'MD-SPT-4', \sprintf('Comme ceci : ![capture](%s)', $url)));
+        $this->commands()->dispatch(new AddComment((int) $this->user('claire.martin@maison-dupont.test')->getId(), 'MD-SPT-4', \sprintf('Like this: ![screenshot](%s)', $url)));
         $this->client->request('GET', $url);
         self::assertResponseIsSuccessful('Thomas sees the comment, hence its image');
     }
@@ -114,9 +114,9 @@ final class AttachmentTest extends WebTestCase
             (int) $this->user('claire.martin@maison-dupont.test')->getId(),
             (int) $this->scene->shop->getId(),
             (int) $this->scene->evolutions->getId(),
-            'Bandeau de la page d\'accueil',
-            \sprintf('Comme sur la maquette : ![capture](%s)', $url),
-            fields: ['goal' => 'Mettre en avant les soldes.'],
+            'Home page banner',
+            \sprintf('As in the mockup: ![screenshot](%s)', $url),
+            fields: ['goal' => 'Highlight the sales.'],
         ));
 
         $attachment = self::getContainer()->get(AttachmentRepository::class)->findOneByUuid(Uuid::fromString(explode('/', $url)[2]));
@@ -141,7 +141,7 @@ final class AttachmentTest extends WebTestCase
         $path = tempnam(sys_get_temp_dir(), 'cairn');
         file_put_contents((string) $path, base64_decode(self::PNG, true));
 
-        return new UploadedFile((string) $path, 'capture.png', 'image/png', null, true);
+        return new UploadedFile((string) $path, 'screenshot.png', 'image/png', null, true);
     }
 
     private function commands(): CommandBus

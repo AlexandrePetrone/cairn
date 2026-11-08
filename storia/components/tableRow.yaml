@@ -2,8 +2,8 @@ component: Ui:Table:Row
 variants:
     open:
         blocks:
-            content: '<td class="sm:px-3 sm:py-2.5 font-mono text-xs text-gray-600">MD-SPT-131</td><td class="sm:px-3 sm:py-2.5 basis-full sm:basis-auto text-gray-900">Spinner infini sur la page panier</td>'
+            content: '<td class="sm:px-3 sm:py-2.5 font-mono text-xs text-gray-600">MD-SPT-131</td><td class="sm:px-3 sm:py-2.5 basis-full sm:basis-auto text-gray-900">Endless spinner on the cart page</td>'
     closed:
         args: { closed: true, separator: true }
         blocks:
-            content: '<td class="sm:px-3 sm:py-2.5 font-mono text-xs text-gray-600">MD-SPT-120</td><td class="sm:px-3 sm:py-2.5 basis-full sm:basis-auto">Purger le cache Varnish</td>'
+            content: '<td class="sm:px-3 sm:py-2.5 font-mono text-xs text-gray-600">MD-SPT-120</td><td class="sm:px-3 sm:py-2.5 basis-full sm:basis-auto">Purge the Varnish cache</td>'

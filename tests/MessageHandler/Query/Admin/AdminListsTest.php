@@ -40,9 +40,9 @@ final class AdminListsTest extends KernelTestCase
         $this->fixtures->otherWorkspace->archive();
         self::getContainer()->get(EntityManagerInterface::class)->flush();
 
-        self::assertSame(['GV-PRT', 'MD-SPT', 'MD-INT'], self::prefixes($this->queries->ask(new ListProjects())));
+        self::assertSame(['MD-SPT', 'MD-INT', 'GV-PRT'], self::prefixes($this->queries->ask(new ListProjects())));
         self::assertSame(['MD-SPT'], self::prefixes($this->queries->ask(new ListProjects(state: [ListProjects::ACTIVE]))));
-        self::assertSame(['GV-PRT', 'MD-INT'], self::prefixes($this->queries->ask(new ListProjects(state: [ListProjects::ARCHIVED]))), 'archived through its workspace too');
+        self::assertSame(['MD-INT', 'GV-PRT'], self::prefixes($this->queries->ask(new ListProjects(state: [ListProjects::ARCHIVED]))), 'archived through its workspace too');
         self::assertSame(['MD-SPT', 'MD-INT'], self::prefixes($this->queries->ask(new ListProjects(q: 'dupont'))), 'by workspace name');
         self::assertSame(['MD-INT'], self::prefixes($this->queries->ask(new ListProjects(q: 'int'))));
         self::assertSame(['GV-PRT'], self::prefixes($this->queries->ask(new ListProjects(workspaceId: $this->fixtures->otherWorkspace->getId()))));
@@ -53,7 +53,7 @@ final class AdminListsTest extends KernelTestCase
     {
         $names = static fn (array $workspaces): array => array_map(static fn (Workspace $workspace): string => $workspace->getKey(), $workspaces);
 
-        self::assertSame(['GV', 'MD'], $names($this->queries->ask(new ListWorkspaces())));
+        self::assertSame(['MD', 'GV'], $names($this->queries->ask(new ListWorkspaces())));
         self::assertSame(['MD'], $names($this->queries->ask(new ListWorkspaces('intranet'))));
         self::assertSame(['GV'], $names($this->queries->ask(new ListWorkspaces('gv'))));
 

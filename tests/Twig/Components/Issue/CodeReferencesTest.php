@@ -49,14 +49,14 @@ final class CodeReferencesTest extends KernelTestCase
         $crawler = $this->render('MD-SPT-4', 'nadia.benali@cairn.test');
         $summary = $crawler->filter('summary')->text();
         self::assertStringContainsString('!431', $summary, 'folded, the header shows the first merge request');
-        self::assertStringContainsString('Ouverte', $summary);
+        self::assertStringContainsString('Open', $summary);
         self::assertStringNotContainsString('!420', $summary);
         $text = $crawler->text();
 
         self::assertStringContainsString('!431', $text);
-        self::assertStringContainsString('Ouverte', $text);
+        self::assertStringContainsString('Open', $text);
         self::assertStringContainsString('!420', $text);
-        self::assertStringContainsString('Fermée', $text);
+        self::assertStringContainsString('Closed', $text);
         self::assertLessThan(strpos($text, '!420'), strpos($text, '!431'), 'open merge requests come first');
         self::assertStringContainsString('fix/MD-SPT-4-export', $text);
         self::assertStringContainsString('9c8d7e6f', $text);
