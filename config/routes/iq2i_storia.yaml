@@ -1,3 +1,6 @@
-iq2i_storia:
-    resource: '@IQ2iStoriaBundle/config/routes.php'
-    prefix: '/storia'
+when@dev: &storia
+    iq2i_storia:
+        resource: '@IQ2iStoriaBundle/config/routes.php'
+        prefix: '/storia'
+
+when@test: *storia

@@ -1,2 +1,7 @@
-iq2i_storia:
-    default_path: '%kernel.project_dir%/storia'
+# The component catalogue is a development tool: the bundle is in
+# require-dev and registered in dev and test only (config/bundles.php).
+when@dev: &storia
+    iq2i_storia:
+        default_path: '%kernel.project_dir%/storia'
+
+when@test: *storia

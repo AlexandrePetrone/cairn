@@ -31,3 +31,4 @@ phpstan.neon
 /node_modules/
 /public/build/
 ###< symfony/reprise ###
+/.automate.yml
