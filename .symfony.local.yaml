@@ -1,9 +1,0 @@
-# Workers started by `symfony serve`.
-workers:
-    vite:
-        cmd: ['npx', 'vite']
-    storia:
-        cmd: ['symfony', 'console', 'storia:watch']
-    # Notification mails (`async`) and the daily tasks (`scheduler_default`).
-    messenger:
-        cmd: ['symfony', 'console', 'messenger:consume', 'async', 'scheduler_default']

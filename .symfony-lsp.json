@@ -1,0 +1,7 @@
+{
+    "version": 1,
+    "phpCommand": ["docker", "compose", "exec", "-T", "php", "php"],
+    "containerProjectRoot": "/app",
+    "environment": "dev",
+    "translationDiagnostics": true
+}

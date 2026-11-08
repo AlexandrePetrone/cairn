@@ -1,18 +1,7 @@
-
 services:
 ###> doctrine/doctrine-bundle ###
   database:
+    # A random host port, for a database client on the host ("castor ps" shows it).
     ports:
       - "5432"
 ###< doctrine/doctrine-bundle ###
-
-###> symfony/mailer ###
-  mailer:
-    image: axllent/mailpit
-    ports:
-      - "1025"
-      - "8025"
-    environment:
-      MP_SMTP_AUTH_ACCEPT_ANY: 1
-      MP_SMTP_AUTH_ALLOW_INSECURE: 1
-###< symfony/mailer ###

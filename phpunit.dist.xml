@@ -17,6 +17,9 @@
         <ini name="memory_limit" value="512M" />
         <server name="APP_ENV" value="test" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
+        <!-- The Docker stack sets these for the dev server: tests keep their own. -->
+        <env name="DEFAULT_URI" value="http://localhost" force="true" />
+        <env name="MAILER_DSN" value="null://null" force="true" />
     </php>
 
     <testsuites>

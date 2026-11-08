@@ -1,8 +1,68 @@
+# Development stack, driven by castor.php ("castor install", "castor start", ...).
+# Production runs on a plain server: see the README.
+
+# Everything the PHP services share: image, code bind mount and environment.
+x-php: &php
+  build: .
+  image: cairn-php-dev
+  volumes:
+    # var/ stays in the bind mount on purpose: var/log is readable from the host, and the
+    # filesystem cache.app pool must be shared so "messenger:stop-workers" reaches the consumer.
+    - ./:/app
+  environment:
+    DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-!ChangeMe!}@database:5432/${POSTGRES_DB:-app}?serverVersion=${POSTGRES_VERSION:-18}&charset=utf8
+    DEFAULT_URI: http://localhost:${HTTP_PORT:-8000}
+    # Mailpit (the "mailer" service below); its inbox is http://localhost:8025.
+    MAILER_DSN: smtp://mailer:1025
+    # Read by vite.config.ts: the address the browser reaches the dev server at.
+    VITE_PORT: ${VITE_PORT:-5173}
+    # See https://xdebug.org/docs/all_settings#mode
+    XDEBUG_MODE: ${XDEBUG_MODE:-off}
+  depends_on:
+    database:
+      condition: service_healthy
+  extra_hosts:
+    # Ensure that host.docker.internal is correctly defined on Linux
+    - host.docker.internal:host-gateway
 
 services:
+  php:
+    <<: *php
+    ports:
+      - "${HTTP_PORT:-8000}:80"
+    tty: true
+
+  # Notification mails (async) and the daily tasks (scheduler_default). It exits after an hour or on
+  # "messenger:stop-workers" ("castor workers:restart"), and compose starts it again.
+  messenger:
+    <<: *php
+    # No Caddy here: the image healthcheck (Caddy metrics) does not apply.
+    healthcheck:
+      disable: true
+    command: bin/console messenger:consume async scheduler_default --time-limit=3600 -vv
+    restart: unless-stopped
+
+  # Vite dev server with hot reload; public/build/entrypoints.json points the pages at it.
+  vite:
+    <<: *php
+    healthcheck:
+      disable: true
+    command: npx vite --host 0.0.0.0 --port ${VITE_PORT:-5173} --strictPort
+    ports:
+      - "${VITE_PORT:-5173}:${VITE_PORT:-5173}"
+    restart: unless-stopped
+
+  # Live reload of the component catalogue (/storia).
+  storia:
+    <<: *php
+    healthcheck:
+      disable: true
+    command: bin/console storia:watch
+    restart: unless-stopped
+
 ###> doctrine/doctrine-bundle ###
   database:
-    image: postgres:${POSTGRES_VERSION:-16}-alpine
+    image: postgres:${POSTGRES_VERSION:-18}-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-app}
       # You should definitely change the password in production
@@ -14,12 +74,22 @@ services:
       retries: 5
       start_period: 60s
     volumes:
-      - database_data:/var/lib/postgresql/data:rw
-      # You may use a bind-mounted host directory instead, so that it is harder to accidentally remove the volume and lose all your data!
-      # - ./docker/db/data:/var/lib/postgresql/data:rw
+      # PostgreSQL 18 keeps its data in a version folder under /var/lib/postgresql.
+      - postgres_data:/var/lib/postgresql:rw
 ###< doctrine/doctrine-bundle ###
+
+  # Catches every email the application sends: http://localhost:8025.
+###> symfony/mailer ###
+  mailer:
+    image: axllent/mailpit
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+###< symfony/mailer ###
 
 volumes:
 ###> doctrine/doctrine-bundle ###
-  database_data:
+  postgres_data:
 ###< doctrine/doctrine-bundle ###

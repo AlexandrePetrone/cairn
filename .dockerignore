@@ -1,0 +1,3 @@
+# The code is bind-mounted at runtime: only the image configuration enters the build context.
+*
+!docker/
