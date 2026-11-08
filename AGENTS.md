@@ -1,28 +1,14 @@
 # AGENTS.md
 
-Cairn is an issue tracker for a web agency: a single instance, ~50 client
-organisations, ~80 active projects, several issue categories per project, each
-with its own workflow. It replaces Redmine with a client-centred tool.
+Cairn is an issue tracker for a web agency and its clients: a single
+instance holds every client (a workspace each, several projects per
+workspace), several issue categories per project, each with its own
+workflow, and the people of the agency and of the client work on the same
+issues, each seeing what their role allows. This file is the reference for
+anyone, human or agent, who changes the code: the decisions taken and the
+rules that keep them.
 
-## Temporary specification files (will disappear)
-
-> **Temporary.** During the initial build, the functional specification lives
-> in the parent directory, outside this repository and untracked. These files
-> will be deleted once the project is implemented. Do not link to them from
-> code or docs; when something in them becomes a durable decision, copy it here.
->
-> - `../context.md`: consolidated functional spec and decisions (vocabulary,
->   V1 scope, configuration pipeline, functional model).
-> - `../tickets.config.php`: commented schema of the instance configuration
->   file (roles, permissions, fields, links, workflows). Its identifiers still
->   use `ticket.*` and `relations`; the code uses `issue.*` and `links`.
-> - `../mockup-2/`: throwaway PHP + Tailwind mockups of every screen, plus
->   `brief-ux-demandes.md` (UX brief) and `_data.php` (sample data). They
->   are quick graphic sketches: they give the layout and the look, never
->   the model or the business rules, which come from the code and the
->   decisions recorded here.
-
-## Stack
+## Stack and decisions
 
 Symfony 8.1 on PHP 8.4, installed from `webapp-pack`. Check `composer.json`
 for the exact versions and `symfony.lock` for which recipes ran. Already in
@@ -67,31 +53,31 @@ Flex recipe register the bundle and generate its config. Don't hand-edit
 
 ## Vocabulary
 
-Use the English term in code, the translated one in the UI (through translation
-keys, see below; the French column is what a French instance shows). Never
-mix them.
+Use the English term in code, the translated one in the UI, through
+translation keys (see [Conventions](#conventions)). Never mix them. The UI
+columns are what the English and the French catalogues show.
 
-| UI (fr)        | Code             | Meaning                                                          |
-|----------------|------------------|------------------------------------------------------------------|
-| Demande        | `Issue`          | The tracked object. Key `WORKSPACE-PROJECT-123`.                   |
-| Catégorie      | `Tracker`        | Type of an issue within a project, bound to one workflow. In DB. |
-| Workflow       | `Workflow`       | Places + transitions. Defined in configuration, not in the UI.   |
-| Étape          | `Place`          | Position in a workflow (Symfony Workflow term).                  |
-| Action         | `Transition`     | Named button that moves an issue to another place.               |
-| (interne)      | `PlaceStatus`    | Family of a place: Open, InProgress, Waiting, Closed. PHP enum. Never shown to users, who see places: it orders lists, hides finished issues, feeds statistics. Only the configuration pages of the administration show it. |
-| Criticité      | `Criticality`    | Low, Normal, High, Blocking. First-class column, not a field.    |
-| Champ          | `Field`          | Global attribute, enabled per tracker.                           |
-| Lien           | `Link`           | Related, Duplicates/DuplicatedBy, Blocks/BlockedBy.              |
-| Espace         | `Workspace`      | Group of projects sharing memberships.                           |
-| Projet         | `Project`        |                                                                  |
-| Rôle           | `Role`           | Defined in configuration.                                        |
-| Accès          | `Membership`     | Role of a user on a project or a workspace. No organisation entity: a client is a workspace. |
-| Interne/Externe| `internal` flag  | Agency user vs client user.                                      |
-| Privé          | `private`        | Hidden from external users.                                      |
-| Version        | `Release`        | Planned delivery, optional per project.                          |
-| Historique     | `JournalEntry`   | Immutable journal, keeps the labels of the time.                 |
-| Fichier        | `Attachment`     |                                                                  |
-| —              | `ConfigSnapshot` | Applied configuration definition, stored in database.            |
+| Code             | UI (en)           | UI (fr)          | Meaning                                                          |
+|------------------|-------------------|------------------|------------------------------------------------------------------|
+| `Issue`          | Issue             | Demande          | The tracked object. Key `WORKSPACE-PROJECT-123`.                 |
+| `Tracker`        | Category          | Catégorie        | Type of an issue within a project, bound to one workflow. In DB. |
+| `Workflow`       | Workflow          | Workflow         | Places + transitions. Defined in configuration, not in the UI.   |
+| `Place`          | Step              | Étape            | Position in a workflow (Symfony Workflow term).                  |
+| `Transition`     | Action            | Action           | Named button that moves an issue to another place.               |
+| `PlaceStatus`    | (internal)        | (interne)        | Family of a place: Open, InProgress, Waiting, Closed. PHP enum. Never shown to users, who see places: it orders lists, hides finished issues, feeds statistics. Only the configuration pages of the administration show it. |
+| `Criticality`    | Criticality       | Criticité        | Low, Normal, High, Blocking. First-class column, not a field.    |
+| `Field`          | Field             | Champ            | Global attribute, enabled per tracker.                           |
+| `Link`           | Link              | Lien             | Related, Duplicates/DuplicatedBy, Blocks/BlockedBy.              |
+| `Workspace`      | Workspace         | Espace           | Group of projects sharing memberships.                           |
+| `Project`        | Project           | Projet           |                                                                  |
+| `Role`           | Role              | Rôle             | Defined in configuration.                                        |
+| `Membership`     | Access            | Accès            | Role of a user on a project or a workspace. No organisation entity: a client is a workspace. |
+| `internal` flag  | Internal/External | Interne/Externe  | Agency user vs client user.                                      |
+| `private`        | Private           | Privé            | Hidden from external users.                                      |
+| `Release`        | Release           | Version          | Planned delivery, optional per project.                          |
+| `JournalEntry`   | History           | Historique       | Immutable journal, keeps the labels of the time.                 |
+| `Attachment`     | File              | Fichier          |                                                                  |
+| `ConfigSnapshot` | —                 | —                | Applied configuration definition, stored in database.            |
 
 ## Architecture
 
@@ -134,7 +120,51 @@ src/
   Command/           console commands (app:config:sync, digest, …)
 ```
 
-Rules:
+### Code organisation
+
+- **Entities carry intent.** Prefer `moveTo()`, `makePrivate()`, `close()`
+  over generic setters. Entities never receive services.
+- **Only `Config/` and `Workflow/` are self-contained subtrees**, because they
+  have no equivalent in a standard Symfony project.
+- **No catch-all folders.** No `Service/`, no central `Enum/`, no `Dto/`.
+  An enum or DTO lives next to what gives it meaning: `Criticality` and
+  `PlaceStatus` in `Entity/Enum/` because they are persisted, `FieldType` and
+  `MigrationPolicy` in `Config/`, forge payloads in `Forge/Event/`, the
+  generic `Pagination<T>` in `Repository/` because repositories and query
+  handlers both return it, form data objects in `Form/`. When an enum
+  has two owners, persistence wins and `Config/` imports from `Entity/Enum/`.
+- **Controllers and templates are grouped by zone.** A zone is a part of
+  the application with its own URL prefix and its own shell:
+
+  | Zone        | URL                                    | Shell                       | Controllers            | Templates              |
+  |-------------|----------------------------------------|-----------------------------|------------------------|------------------------|
+  | application | `/`, `/issues/…`, `/projects`          | header only                 | `Controller/` root     | `templates/` root      |
+  | project     | `/MD/SPT/…`                            | header + project navigation | `Controller/Project/`  | `templates/project/`   |
+  | admin       | `/admin/…`                             | amber header + admin navigation (`Layout:AdminNav`) | `Controller/Admin/`    | `templates/admin/`     |
+  | security    | `/login`                               | none                        | `Controller/Security/` | `templates/security/`  |
+
+  Each zone has its base template in `templates/layout/<zone>.html.twig`
+  (`project.html.twig`, `app.html.twig`, `admin.html.twig`), which renders the shell and
+  exposes the `page_title` and `content` blocks; a page extends it and
+  fills them. The root of `Controller/` holds application-level pages
+  only, never a controller that found no home. Components are not
+  grouped by zone but by what they display (`Layout/`, `Issue/`,
+  `Project/`): a component serving two zones must not lie about either.
+- **URLs carry keys, not ids, and one route per need.** A project page is
+  `/MD/SPT/issues`: the workspace key, the project key, then the screen.
+  An action receives it as `#[CurrentProject] Project $project`, resolved
+  by `Controller/Project/CurrentProjectResolver` from the two route
+  parameters (404 when unknown), and the controller class carries
+  `#[IsGranted('view', subject: 'project')]`. Archived projects, and the
+  projects of an archived workspace (`Project::isReadOnly()`), are
+  refused by `AccessControl` for every permission and every transition,
+  so no controller checks it; the project layout shows a banner saying so. A list with another scope is
+  another route of the same controller (`/issues/assigned`,
+  `/issues/created`, `/issues/tracker/{id}`: trackers have no key), never
+  a query parameter that switches the view: the route fixes the scope and
+  the filters it offers.
+
+### Writes and reads
 
 - **Writes are commands.** Every mutation is a Messenger message in
   `Message/Command/<Domain>/` (readonly, `#[Assert]` constraints) handled by
@@ -164,36 +194,6 @@ Rules:
   (`ApplyTransition`, `MoveIssue`), a sub-resource (comments, files,
   `GrantMembership` / `RevokeMembership`). Don't split an `UpdateX` per
   property or per form: a page edits a resource with one form.
-- **The response box asks what to do, and the workflow can be left on
-  purpose.** On the issue page `Issue:Activity` offers, above the comment
-  editor, the transitions the viewer may apply from the issue's place
-  (`AccessControl::transitionsFor()`), each with its configured
-  `description`, and « Commenter seulement » as one more choice; nothing
-  is chosen in advance, and the one button, inactive until then, takes
-  the name of the choice and sends the comment with it (`outcome`,
-  `submit()`). Without any transition, the box is the editor alone; the
-  actions of others are never shown, nor the place an action leads to:
-  clients act because they are asked to choose, not for the step. A
-  transition's `requiresComment` binds external users only
-  (`AccessControl::commentRequired()`, the one place that says so): the
-  agency applies any transition without a word, and `MoveIssue` asks for
-  none either. There is
-  no "whose turn" indicator: the action offered says it. The header
-  shows the path the issue took, as `JournalEntryRepository::findPlaceChanges()`
-  reads it from the journal with the labels of the time, private entries
-  included: a transition made with a private comment hides its comment
-  and its journal line from external users, never the place it led to,
-  which they read in the properties. Whoever holds
-  `issue.force_place` (internal-only) or `issue.change_tracker` gets a
-  « ⋯ » menu, `Issue:Move`, a sibling of `Issue:Header` laid out by the
-  page: one dialog chooses a tracker of the project and a place of its
-  workflow and dispatches `MoveIssue`, which writes the place without the
-  state machine and journals `moved` (same tracker) or `tracker_changed`;
-  the dialog warns when no action leads from the current place to the
-  chosen one. No reason is asked: the journal line is the trace. The
-  selection page offers the same move (`SelectionActions::$moveTrackers`:
-  the trackers of the project valid for every issue, one `MoveIssue` per
-  issue), the kanban does not.
 - **Forms feed commands.** A form binds to a mutable data object in
   `Form/` (`IssueData`) that carries the input constraints; the controller
   turns a valid submission into the readonly command and dispatches it.
@@ -247,19 +247,122 @@ Rules:
   only the configuration resolves (the labels of an issue's field
   values, `InstanceDefinition::fieldValues()`) is not a query: components
   call it.
-- **URLs carry keys, not ids, and one route per need.** A project page is
-  `/MD/SPT/issues`: the workspace key, the project key, then the screen.
-  An action receives it as `#[CurrentProject] Project $project`, resolved
-  by `Controller/Project/CurrentProjectResolver` from the two route
-  parameters (404 when unknown), and the controller class carries
-  `#[IsGranted('view', subject: 'project')]`. Archived projects, and the
-  projects of an archived workspace (`Project::isReadOnly()`), are
-  refused by `AccessControl` for every permission and every transition,
-  so no controller checks it; the project layout shows a banner saying so. A list with another scope is
-  another route of the same controller (`/issues/assigned`,
-  `/issues/created`, `/issues/tracker/{id}`: trackers have no key), never
-  a query parameter that switches the view: the route fixes the scope and
-  the filters it offers.
+- **The handler records a change; side effects listen to it.** A command
+  that changes an issue ends with one call to
+  `IssueHandlerSupport::record()`, given the domain event of `Event/`
+  (`IssueCreated`, `IssueUpdated`, `IssueTransitioned`, `IssueMoved`,
+  `CommentAdded`, `CommentEdited`, `CommentDeleted`, `AttachmentAdded`,
+  `AttachmentRemoved`, `IssuesLinked`, `IssuesUnlinked`) carrying the
+  issue, the actor and the journal entries it wrote: `record()` persists
+  the entries, touches the issue and dispatches the event with the
+  EventDispatcher, inside the transaction, so a listener may still write
+  (`SubscriptionRules`). One event per command and per issue: linking
+  dispatches one for each end. Nothing has an id when the event fires;
+  `Notification/NotificationDispatcher` keeps the events it listens to
+  until Doctrine's `postFlush`, then dispatches `NotifyIssueChange` (ids
+  only) on the default bus with `DispatchAfterCurrentBusStamp`: the
+  message leaves after the command's transaction committed, and is
+  dropped with it when the command fails. If that deferred dispatch
+  itself fails, `CommandBus` logs it and still returns the handler's
+  result, since the change is committed.
+
+### Authorization and visibility
+
+- **One authorization service.** `Security/AccessControl` takes the acting
+  user as an explicit argument and resolves the effective role (direct
+  membership or workspace membership, the broadest wins; being internal
+  opens every project to reading but grants no role). Handlers call it directly. Voters are
+  thin adapters over it for `#[IsGranted]` and Twig.
+- **Visibility is written twice and tested as one.** `AccessControl::canSee()`
+  decides for one issue, `Security/Visibility::restrictIssues()` applies
+  the same rule in SQL; `canView()` and `restrictProjects()` do the same
+  for projects, and `restrictTrackers()` hides the private trackers from
+  external users, for `ListTrackers` and the issue lists alike. The two
+  classes live side by side in `Security/` because they are one rule.
+  Every handler that lists issues, trackers or projects goes through
+  `Visibility`. Change both sides together: `SearchIssuesVisibilityTest`
+  and `ListVisibleProjectsTest` compare them for every user of the
+  development dataset.
+  The same holds for private comments and their files:
+  `AccessControl::canSeeComment()` and `canSeeAttachment()` in PHP,
+  `ShowIssueHandler` in SQL, compared by `ShowIssueVisibilityTest`, and
+  for the links of an issue: `ListLinks` keeps those whose other end
+  the viewer sees, through `Visibility`, compared with `canSee()` by the
+  same test.
+- **Who edits what: the author, or the right on others.** The content of
+  an issue (title, description, fields, files on the issue) is its
+  author's as long as their role still lets them create issues there;
+  `issue.edit` grants it on the issues written by others. The body and
+  files of a comment are its author's as long as they may still comment;
+  `comment.edit` grants it on the comments of others, and deleting is the
+  same right. One method per object decides, `AccessControl::canEditIssue()`
+  and `canEditComment()`: handlers call it, components show the controls
+  only when it says yes, and the config example gives both rights to
+  project managers. A rewritten description or comment, and a deleted
+  comment, are journaled with the text before and after
+  (`changed` with `from`/`to`, `comment_edited`, `comment_deleted`), shown
+  in the thread behind a disclosure. The `journal_label` Twig filter
+  (`Twig/JournalLabelExtension`) turns an entry into its sentence, for
+  the thread (`Issue:JournalEntry`) and the mails alike: the only place
+  that reads what each type recorded.
+
+### The issue page
+
+- **The response box asks what to do, and the workflow can be left on
+  purpose.** On the issue page `Issue:Activity` offers, above the comment
+  editor, the transitions the viewer may apply from the issue's place
+  (`AccessControl::transitionsFor()`), each with its configured
+  `description`, and "Comment only" as one more choice; nothing
+  is chosen in advance, and the one button, inactive until then, takes
+  the name of the choice and sends the comment with it (`outcome`,
+  `submit()`). Without any transition, the box is the editor alone; the
+  actions of others are never shown, nor the place an action leads to:
+  clients act because they are asked to choose, not for the step. A
+  transition's `requiresComment` binds external users only
+  (`AccessControl::commentRequired()`, the one place that says so): the
+  agency applies any transition without a word, and `MoveIssue` asks for
+  none either. There is
+  no "whose turn" indicator: the action offered says it. The header
+  shows the path the issue took, as `JournalEntryRepository::findPlaceChanges()`
+  reads it from the journal with the labels of the time, private entries
+  included: a transition made with a private comment hides its comment
+  and its journal line from external users, never the place it led to,
+  which they read in the properties. Whoever holds
+  `issue.force_place` (internal-only) or `issue.change_tracker` gets a
+  "⋯" menu, `Issue:Move`, a sibling of `Issue:Header` laid out by the
+  page: one dialog chooses a tracker of the project and a place of its
+  workflow and dispatches `MoveIssue`, which writes the place without the
+  state machine and journals `moved` (same tracker) or `tracker_changed`;
+  the dialog warns when no action leads from the current place to the
+  chosen one. No reason is asked: the journal line is the trace. The
+  selection page offers the same move (`SelectionActions::$moveTrackers`:
+  the trackers of the project valid for every issue, one `MoveIssue` per
+  issue), the kanban does not.
+- **Links read from each side.** An `IssueLink` goes from a source to a
+  target with a link type of the configuration: the source reads its
+  label (Blocks), the target its inverse (Blocked by); a symmetric type
+  exists once whatever the direction. `AddLink` and `RemoveLink` need
+  `issue.link`; linking across projects is for internal users, and the
+  journal entry of a link (`linked`, `unlinked`, on both issues, with
+  the other's key and title of the time) is private when the other issue
+  is private or of another project. `Issue:Links` offers the inverse
+  labels too and then links the other way. The sync refuses to remove a
+  link type that links still use (`SyncPlan::$usedLinkTypes`).
+- **Releases are optional, without a setting.** A `Release` belongs to
+  one project, its name unique there; `ReleaseStatus` (open, delivered,
+  abandoned, in `Entity/Enum/`) is a property of `UpdateRelease`, and
+  only an open release takes issues, those of a delivered or abandoned
+  one staying in it. An issue is in one release at most, set by
+  `UpdateIssue::$releaseId` (`issue.set_release`) and journaled with the
+  names of the time. A project without any release shows none of it:
+  no Release property on the issue, no filter nor grouping in its lists,
+  and the Releases page (`/MD/SPT/releases`, `Project/ReleaseController`)
+  is in its navigation only for whoever may create the first
+  (`release.manage`). Clients read the releases, their progress counted
+  over the issues they see (`ListReleases`, through `Visibility`).
+
+### Issue lists, kanban and bulk actions
+
 - **Issue lists are one query, shown by one component.** `SearchIssues`
   serves every list. `Issue:List` (`Twig/Components/Issue/IssueList`,
   `List` being reserved) builds it: the page gives the scope (project,
@@ -277,7 +380,7 @@ Rules:
   with its workflow, `workflow:place` (`Workflow/PlaceCatalog::key()`,
   `Repository/IssueOrder::PLACE_KEY` in SQL): a list mixing workflows
   keeps their places apart, under their workflow's label in the filter
-  and in the group headers ("Anomalie › En cours"), with no merging
+  and in the group headers ("Bug › In progress"), with no merging
   rule. Workflows come in the order of the instance file, places in the
   order of their workflow. The SQL
   order is `Repository/IssueOrder`: the group first, then the sorted
@@ -340,66 +443,9 @@ Rules:
   the others done, and the flash says which were refused and why
   (`DispatchesCommands::refusal()`). A common comment carries no file,
   since a pending file is claimed by one issue only.
-- **Visibility is written twice and tested as one.** `AccessControl::canSee()`
-  decides for one issue, `Security/Visibility::restrictIssues()` applies
-  the same rule in SQL; `canView()` and `restrictProjects()` do the same
-  for projects, and `restrictTrackers()` hides the private trackers from
-  external users, for `ListTrackers` and the issue lists alike. The two
-  classes live side by side in `Security/` because they are one rule.
-  Every handler that lists issues, trackers or projects goes through
-  `Visibility`. Change both sides together: `SearchIssuesVisibilityTest`
-  and `ListVisibleProjectsTest` compare them for every user of the
-  development dataset.
-  The same holds for private comments and their files:
-  `AccessControl::canSeeComment()` and `canSeeAttachment()` in PHP,
-  `ShowIssueHandler` in SQL, compared by `ShowIssueVisibilityTest`, and
-  for the links of an issue: `ListLinks` keeps those whose other end
-  the viewer sees, through `Visibility`, compared with `canSee()` by the
-  same test.
-- **Links read from each side.** An `IssueLink` goes from a source to a
-  target with a link type of the configuration: the source reads its
-  label (Bloque), the target its inverse (Bloqué par); a symmetric type
-  exists once whatever the direction. `AddLink` and `RemoveLink` need
-  `issue.link`; linking across projects is for internal users, and the
-  journal entry of a link (`linked`, `unlinked`, on both issues, with
-  the other's key and title of the time) is private when the other issue
-  is private or of another project. `Issue:Links` offers the inverse
-  labels too and then links the other way. The sync refuses to remove a
-  link type that links still use (`SyncPlan::$usedLinkTypes`).
-- **Who edits what: the author, or the right on others.** The content of
-  an issue (title, description, fields, files on the issue) is its
-  author's as long as their role still lets them create issues there;
-  `issue.edit` grants it on the issues written by others. The body and
-  files of a comment are its author's as long as they may still comment;
-  `comment.edit` grants it on the comments of others, and deleting is the
-  same right. One method per object decides, `AccessControl::canEditIssue()`
-  and `canEditComment()`: handlers call it, components show the controls
-  only when it says yes, and the config example gives both rights to
-  project managers. A rewritten description or comment, and a deleted
-  comment, are journaled with the text before and after
-  (`changed` with `from`/`to`, `comment_edited`, `comment_deleted`), shown
-  in the thread behind a disclosure. The `journal_label` Twig filter
-  (`Twig/JournalLabelExtension`) turns an entry into its sentence, for
-  the thread (`Issue:JournalEntry`) and the mails alike: the only place
-  that reads what each type recorded.
-- **The handler records a change; side effects listen to it.** A command
-  that changes an issue ends with one call to
-  `IssueHandlerSupport::record()`, given the domain event of `Event/`
-  (`IssueCreated`, `IssueUpdated`, `IssueTransitioned`, `IssueMoved`,
-  `CommentAdded`, `CommentEdited`, `CommentDeleted`, `AttachmentAdded`,
-  `AttachmentRemoved`, `IssuesLinked`, `IssuesUnlinked`) carrying the
-  issue, the actor and the journal entries it wrote: `record()` persists
-  the entries, touches the issue and dispatches the event with the
-  EventDispatcher, inside the transaction, so a listener may still write
-  (`SubscriptionRules`). One event per command and per issue: linking
-  dispatches one for each end. Nothing has an id when the event fires;
-  `Notification/NotificationDispatcher` keeps the events it listens to
-  until Doctrine's `postFlush`, then dispatches `NotifyIssueChange` (ids
-  only) on the default bus with `DispatchAfterCurrentBusStamp`: the
-  message leaves after the command's transaction committed, and is
-  dropped with it when the command fails. If that deferred dispatch
-  itself fails, `CommandBus` logs it and still returns the handler's
-  result, since the change is committed.
+
+### Notifications
+
 - **Notifications are subscriptions, and the events are the policy.**
   `IssueSubscription` says who follows an issue; the recipients of a
   change are its subscribers minus the actor. `Notification/SubscriptionRules`
@@ -429,6 +475,9 @@ Rules:
   must consume `async` in production (`messenger:consume async
   scheduler_default` in dev); `MAILER_FROM` and `DEFAULT_URI` are set per
   environment.
+
+### Forges
+
 - **Code references come from the forges, for the agency only.** A
   project links the repositories of a forge (`CodeRepository`: forge,
   path `group/project` kept in lower case, a secret of its own generated
@@ -472,18 +521,9 @@ Rules:
   project that nobody can remove from the UI. GitHub comes as
   `Forge/GitHub/` with its own parser and API client behind the same
   `ForgeApi` and events.
-- **Releases are optional, without a setting.** A `Release` belongs to
-  one project, its name unique there; `ReleaseStatus` (open, delivered,
-  abandoned, in `Entity/Enum/`) is a property of `UpdateRelease`, and
-  only an open release takes issues, those of a delivered or abandoned
-  one staying in it. An issue is in one release at most, set by
-  `UpdateIssue::$releaseId` (`issue.set_release`) and journaled with the
-  names of the time. A project without any release shows none of it:
-  no Release property on the issue, no filter nor grouping in its lists,
-  and the Releases page (`/MD/SPT/releases`, `Project/ReleaseController`)
-  is in its navigation only for whoever may create the first
-  (`release.manage`). Clients read the releases, their progress counted
-  over the issues they see (`ListReleases`, through `Visibility`).
+
+### Administration
+
 - **The administration is guarded at its door.** Everything under
   `/admin` requires `ROLE_ADMIN` (`access_control` in `security.yaml`,
   and `#[IsGranted('ROLE_ADMIN')]` on each `Controller/Admin/`
@@ -518,41 +558,8 @@ Rules:
   fields and actions by role,
   fields and links, sync history. It changes only through the instance
   file and `app:config:sync`.
-- **One authorization service.** `Security/AccessControl` takes the acting
-  user as an explicit argument and resolves the effective role (direct
-  membership or workspace membership, the broadest wins; being internal
-  opens every project to reading but grants no role). Handlers call it directly. Voters are
-  thin adapters over it for `#[IsGranted]` and Twig.
-- **Entities carry intent.** Prefer `moveTo()`, `makePrivate()`, `close()`
-  over generic setters. Entities never receive services.
-- **Only `Config/` and `Workflow/` are self-contained subtrees**, because they
-  have no equivalent in a standard Symfony project.
-- **No catch-all folders.** No `Service/`, no central `Enum/`, no `Dto/`.
-  An enum or DTO lives next to what gives it meaning: `Criticality` and
-  `PlaceStatus` in `Entity/Enum/` because they are persisted, `FieldType` and
-  `MigrationPolicy` in `Config/`, forge payloads in `Forge/Event/`, the
-  generic `Pagination<T>` in `Repository/` because repositories and query
-  handlers both return it, form data objects in `Form/`. When an enum
-  has two owners, persistence wins and `Config/` imports from `Entity/Enum/`.
-- **Controllers and templates are grouped by zone.** A zone is a part of
-  the application with its own URL prefix and its own shell:
 
-  | Zone        | URL                                    | Shell                       | Controllers            | Templates              |
-  |-------------|----------------------------------------|-----------------------------|------------------------|------------------------|
-  | application | `/`, `/issues/…`, `/projects`          | header only                 | `Controller/` root     | `templates/` root      |
-  | project     | `/MD/SPT/…`                            | header + project navigation | `Controller/Project/`  | `templates/project/`   |
-  | admin       | `/admin/…`                             | amber header + admin navigation (`Layout:AdminNav`) | `Controller/Admin/`    | `templates/admin/`     |
-  | security    | `/login`                               | none                        | `Controller/Security/` | `templates/security/`  |
-
-  Each zone has its base template in `templates/layout/<zone>.html.twig`
-  (`project.html.twig`, `app.html.twig`, `admin.html.twig`), which renders the shell and
-  exposes the `page_title` and `content` blocks; a page extends it and
-  fills them. The root of `Controller/` holds application-level pages
-  only, never a controller that found no home. Components are not
-  grouped by zone but by what they display (`Layout/`, `Issue/`,
-  `Project/`): a component serving two zones must not lie about either.
-
-### Frontend
+## Frontend
 
 - Assets are built by Vite through Symfony Reprise, not AssetMapper.
   `vite.config.ts` declares one entry, `app` (`assets/app.js`, which
@@ -562,9 +569,9 @@ Rules:
   install <package>`, lock file committed); Symfony UX packages point to
   their `vendor/` copy with `file:`. Templates render the entry with
   `reprise_entry_link_tags('app')` and `reprise_entry_script_tags('app')`.
-  The build goes to `public/build/` (`npm run build`, `castor assets`);
-  in dev the Vite server is a `symfony serve` worker and serves the
-  assets with hot reload. Tests render no asset tags (`strict_mode` is
+  The build goes to `public/build/` (`npm run build`, `castor
+  assets:build`); in dev the `vite` service of the Docker stack serves
+  the assets with hot reload. Tests render no asset tags (`strict_mode` is
   off in `test`), so they need no build.
 - Tailwind v4, configured in CSS (`assets/styles/app.css`: `@theme`, `@utility`,
   `@source`), built by Vite with `@tailwindcss/vite`. No `tailwind.config.js`.
@@ -620,9 +627,9 @@ Rules:
   the variant (no `{% if example == … %}`): what changes between variants
   belongs in the YAML.
   Shared data lives in `storia/data/`. The
-  catalogue is at `/storia` (`castor storia` for live reload). Its
+  catalogue is at `/storia`, reloaded live by the `storia` service. Its
   snapshots in `tests/storia/snapshots/` run with the test suite; review a
-  diff before `bin/console storia:test --update`.
+  diff before `castor qa:storia --update`.
 - Symfony forms render through `templates/form/theme.html.twig`, registered
   globally in `config/packages/twig.yaml`: each block (`form_row`,
   `form_widget_simple`, `textarea_widget`, `choice_widget_collapsed`,
@@ -722,7 +729,7 @@ Rules:
   `EventListener/AttachmentFileRemover` takes the file when the row goes.
   Pending files nobody took and files without a row are deleted after a
   day by `Attachment/AttachmentPruner`, a daily Scheduler task
-  (`messenger:consume scheduler_default`, a `symfony serve` worker in
+  (`messenger:consume scheduler_default`, the `messenger` service in
   dev, a worker to run in production); `app:attachments:prune --dry-run`
   runs it by hand.
   A file input inside a live component goes through the `file-picker`
@@ -773,7 +780,9 @@ by default). The journal is never migrated.
 
 ## Conventions
 
-- Code, identifiers, comments, commit messages and this file are in English.
+- Code, identifiers, comments, tests, fixtures, commit messages and this
+  file are in English. French lives only in the translation catalogues
+  (`translations/*.fr.yaml`) and in `config/instance.example.fr.php`.
 - **One language per instance**, set by `CAIRN_LOCALE` (wired to
   `framework.default_locale`). There is no per-user locale: issues are
   written in one language, so the interface follows it. Two kinds of text:
@@ -817,31 +826,47 @@ by default). The journal is never migrated.
 - `.env` holds defaults only. Real secrets go in `.env.local` or the secrets
   vault, read via `%env(...)%`.
 
-## Everyday workflow
+## Development environment
 
-- Run `npm install` once, then the app with `symfony serve -d` (its
-  workers start the Vite dev server, Storia's watcher and the scheduler),
-  commands with `symfony console ...`
-  (or `bin/console` when the Symfony CLI isn't available). In dev and test
-  the database is SQLite under `var/` (see `DATABASE_URL` in `.env`); the
-  Docker Compose Postgres service is there for testing against a real
-  server when needed (`docker compose up -d database`, the Symfony CLI then
-  injects its `DATABASE_URL`).
-- Mails: `MAILER_DSN` is `null://` by default; `docker compose up -d
-  mailer` starts Mailpit (port 8025) and the Symfony CLI injects its DSN.
-  The `messenger` worker of `symfony serve` consumes `async`, so a
-  comment on a followed issue shows up there.
-- `castor fixtures` resets the dev database and loads `src/Story/AppStory`
-  (Foundry): workspaces, projects, trackers, users and issues close to the
-  mockups, created through the real commands under a mocked clock, with
-  nothing drawn at random: two loads give the same database. It
-  applies `config/instance.example.php`, whose workflows it is written for.
-  Every user's password is `cairn`; `admin@cairn.test` is an administrator.
-  It then loads `src/Story/VolumeStory`, the Natura catalogue (`NC-CAT`):
-  200 issues without threads, to try the lists over several pages. Tests
-  load `AppStory` only. `bin/console foundry:load-fixtures volume --append`
-  adds it to a database that already holds the main story.
-  Factories live in `src/Factory/` and are also meant for tests.
+Development runs in Docker (`compose.yaml`, image built from `Dockerfile`),
+driven by Castor (`castor.php` and `.castor/`): Docker with Compose v2 and
+Castor are the only things needed on the host. Commands run inside the
+`php` container, never on the host.
+
+- `castor install` builds the image, installs the Composer and npm
+  dependencies, creates the dev and test databases, applies the schema,
+  loads the development data and starts the stack. `castor start` and
+  `castor stop` afterwards; `castor list` shows every task.
+- The services: `php` (FrankenPHP, <http://localhost:8000>), `messenger`
+  (`messenger:consume async scheduler_default`: notification mails and
+  daily tasks), `vite` (the Vite dev server with hot reload, port 5173),
+  `storia` (live reload of `/storia`), `database` (PostgreSQL 18) and
+  `mailer` (Mailpit, <http://localhost:8025>). `HTTP_PORT`, `VITE_PORT`
+  and `MAILPIT_PORT` change the published ports. `compose.yaml` injects
+  `DATABASE_URL`, `MAILER_DSN` and `DEFAULT_URI`; other overrides go in
+  `.env.local`.
+- Commands in the container: `castor console <command>` (`bin/console`),
+  `castor composer …`, `castor npm …`, `castor sh`. The `messenger`
+  worker loads the code once: `castor workers:restart` after changing
+  what it runs (`castor workers:watch` does it on every change).
+- `castor db:fixtures` resets the dev database and loads
+  `src/Story/AppStory` (Foundry): workspaces, projects, trackers, users
+  and issues created through the real commands under a mocked clock, with
+  nothing drawn at random: two loads give the same database. It applies
+  `config/instance.example.php`, whose workflows it is written for.
+  Every user's password is `cairn`; `admin@cairn.test` is an
+  administrator. It then loads `src/Story/VolumeStory`, the Natura
+  catalogue (`NC-CAT`): 200 issues without threads, to try the lists over
+  several pages. Tests load `AppStory` only. Factories live in
+  `src/Factory/` and are also meant for tests.
+- `CAIRN_CONFIG` points to the instance configuration file; `.env`
+  defaults to the committed `config/instance.example.php`
+  (`config/instance.example.fr.php` is the same instance in French, for
+  `CAIRN_LOCALE=fr`). After changing it, run `castor app:config:sync
+  --dry-run`, then without `--dry-run`. Keep both example files in step:
+  a test checks they define the same ids.
+- Mails land in Mailpit: a comment on a followed issue shows up there once
+  the `messenger` worker has sent it.
 - Forges: `FORGE_GITLAB_TOKEN` is empty by default, so a linked
   repository shows the URL and secret to paste in GitLab by hand; a token
   in `.env.local` (with `FORGE_GITLAB_URL`) makes the page install the
@@ -849,12 +874,9 @@ by default). The journal is never migrated.
   `tests/Forge/Fixture/` to `/webhook/gitlab` with `X-Gitlab-Event` and
   `X-Gitlab-Token` set to the repository's secret; the `messenger`
   worker records it.
-- `CAIRN_CONFIG` points to the instance configuration file; `.env` defaults
-  to the committed `config/instance.example.php`. After changing it, run
-  `symfony console app:config:sync --dry-run`, then without `--dry-run`.
 - When something fails, read `var/log/dev.log` and the web profiler
   (`/_profiler`) before changing code.
-- Prefer `bin/console make:*` with every argument passed up front and
+- Prefer `castor console make:*` with every argument passed up front and
   `--no-interaction`; makers prompt on a terminal by default, which hangs a
   non-interactive shell. If a maker still needs input, hand-write the code.
 - Discover, don't guess: `bin/console about`, `debug:router`,
@@ -866,31 +888,44 @@ by default). The journal is never migrated.
 ## Testing
 
 Functional tests extend `WebTestCase`; handler and service tests extend
-`KernelTestCase` and run against a real database: `tests/bootstrap.php`
-builds the test schema from the entities and `dama/doctrine-test-bundle`
-rolls every test back. Tests own their data: handler tests build what
-they check with `AccessFixtures` and `IssueFixtures`, page and component
-tests load `tests/Scene/ShopScene` (one shop, its people and ten issues
-under the example configuration). The development story is loaded only
-by the tests that compare a PHP rule with its SQL over a rich dataset
+`KernelTestCase` and run against a real PostgreSQL database (`app_test`):
+`tests/bootstrap.php` builds the test schema from the entities and
+`dama/doctrine-test-bundle` rolls every test back. Sequences are not rolled
+back, so a test never assumes an id: it reads it from the entity. Tests own
+their data: handler tests build what they check with `AccessFixtures` and
+`IssueFixtures`, page and component tests load `tests/Scene/ShopScene` (one
+shop, its people and ten issues under the test configuration,
+`tests/Config/Fixture/`). The development story is loaded only by the tests
+that compare a PHP rule with its SQL over a rich dataset
 (`SearchIssuesVisibilityTest`, `ShowIssueVisibilityTest`,
-`ListProjectMembersTest`, `ListVisibleProjectsTest`) and by `AppStoryTest`. Run `castor test` (arguments are passed to PHPUnit,
-e.g. `castor test --filter Codec`). A feature isn't done until it has a
-test that exercises it the way a caller would: an HTTP request for a
-controller, a command or query dispatched on its bus for a handler.
-Not just "it didn't throw".
+`ListProjectMembersTest`, `ListVisibleProjectsTest`) and by `AppStoryTest`.
+Tests, fixtures and their data are in English, the default locale; the
+French catalogue is checked by key (`PermissionTest`), not through the
+pages.
+
+Run `castor test` (arguments are passed to PHPUnit, e.g. `castor test
+--filter IssueListTest`). The Storia snapshots run with the suite; after a
+deliberate change of a component, review the diff and rewrite them with
+`castor qa:storia --update`. A feature isn't done until it has a test that
+exercises it the way a caller would: an HTTP request for a controller, a
+command or query dispatched on its bus for a handler. Not just "it didn't
+throw".
 
 ## Quality tools
 
-Project tasks are defined in `castor.php` and run with the Castor CLI
-(install it from https://castor.jolicode.com, it is not a Composer
-dependency):
+`castor qa` runs every check the CI runs (`.github/workflows/ci.yaml`) and
+must pass before handing work over:
 
-- `castor qa`: everything below. Run it before handing work
-  over; it must pass.
 - `castor cs`: php-cs-fixer with the `@Symfony` and `@Symfony:risky` rulesets
-  plus `declare(strict_types=1)` in every file (`--check` to only report).
+  plus `declare(strict_types=1)` in every file (`--dry-run` to only report).
 - `castor phpstan`: PHPStan level 8 with the Symfony and Doctrine
   extensions (`phpstan.dist.neon`). PHPDoc types are not treated as certain,
   so runtime checks on hand-written configuration values stay meaningful.
-- `castor test`: PHPUnit.
+- `castor lint`: `lint:container`, `lint:twig` and `lint:yaml`.
+- `castor lsp`: Symfony Language Tools (`.symfony-lsp.json`), which checks
+  routes, services, templates and translation keys against the running
+  `php` container; it downloads the pinned release unless `symfony-lsp`
+  is on the `PATH`.
+- `castor test`: PHPUnit, Storia snapshots included.
+
+The CI also builds the assets (`npm ci && npm run build`).
