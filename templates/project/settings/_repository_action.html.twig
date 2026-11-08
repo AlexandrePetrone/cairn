@@ -1,0 +1,5 @@
+{# One action on a linked `repository`: `action` is install, uninstall, secret or unlink; `variant` and `icon` go to the button. #}
+<form method="post" action="{{ path('app_project_settings_repository', settingsRoute|merge({ repository: repository.id, action: action })) }}">
+    <input type="hidden" name="_token" value="{{ csrf_token('submit') }}" data-controller="csrf-protection">
+    <twig:Ui:Button type="submit" size="sm" :variant="variant|default('secondary')" :icon="icon|default(null)">{{ ('project.settings.repository.action.' ~ action)|trans }}</twig:Ui:Button>
+</form>

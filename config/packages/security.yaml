@@ -15,6 +15,12 @@ security:
             # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
+        webhook:
+            # The forges deliver here, authenticated by the secret of the
+            # repository named in the payload (Forge/GitLab/GitLabRequestParser):
+            # no session, no user, no CSRF.
+            pattern: ^/webhook/
+            security: false
         main:
             lazy: true
             provider: app_user_provider

@@ -204,6 +204,51 @@ class JournalEntry
         ], $other->isPrivate() || $other->getTracker()->isPrivate() || $other->getProject() !== $issue->getProject());
     }
 
+    /**
+     * A forge delivered a push whose commits mention the issue: one entry
+     * per push, listing the commits new to the issue, each with its short
+     * sha, title, URL and author. No author: the forge acted. Private: the
+     * code is the agency's.
+     *
+     * @param non-empty-list<CodeReference> $commits
+     */
+    public static function commitsPushed(Issue $issue, string $branch, string $branchUrl, array $commits): self
+    {
+        $first = $commits[0];
+
+        return new self($issue, null, JournalEntryType::CommitsPushed, [
+            'forge' => $first->getForge()->value,
+            'repository' => $first->getRepositoryPath(),
+            'branch' => $branch,
+            'url' => $branchUrl,
+            'commits' => array_map(static fn (CodeReference $commit): array => [
+                'sha' => $commit->getShortSha(),
+                'title' => $commit->getTitle(),
+                'url' => $commit->getUrl(),
+                'author' => $commit->getAuthorName(),
+            ], $commits),
+        ], true);
+    }
+
+    /**
+     * A merge request mentioning the issue was seen, or changed state: the
+     * entry keeps what it looked like then. No author, private, as for
+     * commits.
+     */
+    public static function mergeRequest(Issue $issue, CodeReference $mergeRequest, JournalEntryType $type): self
+    {
+        return new self($issue, null, $type, [
+            'forge' => $mergeRequest->getForge()->value,
+            'repository' => $mergeRequest->getRepositoryPath(),
+            'number' => $mergeRequest->getExternalId(),
+            'title' => $mergeRequest->getTitle(),
+            'url' => $mergeRequest->getUrl(),
+            'branch' => $mergeRequest->getBranch(),
+            'author' => $mergeRequest->getAuthorName(),
+            'state' => $mergeRequest->getState()?->value,
+        ], true);
+    }
+
     private static function scalar(mixed $value): ?string
     {
         return match (true) {

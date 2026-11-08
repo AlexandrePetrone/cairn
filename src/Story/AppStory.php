@@ -9,7 +9,10 @@ use App\Config\Definition\TransitionDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use App\Config\Sync\ConfigSynchronizer;
 use App\Entity\Attachment;
+use App\Entity\CodeRepository;
 use App\Entity\Enum\Criticality;
+use App\Entity\Enum\Forge;
+use App\Entity\Enum\MergeRequestState;
 use App\Entity\Enum\ReleaseStatus;
 use App\Entity\Issue;
 use App\Entity\Project;
@@ -22,8 +25,13 @@ use App\Factory\ProjectFactory;
 use App\Factory\TrackerFactory;
 use App\Factory\UserFactory;
 use App\Factory\WorkspaceFactory;
+use App\Forge\Event\CommitPayload;
+use App\Forge\Event\MergeRequestPayload;
 use App\Message\Command\Attachment\AddAttachment;
 use App\Message\Command\Attachment\UploadAttachment;
+use App\Message\Command\Forge\LinkRepository;
+use App\Message\Command\Forge\RecordCommits;
+use App\Message\Command\Forge\RecordMergeRequest;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\AddLink;
 use App\Message\Command\Issue\ApplyTransition;
@@ -102,6 +110,7 @@ final class AppStory extends Story
                 }
             }
             $this->createLinks($now);
+            $this->createCode($now);
             $this->entityManager->flush();
         } finally {
             Clock::set(new NativeClock());
@@ -317,6 +326,38 @@ final class AppStory extends Story
         ] as [$key, $type, $otherKey]) {
             $this->commands->dispatch(new AddLink($thomas, $key, $type, $otherKey));
         }
+    }
+
+    /**
+     * The shop's repository, linked by Thomas without a webhook (the dev
+     * token is empty), and what GitLab would have told about MD-SPT-4 and
+     * MD-SPT-3: a push on main, a merge request opened then merged, a
+     * commit alone on a branch.
+     */
+    private function createCode(\DateTimeImmutable $now): void
+    {
+        $shop = $this->entityManager->getRepository(Project::class)->findOneBy(['key' => 'SPT']) ?? throw new \LogicException('The shop is missing.');
+        Clock::set(new MockClock($now->modify('-3 days')));
+        $repository = $this->commands->dispatch(new LinkRepository((int) $shop->getId(), Forge::GitLab, 'maison-dupont/shop', (int) $this->users['thomas']->getId()));
+        \assert($repository instanceof CodeRepository);
+        $id = (int) $repository->getId();
+        $base = 'https://gitlab.example/maison-dupont/shop/-/';
+        $commit = static fn (string $sha, string $title, string $author): CommitPayload => new CommitPayload($sha, $title, $title, $base.'commit/'.$sha, $author);
+        $mergeRequest = static fn (MergeRequestState $state): MergeRequestPayload => new MergeRequestPayload(431, "fix(export): paginer l'export CSV des commandes", '', $base.'merge_requests/431', 'fix/MD-SPT-4-export-csv', $state, 'Nadia Benali');
+
+        Clock::set(new MockClock($now->modify('-2 days 14:00')));
+        $this->commands->dispatch(new RecordMergeRequest($id, 'MD-SPT-4', $mergeRequest(MergeRequestState::Opened)));
+        Clock::set(new MockClock($now->modify('-2 days 16:20')));
+        $this->commands->dispatch(new RecordCommits($id, 'MD-SPT-4', 'main', $base.'tree/main', [
+            $commit('b6568db1bc1dcd7f8b4d5a946b0b91f9dacd7327', "fix(export): paginer l'export CSV des commandes (MD-SPT-4)", 'Nadia Benali'),
+            $commit('da1560886d4f094c3e6c9ef40349f7d38b5d27d7', 'test(export): cas des 8 000 commandes MD-SPT-4', 'Nadia Benali'),
+            $commit('1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b', 'chore: changelog MD-SPT-4', 'Léa Fontaine'),
+        ]));
+        $this->commands->dispatch(new RecordMergeRequest($id, 'MD-SPT-4', $mergeRequest(MergeRequestState::Merged)));
+        Clock::set(new MockClock($now->modify('-1 day 10:12')));
+        $this->commands->dispatch(new RecordCommits($id, 'MD-SPT-3', 'feat/md-spt-3-filtres', $base.'tree/feat/md-spt-3-filtres', [
+            $commit('9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d', 'feat(catalogue): filtres par taille, premier jet (MD-SPT-3)', 'Léa Fontaine'),
+        ]));
     }
 
     /**

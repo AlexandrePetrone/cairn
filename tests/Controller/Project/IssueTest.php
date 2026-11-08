@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace App\Tests\Controller\Project;
 
 use App\Entity\Comment;
+use App\Entity\Enum\MergeRequestState;
+use App\Message\Command\Forge\RecordCommits;
+use App\Message\Command\Forge\RecordMergeRequest;
+use App\Tests\KernelHelpers;
+use App\Tests\MessageHandler\Command\Forge\ForgeTestSupport;
 use App\Tests\Scene\ShopScene;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -16,6 +21,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class IssueTest extends WebTestCase
 {
+    use KernelHelpers;
+
     private KernelBrowser $client;
     private ShopScene $scene;
 
@@ -98,6 +105,33 @@ final class IssueTest extends WebTestCase
         $this->signInAs('sophie.bernard@travelia.test');
         $this->client->request('GET', '/MD/SPT/issues/4');
         self::assertResponseStatusCodeSame(403, 'no role on the project');
+    }
+
+    public function testTheCodeOfTheIssueIsForInternalsOnly(): void
+    {
+        $repository = (new ForgeTestSupport(self::getContainer()->get(EntityManagerInterface::class)))->link($this->scene->shop);
+        $commands = self::commandBus();
+        $commands->dispatch(new RecordCommits((int) $repository->getId(), 'MD-SPT-4', 'main', 'https://gitlab.test/maison-dupont/shop/-/tree/main', [ForgeTestSupport::commit('a1b2c3d4e5f6'), ForgeTestSupport::commit('e4f5a6b7c8d9', 'test(export): 8 000 orders')]));
+        $commands->dispatch(new RecordMergeRequest((int) $repository->getId(), 'MD-SPT-4', ForgeTestSupport::mergeRequest(MergeRequestState::Merged)));
+        $url = '/MD/SPT/issues/4';
+
+        $this->signInAs('thomas.girard@cairn.test');
+        $this->client->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main', '2 commits sur main');
+        self::assertSelectorTextContains('main', 'Merge request !431');
+        self::assertSelectorTextContains('main', 'Fusionnée');
+        self::assertSelectorTextContains('main aside', 'Merge requests');
+        self::assertSelectorTextContains('main aside', '!431');
+        self::assertSelectorExists('main span[title="GitLab"]', 'the marker names the forge');
+        self::assertSelectorExists('a[href="https://gitlab.test/maison-dupont/shop/-/commit/a1b2c3d4e5f6"]');
+
+        $this->signInAs('claire.martin@maison-dupont.test');
+        $this->client->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextNotContains('main', 'maison-dupont/shop');
+        self::assertSelectorTextNotContains('main', '!431');
+        self::assertSelectorTextNotContains('body', 'a1b2c3d4');
     }
 
     private function signInAs(string $email): void

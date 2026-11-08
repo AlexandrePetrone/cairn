@@ -33,13 +33,15 @@ Stimulus, Turbo, Scheduler, and Reprise (`symfony/reprise`) for the assets.
 Decisions already taken:
 
 - Persistence: Doctrine ORM, schema compatible with both MariaDB and
-  PostgreSQL. Nothing is ever physically deleted, with five exceptions:
+  PostgreSQL. Nothing is ever physically deleted, with six exceptions:
   a removed attachment (file and row, the journal keeps its name), a
   deleted comment (row and files, the journal keeps its text, author and
   date), a revoked membership (memberships are the current state of
   access, not its history), a removed link between issues (the journal
-  of both issues keeps it), and an issue subscription a person ends
-  (following is the current state, personal and unjournaled).
+  of both issues keeps it), an issue subscription a person ends
+  (following is the current state, personal and unjournaled), and a
+  code repository a manager unlinks from a project (it is configuration,
+  like a membership; the code references it produced stay).
 - Interface: server-rendered Twig + Turbo + UX Twig/Live Components, Tailwind
   for styling, no JavaScript framework: the kanban is Live components
   with SortableJS in a Stimulus controller, the rich-text editor is
@@ -111,7 +113,8 @@ src/
   EventListener/     Doctrine entity listeners (AccessControlResetter,
                      AttachmentFileRemover)
   Controller/        one folder per zone of the application (Project/, Admin/,
-                     Security/, Webhook/), application-level pages at the root
+                     Security/), application-level pages at the root; the
+                     webhook endpoint is the Webhook component's controller
   Form/              form types and their data objects
   Security/          voters, AccessControl and its SQL twin Visibility,
                      authenticators
@@ -122,7 +125,10 @@ src/
                      WorkflowProvider), HasPlace for the objects they move
   Notification/      who follows an issue (SubscriptionRules), which events
                      notify (NotificationDispatcher), the mail (IssueMailer)
-  GitLab/            webhook payload, reference parser, related enums
+  Forge/             the forges (GitLab, GitHub later): ForgeApi and its
+                     locator, IssueKeyParser, the neutral remote events in
+                     Event/, CodeReferenceConsumer; one folder per forge
+                     (GitLab/: request parser, API client)
   Markdown/          rendering of the text users write, references resolved
   Attachment/        where attachment files live (AttachmentStorage)
   Command/           console commands (app:config:sync, digest, …)
@@ -409,7 +415,8 @@ Rules:
   `ListSubscribers`, which keeps those who still see the issue. The
   `#[AsEventListener]` attributes of `NotificationDispatcher::collect()`
   are the whole list of what notifies: an event it does not listen to
-  (GitLab's, later) notifies nobody, without touching the journal.
+  (`CodeReferenced`, written by the forges) notifies nobody, without
+  touching the journal.
   `NotifyIssueChangeHandler`, on the `async` transport, sends one mail per
   recipient with what they may see (`AccessControl` at sending time: a
   private journal line or comment goes to internal users only, nothing
@@ -422,6 +429,49 @@ Rules:
   must consume `async` in production (`messenger:consume async
   scheduler_default` in dev); `MAILER_FROM` and `DEFAULT_URI` are set per
   environment.
+- **Code references come from the forges, for the agency only.** A
+  project links the repositories of a forge (`CodeRepository`: forge,
+  path `group/project` kept in lower case, a secret of its own generated
+  by Cairn) on `/MD/SPT/settings/repositories`, under `project.configure`.
+  `UpdateRepository` (PATCH: `installed`, `regenerateSecret`) installs
+  the webhook on the forge through its API with the instance token of
+  the agency (`FORGE_GITLAB_URL`, `FORGE_GITLAB_TOKEN`) or removes it;
+  without a token the page shows the URL (`ForgeApi::deliveryUrl()`,
+  built from `DEFAULT_URI`) and the secret to paste by hand.
+  `UnlinkRepository` deletes the link after confirming in place; the
+  references stay. Deliveries land on the `symfony/webhook` route
+  `/webhook/gitlab`, outside the `main` firewall:
+  `Forge/GitLab/GitLabRequestParser` refuses a token that is not shaped
+  like one of ours before reading the body, names the repository from
+  the payload, authenticates the delivery against the secret of each
+  link of that path (unknown or wrong: 403, never an instance-wide
+  secret), tames every text it reads (scalars only, no NUL byte, cut to
+  the columns, at most 100 commits) and emits one neutral event per link
+  matched (`Forge/Event/PushReceived`, `MergeRequestReceived`); a kind it
+  does not read is accepted (202) and ignored. `ConsumeRemoteEventMessage`
+  travels on `async`, so the worker does the writing:
+  `Forge/CodeReferenceConsumer` finds the issue keys
+  (`Forge/IssueKeyParser`: commit messages, merge request title,
+  description and source branch) and dispatches one `RecordCommits` per
+  issue (its new commits, journaled as one `commits_pushed` entry) or one
+  `RecordMergeRequest` per issue (`merge_request_opened|merged|closed|
+  reopened`, journaled on a change of state only; merged is final). The
+  handlers are the authority on what a key is worth: an unknown key, a
+  key of another project, a read-only project end quietly. A
+  `CodeReference` is unique per issue, forge, repository, kind and id: a
+  commit pushed again or a delivery replayed writes nothing. These
+  journal entries have no author and are private; the commands carry no
+  actor and `record()` a `CodeReferenced` event that no notification
+  listens to. No transition is ever applied. The issue page shows each
+  entry as a card (`Ui:CodeCard`, read by `Issue:JournalEntry` from the
+  entry's data) and the side panel lists the merge requests and the
+  commits by branch (`Issue:CodeReferences`, through
+  `ListCodeReferences`, which answers `[]` to an external viewer).
+  Accepted: a hook left on the forge when a write fails after the API
+  call, a second hook on a second "install", hooks of an archived
+  project that nobody can remove from the UI. GitHub comes as
+  `Forge/GitHub/` with its own parser and API client behind the same
+  `ForgeApi` and events.
 - **Releases are optional, without a setting.** A `Release` belongs to
   one project, its name unique there; `ReleaseStatus` (open, delivered,
   abandoned, in `Entity/Enum/`) is a property of `UpdateRelease`, and
@@ -480,7 +530,7 @@ Rules:
 - **No catch-all folders.** No `Service/`, no central `Enum/`, no `Dto/`.
   An enum or DTO lives next to what gives it meaning: `Criticality` and
   `PlaceStatus` in `Entity/Enum/` because they are persisted, `FieldType` and
-  `MigrationPolicy` in `Config/`, webhook payloads in `GitLab/`, the
+  `MigrationPolicy` in `Config/`, forge payloads in `Forge/Event/`, the
   generic `Pagination<T>` in `Repository/` because repositories and query
   handlers both return it, form data objects in `Form/`. When an enum
   has two owners, persistence wins and `Config/` imports from `Entity/Enum/`.
@@ -684,9 +734,12 @@ Workflows, roles, global permissions, fields and link types live in one PHP
 configuration file outside the repository, loaded from an environment
 variable (see `config/instance.example.php`). Trackers, projects,
 memberships and releases live in database. Criticality
-levels and statuses are fixed enums in code. Notification rules and GitLab
-settings are not part of the file yet: add them when those features are
-built, shaped by their actual consumer.
+levels and statuses are fixed enums in code. The forges are not in the
+file: the instance token and URL are environment variables
+(`FORGE_GITLAB_URL`, `FORGE_GITLAB_TOKEN`), the linked repositories and
+their secrets live in database. Notification rules are not part of the
+file either: add them when a feature needs them, shaped by its actual
+consumer.
 
 The file is never read at runtime. It is loaded, validated, normalised into
 readonly definition objects, diffed against the last `ConfigSnapshot`, and
@@ -770,6 +823,13 @@ by default). The journal is never migrated.
   load `AppStory` only. `bin/console foundry:load-fixtures volume --append`
   adds it to a database that already holds the main story.
   Factories live in `src/Factory/` and are also meant for tests.
+- Forges: `FORGE_GITLAB_TOKEN` is empty by default, so a linked
+  repository shows the URL and secret to paste in GitLab by hand; a token
+  in `.env.local` (with `FORGE_GITLAB_URL`) makes the page install the
+  webhook itself. To try a delivery without GitLab, POST a payload of
+  `tests/Forge/Fixture/` to `/webhook/gitlab` with `X-Gitlab-Event` and
+  `X-Gitlab-Token` set to the repository's secret; the `messenger`
+  worker records it.
 - `CAIRN_CONFIG` points to the instance configuration file; `.env` defaults
   to the committed `config/instance.example.php`. After changing it, run
   `symfony console app:config:sync --dry-run`, then without `--dry-run`.

@@ -67,7 +67,7 @@ final class NotificationDispatcher implements ResetInterface
         $this->pending = [];
         foreach ($events as $event) {
             $issueId = $event->issue->getId();
-            $actorId = $event->actor->getId();
+            $actorId = $event->actor?->getId();
             if (null === $issueId || null === $actorId) {
                 continue;
             }

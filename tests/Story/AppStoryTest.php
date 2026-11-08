@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Story;
 
+use App\Entity\CodeReference;
 use App\Entity\Enum\JournalEntryType;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
@@ -43,5 +44,7 @@ final class AppStoryTest extends KernelTestCase
         self::assertCount(\count($issues), $entityManager->getRepository(JournalEntry::class)->findBy(['type' => JournalEntryType::Created]));
         self::assertNotNull($entityManager->getRepository(User::class)->findOneBy(['email' => 'admin@cairn.test', 'admin' => true]));
         self::assertTrue($entityManager->getRepository(Project::class)->findOneBy(['key' => 'RES'])?->isArchived());
+        $shopFour = $entityManager->getRepository(Issue::class)->findOneBy(['key' => 'MD-SPT-4']);
+        self::assertCount(4, $entityManager->getRepository(CodeReference::class)->findBy(['issue' => $shopFour]), 'a merge request and three commits on MD-SPT-4');
     }
 }

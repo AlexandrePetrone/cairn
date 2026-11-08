@@ -16,8 +16,10 @@
     <body class="min-h-screen bg-gray-50 text-gray-800 text-sm antialiased">
         {% block body %}{% endblock %}
         <twig:Ui:Toaster>
-            {% for message in app.flashes('success') %}
-                <twig:Ui:Toast>{{ message }}</twig:Ui:Toast>
+            {% for messages in app.flashes %}
+                {% for message in messages %}
+                    <twig:Ui:Toast>{{ message }}</twig:Ui:Toast>
+                {% endfor %}
             {% endfor %}
         </twig:Ui:Toaster>
     </body>

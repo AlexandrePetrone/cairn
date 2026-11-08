@@ -1,0 +1,48 @@
+{# The code of the issue in its side panel: merge requests with their state, commits by branch, each linked to the forge. Internal users only (the query answers nothing to the others), hidden when empty. `this` is read before the nested components. #}
+{% set codeMergeRequests = this.mergeRequests %}
+{% set codeCommitsByBranch = this.commitsByBranch %}
+{% set codeEmpty = codeMergeRequests is empty and codeCommitsByBranch is empty %}
+{% set codeStateTones = { opened: 'blue', merged: 'violet', closed: 'gray' } %}
+<div {{ attributes.defaults({ class: codeEmpty ? 'hidden' : 'p-3' }) }} data-loading="addClass(opacity-60)">
+    {% if not codeEmpty %}
+        <div class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+            <twig:ux:icon name="lucide:git-branch" class="h-3 w-3" />{{ 'issue.code.title'|trans }}
+        </div>
+        {% if codeMergeRequests is not empty %}
+            <div class="mt-2">
+                <div class="text-xs text-gray-500">{{ 'issue.code.merge_requests'|trans }}</div>
+                <ul class="mt-1 space-y-2">
+                    {% for mergeRequest in codeMergeRequests %}
+                        {% set codeState = mergeRequest.state ? mergeRequest.state.value : 'opened' %}
+                        <li class="text-xs">
+                            <div class="flex items-center gap-1.5">
+                                <twig:Ui:Badge :tone="codeStateTones[codeState]" size="sm">{{ ('issue.code.state.' ~ codeState)|trans }}</twig:Ui:Badge>
+                                <a href="{{ mergeRequest.url }}" target="_blank" rel="noopener" class="font-mono font-medium text-indigo-600 hover:underline">!{{ mergeRequest.externalId }}</a>
+                            </div>
+                            <div class="mt-0.5 truncate text-gray-700" title="{{ mergeRequest.title }}">{{ mergeRequest.title }}</div>
+                            {% if mergeRequest.branch %}<div class="mt-0.5 truncate font-mono text-[11px] text-gray-400" title="{{ mergeRequest.branch }}">{{ mergeRequest.branch }}</div>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        {% if codeCommitsByBranch is not empty %}
+            <div class="mt-2">
+                <div class="text-xs text-gray-500">{{ 'issue.code.commits'|trans }}</div>
+                <ul class="mt-1 space-y-1.5">
+                    {% for codeBranch, codeCommits in codeCommitsByBranch %}
+                        <li class="text-xs">
+                            <div class="flex items-center gap-1 truncate font-mono text-[11px] text-gray-500" title="{{ codeBranch }}"><twig:ux:icon name="lucide:git-branch" class="h-3 w-3 shrink-0" />{{ codeBranch }}</div>
+                            <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono">
+                                {% for commit in codeCommits|slice(0, 5) %}
+                                    <a href="{{ commit.url }}" target="_blank" rel="noopener" class="text-indigo-600 hover:underline" title="{{ commit.title }} — {{ commit.authorName }}">{{ commit.shortSha }}</a>
+                                {% endfor %}
+                                {% if codeCommits|length > 5 %}<span class="text-gray-400">+{{ codeCommits|length - 5 }}</span>{% endif %}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+    {% endif %}
+</div>

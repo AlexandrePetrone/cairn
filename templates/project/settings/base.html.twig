@@ -13,6 +13,7 @@
         <nav class="flex items-center gap-1 border-b border-gray-200">
             <twig:Ui:Tab href="{{ path('app_project_settings', settingsRoute) }}" :active="app.current_route in ['app_project_settings', 'app_project_settings_tracker']">{{ 'project.settings.tab.trackers'|trans }}</twig:Ui:Tab>
             <twig:Ui:Tab href="{{ path('app_project_settings_general', settingsRoute) }}" :active="app.current_route == 'app_project_settings_general'">{{ 'project.settings.tab.general'|trans }}</twig:Ui:Tab>
+            <twig:Ui:Tab href="{{ path('app_project_settings_repositories', settingsRoute) }}" :active="app.current_route == 'app_project_settings_repositories'">{{ 'project.settings.tab.repositories'|trans }}</twig:Ui:Tab>
         </nav>
         {% block settings_content %}{% endblock %}
     </div>

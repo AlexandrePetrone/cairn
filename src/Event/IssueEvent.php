@@ -20,11 +20,12 @@ use App\Entity\User;
 abstract readonly class IssueEvent
 {
     /**
+     * @param User|null          $actor   who acted; null when a forge did (CodeReferenced)
      * @param list<JournalEntry> $entries the lines the command wrote on this issue
      */
     public function __construct(
         public Issue $issue,
-        public User $actor,
+        public ?User $actor,
         public array $entries,
     ) {
     }

@@ -13,6 +13,8 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
  * One line of the history of an issue: who did what, when. The sentence
  * comes from the `journal_label` filter (Twig/JournalLabelExtension), the
  * texts a rewriting or a deletion kept are readable behind a disclosure.
+ * What a forge wrote (commits pushed, a merge request) is a card instead
+ * (Ui:CodeCard), read by the template from the entry's data.
  */
 #[AsTwigComponent('Issue:JournalEntry')]
 final class JournalEntry

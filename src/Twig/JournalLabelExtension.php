@@ -43,6 +43,8 @@ final class JournalLabelExtension
             ),
             JournalEntryType::Linked, JournalEntryType::Unlinked => $this->translator->trans('issue.event.'.$type->value, ['%label%' => $entry->text('label'), '%key%' => $entry->text('key'), '%title%' => $entry->text('title')]),
             JournalEntryType::AttachmentAdded, JournalEntryType::AttachmentRemoved => $this->translator->trans('issue.event.'.$type->value, ['%filename%' => $entry->text('filename')]),
+            JournalEntryType::CommitsPushed => $this->translator->trans('issue.event.commits_pushed', ['%count%' => \count((array) ($data['commits'] ?? [])), '%branch%' => $entry->text('branch'), '%repository%' => $entry->text('repository')]),
+            JournalEntryType::MergeRequestOpened, JournalEntryType::MergeRequestMerged, JournalEntryType::MergeRequestClosed, JournalEntryType::MergeRequestReopened => $this->translator->trans('issue.event.'.$type->value, ['%number%' => $entry->text('number'), '%title%' => $entry->text('title'), '%repository%' => $entry->text('repository')]),
         };
     }
 

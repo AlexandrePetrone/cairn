@@ -1,0 +1,37 @@
+{
+  "object_kind": "merge_request",
+  "event_type": "merge_request",
+  "user": { "id": 4, "name": "Nadia Benali", "username": "nadia", "email": "nadia.benali@cairn.test" },
+  "project": {
+    "id": 15,
+    "name": "Shop",
+    "web_url": "https://gitlab.test/maison-dupont/shop",
+    "namespace": "Maison Dupont",
+    "path_with_namespace": "maison-dupont/shop",
+    "default_branch": "main"
+  },
+  "repository": { "name": "Shop", "url": "git@gitlab.test:maison-dupont/shop.git", "homepage": "https://gitlab.test/maison-dupont/shop" },
+  "object_attributes": {
+    "id": 99,
+    "iid": 431,
+    "target_branch": "main",
+    "source_branch": "fix/MD-SPT-4-export",
+    "source_project_id": 15,
+    "author_id": 4,
+    "title": "fix(export): paginate the CSV export",
+    "description": "Fixes the timeout of the orders export. See also NC-CAT-3 for the catalogue.",
+    "created_at": "2026-11-08T10:00:00Z",
+    "updated_at": "2026-11-08T10:00:00Z",
+    "state": "opened",
+    "merge_status": "can_be_merged",
+    "url": "https://gitlab.test/maison-dupont/shop/-/merge_requests/431",
+    "action": "open",
+    "last_commit": {
+      "id": "da1560886d4f094c3e6c9ef40349f7d38b5d27d7",
+      "message": "test(export): 8 000 orders",
+      "url": "https://gitlab.test/maison-dupont/shop/-/commit/da1560886d4f094c3e6c9ef40349f7d38b5d27d7"
+    }
+  },
+  "labels": [],
+  "changes": {}
+}

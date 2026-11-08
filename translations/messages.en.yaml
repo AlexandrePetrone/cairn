@@ -102,6 +102,24 @@ issue:
         hide_deleted_comment: Hide the deleted comment
         attachment_added: 'added the file %filename%'
         attachment_removed: 'removed the file %filename%'
+        commits_pushed: '{1} noted a commit on %branch% in %repository%|]1,Inf[ noted %count% commits on %branch% in %repository%'
+        merge_request_opened: 'noted the merge request !%number% “%title%” in %repository%'
+        merge_request_merged: 'noted that the merge request !%number% “%title%” in %repository% was merged'
+        merge_request_closed: 'noted that the merge request !%number% “%title%” in %repository% was closed'
+        merge_request_reopened: 'noted that the merge request !%number% “%title%” in %repository% was reopened'
+    code:
+        title: Code
+        merge_requests: Merge requests
+        commits: Commits
+        by: 'by %author%'
+        heading:
+            commits: '{1} 1 commit on %branch%|]1,Inf[ %count% commits on %branch%'
+            merge_request: 'Merge request !%number%'
+        state:
+            opened: Open
+            reopened: Reopened
+            merged: Merged
+            closed: Closed
     comment:
         placeholder: Write a comment…
         edited: 'edited on %date%'
@@ -556,6 +574,7 @@ project:
         tab:
             trackers: Trackers
             general: General
+            repositories: Repositories
         trackers: Trackers
         save: Save
         saved: Changes saved.
@@ -585,6 +604,41 @@ project:
             private_help: External users neither see its issues nor create any.
             active: Takes new issues
             active_help: A deactivated tracker keeps its issues but disappears from the creation form and the menu.
+        repository:
+            intro: "Commits and merge requests of the linked repositories that mention an issue of the project (%prefix%-12) show on its page, for the agency only."
+            new: Link a repository
+            forge: Forge
+            path: Repository path
+            path_help: 'As it appears in its address: group/project. A repository only mentions the issues of this project.'
+            path_placeholder: group/project
+            link: Link
+            link_help: "No instance token is configured: the webhook will have to be installed by hand, with the address and secret shown."
+            link_help_api: "The webhook is installed on the forge as soon as the repository is linked, with the agency's token."
+            installed: 'Webhook installed on %date%'
+            not_installed: Webhook to install
+            empty: No linked repository
+            empty_hint: Link a repository to see its commits and merge requests on the issues they mention.
+            linked_installed: 'Repository %path% linked, webhook installed.'
+            linked_manual: 'Repository %path% linked. Install the webhook by hand with the address and secret shown.'
+            unlink_confirm: Unlink this repository? Its webhook is removed; the references already noted stay on the issues.
+            action:
+                install: Install the webhook
+                uninstall: Remove the webhook
+                secret: Regenerate the secret
+                unlink: Unlink
+            done:
+                install: 'Webhook installed on %path%.'
+                uninstall: 'Webhook removed from %path%.'
+                secret: 'New secret for %path%. If the webhook was installed by hand, update it on the forge.'
+                unlink: 'Repository %path% unlinked.'
+            manual:
+                title: Install the webhook by hand
+                intro: "In the repository, Settings › Webhooks, add a webhook with these values."
+                url: Address
+                secret: Secret token
+                events: Events
+                events_value: Push events and Merge request events, SSL verification on.
+                warning: "A wrong secret makes Cairn answer 403; GitLab disables a webhook after several refusals. Regenerate the secret and set it again on the forge to resume."
         refused:
             not_found: Not found.
             unknown_workflow: 'The workflow "%workflow%" does not exist in the configuration.'
@@ -695,6 +749,16 @@ permission:
             label: Manage releases
             help: Create the releases of the project, change them, mark them delivered or abandoned.
 
+code_repository:
+    refused:
+        not_found: Repository not found.
+        forge_unavailable: This forge is not supported yet.
+        already_linked: 'The repository %path% is already linked to this project.'
+        api_not_configured: "No instance token for this forge: install the webhook by hand."
+        forge_refused: "The forge refused the call: check the repository path and the rights of the agency's token."
+forge:
+    gitlab: GitLab
+    github: GitHub
 field_type:
     text: Short text
     textarea: Long text

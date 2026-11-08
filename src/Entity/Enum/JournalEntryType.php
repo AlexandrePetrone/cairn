@@ -23,4 +23,20 @@ enum JournalEntryType: string
     case CommentDeleted = 'comment_deleted';
     case Linked = 'linked';
     case Unlinked = 'unlinked';
+    /** A forge delivered commits mentioning the issue: one entry per push, with the new commits. */
+    case CommitsPushed = 'commits_pushed';
+    /** A merge request mentioning the issue was seen, or changed state. */
+    case MergeRequestOpened = 'merge_request_opened';
+    case MergeRequestMerged = 'merge_request_merged';
+    case MergeRequestClosed = 'merge_request_closed';
+    case MergeRequestReopened = 'merge_request_reopened';
+
+    /** Written by a forge, without an author: shown as a card in the thread. */
+    public function isCode(): bool
+    {
+        return match ($this) {
+            self::CommitsPushed, self::MergeRequestOpened, self::MergeRequestMerged, self::MergeRequestClosed, self::MergeRequestReopened => true,
+            default => false,
+        };
+    }
 }

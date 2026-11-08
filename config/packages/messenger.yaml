@@ -35,6 +35,8 @@ framework:
             # (Notification/NotificationDispatcher) and are handled by a
             # worker: `messenger:consume async`.
             App\Message\Notification\NotifyIssueChange: async
+            # A forge delivery is answered at once and recorded by the worker.
+            Symfony\Component\RemoteEvent\Messenger\ConsumeRemoteEventMessage: async
 
 # Tests look at what a command dispatched (the `async` transport in
 # memory) and read the mails a notification built, so mails are sent on
