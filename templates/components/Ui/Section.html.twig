@@ -1,0 +1,34 @@
+{# A card of a side panel: a header with an icon in a tinted tile, the title, a count and, while folded, a one-line summary (block `summary`); `actions` sit at the right of the header and `content` below.
+   Its group is named (`group/section`) so that it never catches the hover meant for a row inside (`hover-actions`). A foldable card is a plain <details>, `open` at first or not: the live component keeps the fold the reader chose through its redraws, since Live puts back the attributes the browser changed. Without `foldable` the card is a section that does not fold. #}
+{% props title, icon = null, tone = 'gray', count = null, open = true, foldable = true %}
+{% set sectionClasses = html_cva(base: 'group/section rounded-lg border border-gray-200 bg-white shadow-sm') %}
+{% set sectionHeaderClasses = html_cva(
+    base: 'flex items-center gap-2.5 rounded-lg px-3 py-2.5',
+    variants: { foldable: { true: 'cursor-pointer select-none list-none hover:bg-gray-50 group-open/section:rounded-b-none [&::-webkit-details-marker]:hidden', false: 'rounded-b-none' } },
+) %}
+{% set sectionIconClasses = html_cva(
+    base: 'grid h-6 w-6 shrink-0 place-items-center rounded-md [&>svg]:h-3.5 [&>svg]:w-3.5',
+    variants: {
+        tone: {
+            gray: 'bg-gray-100 text-gray-500',
+            indigo: 'bg-indigo-50 text-indigo-600',
+            violet: 'bg-violet-50 text-violet-600',
+            amber: 'bg-amber-50 text-amber-600',
+            emerald: 'bg-emerald-50 text-emerald-600',
+        },
+    },
+) %}
+{% set sectionTag = foldable ? 'details' : 'section' %}
+{% set sectionHeaderTag = foldable ? 'summary' : 'div' %}
+{% set sectionActions %}{% block actions %}{% endblock %}{% endset %}
+<{{ sectionTag }} class="{{ sectionClasses.apply({}, attributes.render('class'))|tailwind_merge }}"{% if foldable and open %} open{% endif %} {{ attributes }}>
+    <{{ sectionHeaderTag }} class="{{ sectionHeaderClasses.apply({ foldable: foldable }) }}">
+        {% if icon %}<span class="{{ sectionIconClasses.apply({ tone: tone }) }}">{{ ux_icon('lucide:' ~ icon) }}</span>{% endif %}
+        <span class="shrink-0 text-xs font-medium text-gray-700">{{ title }}</span>
+        {% if count is not null %}<span class="text-xs tabular-nums text-gray-400">{{ count }}</span>{% endif %}
+        <span class="flex min-w-0 flex-1 items-center group-open/section:hidden">{% block summary %}{% endblock %}</span>
+        {% if sectionActions|trim is not empty %}<span class="ml-auto flex shrink-0 items-center gap-2">{{ sectionActions }}</span>{% endif %}
+        {% if foldable %}<twig:ux:icon name="lucide:chevron-down" class="ml-auto h-3.5 w-3.5 shrink-0 text-gray-400 transition group-open/section:rotate-180" />{% endif %}
+    </{{ sectionHeaderTag }}>
+    <div class="border-t border-gray-100 px-3.5 py-3">{% block content %}{% endblock %}</div>
+</{{ sectionTag }}>

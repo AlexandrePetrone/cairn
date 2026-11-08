@@ -664,6 +664,25 @@ Rules:
   element it holds has the focus, the morph replaces the child with its
   empty placeholder (`Issue:Description` and `Issue:Files` share a box in
   `project/issue.html.twig` for that reason).
+- **The side panel of the issue page is a stack of cards.** `project/issue.html.twig`
+  lays the page out as a grid: the header, then the panel, then the body,
+  so that on a phone the properties follow the title; on a wide screen the
+  panel takes the right column, sticks under the header and scrolls on its
+  own when taller than the screen. `Issue:Properties` opens with the
+  tracker and the place, then one row per property: a property the viewer
+  may change is a `Ui:Dropdown` opened from its value, each choice a
+  `Ui:Dropdown:Item` that dispatches `change` with the property and the
+  value; the menu spans the row so that it opens within the column, and
+  the members get a `list-filter` field when they are many. The other
+  cards (`Issue:Fields`, `Issue:Links`, `Issue:CodeReferences`,
+  `Issue:Subscribers`) are a `Ui:Section`: an icon in a tinted tile, the
+  title, a count and, while folded, a one-line summary (the first link,
+  the first merge request and its state, the avatars of the subscribers).
+  A foldable card is a plain `<details>`, nothing more: Live puts back
+  the attributes the browser changed when it redraws a component, so the
+  fold the reader chose survives the redraws; code and subscribers start
+  folded. A card that must stay open (the fields while editing) passes
+  `foldable` false.
 - **Toasts have one host.** `Ui:Toaster`, placed once in `base.html.twig`,
   shows the flash messages the page starts with and adds a toast for every
   `toast:show` browser event; a live component sends one with

@@ -121,8 +121,7 @@ final class IssueTest extends WebTestCase
         self::assertSelectorTextContains('main', '2 commits sur main');
         self::assertSelectorTextContains('main', 'Merge request !431');
         self::assertSelectorTextContains('main', 'Fusionnée');
-        self::assertSelectorTextContains('main aside', 'Merge requests');
-        self::assertSelectorTextContains('main aside', '!431');
+        self::assertSelectorTextContains('main aside', '!431', 'the card of the panel, folded, sums the code up');
         self::assertSelectorExists('main span[title="GitLab"]', 'the marker names the forge');
         self::assertSelectorExists('a[href="https://gitlab.test/maison-dupont/shop/-/commit/a1b2c3d4e5f6"]');
 

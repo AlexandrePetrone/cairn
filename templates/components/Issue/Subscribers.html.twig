@@ -1,20 +1,29 @@
-{# The people following the issue, in its side panel. `this` is read before the nested components. #}
+{# The people following the issue, a card of the side panel, folded at first: their avatars on the header, the list when open. `this` is read before the nested components. #}
 {% set subscribersList = this.subscribers %}
-<div {{ attributes.defaults({ class: 'p-3' }) }} data-loading="addClass(opacity-60)">
-    <div class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-        <twig:ux:icon name="lucide:bell" class="h-3 w-3" />{{ 'issue.subscribers.title'|trans }}
-        <span class="ml-auto font-normal normal-case tracking-normal text-gray-400">{{ subscribersList|length }}</span>
-    </div>
-    {% if subscribersList is empty %}
-        <p class="mt-2 text-xs text-gray-400">{{ 'issue.subscribers.none'|trans }}</p>
-    {% else %}
-        <ul class="mt-2 space-y-1.5">
-            {% for subscriber in subscribersList %}
-                <li class="flex items-center gap-2 text-xs text-gray-700">
-                    <twig:Ui:Avatar :name="subscriber.fullName" :kind="subscriber.internal ? 'internal' : 'external'" size="xs" />
-                    <span class="truncate">{{ subscriber.fullName }}</span>
-                </li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+<div {{ attributes }} data-loading="addClass(opacity-60)">
+    <twig:Ui:Section :title="'issue.subscribers.title'|trans" icon="bell" tone="amber" :count="subscribersList|length" :open="false">
+        <twig:block name="summary">
+            {% if subscribersList is not empty %}
+                <twig:Ui:AvatarStack :overflow="max(0, subscribersList|length - 4)" class="ml-1 -space-x-1 [&>*]:h-5 [&>*]:w-5 [&>*]:text-[9px]">
+                    {% for subscriber in subscribersList|slice(0, 4) %}
+                        <twig:Ui:Avatar :name="subscriber.fullName" :kind="subscriber.internal ? 'internal' : 'external'" size="sm" />
+                    {% endfor %}
+                </twig:Ui:AvatarStack>
+            {% endif %}
+        </twig:block>
+        <twig:block name="content">
+            {% if subscribersList is empty %}
+                <p class="text-xs text-gray-400">{{ 'issue.subscribers.none'|trans }}</p>
+            {% else %}
+                <ul class="space-y-1 text-[13px] text-gray-800">
+                    {% for subscriber in subscribersList %}
+                        <li class="flex items-center gap-2">
+                            <twig:Ui:Avatar :name="subscriber.fullName" :kind="subscriber.internal ? 'internal' : 'external'" size="sm" />
+                            <span class="truncate">{{ subscriber.fullName }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </twig:block>
+    </twig:Ui:Section>
 </div>

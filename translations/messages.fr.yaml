@@ -34,7 +34,7 @@ issue:
         apply: Appliquer
     links:
         title: Liens
-        new: + Lier une demande
+        new: Lier une demande
         kind: Type de lien
         other: Autre demande
         other_placeholder: Clé ou mots du titre
@@ -67,9 +67,13 @@ issue:
         release: Version
         no_release: Aucune
         visibility: Visibilité
-        visible_externals: Visible par les externes
-        hidden_externals: Invisible pour les externes
+        visible_externals: Tous les membres
+        hidden_externals: Internes seulement
         fields: 'Champs %tracker%'
+        no_fields: Aucun champ renseigné.
+        change_property: 'Modifier « %property% »'
+        search_member: Rechercher un membre…
+        no_member: Aucun membre ne correspond.
         system: Cairn
         'true': Oui
         'false': Non
@@ -109,8 +113,7 @@ issue:
         merge_request_reopened: 'a relevé la réouverture de la merge request !%number% « %title% » dans %repository%'
     code:
         title: Code
-        merge_requests: Merge requests
-        commits: Commits
+        commits_count: '{1} 1 commit|]1,Inf[ %count% commits'
         by: 'par %author%'
         heading:
             commits: '{1} 1 commit sur %branch%|]1,Inf[ %count% commits sur %branch%'

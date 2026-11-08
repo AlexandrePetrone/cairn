@@ -21,9 +21,10 @@ final class SubscribersTest extends KernelTestCase
     {
         $scene = ShopScene::load(self::getContainer());
 
-        $render = (string) $this->createLiveComponent('Issue:Subscribers', ['issue' => $scene->issue('MD-SPT-4')])
-            ->actingAs($scene->user('paul.roussel@maison-dupont.test'))
-            ->render();
+        $component = $this->createLiveComponent('Issue:Subscribers', ['issue' => $scene->issue('MD-SPT-4')])
+            ->actingAs($scene->user('paul.roussel@maison-dupont.test'));
+        $render = (string) $component->render();
+        self::assertStringContainsString('title="Claire Martin"', $render, 'folded at first: the avatars on the header');
 
         foreach (['Claire Martin', 'Nadia Benali', 'Thomas Girard'] as $name) {
             self::assertStringContainsString($name, $render);

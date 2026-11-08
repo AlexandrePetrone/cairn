@@ -14,8 +14,8 @@ use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
- * Who follows the issue, in its side panel: the people a change will be
- * written to. Redrawn on `issue:changed`.
+ * Who follows the issue, a card of its side panel: the people a change
+ * will be written to. Redrawn on `issue:changed`.
  */
 #[AsLiveComponent('Issue:Subscribers')]
 final class Subscribers

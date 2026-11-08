@@ -1,73 +1,87 @@
-{# The links of the issue in its side panel, grouped by label, each to the other issue with its place. Whoever may link adds one (label, then the other issue picked among the suggestions or typed as a key) and removes one after confirming in place.
+{# The links of the issue, a card of the side panel: grouped by label, each a row to the other issue with the colour of its place; folded, the header sums up the first label and its keys. Whoever may link adds one (label, then the other issue picked among the suggestions or typed as a key) and removes one after confirming in place.
    `this` is read before the nested components, whose blocks see their own `this`. The key field is plain HTML: a data-model on a nested component would bind the component instead. #}
 {% set linksGroups = this.groups %}
 {% set linksCanLink = this.canLink %}
 {% set linksKinds = adding ? this.kinds : [] %}
 {% set linksSuggestions = this.suggestions %}
-<div {{ attributes.defaults({ class: linksGroups is not empty or linksCanLink ? 'p-3' : 'hidden' }) }} data-loading="addClass(opacity-60)">
-    {% if linksGroups is not empty or linksCanLink %}
-        <div class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-            <twig:ux:icon name="lucide:link" class="h-3 w-3" />{{ 'issue.links.title'|trans }}
-        </div>
-        {% if error %}<twig:Ui:Callout tone="danger" size="sm" role="alert" class="mt-2">{{ error }}</twig:Ui:Callout>{% endif %}
-        {% for linksLabel, linksOfLabel in linksGroups %}
-            <div class="mt-2">
-                <div class="text-xs text-gray-500">{{ linksLabel }}</div>
-                <ul class="mt-1 space-y-1.5">
-                    {% for link in linksOfLabel %}
-                        {% set linkOther = link.otherThan(issue) %}
-                        <li class="group text-xs">
-                            <div class="flex items-center gap-1.5">
-                                <twig:Ui:IssueKey :key="linkOther.key" size="sm" href="{{ path('app_issue_show', { workspaceKey: linkOther.project.workspace.key, projectKey: linkOther.project.key, number: linkOther.number }) }}" />
-                                <twig:Ui:Status:Step :status="linkOther.status.value" :label="issue_place(linkOther)" class="min-w-0 truncate" />
-                                {% if linksCanLink %}
-                                    <twig:Ui:IconButton icon="x" size="sm" tone="danger" :label="'issue.links.remove'|trans" class="hover-actions ml-auto" data-action="live#action" data-live-action-param="confirmRemove" data-live-id-param="{{ link.id }}" />
-                                {% endif %}
-                            </div>
-                            <div class="mt-0.5 truncate text-gray-700" title="{{ linkOther.title }}">{{ linkOther.title }}</div>
-                            {% if removingId == link.id %}
-                                <div class="mt-1.5 flex flex-wrap items-center gap-2 rounded-md border border-red-200 bg-red-50 px-2 py-1.5 text-red-800" role="alertdialog">
-                                    <span>{{ 'issue.links.remove_confirm'|trans }}</span>
-                                    <span class="ml-auto flex items-center gap-1">
-                                        <twig:Ui:Button variant="danger" size="sm" data-action="live#action" data-live-action-param="remove" data-loading="addAttribute(disabled)">{{ 'issue.links.remove_yes'|trans }}</twig:Ui:Button>
-                                        <twig:Ui:Button variant="ghost" size="sm" data-action="live#action" data-live-action-param="cancelRemove">{{ 'issue.edit.cancel'|trans }}</twig:Ui:Button>
-                                    </span>
-                                </div>
-                            {% endif %}
-                        </li>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endfor %}
-        {% if linksCanLink %}
-            {% if adding %}
-                <div class="mt-3 space-y-2">
-                    <twig:Ui:Form:Select model="kind" class="h-8 w-full" :aria-label="'issue.links.kind'|trans">
-                        {% for linksKind, linksKindLabel in linksKinds %}
-                            <option value="{{ linksKind }}" {{ linksKind == kind ? 'selected' }}>{{ linksKindLabel }}</option>
-                        {% endfor %}
-                    </twig:Ui:Form:Select>
-                    <input type="text" data-model="debounce(300)|otherKey" value="{{ otherKey }}" placeholder="{{ 'issue.links.other_placeholder'|trans }}" aria-label="{{ 'issue.links.other'|trans }}" autocomplete="off" class="h-8 w-full rounded-md border border-gray-300 px-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                    {% if linksSuggestions is not empty %}
-                        <ul class="rounded-md border border-gray-200 divide-y divide-gray-100 text-xs">
-                            {% for suggestion in linksSuggestions %}
-                                <li>
-                                    <button type="button" class="flex w-full items-center gap-1.5 px-2 py-1.5 text-left hover:bg-gray-50 {{ suggestion.key == otherKey|upper ? 'bg-indigo-50' : '' }}" data-action="live#action" data-live-action-param="pick" data-live-key-param="{{ suggestion.key }}">
-                                        <span class="shrink-0 whitespace-nowrap font-mono font-medium text-gray-600">{{ suggestion.key }}</span>
-                                        <span class="min-w-0 truncate text-gray-700">{{ suggestion.title }}</span>
-                                    </button>
+{% set linksCount = linksGroups|reduce((count, group) => count + group|length, 0) %}
+{% set linksShown = linksGroups is not empty or linksCanLink %}
+<div {{ attributes.defaults({ class: linksShown ? '' : 'hidden' }) }} data-loading="addClass(opacity-60)">
+    {% if linksShown %}
+        <twig:Ui:Section :title="'issue.links.title'|trans" icon="link" tone="indigo" :count="linksCount > 0 ? linksCount : null">
+            <twig:block name="summary">
+                {% for linksLabel, linksOfLabel in linksGroups|slice(0, 1) %}
+                    <span class="ml-1 min-w-0 truncate text-xs text-gray-500">{{ linksLabel }} <span class="font-mono text-gray-700">{{ linksOfLabel|map(link => link.otherThan(issue).key)|join(', ') }}</span></span>
+                {% endfor %}
+            </twig:block>
+            <twig:block name="content">
+                {% if error %}<twig:Ui:Callout tone="danger" size="sm" role="alert" class="mb-2">{{ error }}</twig:Ui:Callout>{% endif %}
+                {% for linksLabel, linksOfLabel in linksGroups %}
+                    <div class="{{ loop.first ? '' : 'mt-2' }}">
+                        <div class="text-[11px] font-medium uppercase tracking-wide text-gray-400">{{ linksLabel }}</div>
+                        <ul class="mt-0.5">
+                            {% for link in linksOfLabel %}
+                                {% set linkOther = link.otherThan(issue) %}
+                                {% set linkHref = path('app_issue_show', { workspaceKey: linkOther.project.workspace.key, projectKey: linkOther.project.key, number: linkOther.number }) %}
+                                <li class="group -mx-1.5 rounded-md px-1.5 py-1 hover:bg-gray-50">
+                                    <div class="flex items-center gap-2">
+                                        <twig:Ui:IssueKey :key="linkOther.key" size="sm" :href="linkHref" class="shrink-0" />
+                                        <a href="{{ linkHref }}" class="min-w-0 flex-1 truncate text-[13px] text-gray-800 hover:text-indigo-700" title="{{ linkOther.title }}">{{ linkOther.title }}</a>
+                                        <span class="inline-flex shrink-0 items-center" title="{{ issue_place(linkOther) }}">
+                                            <twig:Ui:Status:Dot :status="linkOther.status.value" />
+                                            <span class="sr-only">{{ issue_place(linkOther) }}</span>
+                                        </span>
+                                        {% if linksCanLink %}
+                                            <twig:Ui:IconButton icon="x" size="sm" tone="danger" :label="'issue.links.remove'|trans" class="hover-actions -my-1 -mr-1" data-action="live#action" data-live-action-param="confirmRemove" data-live-id-param="{{ link.id }}" />
+                                        {% endif %}
+                                    </div>
+                                    {% if removingId == link.id %}
+                                        <div class="mt-1.5 flex flex-wrap items-center gap-2 rounded-md border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-800" role="alertdialog">
+                                            <span>{{ 'issue.links.remove_confirm'|trans }}</span>
+                                            <span class="ml-auto flex items-center gap-1">
+                                                <twig:Ui:Button variant="danger" size="sm" data-action="live#action" data-live-action-param="remove" data-loading="addAttribute(disabled)">{{ 'issue.links.remove_yes'|trans }}</twig:Ui:Button>
+                                                <twig:Ui:Button variant="ghost" size="sm" data-action="live#action" data-live-action-param="cancelRemove">{{ 'issue.edit.cancel'|trans }}</twig:Ui:Button>
+                                            </span>
+                                        </div>
+                                    {% endif %}
                                 </li>
                             {% endfor %}
                         </ul>
-                    {% endif %}
-                    <div class="flex items-center gap-2">
-                        <twig:Ui:Button variant="primary" size="sm" data-action="live#action" data-live-action-param="add" data-loading="addAttribute(disabled)">{{ 'issue.links.add'|trans }}</twig:Ui:Button>
-                        <twig:Ui:Button variant="ghost" size="sm" data-action="live#action" data-live-action-param="close">{{ 'issue.edit.cancel'|trans }}</twig:Ui:Button>
                     </div>
-                </div>
-            {% else %}
-                <button type="button" class="mt-2 text-xs text-gray-500 hover:text-indigo-600" data-action="live#action" data-live-action-param="open">{{ 'issue.links.new'|trans }}</button>
-            {% endif %}
-        {% endif %}
+                {% endfor %}
+                {% if linksCanLink %}
+                    {% if adding %}
+                        <div class="{{ linksGroups is not empty ? 'mt-3' : '' }} space-y-2">
+                            <twig:Ui:Form:Select model="kind" class="h-8 w-full" :aria-label="'issue.links.kind'|trans">
+                                {% for linksKind, linksKindLabel in linksKinds %}
+                                    <option value="{{ linksKind }}" {{ linksKind == kind ? 'selected' }}>{{ linksKindLabel }}</option>
+                                {% endfor %}
+                            </twig:Ui:Form:Select>
+                            <input type="text" data-model="debounce(300)|otherKey" value="{{ otherKey }}" placeholder="{{ 'issue.links.other_placeholder'|trans }}" aria-label="{{ 'issue.links.other'|trans }}" autocomplete="off" class="h-8 w-full rounded-md border border-gray-300 px-2 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                            {% if linksSuggestions is not empty %}
+                                <ul class="divide-y divide-gray-100 rounded-md border border-gray-200 text-xs">
+                                    {% for suggestion in linksSuggestions %}
+                                        <li>
+                                            <button type="button" class="flex w-full items-center gap-1.5 px-2 py-1.5 text-left hover:bg-gray-50 {{ suggestion.key == otherKey|upper ? 'bg-indigo-50' : '' }}" data-action="live#action" data-live-action-param="pick" data-live-key-param="{{ suggestion.key }}">
+                                                <span class="shrink-0 whitespace-nowrap font-mono font-medium text-gray-600">{{ suggestion.key }}</span>
+                                                <span class="min-w-0 truncate text-gray-700">{{ suggestion.title }}</span>
+                                            </button>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                            <div class="flex items-center gap-2">
+                                <twig:Ui:Button variant="primary" size="sm" data-action="live#action" data-live-action-param="add" data-loading="addAttribute(disabled)">{{ 'issue.links.add'|trans }}</twig:Ui:Button>
+                                <twig:Ui:Button variant="ghost" size="sm" data-action="live#action" data-live-action-param="close">{{ 'issue.edit.cancel'|trans }}</twig:Ui:Button>
+                            </div>
+                        </div>
+                    {% else %}
+                        <button type="button" class="{{ linksGroups is not empty ? 'mt-1.5' : '' }} inline-flex items-center gap-1 text-xs text-gray-500 hover:text-indigo-600" data-action="live#action" data-live-action-param="open">
+                            <twig:ux:icon name="lucide:plus" class="h-3.5 w-3.5" />{{ 'issue.links.new'|trans }}
+                        </button>
+                    {% endif %}
+                {% endif %}
+            </twig:block>
+        </twig:Ui:Section>
     {% endif %}
 </div>

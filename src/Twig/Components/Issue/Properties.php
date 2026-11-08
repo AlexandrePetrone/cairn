@@ -28,8 +28,9 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
  * The properties of an issue in the side panel of its page: assignee,
- * criticality, release and visibility become choices for whoever may
- * change them; the release shows once the project has releases.
+ * criticality, release and visibility read as values and, for whoever may
+ * change them, open a menu of the choices; the release shows once the
+ * project has releases.
  * A change is its own command; the other components of the page are told
  * (`issue:changed`), and this one follows their changes (a transition
  * moves the issue to another place).
@@ -44,22 +45,6 @@ final class Properties
     #[LiveProp]
     public Issue $issue;
 
-    #[LiveProp(writable: true)]
-    public ?int $assigneeId = null;
-
-    #[LiveProp(writable: true)]
-    public ?int $releaseId = null;
-
-    #[LiveProp(writable: true)]
-    public Criticality $criticality = Criticality::DEFAULT;
-
-    /**
-     * `public` or `private`: a string, because the live controller writes a
-     * prop back into its select as text, and a boolean would match no option.
-     */
-    #[LiveProp(writable: true)]
-    public string $visibility = 'public';
-
     public function __construct(
         private readonly AccessControl $access,
         private readonly Viewer $viewer,
@@ -69,22 +54,12 @@ final class Properties
     ) {
     }
 
-    public function mount(Issue $issue): void
-    {
-        $this->issue = $issue;
-        $this->refresh();
-    }
-
     /**
-     * Aligns the choices with the issue as another component left it.
+     * Redraws with the issue as another component left it.
      */
     #[LiveListener('issue:changed')]
     public function refresh(): void
     {
-        $this->assigneeId = $this->issue->getAssignee()?->getId();
-        $this->releaseId = $this->issue->getRelease()?->getId();
-        $this->criticality = $this->issue->getCriticality();
-        $this->visibility = $this->issue->isPrivate() ? 'private' : 'public';
     }
 
     public function canAssign(): bool
@@ -141,16 +116,21 @@ final class Properties
         return $this->queries->ask(new ListProjectMembers($this->issue->getProject()));
     }
 
+    /**
+     * Applies the choice made in the menu of a property: an id or nothing
+     * for the assignee and the release, a level, `public` or `private`.
+     */
     #[LiveAction]
-    public function change(CommandBus $commands, #[LiveArg] string $property): void
+    public function change(CommandBus $commands, #[LiveArg] string $property, #[LiveArg] string $value): void
     {
         $actorId = (int) $this->viewer->get()->getId();
         $key = $this->issue->getKey();
+        $criticality = Criticality::tryFrom($value);
         $command = match ($property) {
-            'assignee' => new UpdateIssue($actorId, $key, assigneeId: $this->assigneeId ?? UpdateIssue::NOBODY),
-            'criticality' => new UpdateIssue($actorId, $key, criticality: $this->criticality),
-            'release' => new UpdateIssue($actorId, $key, releaseId: $this->releaseId ?? UpdateIssue::NOBODY),
-            'visibility' => new UpdateIssue($actorId, $key, private: 'private' === $this->visibility),
+            'assignee' => new UpdateIssue($actorId, $key, assigneeId: self::idOrNobody($value)),
+            'criticality' => null === $criticality ? null : new UpdateIssue($actorId, $key, criticality: $criticality),
+            'release' => new UpdateIssue($actorId, $key, releaseId: self::idOrNobody($value)),
+            'visibility' => new UpdateIssue($actorId, $key, private: 'private' === $value),
             default => null,
         };
         if (null === $command) {
@@ -158,11 +138,14 @@ final class Properties
         }
 
         if (!$this->tryCommand($commands, $command)) {
-            $this->refresh();
-
             return;
         }
 
         $this->announce($this->translator->trans('issue.action.done', ['%key%' => $key]));
+    }
+
+    private static function idOrNobody(string $value): int
+    {
+        return '' === $value ? UpdateIssue::NOBODY : (int) $value;
     }
 }

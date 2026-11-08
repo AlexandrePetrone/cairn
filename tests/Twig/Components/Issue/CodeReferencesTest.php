@@ -47,6 +47,10 @@ final class CodeReferencesTest extends KernelTestCase
     public function testADeveloperReadsTheMergeRequestsAndTheCommitsByBranch(): void
     {
         $crawler = $this->render('MD-SPT-4', 'nadia.benali@cairn.test');
+        $summary = $crawler->filter('summary')->text();
+        self::assertStringContainsString('!431', $summary, 'folded, the header shows the first merge request');
+        self::assertStringContainsString('Ouverte', $summary);
+        self::assertStringNotContainsString('!420', $summary);
         $text = $crawler->text();
 
         self::assertStringContainsString('!431', $text);

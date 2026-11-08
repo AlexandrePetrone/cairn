@@ -25,8 +25,9 @@ use Symfony\UX\LiveComponent\ComponentWithFormTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
- * The fields of the issue's workflow in the side panel: read, or edited as
- * one form (the one of the creation) by whoever may edit the issue.
+ * The fields of the issue's workflow, a card of the side panel: read, or
+ * edited as one form (the one of the creation) by whoever may edit the
+ * issue.
  */
 #[AsLiveComponent('Issue:Fields')]
 final class Fields

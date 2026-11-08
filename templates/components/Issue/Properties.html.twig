@@ -1,75 +1,189 @@
-{# The properties of the issue page's side panel; the release only once the project has releases. A property the viewer may change is a select bound to its prop, applied on change; the controls are plain HTML because a data-model attribute on a nested component would bind that component instead. #}
-{% set propertiesSelectClasses = 'h-8 w-full rounded-md border border-gray-200 bg-white py-0 pl-2 text-sm hover:border-gray-300 focus:border-indigo-400 focus:outline-none focus:ring-0' %}
+{# The properties of the issue page's side panel: a band with the tracker and the place, then one row per property; the release only once the project has releases. A property the viewer may change is a menu (`Ui:Dropdown`) opened from its value, each choice a `Ui:Dropdown:Item` that dispatches the change and closes the menu (a redraw keeps the classes the browser changed, so the menu would stay open); the menu spans the row so that it opens within the column, hence plain divs rather than a <dl>, which allows no wrapper between it and its terms. `this` is read before the nested components, whose blocks see their own `this`. #}
+{% set propertiesRowClasses = 'group flex min-h-7 items-center gap-3' %}
+{% set propertiesLabelClasses = 'w-22 shrink-0 text-xs text-gray-500' %}
+{% set propertiesValueClasses = '-mx-1.5 inline-flex min-h-7 max-w-full items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left hover:bg-gray-100 aria-expanded:bg-gray-100' %}
 {% set propertiesMembers = this.canAssign ? this.members : [] %}
-<dl {{ attributes }} class="p-3 space-y-2.5 text-sm" data-loading="addClass(opacity-60)">
-    {% if error %}
-        <twig:Ui:Callout tone="danger" size="sm" role="alert">{{ error }}</twig:Ui:Callout>
-    {% endif %}
-    <div class="flex items-center gap-2"><dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.tracker'|trans }}</dt><dd>{{ issue.tracker.name }}</dd></div>
-    <div class="flex items-center gap-2"><dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.place'|trans }}</dt><dd><twig:Ui:Status:Step :status="issue.status.value" :label="issue_place(issue)" /></dd></div>
-    <div class="flex items-center gap-2">
-        <dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.criticality'|trans }}</dt>
-        <dd class="flex-1 min-w-0">
-            {% if this.canSetCriticality %}
-                <select data-model="norender|criticality" data-action="change->live#action" data-live-action-param="change" data-live-property-param="criticality" aria-label="{{ 'issue.show.criticality'|trans }}" class="{{ propertiesSelectClasses }}">
-                    {% for level in ['blocking', 'high', 'normal', 'low'] %}
-                        <option value="{{ level }}" {{ criticality.value == level ? 'selected' }}>{{ ('criticality.' ~ level)|trans }}</option>
-                    {% endfor %}
-                </select>
-            {% else %}
-                <twig:Ui:Criticality:Badge :criticality="issue.criticality.value" />
+{% set propertiesReleases = this.canSetRelease ? this.releaseChoices : [] %}
+{% set propertiesCanSetCriticality = this.canSetCriticality %}
+{% set propertiesCanAssign = this.canAssign %}
+{% set propertiesCanSetRelease = this.canSetRelease %}
+{% set propertiesCanSetVisibility = this.canSetVisibility %}
+{% set propertiesHasReleases = this.hasReleases %}
+<div {{ attributes }} data-loading="addClass(opacity-60)">
+    <section class="rounded-lg border border-gray-200 bg-white text-[13px] shadow-sm">
+        <div class="flex items-center gap-2 rounded-t-lg border-b border-gray-100 bg-gray-50/80 px-3.5 py-2.5">
+            <twig:ux:icon name="lucide:tag" class="h-3.5 w-3.5 shrink-0 text-gray-400" />
+            <span class="min-w-0 truncate text-xs font-medium text-gray-700" title="{{ 'issue.show.tracker'|trans }}">{{ issue.tracker.name }}</span>
+            {% if issue.tracker.private %}<twig:ux:icon name="lucide:lock" class="h-3 w-3 shrink-0 text-gray-400" />{% endif %}
+            <twig:Ui:Status:Step :status="issue.status.value" :label="issue_place(issue)" pill class="ml-auto shrink-0" title="{{ 'issue.show.place'|trans }}" />
+        </div>
+        <div class="space-y-0.5 p-3.5">
+            {% if error %}
+                <twig:Ui:Callout tone="danger" size="sm" role="alert" class="mb-2">{{ error }}</twig:Ui:Callout>
             {% endif %}
-        </dd>
-    </div>
-    <div class="flex items-center gap-2">
-        <dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.assignee'|trans }}</dt>
-        <dd class="flex-1 min-w-0 flex items-center gap-1.5">
-            {% if this.canAssign %}
-                <select data-model="norender|assigneeId" data-action="change->live#action" data-live-action-param="change" data-live-property-param="assignee" aria-label="{{ 'issue.show.assignee'|trans }}" class="{{ propertiesSelectClasses }}">
-                    <option value="" {{ assigneeId is null ? 'selected' }}>{{ 'issue.show.nobody'|trans }}</option>
-                    {% for member in propertiesMembers %}
-                        <option value="{{ member.id }}" {{ member.id == assigneeId ? 'selected' }}>{{ member.fullName }}</option>
-                    {% endfor %}
-                </select>
-            {% else %}
-                <twig:Ui:Avatar :name="issue.assignee ? issue.assignee.fullName : null" :kind="issue.assignee and issue.assignee.internal ? 'internal' : 'external'" size="sm" />
-                {{ issue.assignee ? issue.assignee.fullName : 'issue.show.nobody'|trans }}
-            {% endif %}
-        </dd>
-    </div>
-    {% if this.hasReleases %}
-        <div class="flex items-center gap-2">
-            <dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.release'|trans }}</dt>
-            <dd class="flex-1 min-w-0">
-                {% if this.canSetRelease %}
-                    <select data-model="norender|releaseId" data-action="change->live#action" data-live-action-param="change" data-live-property-param="release" aria-label="{{ 'issue.show.release'|trans }}" class="{{ propertiesSelectClasses }}">
-                        <option value="" {{ releaseId is null ? 'selected' }}>{{ 'issue.show.no_release'|trans }}</option>
-                        {% for release in this.releaseChoices %}
-                            <option value="{{ release.id }}" {{ release.id == releaseId ? 'selected' }}>{{ release.name }}{{ release.open ? '' : ' · ' ~ ('release.status.' ~ release.status.value)|trans }}</option>
+
+            {% set propertiesCriticality %}<twig:Ui:Criticality:Badge :criticality="issue.criticality.value" />{% endset %}
+            {% if propertiesCanSetCriticality %}
+                <twig:Ui:Dropdown width="sm" class="block">
+                    <twig:block name="trigger">
+                        <div class="{{ propertiesRowClasses }}">
+                            <div class="{{ propertiesLabelClasses }}">{{ 'issue.show.criticality'|trans }}</div>
+                            <div class="min-w-0 flex-1">
+                                <button type="button" class="{{ propertiesValueClasses }}" aria-expanded="false" aria-haspopup="menu" aria-label="{{ 'issue.show.change_property'|trans({ '%property%': 'issue.show.criticality'|trans }) }}" data-action="dropdown#toggle">
+                                    {{ propertiesCriticality }}
+                                    <twig:ux:icon name="lucide:chevrons-up-down" class="hover-actions h-3.5 w-3.5 shrink-0 text-gray-400" />
+                                </button>
+                            </div>
+                        </div>
+                    </twig:block>
+                    <twig:block name="content">
+                        {% for level in ['blocking', 'high', 'normal', 'low'] %}
+                            <twig:Ui:Dropdown:Item :active="issue.criticality.value == level" data-action="live#action dropdown#close" data-live-action-param="change" data-live-property-param="criticality" data-live-value-param="{{ level }}">
+                                <twig:Ui:Criticality:Badge :criticality="level" />
+                                {% if issue.criticality.value == level %}<twig:ux:icon name="lucide:check" class="ml-auto h-4 w-4 text-indigo-600" />{% endif %}
+                            </twig:Ui:Dropdown:Item>
                         {% endfor %}
-                    </select>
-                {% elseif issue.release %}
-                    <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-700">{{ issue.release.name }}</span>
+                    </twig:block>
+                </twig:Ui:Dropdown>
+            {% else %}
+                <div class="{{ propertiesRowClasses }}">
+                    <div class="{{ propertiesLabelClasses }}">{{ 'issue.show.criticality'|trans }}</div>
+                    <div class="min-w-0 flex-1">{{ propertiesCriticality }}</div>
+                </div>
+            {% endif %}
+
+            {% set propertiesAssignee %}
+                <twig:Ui:Avatar :name="issue.assignee ? issue.assignee.fullName : null" :kind="issue.assignee and issue.assignee.internal ? 'internal' : 'external'" size="sm" />
+                <span class="truncate {{ issue.assignee ? 'text-gray-800' : 'text-gray-400' }}">{{ issue.assignee ? issue.assignee.fullName : 'issue.show.nobody'|trans }}</span>
+            {% endset %}
+            {% if propertiesCanAssign %}
+                <twig:Ui:Dropdown width="sm" class="block">
+                    <twig:block name="trigger">
+                        <div class="{{ propertiesRowClasses }}">
+                            <div class="{{ propertiesLabelClasses }}">{{ 'issue.show.assignee'|trans }}</div>
+                            <div class="min-w-0 flex-1">
+                                <button type="button" class="{{ propertiesValueClasses }}" aria-expanded="false" aria-haspopup="menu" aria-label="{{ 'issue.show.change_property'|trans({ '%property%': 'issue.show.assignee'|trans }) }}" data-action="dropdown#toggle">
+                                    {{ propertiesAssignee }}
+                                    <twig:ux:icon name="lucide:chevrons-up-down" class="hover-actions h-3.5 w-3.5 shrink-0 text-gray-400" />
+                                </button>
+                            </div>
+                        </div>
+                    </twig:block>
+                    <twig:block name="content">
+                        {# Many members: a field narrows the list as one types. #}
+                        <div data-controller="list-filter">
+                            {% if propertiesMembers|length > 8 %}
+                                <div class="-mt-1 flex items-center gap-2 border-b border-gray-100 px-3 py-2 text-gray-400">
+                                    <twig:ux:icon name="lucide:search" class="h-3.5 w-3.5 shrink-0" />
+                                    <input type="search" data-dropdown-target="search" data-action="input->list-filter#filter" placeholder="{{ 'issue.show.search_member'|trans }}" aria-label="{{ 'issue.show.search_member'|trans }}" autocomplete="off" class="w-full border-0 bg-transparent p-0 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-0">
+                                </div>
+                            {% endif %}
+                            <div class="max-h-72 overflow-y-auto">
+                                <twig:Ui:Dropdown:Item :active="issue.assignee is null" data-list-filter-target="item" data-text="{{ 'issue.show.nobody'|trans }}" data-action="live#action dropdown#close" data-live-action-param="change" data-live-property-param="assignee" data-live-value-param="">
+                                    <twig:Ui:Avatar size="sm" />
+                                    <span class="truncate text-gray-500">{{ 'issue.show.nobody'|trans }}</span>
+                                    {% if issue.assignee is null %}<twig:ux:icon name="lucide:check" class="ml-auto h-4 w-4 shrink-0 text-indigo-600" />{% endif %}
+                                </twig:Ui:Dropdown:Item>
+                                {% for member in propertiesMembers %}
+                                    {% set propertiesMemberActive = issue.assignee and member.id == issue.assignee.id %}
+                                    <twig:Ui:Dropdown:Item :active="propertiesMemberActive" data-list-filter-target="item" data-text="{{ member.fullName }}" data-action="live#action dropdown#close" data-live-action-param="change" data-live-property-param="assignee" data-live-value-param="{{ member.id }}">
+                                        <twig:Ui:Avatar :name="member.fullName" :kind="member.internal ? 'internal' : 'external'" size="sm" />
+                                        <span class="truncate">{{ member.fullName }}</span>
+                                        {% if propertiesMemberActive %}<twig:ux:icon name="lucide:check" class="ml-auto h-4 w-4 shrink-0 text-indigo-600" />{% endif %}
+                                    </twig:Ui:Dropdown:Item>
+                                {% endfor %}
+                            </div>
+                            <p data-list-filter-target="empty" hidden class="px-3 py-2 text-center text-xs text-gray-400">{{ 'issue.show.no_member'|trans }}</p>
+                        </div>
+                    </twig:block>
+                </twig:Ui:Dropdown>
+            {% else %}
+                <div class="{{ propertiesRowClasses }}">
+                    <div class="{{ propertiesLabelClasses }}">{{ 'issue.show.assignee'|trans }}</div>
+                    <div class="flex min-w-0 flex-1 items-center gap-1.5">{{ propertiesAssignee }}</div>
+                </div>
+            {% endif %}
+
+            {% if propertiesHasReleases %}
+                {% set propertiesRelease %}
+                    {% if issue.release %}
+                        <twig:Ui:Chip class="text-gray-700">{{ issue.release.name }}</twig:Ui:Chip>
+                    {% else %}
+                        <span class="text-gray-400">{{ 'issue.show.no_release'|trans }}</span>
+                    {% endif %}
+                {% endset %}
+                {% if propertiesCanSetRelease %}
+                    <twig:Ui:Dropdown width="sm" class="block">
+                        <twig:block name="trigger">
+                            <div class="{{ propertiesRowClasses }}">
+                                <div class="{{ propertiesLabelClasses }}">{{ 'issue.show.release'|trans }}</div>
+                                <div class="min-w-0 flex-1">
+                                    <button type="button" class="{{ propertiesValueClasses }}" aria-expanded="false" aria-haspopup="menu" aria-label="{{ 'issue.show.change_property'|trans({ '%property%': 'issue.show.release'|trans }) }}" data-action="dropdown#toggle">
+                                        {{ propertiesRelease }}
+                                        <twig:ux:icon name="lucide:chevrons-up-down" class="hover-actions h-3.5 w-3.5 shrink-0 text-gray-400" />
+                                    </button>
+                                </div>
+                            </div>
+                        </twig:block>
+                        <twig:block name="content">
+                            <div class="max-h-72 overflow-y-auto">
+                                <twig:Ui:Dropdown:Item :active="issue.release is null" data-action="live#action dropdown#close" data-live-action-param="change" data-live-property-param="release" data-live-value-param="">
+                                    <span class="text-gray-500">{{ 'issue.show.no_release'|trans }}</span>
+                                    {% if issue.release is null %}<twig:ux:icon name="lucide:check" class="ml-auto h-4 w-4 shrink-0 text-indigo-600" />{% endif %}
+                                </twig:Ui:Dropdown:Item>
+                                {% for release in propertiesReleases %}
+                                    {% set propertiesReleaseActive = issue.release and release.id == issue.release.id %}
+                                    <twig:Ui:Dropdown:Item :active="propertiesReleaseActive" data-action="live#action dropdown#close" data-live-action-param="change" data-live-property-param="release" data-live-value-param="{{ release.id }}">
+                                        <twig:Ui:Chip class="text-gray-700">{{ release.name }}</twig:Ui:Chip>
+                                        {% if not release.open %}<span class="text-xs text-gray-400">{{ ('release.status.' ~ release.status.value)|trans }}</span>{% endif %}
+                                        {% if propertiesReleaseActive %}<twig:ux:icon name="lucide:check" class="ml-auto h-4 w-4 shrink-0 text-indigo-600" />{% endif %}
+                                    </twig:Ui:Dropdown:Item>
+                                {% endfor %}
+                            </div>
+                        </twig:block>
+                    </twig:Ui:Dropdown>
                 {% else %}
-                    <span class="text-gray-400">{{ 'issue.show.no_release'|trans }}</span>
+                    <div class="{{ propertiesRowClasses }}">
+                        <div class="{{ propertiesLabelClasses }}">{{ 'issue.show.release'|trans }}</div>
+                        <div class="min-w-0 flex-1">{{ propertiesRelease }}</div>
+                    </div>
                 {% endif %}
-            </dd>
-        </div>
-    {% endif %}
-    {# Visibility is an agency matter: external users only ever see what is visible to them. #}
-    {% if app.user.internal %}
-        <div class="flex items-center gap-2">
-            <dt class="w-20 shrink-0 text-xs text-gray-500">{{ 'issue.show.visibility'|trans }}</dt>
-            <dd class="flex-1 min-w-0 text-gray-700">
-                {% if this.canSetVisibility %}
-                    <select data-model="norender|visibility" data-action="change->live#action" data-live-action-param="change" data-live-property-param="visibility" aria-label="{{ 'issue.show.visibility'|trans }}" class="{{ propertiesSelectClasses }}">
-                        <option value="public" {{ visibility == 'public' ? 'selected' }}>{{ 'issue.show.visible_externals'|trans }}</option>
-                        <option value="private" {{ visibility == 'private' ? 'selected' }}>{{ 'issue.show.hidden_externals'|trans }}</option>
-                    </select>
+            {% endif %}
+
+            {# Visibility is an agency matter: external users only ever see what is visible to them. #}
+            {% if app.user.internal %}
+                {% set propertiesVisibility %}
+                    <span class="leading-tight {{ issue.private ? 'font-medium text-amber-700' : 'text-gray-700' }}">{{ (issue.private ? 'issue.show.hidden_externals' : 'issue.show.visible_externals')|trans }}</span>
+                {% endset %}
+                {% if propertiesCanSetVisibility %}
+                    <twig:Ui:Dropdown width="sm" class="block">
+                        <twig:block name="trigger">
+                            <div class="{{ propertiesRowClasses }}">
+                                <div class="{{ propertiesLabelClasses }}">{{ 'issue.show.visibility'|trans }}</div>
+                                <div class="min-w-0 flex-1">
+                                    <button type="button" class="{{ propertiesValueClasses }}" aria-expanded="false" aria-haspopup="menu" aria-label="{{ 'issue.show.change_property'|trans({ '%property%': 'issue.show.visibility'|trans }) }}" data-action="dropdown#toggle">
+                                        {{ propertiesVisibility }}
+                                        <twig:ux:icon name="lucide:chevrons-up-down" class="hover-actions h-3.5 w-3.5 shrink-0 text-gray-400" />
+                                    </button>
+                                </div>
+                            </div>
+                        </twig:block>
+                        <twig:block name="content">
+                            {% for propertiesChoice in [{ value: 'public', private: false, label: 'issue.show.visible_externals' }, { value: 'private', private: true, label: 'issue.show.hidden_externals' }] %}
+                                <twig:Ui:Dropdown:Item :active="issue.private == propertiesChoice.private" data-action="live#action dropdown#close" data-live-action-param="change" data-live-property-param="visibility" data-live-value-param="{{ propertiesChoice.value }}">
+                                    <span class="{{ propertiesChoice.private ? 'text-amber-700' : '' }}">{{ propertiesChoice.label|trans }}</span>
+                                    {% if issue.private == propertiesChoice.private %}<twig:ux:icon name="lucide:check" class="ml-auto h-4 w-4 shrink-0 text-indigo-600" />{% endif %}
+                                </twig:Ui:Dropdown:Item>
+                            {% endfor %}
+                        </twig:block>
+                    </twig:Ui:Dropdown>
                 {% else %}
-                    {{ (issue.private ? 'issue.show.hidden_externals' : 'issue.show.visible_externals')|trans }}
+                    <div class="{{ propertiesRowClasses }}">
+                        <div class="{{ propertiesLabelClasses }}">{{ 'issue.show.visibility'|trans }}</div>
+                        <div class="flex min-w-0 flex-1 items-center">{{ propertiesVisibility }}</div>
+                    </div>
                 {% endif %}
-            </dd>
+            {% endif %}
         </div>
-    {% endif %}
-</dl>
+    </section>
+</div>

@@ -1,43 +1,48 @@
-{# The fields of the issue's workflow in the side panel: read, or edited as one form by whoever may edit the issue. #}
+{# The fields of the issue's workflow, a card of the side panel: read, or edited as one form by whoever may edit the issue; while editing, the card does not fold. `this` is read before the nested component, whose blocks see their own `this`. #}
 {% set fieldsCanEdit = this.canEdit %}
-<div {{ attributes }}>
-    {% if editing %}
-        {{ form_start(form, { attr: form.vars.attr|merge({ 'data-action': 'live#action:prevent', 'data-live-action-param': 'save', class: 'p-3 space-y-3' }) }) }}
-            <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{{ 'issue.show.fields'|trans({ '%tracker%': issue.tracker.name }) }}</div>
-            {% if error %}<twig:Ui:Callout tone="danger" size="sm" role="alert">{{ error }}</twig:Ui:Callout>{% endif %}
-            {% for field in form %}{{ form_row(field) }}{% endfor %}
-            <div class="flex items-center gap-2">
-                <twig:Ui:Button variant="primary" size="sm" type="submit" data-loading="addAttribute(disabled)">{{ 'issue.edit.save'|trans }}</twig:Ui:Button>
-                <twig:Ui:Button variant="ghost" size="sm" data-action="live#action" data-live-action-param="cancel">{{ 'issue.edit.cancel'|trans }}</twig:Ui:Button>
-            </div>
-        {{ form_end(form) }}
-    {% else %}
-        {% set fieldsValues = this.values %}
-        {% if fieldsValues is not empty or fieldsCanEdit %}
-            <dl class="p-3 space-y-2.5">
-                <div class="flex items-center gap-2">
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{{ 'issue.show.fields'|trans({ '%tracker%': issue.tracker.name }) }}</span>
-                    {% if fieldsCanEdit %}
-                        <button type="button" data-action="live#action" data-live-action-param="edit" class="ml-auto text-xs text-indigo-600 hover:underline">{{ 'issue.edit.edit'|trans }}</button>
-                    {% endif %}
-                </div>
-                {% for fieldValue in fieldsValues %}
-                    <div class="flex items-start gap-2">
-                        <dt class="w-20 shrink-0 text-xs text-gray-500 pt-0.5">{{ fieldValue.field.label }}</dt>
-                        <dd class="flex-1 min-w-0 text-sm text-gray-800 break-words">
-                            {% if fieldValue.field.type.value == 'url' %}
-                                <a href="{{ fieldValue.value }}" class="text-indigo-600 hover:underline break-all" rel="noopener noreferrer" target="_blank">{{ fieldValue.value|replace({ 'https://': '', 'http://': '' }) }}</a>
-                            {% elseif fieldValue.field.type.value == 'date' %}
-                                {{ fieldValue.value|date('d/m/Y') }}
-                            {% elseif fieldValue.field.type.value == 'bool' %}
-                                {{ (fieldValue.value ? 'issue.show.true' : 'issue.show.false')|trans }}
-                            {% else %}
-                                {{ fieldValue.value|nl2br }}
-                            {% endif %}
-                        </dd>
-                    </div>
-                {% endfor %}
-            </dl>
-        {% endif %}
+{% set fieldsValues = editing ? [] : this.values %}
+{% set fieldsShown = editing or fieldsValues is not empty or fieldsCanEdit %}
+<div {{ attributes.defaults({ class: fieldsShown ? '' : 'hidden' }) }} data-loading="addClass(opacity-60)">
+    {% if fieldsShown %}
+        <twig:Ui:Section :title="'issue.show.fields'|trans({ '%tracker%': issue.tracker.name })" icon="sliders-horizontal" :foldable="not editing">
+            <twig:block name="actions">
+                {% if fieldsCanEdit and not editing %}
+                    <button type="button" data-action="live#action" data-live-action-param="edit" class="shrink-0 text-xs text-indigo-600 hover:underline">{{ 'issue.edit.edit'|trans }}</button>
+                {% endif %}
+            </twig:block>
+            <twig:block name="content">
+                {% if editing %}
+                    {{ form_start(form, { attr: form.vars.attr|merge({ 'data-action': 'live#action:prevent', 'data-live-action-param': 'save', class: 'space-y-3' }) }) }}
+                        {% if error %}<twig:Ui:Callout tone="danger" size="sm" role="alert">{{ error }}</twig:Ui:Callout>{% endif %}
+                        {% for field in form %}{{ form_row(field) }}{% endfor %}
+                        <div class="flex items-center gap-2">
+                            <twig:Ui:Button variant="primary" size="sm" type="submit" data-loading="addAttribute(disabled)">{{ 'issue.edit.save'|trans }}</twig:Ui:Button>
+                            <twig:Ui:Button variant="ghost" size="sm" data-action="live#action" data-live-action-param="cancel">{{ 'issue.edit.cancel'|trans }}</twig:Ui:Button>
+                        </div>
+                    {{ form_end(form) }}
+                {% elseif fieldsValues is empty %}
+                    <p class="text-xs text-gray-400">{{ 'issue.show.no_fields'|trans }}</p>
+                {% else %}
+                    <dl class="space-y-1.5 text-[13px]">
+                        {% for fieldValue in fieldsValues %}
+                            <div class="flex items-start gap-3">
+                                <dt class="w-22 shrink-0 pt-0.5 text-xs text-gray-500">{{ fieldValue.field.label }}</dt>
+                                <dd class="min-w-0 flex-1 break-words text-gray-800">
+                                    {% if fieldValue.field.type.value == 'url' %}
+                                        <a href="{{ fieldValue.value }}" class="break-all text-indigo-600 hover:underline" rel="noopener noreferrer" target="_blank">{{ fieldValue.value|replace({ 'https://': '', 'http://': '' }) }}</a>
+                                    {% elseif fieldValue.field.type.value == 'date' %}
+                                        {{ fieldValue.value|date('d/m/Y') }}
+                                    {% elseif fieldValue.field.type.value == 'bool' %}
+                                        {{ (fieldValue.value ? 'issue.show.true' : 'issue.show.false')|trans }}
+                                    {% else %}
+                                        {{ fieldValue.value|nl2br }}
+                                    {% endif %}
+                                </dd>
+                            </div>
+                        {% endfor %}
+                    </dl>
+                {% endif %}
+            </twig:block>
+        </twig:Ui:Section>
     {% endif %}
 </div>

@@ -1,8 +1,20 @@
-{# A place as users see it: its colour and its label. The status of the place is shown only with `withStatus`, in the configuration of the administration; users never see it. #}
-{% props status, label, withStatus = false %}
-{% set statusStepClasses = html_cva(base: 'inline-flex items-center gap-1.5') %}
-<span class="{{ statusStepClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
+{# A place as users see it: its colour and its label, as a dot and text or, with `pill`, on a background of the same colour. The status of the place is shown only with `withStatus`, in the configuration of the administration; users never see it. #}
+{% props status, label, withStatus = false, pill = false %}
+{% set statusStepClasses = html_cva(
+    base: 'inline-flex items-center gap-1.5',
+    variants: {
+        pill: { true: 'rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset', false: '' },
+        status: { open: '', in_progress: '', waiting: '', closed: '' },
+    },
+    compoundVariants: [
+        { pill: [true], status: ['open'], class: 'bg-blue-50 text-blue-700 ring-blue-200' },
+        { pill: [true], status: ['in_progress'], class: 'bg-amber-50 text-amber-800 ring-amber-200' },
+        { pill: [true], status: ['waiting'], class: 'bg-violet-50 text-violet-700 ring-violet-200' },
+        { pill: [true], status: ['closed'], class: 'bg-gray-100 text-gray-600 ring-gray-200' },
+    ],
+) %}
+<span class="{{ statusStepClasses.apply({ status: status, pill: pill }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
     <twig:Ui:Status:Dot status="{{ status }}" />
-    <span class="text-gray-800">{{ label }}</span>
+    <span class="{{ pill ? '' : 'text-gray-800' }}">{{ label }}</span>
     {% if withStatus %}<span class="text-[11px] text-gray-400">· {{ ('status.' ~ status)|trans }}</span>{% endif %}
 </span>

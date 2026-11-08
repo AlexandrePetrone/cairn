@@ -15,9 +15,9 @@ use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
- * The code of the issue in its side panel, for internal users: the merge
- * requests with their state, the commits by branch. Hidden when there is
- * nothing. Redrawn on `issue:changed`.
+ * The code of the issue, a card of its side panel, for
+ * internal users: the merge requests with their state, the commits by
+ * branch. Hidden when there is nothing. Redrawn on `issue:changed`.
  */
 #[AsLiveComponent('Issue:CodeReferences')]
 final class CodeReferences

@@ -34,7 +34,7 @@ issue:
         apply: Apply
     links:
         title: Links
-        new: + Link an issue
+        new: Link an issue
         kind: Kind of link
         other: Other issue
         other_placeholder: Key or words of the title
@@ -67,9 +67,13 @@ issue:
         release: Release
         no_release: None
         visibility: Visibility
-        visible_externals: Visible to external users
-        hidden_externals: Hidden from external users
+        visible_externals: All members
+        hidden_externals: Internal users only
         fields: '%tracker% fields'
+        no_fields: No field filled in.
+        change_property: 'Change %property%'
+        search_member: Search a member…
+        no_member: No member matches.
         system: Cairn
         'true': Yes
         'false': No
@@ -109,8 +113,7 @@ issue:
         merge_request_reopened: 'noted that the merge request !%number% “%title%” in %repository% was reopened'
     code:
         title: Code
-        merge_requests: Merge requests
-        commits: Commits
+        commits_count: '{1} 1 commit|]1,Inf[ %count% commits'
         by: 'by %author%'
         heading:
             commits: '{1} 1 commit on %branch%|]1,Inf[ %count% commits on %branch%'

@@ -51,13 +51,24 @@ final class PropertiesTest extends KernelTestCase
         $lea = $this->user('lea.fontaine@cairn.test');
         $component = $this->properties('thomas.girard@cairn.test');
 
-        $component->set('assigneeId', $lea->getId())->call('change', ['property' => 'assignee']);
+        $component->call('change', ['property' => 'assignee', 'value' => (string) $lea->getId()]);
         $render = $component->render();
 
         self::assertSame(200, $component->response()->getStatusCode(), 'no redirect');
         self::assertNotNull($component->getEmittedEvent($render, 'issue:changed'));
         self::assertNotNull($component->getDispatchedBrowserEvent($render, 'toast:show'));
         self::assertSame('lea.fontaine@cairn.test', $this->reloaded()->getAssignee()?->getEmail());
+    }
+
+    public function testTheMenuOffersTheMembersOfTheProjectAndNobody(): void
+    {
+        $lea = $this->user('lea.fontaine@cairn.test');
+        $sophie = $this->user('sophie.bernard@travelia.test');
+        $manager = (string) $this->properties('thomas.girard@cairn.test')->render();
+
+        self::assertStringContainsString('data-live-value-param="'.$lea->getId().'"', $manager);
+        self::assertStringNotContainsString('data-live-value-param="'.$sophie->getId().'"', $manager, 'not a member of the project');
+        self::assertStringContainsString('data-live-property-param="assignee" data-live-value-param=""', $manager, 'nobody');
     }
 
     public function testThePanelFollowsAChangeMadeElsewhere(): void
@@ -80,7 +91,7 @@ final class PropertiesTest extends KernelTestCase
         $component = $this->properties('nadia.benali@cairn.test');
         self::assertStringContainsString('data-live-property-param="release"', (string) $component->render());
 
-        $component->set('releaseId', $release->getId())->call('change', ['property' => 'release']);
+        $component->call('change', ['property' => 'release', 'value' => (string) $release->getId()]);
         self::assertSame('2.5.0', $this->reloaded()->getRelease()?->getName());
         self::assertStringContainsString('2.5.0', (string) $this->properties('claire.martin@maison-dupont.test')->render());
     }
@@ -90,7 +101,7 @@ final class PropertiesTest extends KernelTestCase
         $sophie = $this->user('sophie.bernard@travelia.test');
         $component = $this->properties('thomas.girard@cairn.test');
 
-        $component->set('assigneeId', $sophie->getId())->call('change', ['property' => 'assignee']);
+        $component->call('change', ['property' => 'assignee', 'value' => (string) $sophie->getId()]);
 
         self::assertStringContainsString('pas pu être appliquée', (string) $component->render());
         self::assertNotSame('sophie.bernard@travelia.test', $this->reloaded()->getAssignee()?->getEmail());

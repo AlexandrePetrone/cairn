@@ -61,7 +61,7 @@ final class JournalEntryTest extends KernelTestCase
         yield 'assignee given' => ['assignee', null, 'Nadia Test', 'a changé l\'assigné : Personne → Nadia Test'];
         yield 'assignee taken away' => ['assignee', 'Nadia Test', null, 'a changé l\'assigné : Nadia Test → Personne'];
         yield 'criticality' => ['criticality', 'normal', 'blocking', 'a changé la criticité : Normale → Bloquante'];
-        yield 'visibility' => ['visibility', 'public', 'private', 'a changé la visibilité : Visible par les externes → Invisible pour les externes'];
+        yield 'visibility' => ['visibility', 'public', 'private', 'a changé la visibilité : Tous les membres → Internes seulement'];
         yield 'title' => ['title', 'Export vide', 'Export CSV vide', 'a changé le titre : « Export vide » → « Export CSV vide »'];
     }
 
