@@ -1,0 +1,205 @@
+name: CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ci-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    # The version the Docker image runs (see Dockerfile).
+    PHP_VERSION: "8.4"
+    PHP_EXTENSIONS: ctype, iconv, intl, pdo_pgsql, apcu, zip
+    NODE_VERSION: "22"
+
+jobs:
+    php-cs-fixer:
+        name: Coding standard
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+
+            - name: Set up PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ env.PHP_VERSION }}
+                  extensions: ${{ env.PHP_EXTENSIONS }}
+                  coverage: none
+
+            - name: Install the dependencies
+              uses: ramsey/composer-install@v4
+              with:
+                  composer-options: --no-scripts
+
+            - name: php-cs-fixer
+              run: vendor/bin/php-cs-fixer check --diff --show-progress=none
+
+    phpstan:
+        name: Static analysis
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+
+            - name: Set up PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ env.PHP_VERSION }}
+                  extensions: ${{ env.PHP_EXTENSIONS }}
+                  coverage: none
+
+            - name: Install the dependencies
+              uses: ramsey/composer-install@v4
+              with:
+                  composer-options: --no-scripts
+
+            # phpstan-symfony reads the dumped dev container (phpstan.dist.neon).
+            - name: Dump the dev container
+              run: bin/console cache:warmup --env=dev
+
+            - name: PHPStan
+              run: vendor/bin/phpstan analyse --no-progress --memory-limit=-1
+
+    lint:
+        name: Linters
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+
+            - name: Set up PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ env.PHP_VERSION }}
+                  extensions: ${{ env.PHP_EXTENSIONS }}
+                  coverage: none
+
+            - name: Install the dependencies
+              uses: ramsey/composer-install@v4
+              with:
+                  composer-options: --no-scripts
+
+            - name: composer validate
+              run: composer validate --strict --no-check-publish
+
+            - name: Container, Twig and YAML
+              run: |
+                  bin/console lint:container
+                  bin/console lint:twig templates/ storia/
+                  bin/console lint:yaml config/ translations/ storia/
+
+    symfony-lsp:
+        name: Symfony Language Tools
+        runs-on: ubuntu-latest
+        env:
+            # Keep in sync with SYMFONY_LSP_VERSION in .castor/qa.php.
+            SYMFONY_LSP_VERSION: "0.24.1"
+        steps:
+            - uses: actions/checkout@v7
+
+            - name: Set up PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ env.PHP_VERSION }}
+                  extensions: ${{ env.PHP_EXTENSIONS }}
+                  coverage: none
+
+            - name: Install the dependencies
+              uses: ramsey/composer-install@v4
+              with:
+                  composer-options: --no-scripts
+
+            - name: Install symfony-lsp
+              run: |
+                  base="https://github.com/symfony/language-tools/releases/download/v${SYMFONY_LSP_VERSION}"
+                  archive="symfony-lsp-v${SYMFONY_LSP_VERSION}-linux-x64.tar.gz"
+                  cd "$RUNNER_TEMP"
+                  curl -sSfLO "$base/$archive"
+                  curl -sSfLO "$base/SHA256SUMS"
+                  sha256sum --check --ignore-missing SHA256SUMS
+                  mkdir symfony-lsp
+                  tar -xzf "$archive" -C symfony-lsp --strip-components=1
+                  echo "$RUNNER_TEMP/symfony-lsp" >> "$GITHUB_PATH"
+
+            # The index and the runtime metadata of the last run, reused when the files did not change.
+            - name: Restore the symfony-lsp cache
+              uses: actions/cache@v6
+              with:
+                  path: var/symfony-lsp
+                  key: symfony-lsp-${{ runner.os }}-${{ env.SYMFONY_LSP_VERSION }}-${{ github.sha }}
+                  restore-keys: symfony-lsp-${{ runner.os }}-${{ env.SYMFONY_LSP_VERSION }}-
+
+            # .symfony-lsp.json targets the Docker stack; here PHP runs on the runner itself.
+            - name: symfony-lsp check
+              run: symfony-lsp check --format=github --php-command='["php"]' --no-container-project-root
+
+    assets:
+        name: Assets build
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+
+            - name: Set up PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ env.PHP_VERSION }}
+                  extensions: ${{ env.PHP_EXTENSIONS }}
+                  coverage: none
+
+            # The Symfony UX npm packages point to their copy in vendor/.
+            - name: Install the PHP dependencies
+              uses: ramsey/composer-install@v4
+              with:
+                  composer-options: --no-scripts
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v6
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: npm
+
+            - name: Build the assets
+              run: |
+                  npm ci
+                  npm run build
+
+    phpunit:
+        name: Tests
+        runs-on: ubuntu-latest
+        env:
+            # PHPUnit sets APP_ENV=test itself; tests/bootstrap.php creates the test database and its schema.
+            DATABASE_URL: "postgresql://app:!ChangeMe!@127.0.0.1:5432/app?serverVersion=18&charset=utf8"
+        services:
+            database:
+                image: postgres:18-alpine
+                env:
+                    POSTGRES_DB: app
+                    POSTGRES_USER: app
+                    POSTGRES_PASSWORD: "!ChangeMe!"
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd "pg_isready -U app -d app"
+                    --health-interval 5s
+                    --health-timeout 5s
+                    --health-retries 10
+        steps:
+            - uses: actions/checkout@v7
+
+            - name: Set up PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ env.PHP_VERSION }}
+                  extensions: ${{ env.PHP_EXTENSIONS }}
+                  coverage: none
+
+            # With the Flex auto-scripts: cache:clear and assets:install. Tests render no asset tags: no build needed.
+            - name: Install the dependencies
+              uses: ramsey/composer-install@v4
+
+            - name: PHPUnit
+              run: php -d memory_limit=-1 bin/phpunit
