@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Config\Sync;
 
 /**
- * A removed place with no migration target. Blocks the sync when it still
- * holds issues.
+ * A place that holds issues, is not in the next definition and has no
+ * migration target. Blocks the sync.
  */
 final readonly class OrphanPlace implements \Stringable
 {

@@ -21,12 +21,20 @@ use App\Entity\Enum\PlaceStatus;
  * The array mirrors the definition objects: every key is a public property,
  * which is also a constructor parameter, so decoding is a named-argument
  * spread. Enums are stored by value, collections of objects as lists. The
- * `format` key is bumped whenever the shape changes. The array is also the
- * canonical form for hashing.
+ * array is also the canonical form for hashing.
+ *
+ * The `format` key says which shape wrote the snapshot; it is recorded,
+ * never checked. Decoding is what PHP makes of the stored keys: a key
+ * left out takes the constructor's default, so a property added with one
+ * reads an older snapshot as it is; a required key missing, a key the
+ * constructor no longer knows or a value an enum refuses make the
+ * snapshot unreadable by this version, and only a sync of a file written
+ * for it puts a readable one in place.
  */
 final class SnapshotCodec
 {
-    public const int FORMAT = 9;
+    /** Bumped whenever the shape of the array changes, as a trace of which version wrote a snapshot. */
+    public const int FORMAT = 10;
 
     /**
      * @return array<string, mixed>
@@ -49,12 +57,12 @@ final class SnapshotCodec
 
     /**
      * @param array<string, mixed> $data
+     *
+     * @throws ConfigException when this version cannot read the snapshot
      */
     public function decode(array $data): InstanceDefinition
     {
-        if (self::FORMAT !== ($data['format'] ?? null)) {
-            throw new ConfigException(\sprintf('Unsupported snapshot format %s (expected %d).', json_encode($data['format'] ?? null), self::FORMAT));
-        }
+        $format = json_encode($data['format'] ?? null);
         unset($data['format']);
 
         try {
@@ -70,7 +78,7 @@ final class SnapshotCodec
                 'workflows' => array_map(self::decodeWorkflow(...), $data['workflows']),
             ]);
         } catch (InvalidDefinitionException|\Error|\ErrorException $e) {
-            throw new ConfigException('Corrupted snapshot: '.$e->getMessage(), 0, $e);
+            throw new ConfigException(\sprintf('Unreadable snapshot (format %s): %s', $format, $e->getMessage()), 0, $e);
         }
     }
 

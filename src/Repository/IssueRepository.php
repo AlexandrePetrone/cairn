@@ -28,20 +28,24 @@ class IssueRepository extends ServiceEntityRepository
     }
 
     /**
-     * Number of issues sitting on a place, across every tracker bound to
-     * the workflow.
+     * Every place that holds issues, with how many, across every workflow:
+     * what the configuration sync compares with the places of the file.
+     *
+     * @return list<array{workflowId: string, placeId: string, issues: int}>
      */
-    public function countOnPlace(string $workflowId, string $placeId): int
+    public function countByPlace(): array
     {
-        return (int) $this->createQueryBuilder('i')
-            ->select('COUNT(i.id)')
+        /** @var list<array{workflowId: string, placeId: string, issues: int|string}> $rows */
+        $rows = $this->createQueryBuilder('i')
+            ->select('t.workflowId AS workflowId', 'i.place AS placeId', 'COUNT(i.id) AS issues')
             ->join('i.tracker', 't')
-            ->andWhere('t.workflowId = :workflow')
-            ->andWhere('i.place = :place')
-            ->setParameter('workflow', $workflowId)
-            ->setParameter('place', $placeId)
+            ->groupBy('t.workflowId', 'i.place')
+            ->orderBy('t.workflowId')
+            ->addOrderBy('i.place')
             ->getQuery()
-            ->getSingleScalarResult();
+            ->getArrayResult();
+
+        return array_map(static fn (array $row): array => ['workflowId' => $row['workflowId'], 'placeId' => $row['placeId'], 'issues' => (int) $row['issues']], $rows);
     }
 
     /**

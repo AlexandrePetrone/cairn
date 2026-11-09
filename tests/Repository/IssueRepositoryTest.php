@@ -54,16 +54,20 @@ final class IssueRepositoryTest extends KernelTestCase
         $this->entityManager->persist($other);
         $this->entityManager->flush();
 
-        self::assertSame(2, $this->issues->countOnPlace('bug', 'new'));
-        self::assertSame(1, $this->issues->countOnPlace('bug', 'in_progress'));
-        self::assertSame(0, $this->issues->countOnPlace('bug', 'done'));
+        self::assertSame([
+            ['workflowId' => 'bug', 'placeId' => 'in_progress', 'issues' => 1],
+            ['workflowId' => 'bug', 'placeId' => 'new', 'issues' => 2],
+            ['workflowId' => 'other_workflow', 'placeId' => 'new', 'issues' => 1],
+        ], $this->issues->countByPlace(), 'only the places in use, by workflow then place');
 
         $moved = $this->issues->moveFromPlace('bug', 'new', 'done', PlaceStatus::Closed, new \DateTimeImmutable('2026-03-03 10:00:00'));
 
         self::assertSame(2, $moved);
-        self::assertSame(0, $this->issues->countOnPlace('bug', 'new'));
-        self::assertSame(2, $this->issues->countOnPlace('bug', 'done'));
-        self::assertSame(1, $this->issues->countOnPlace('other_workflow', 'new'));
+        self::assertSame([
+            ['workflowId' => 'bug', 'placeId' => 'done', 'issues' => 2],
+            ['workflowId' => 'bug', 'placeId' => 'in_progress', 'issues' => 1],
+            ['workflowId' => 'other_workflow', 'placeId' => 'new', 'issues' => 1],
+        ], $this->issues->countByPlace());
 
         $this->entityManager->clear();
         $reloaded = $this->entityManager->find(Issue::class, $a->getId());

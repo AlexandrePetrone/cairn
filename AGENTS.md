@@ -773,6 +773,35 @@ applied by `app:config:sync` (idempotent, locked with `symfony/lock`,
 `--dry-run`). The snapshot is the source of truth in production. The sync is
 also a plain service so that a future back-office can reuse it.
 
+**Changing the structure of the configuration.** The structure of the
+file is the signature of the definition constructors in `Config/Definition/`,
+and the snapshot stores their public properties under the same names: the
+file carries no version number, PHP checks it. Two kinds of change:
+
+- A property added with a default or nullable changes nothing for a
+  running instance: an older snapshot reads with the default (a key left
+  out of the named-argument spread), the file loads unchanged, and the
+  next sync stores the snapshot in the new shape without a line of diff.
+- A property made required, renamed or removed makes the snapshot in
+  force unreadable by the new code: every page fails with the reason
+  (`SnapshotCodec`, wrapped by `ConfigRegistry` with what to do) until
+  the administrator updates the file and runs `app:config:sync`.
+  `ConfigLoader` turns PHP's refusal of the file into a message with the
+  line of the file and the cause, and `UPGRADE.md` lists what to change
+  for each version. Accepted: the instance is down between the
+  deployment and that sync. A change of meaning must be a change of
+  name, so that PHP refuses the old file instead of misreading it.
+
+For the sync to be the way out, it never needs the snapshot in force:
+the places, link types and workflows in use come from the data
+(`IssueRepository::countByPlace()`, `IssueLinkRepository::countByType()`,
+`TrackerRepository::countByWorkflow()`), compared with the next
+definition, and a link type or a workflow still in use blocks its
+removal; the snapshot in force only feeds the list of changes shown,
+which says so when it cannot be read.
+`SnapshotCodec::FORMAT` is bumped when the stored shape changes, as a
+trace of which version wrote a snapshot, never checked.
+
 An issue's state is stored as a place identifier string, not a foreign key.
 Places separate a stable technical id from a label; a removed place either
 declares `migrate_from` on its successor or the sync refuses (strict policy

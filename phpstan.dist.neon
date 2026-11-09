@@ -7,6 +7,10 @@ parameters:
         - src/
         - tests/
         - config/instance.example.php
+    excludePaths:
+        # Configuration files written for another version of the definition
+        # objects, which the loader must refuse with a readable message.
+        - tests/Config/Fixture/Broken/
     tmpDir: var/cache/phpstan
     symfony:
         containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml
