@@ -550,6 +550,7 @@ admin:
             by: 'par %name%'
             show_changes: '{1}Voir le changement|]1,Inf[ Voir les %count% changements'
             hide_changes: Masquer les changements
+            no_changes: 'Aucun changement de définition : le snapshot a été réécrit au format de cette version.'
     refused:
         not_found: Introuvable.
         workspace_key_taken: 'Un espace utilise déjà le code %key%.'

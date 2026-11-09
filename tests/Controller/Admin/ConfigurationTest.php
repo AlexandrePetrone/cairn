@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller\Admin;
 
+use App\Entity\ConfigSnapshot;
 use App\Tests\Scene\ShopScene;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Clock\ClockInterface;
 
 /**
  * The configuration pages, on the example configuration the scene
@@ -93,6 +96,24 @@ final class ConfigurationTest extends WebTestCase
         self::assertSelectorTextContains('main', 'Strict');
         self::assertSelectorTextContains('main', 'In force');
         self::assertSelectorTextContains('main', 'by tests');
+    }
+
+    /**
+     * A sync of an unchanged definition, as a deployment makes, stores a
+     * snapshot without any change to list and without anybody applying it.
+     */
+    public function testASyncWithoutChangesIsListedToo(): void
+    {
+        $this->signInAsAdmin();
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist(new ConfigSnapshot(hash('sha256', 'rewritten'), ['format' => 1], '', null, self::getContainer()->get(ClockInterface::class)->now()));
+        $entityManager->flush();
+
+        $this->client->request('GET', '/admin/configuration/history');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main ol li:first-child', 'No change in the definition');
+        self::assertSelectorTextContains('main ol li:last-child', 'Show the');
     }
 
     private function signInAsAdmin(): void

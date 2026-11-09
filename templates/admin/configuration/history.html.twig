@@ -24,9 +24,13 @@
                         <span class="ml-auto font-mono text-[11px] text-gray-400" title="{{ snapshot.hash }}">{{ snapshot.hash|slice(0, 12) }}</span>
                     </div>
                     {% set historyChanges = snapshot.summary|split("\n")|filter(line => line|trim is not empty) %}
-                    <twig:Ui:Disclosure :closedLabel="'admin.configuration.history.show_changes'|trans({ '%count%': historyChanges|length })" :openLabel="'admin.configuration.history.hide_changes'|trans">
-                        <pre class="whitespace-pre-wrap font-sans text-xs text-gray-600">{{ snapshot.summary }}</pre>
-                    </twig:Ui:Disclosure>
+                    {% if historyChanges is empty %}
+                        <p class="text-xs text-gray-500">{{ 'admin.configuration.history.no_changes'|trans }}</p>
+                    {% else %}
+                        <twig:Ui:Disclosure :closedLabel="'admin.configuration.history.show_changes'|trans({ '%count%': historyChanges|length })" :openLabel="'admin.configuration.history.hide_changes'|trans">
+                            <pre class="whitespace-pre-wrap font-sans text-xs text-gray-600">{{ snapshot.summary }}</pre>
+                        </twig:Ui:Disclosure>
+                    {% endif %}
                 </li>
             {% endfor %}
         </ol>
