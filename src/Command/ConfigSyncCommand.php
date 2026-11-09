@@ -75,7 +75,7 @@ final class ConfigSyncCommand extends Command
         $this->describe($io, $plan);
 
         if ($plan->isBlocked()) {
-            $io->error('Some removed places still hold issues and no rule migrates them. Add a `migrateFrom` on their successor or switch to the Fallback policy. Nothing applied.');
+            $io->error('Some removed places still hold issues and no rule migrates them, or removed link types or workflows are still in use. Add a `migrateFrom` on the successor of a place or switch to the Fallback policy; keep a link type or a workflow still in use. Nothing applied.');
 
             return Command::INVALID;
         }
@@ -101,8 +101,12 @@ final class ConfigSyncCommand extends Command
 
     private function describe(SymfonyStyle $io, SyncPlan $plan): void
     {
-        $io->section('Changes');
-        $io->listing($plan->diff);
+        if ([] !== $plan->diff) {
+            $io->section('Changes');
+            $io->listing($plan->diff);
+        } else {
+            $io->text('The definition is unchanged; the snapshot is rewritten in the format of this version.');
+        }
 
         if ([] !== $plan->migrations) {
             $io->section('Data migrations');
@@ -117,6 +121,11 @@ final class ConfigSyncCommand extends Command
         if ([] !== $plan->usedLinkTypes) {
             $io->section('Removed link types still in use');
             $io->listing($plan->usedLinkTypes);
+        }
+
+        if ([] !== $plan->usedWorkflows) {
+            $io->section('Removed workflows still in use');
+            $io->listing($plan->usedWorkflows);
         }
 
         if ([] !== $plan->warnings) {

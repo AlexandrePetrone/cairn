@@ -46,7 +46,7 @@ bin/console messenger:consume async scheduler_default --time-limit=3600
 
 ### Instance configuration
 
-Roles, permissions, fields, link types and workflows live in a PHP file outside the repository, pointed to by `CAIRN_CONFIG`. Start from [`config/instance.example.php`](config/instance.example.php), or [`config/instance.example.fr.php`](config/instance.example.fr.php) for a French instance. The file is never read at runtime: `app:config:sync` validates it, shows what changes (`--dry-run`) and stores it in the database. Run it again after every change.
+Roles, permissions, fields, link types and workflows live in a PHP file outside the repository, pointed to by `CAIRN_CONFIG`. Start from [`config/instance.example.php`](config/instance.example.php), or [`config/instance.example.fr.php`](config/instance.example.fr.php) for a French instance. The file is never read at runtime: `app:config:sync` validates it, shows what changes (`--dry-run`) and stores it in the database. Run it again after every change, and after upgrading Cairn: [`UPGRADE.md`](UPGRADE.md) lists what a new version changes in the file.
 
 ### Environment
 

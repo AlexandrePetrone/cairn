@@ -8,10 +8,12 @@ use App\Config\ConfigException;
 use App\Config\ConfigRegistry;
 use App\Config\Definition\LinkTypeDefinition;
 use App\Config\Definition\PlaceDefinition;
+use App\Config\Definition\RoleDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use App\Config\MigrationPolicy;
 use App\Config\Sync\ConfigSynchronizer;
 use App\Config\Sync\PlaceMigration;
+use App\Entity\ConfigSnapshot;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\IssueLink;
 use App\Entity\Tracker;
@@ -137,11 +139,11 @@ final class ConfigSynchronizerTest extends KernelTestCase
 
         $plan = $this->synchronizer->plan(DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(withToTest: false)]));
 
-        self::assertCount(1, $plan->orphans);
-        self::assertSame(0, $plan->orphans[0]->count);
+        self::assertSame([], $plan->orphans, 'a place nobody sits on is not even mentioned');
+        self::assertSame([], $plan->migrations);
         self::assertFalse($plan->isBlocked());
         self::assertNotNull($this->synchronizer->apply($plan)->getId());
-        self::assertSame(2, $this->issues->countOnPlace('bug', 'new'), 'untouched');
+        self::assertSame(2, $this->countOn('bug', 'new'), 'untouched');
     }
 
     public function testRemovingALinkTypeStillInUseIsBlocked(): void
@@ -178,8 +180,8 @@ final class ConfigSynchronizerTest extends KernelTestCase
 
         $snapshot = $this->synchronizer->apply($plan);
 
-        self::assertSame(0, $this->issues->countOnPlace('bug', 'to_test'));
-        self::assertSame(4, $this->issues->countOnPlace('bug', 'in_progress'));
+        self::assertSame(0, $this->countOn('bug', 'to_test'));
+        self::assertSame(4, $this->countOn('bug', 'in_progress'));
         self::assertStringContainsString('3 issue(s) from "to_test" to "in_progress"', $snapshot->getSummary());
         self::assertEquals($next, $this->registry->definition());
     }
@@ -201,7 +203,7 @@ final class ConfigSynchronizerTest extends KernelTestCase
 
         $this->synchronizer->apply($plan);
 
-        self::assertSame(2, $this->issues->countOnPlace('bug', 'new'));
+        self::assertSame(2, $this->countOn('bug', 'new'));
     }
 
     public function testAMigrateFromRuleMatchingNothingIsAWarning(): void
@@ -210,7 +212,102 @@ final class ConfigSynchronizerTest extends KernelTestCase
 
         $plan = $this->synchronizer->plan(DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(migrateInProgressFrom: ['ancient'])]));
 
-        self::assertSame(['workflows.bug.places.in_progress.migrateFrom: "ancient" matches nothing, the rule can be removed.'], $plan->warnings);
+        self::assertSame(['workflows.bug.places.in_progress.migrateFrom: no issue sits on "ancient", the rule can be removed.'], $plan->warnings);
+    }
+
+    public function testIssuesOnAPlaceOfAnUnknownWorkflowAreOrphans(): void
+    {
+        $this->synchronizer->apply($this->synchronizer->plan(DefinitionFactory::definition()));
+        $this->issuesOn('new', 1);
+        $this->issuesOn('done', 1);
+
+        $bug = DefinitionFactory::bugWorkflow();
+        $defect = new WorkflowDefinition(id: 'defect', label: 'Defect', initial: $bug->initial, places: array_values($bug->places), transitions: array_values($bug->transitions), fields: array_values($bug->fields), fallbackPlace: $bug->fallbackPlace);
+        $plan = $this->synchronizer->plan(DefinitionFactory::definition(workflows: [$defect]));
+
+        self::assertTrue($plan->isBlocked());
+        self::assertSame(['bug.done', 'bug.new'], array_map(static fn ($o) => "$o->workflowId.$o->placeId", $plan->orphans));
+        self::assertSame('the workflow is not in the configuration', $plan->orphans[0]->reason);
+        self::assertSame(['workflows.bug: 1 tracker(s) still use it'], $plan->usedWorkflows);
+    }
+
+    public function testRemovingAWorkflowWithTrackersButNoIssueIsBlocked(): void
+    {
+        $this->synchronizer->apply($this->synchronizer->plan(DefinitionFactory::definition()));
+        $bug = DefinitionFactory::bugWorkflow();
+        $defect = new WorkflowDefinition(id: 'defect', label: 'Defect', initial: $bug->initial, places: array_values($bug->places), transitions: array_values($bug->transitions), fields: array_values($bug->fields), fallbackPlace: $bug->fallbackPlace);
+
+        $plan = $this->synchronizer->plan(DefinitionFactory::definition(workflows: [$defect]));
+
+        self::assertSame([], $plan->orphans);
+        self::assertSame(['workflows.bug: 1 tracker(s) still use it'], $plan->usedWorkflows);
+        self::assertTrue($plan->isBlocked());
+
+        $this->expectException(ConfigException::class);
+        $this->expectExceptionMessage('workflows are still used');
+        $this->synchronizer->apply($plan);
+    }
+
+    /**
+     * A snapshot written by a version whose definition objects differ
+     * (here a role with a key that no longer exists) cannot be decoded
+     * by this one. The sync must still plan and apply from the data alone,
+     * since it is the only way out of that state.
+     */
+    public function testASnapshotThisVersionCannotReadDoesNotBlockTheSync(): void
+    {
+        $this->synchronizer->apply($this->synchronizer->plan(DefinitionFactory::definition()));
+        $this->issuesOn('to_test', 2);
+        $this->storeUnreadableSnapshot();
+
+        $this->registry->reset();
+        try {
+            $this->registry->definition();
+            self::fail('The runtime cannot use the snapshot');
+        } catch (ConfigException $e) {
+            self::assertStringContainsString('Unreadable snapshot (format 1): Unknown named parameter $colour', $e->getMessage());
+            self::assertStringContainsString('run "app:config:sync"', $e->getMessage());
+        }
+
+        $blocked = $this->synchronizer->plan(DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(withToTest: false)]));
+        self::assertTrue($blocked->isBlocked(), 'the orphans are found in the data, not in the old snapshot');
+        self::assertCount(1, $blocked->diff);
+        self::assertStringContainsString('cannot be read by this version', $blocked->diff[0]);
+        self::assertSame([], $blocked->warnings);
+
+        $next = DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(withToTest: false, migrateInProgressFrom: ['to_test'])]);
+        $plan = $this->synchronizer->plan($next);
+        self::assertFalse($plan->isBlocked());
+        self::assertTrue($plan->hasChanges());
+        self::assertSame(2, $plan->migrations[0]->count);
+
+        $snapshot = $this->synchronizer->apply($plan);
+
+        self::assertSame(2, $this->countOn('bug', 'in_progress'));
+        self::assertEquals($next, $this->registry->definition());
+        self::assertStringContainsString('cannot be read by this version', $snapshot->getSummary(), 'the history says why nothing is listed');
+    }
+
+    /**
+     * A snapshot written before `followsNewIssues` existed, by a version
+     * where no role followed new issues, reads as if the key were false.
+     */
+    public function testAnUnchangedFileRewritesASnapshotOfAnotherShape(): void
+    {
+        $definition = DefinitionFactory::definition(roles: [
+            new RoleDefinition(id: 'project_manager', label: 'Project manager', internalOnly: true),
+            new RoleDefinition(id: 'developer', label: 'Developer', internalOnly: true),
+            new RoleDefinition(id: 'client', label: 'Client'),
+        ]);
+        $this->synchronizer->apply($this->synchronizer->plan($definition));
+        $this->storeSnapshotWithoutKey('followsNewIssues');
+
+        $plan = $this->synchronizer->plan($definition);
+
+        self::assertTrue($plan->hasChanges(), 'the stored form differs');
+        self::assertSame([], $plan->diff, 'the definition does not');
+        self::assertSame([], $plan->warnings);
+        self::assertNotNull($this->synchronizer->apply($plan)->getId());
     }
 
     public function testAStalePlanIsRefused(): void
@@ -221,6 +318,54 @@ final class ConfigSynchronizerTest extends KernelTestCase
         $this->expectException(ConfigException::class);
         $this->expectExceptionMessage('changed since the plan was computed');
         $this->synchronizer->apply($stale);
+    }
+
+    /**
+     * Stores, as the snapshot in force, one written by a version whose roles
+     * had a `colour`.
+     */
+    private function storeUnreadableSnapshot(): void
+    {
+        $definition = $this->snapshots->findLatest()?->getDefinition() ?? self::fail('a snapshot is in force');
+        $definition['format'] = 1;
+        $definition['roles'][0]['colour'] = 'amber';
+        $this->storeSnapshot($definition);
+    }
+
+    /**
+     * Stores, as the snapshot in force, one written by a version whose roles
+     * had no `$key`.
+     */
+    private function storeSnapshotWithoutKey(string $key): void
+    {
+        $definition = $this->snapshots->findLatest()?->getDefinition() ?? self::fail('a snapshot is in force');
+        $definition['format'] = 1;
+        foreach ($definition['roles'] as &$role) {
+            unset($role[$key]);
+        }
+        $this->storeSnapshot($definition);
+    }
+
+    /**
+     * @param array<string, mixed> $definition
+     */
+    private function storeSnapshot(array $definition): void
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist(new ConfigSnapshot(hash('sha256', 'older'), $definition, '', 'tests', self::mockTime()->now()));
+        $entityManager->flush();
+        $this->registry->reset();
+    }
+
+    private function countOn(string $workflow, string $place): int
+    {
+        foreach ($this->issues->countByPlace() as $row) {
+            if ($row['workflowId'] === $workflow && $row['placeId'] === $place) {
+                return $row['issues'];
+            }
+        }
+
+        return 0;
     }
 
     private function issuesOn(string $place, int $count): void

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Command;
 
+use App\Command\ConfigSyncCommand;
+use App\Config\ConfigLoader;
+use App\Config\Sync\ConfigSynchronizer;
 use App\Repository\ConfigSnapshotRepository;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -32,6 +35,21 @@ final class ConfigSyncCommandTest extends KernelTestCase
         self::assertStringContainsString('this will be the first one', $output);
         self::assertStringContainsString('+ workflows.bug', $output);
         self::assertStringContainsString('Dry run', $output);
+        self::assertNull($this->snapshots->findLatest());
+    }
+
+    public function testAFileWrittenForAnotherVersionIsRefusedWithItsLine(): void
+    {
+        $path = \dirname(__DIR__).'/Config/Fixture/Broken/unknown_parameter.php';
+        $tester = new CommandTester(new ConfigSyncCommand(new ConfigLoader($path), self::getContainer()->get(ConfigSynchronizer::class)));
+
+        $exitCode = $tester->execute([]);
+        $output = $tester->getDisplay();
+
+        self::assertSame(Command::FAILURE, $exitCode, $output);
+        self::assertStringContainsString('(line 14)', $output);
+        self::assertStringContainsString('Unknown named parameter $colour', $output);
+        self::assertStringContainsString('UPGRADE.md', $output);
         self::assertNull($this->snapshots->findLatest());
     }
 

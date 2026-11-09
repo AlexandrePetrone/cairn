@@ -16,6 +16,7 @@ use App\Entity\Enum\PlaceStatus;
 use App\Repository\ConfigSnapshotRepository;
 use App\Repository\IssueLinkRepository;
 use App\Repository\IssueRepository;
+use App\Repository\TrackerRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Lock\LockFactory;
@@ -24,6 +25,13 @@ use Symfony\Component\Lock\LockFactory;
  * Turns a definition into a snapshot: validate, diff against the snapshot
  * in force, plan the data migrations, then apply everything atomically.
  * A plain service so that a future back-office can reuse it.
+ *
+ * The plan reads the data, never the snapshot in force: the places, link
+ * types and workflows in use come from the issues, the links and the
+ * trackers themselves. The snapshot in force only feeds the list of
+ * changes shown, and when this version cannot read it (its structure
+ * changed), the list says so and the sync still applies, which is how an
+ * instance gets out of that state.
  */
 final class ConfigSynchronizer
 {
@@ -36,6 +44,7 @@ final class ConfigSynchronizer
         private readonly ConfigSnapshotRepository $snapshots,
         private readonly IssueRepository $issues,
         private readonly IssueLinkRepository $links,
+        private readonly TrackerRepository $trackers,
         private readonly EntityManagerInterface $entityManager,
         private readonly LockFactory $lockFactory,
         private readonly ConfigRegistry $registry,
@@ -50,49 +59,53 @@ final class ConfigSynchronizer
         $hash = $this->codec->hash($encoded);
 
         $currentSnapshot = $this->snapshots->findLatest();
-        $current = null === $currentSnapshot ? null : $this->codec->decode($currentSnapshot->getDefinition());
-        $diff = $this->diffCalculator->between($current, $next);
+        try {
+            $current = null === $currentSnapshot ? null : $this->codec->decode($currentSnapshot->getDefinition());
+            $diff = $this->diffCalculator->between($current, $next);
+        } catch (ConfigException $e) {
+            $diff = [\sprintf('~ the snapshot in force cannot be read by this version, the changes are not listed (%s)', $e->getMessage())];
+        }
 
         $migrations = [];
         $orphans = [];
         $removedPlaces = [];
 
-        foreach ($current->workflows ?? [] as $workflowId => $previous) {
+        foreach ($this->issues->countByPlace() as ['workflowId' => $workflowId, 'placeId' => $placeId, 'issues' => $count]) {
             if (!$next->hasWorkflow($workflowId)) {
-                foreach ($previous->placeIds() as $placeId) {
-                    $count = $this->issues->countOnPlace($workflowId, $placeId);
-                    if ($count > 0) {
-                        $orphans[] = new OrphanPlace($workflowId, $placeId, $count, 'the workflow is removed');
-                    }
-                }
+                $orphans[] = new OrphanPlace($workflowId, $placeId, $count, 'the workflow is not in the configuration');
                 continue;
             }
 
             $workflow = $next->workflow($workflowId);
-            foreach (array_diff($previous->placeIds(), $workflow->placeIds()) as $placeId) {
-                $removedPlaces[$workflowId][] = $placeId;
-                $count = $this->issues->countOnPlace($workflowId, $placeId);
-                $target = $workflow->migrationTargetFor($placeId);
+            if ($workflow->hasPlace($placeId)) {
+                continue;
+            }
 
-                if (null !== $target) {
-                    $migrations[] = new PlaceMigration($workflowId, $placeId, $target, $count, PlaceMigration::BY_RULE);
-                } elseif (MigrationPolicy::Fallback === $next->migrationPolicy && null !== $workflow->fallbackPlace) {
-                    $migrations[] = new PlaceMigration($workflowId, $placeId, $workflow->fallbackPlace, $count, PlaceMigration::BY_FALLBACK);
-                } else {
-                    $orphans[] = new OrphanPlace($workflowId, $placeId, $count, 'no migrateFrom rule targets it');
-                }
+            $removedPlaces[$workflowId][] = $placeId;
+            $target = $workflow->migrationTargetFor($placeId);
+
+            if (null !== $target) {
+                $migrations[] = new PlaceMigration($workflowId, $placeId, $target, $count, PlaceMigration::BY_RULE);
+            } elseif (MigrationPolicy::Fallback === $next->migrationPolicy && null !== $workflow->fallbackPlace) {
+                $migrations[] = new PlaceMigration($workflowId, $placeId, $workflow->fallbackPlace, $count, PlaceMigration::BY_FALLBACK);
+            } else {
+                $orphans[] = new OrphanPlace($workflowId, $placeId, $count, 'no migrateFrom rule targets it');
             }
         }
 
         // Links are never migrated: a type still in use stays in the file.
         $usedLinkTypes = [];
-        $linkCounts = null;
-        foreach (array_keys($current->links ?? []) as $typeId) {
+        foreach ($this->links->countByType() as $typeId => $count) {
             if (!$next->hasLink($typeId)) {
-                $count = ($linkCounts ??= $this->links->countByType())[$typeId] ?? 0;
-                if ($count > 0) {
-                    $usedLinkTypes[] = \sprintf('links.%s: %d links still use it', $typeId, $count);
-                }
+                $usedLinkTypes[] = \sprintf('links.%s: %d links still use it', $typeId, $count);
+            }
+        }
+
+        // Nor are trackers: a workflow they are bound to stays in the file.
+        $usedWorkflows = [];
+        foreach ($this->trackers->countByWorkflow() as $workflowId => $count) {
+            if (!$next->hasWorkflow($workflowId)) {
+                $usedWorkflows[] = \sprintf('workflows.%s: %d tracker(s) still use it', $workflowId, $count);
             }
         }
 
@@ -101,13 +114,13 @@ final class ConfigSynchronizer
             foreach ($workflow->places as $place) {
                 foreach ($place->migrateFrom as $oldPlaceId) {
                     if (!\in_array($oldPlaceId, $removedPlaces[$workflow->id] ?? [], true)) {
-                        $warnings[] = \sprintf('workflows.%s.places.%s.migrateFrom: "%s" matches nothing, the rule can be removed.', $workflow->id, $place->id, $oldPlaceId);
+                        $warnings[] = \sprintf('workflows.%s.places.%s.migrateFrom: no issue sits on "%s", the rule can be removed.', $workflow->id, $place->id, $oldPlaceId);
                     }
                 }
             }
         }
 
-        return new SyncPlan($next, $encoded, $hash, $currentSnapshot?->getHash(), $violations, $diff, $migrations, $orphans, $warnings, $usedLinkTypes);
+        return new SyncPlan($next, $encoded, $hash, $currentSnapshot?->getHash(), $violations, $diff, $migrations, $orphans, $warnings, $usedLinkTypes, $usedWorkflows);
     }
 
     /**
@@ -127,7 +140,7 @@ final class ConfigSynchronizer
             throw new ConfigException('Nothing to apply: the definition matches the snapshot in force.');
         }
         if ($plan->isBlocked()) {
-            throw new ConfigException('Some removed places still hold issues and have no migration target, or some removed link types are still used.');
+            throw new ConfigException('Some removed places still hold issues and have no migration target, or some removed link types or workflows are still used.');
         }
 
         $lock = $this->lockFactory->createLock(self::LOCK_NAME, ttl: 300, autoRelease: true);
@@ -142,11 +155,9 @@ final class ConfigSynchronizer
                 }
 
                 foreach ($plan->migrations as $migration) {
-                    if ($migration->count > 0) {
-                        $target = $plan->definition->workflow($migration->workflowId)->place($migration->to);
-                        $closedAt = PlaceStatus::Closed === $target->status ? $this->clock->now() : null;
-                        $this->issues->moveFromPlace($migration->workflowId, $migration->from, $target->id, $target->status, $closedAt);
-                    }
+                    $target = $plan->definition->workflow($migration->workflowId)->place($migration->to);
+                    $closedAt = PlaceStatus::Closed === $target->status ? $this->clock->now() : null;
+                    $this->issues->moveFromPlace($migration->workflowId, $migration->from, $target->id, $target->status, $closedAt);
                 }
 
                 $snapshot = new ConfigSnapshot($plan->hash, $plan->encoded, $plan->summary(), $appliedBy, $this->clock->now());
