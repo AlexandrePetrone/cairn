@@ -81,11 +81,13 @@ final class ListVisibleProjectsTest extends KernelTestCase
         self::applyConfiguration();
         $builder = new IssueBuilder(self::getContainer()->get(EntityManagerInterface::class));
         $viewer = UserFactory::new()->internal()->create();
-        ProjectFactory::createOne(['name' => 'A quiet']);
-        $old = ProjectFactory::createOne(['name' => 'B old']);
-        $busy = ProjectFactory::createOne(['name' => 'C busy']);
-        $archived = ProjectFactory::createOne(['name' => 'D archived']);
-        $inArchivedWorkspace = ProjectFactory::createOne(['name' => 'E archived workspace', 'workspace' => WorkspaceFactory::createOne()]);
+        // Names and keys are fixed: the search below matches the workspace too.
+        $workspace = WorkspaceFactory::createOne(['name' => 'Agency', 'key' => 'AGY']);
+        ProjectFactory::createOne(['name' => 'A quiet', 'key' => 'QUI', 'workspace' => $workspace]);
+        $old = ProjectFactory::createOne(['name' => 'B old', 'key' => 'BOL', 'workspace' => $workspace]);
+        $busy = ProjectFactory::createOne(['name' => 'C busy', 'key' => 'BUS', 'workspace' => $workspace]);
+        $archived = ProjectFactory::createOne(['name' => 'D archived', 'key' => 'ARC', 'workspace' => $workspace]);
+        $inArchivedWorkspace = ProjectFactory::createOne(['name' => 'E archived workspace', 'key' => 'EAW', 'workspace' => WorkspaceFactory::createOne(['name' => 'Former client', 'key' => 'FOR'])]);
 
         self::mockTime('2026-10-01 10:00');
         $builder->issue(TrackerFactory::createOne(['project' => $old]), $viewer, 'Old');
