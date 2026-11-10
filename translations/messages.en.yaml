@@ -276,6 +276,7 @@ filter:
 
 nav:
     home: Home
+    api_tokens: API tokens
     my_issues: My issues
     projects: Projects
     application: Application
@@ -702,6 +703,51 @@ release:
     refused:
         not_found: Not found.
         name_taken: 'The project already has a release named %name%.'
+
+api_token:
+    title: API tokens
+    intro: A token lets a program call the Cairn API in your name; it sees and does what you may, never more. Give each program its own token, and revoke it when the program no longer needs it.
+    new: New token
+    create: Create the token
+    created:
+        title: Your new token
+        hint: Copy it now. It is not stored and will not be shown again.
+        usage: 'Send it with each request, for instance:'
+        copy: Copy
+        copied: Copied
+    created_on: 'Created on %date%'
+    last_used: 'last used on %date%'
+    never_used: never used
+    expires_on: 'expires on %date%'
+    expired_on: 'Expired on %date%'
+    revoked_on: 'Revoked on %date%'
+    no_expiry: no expiry
+    revoke: Revoke
+    revoke_confirm: The programs using this token will be refused at once. This cannot be undone.
+    revoked: 'Token %name% revoked.'
+    documentation: API documentation
+    active: Active tokens
+    past: Revoked and expired
+    empty: No active token
+    empty_hint: Create one to connect a script or an assistant to Cairn.
+    scope:
+        read: Read
+        write: Read and write
+    lifetime:
+        30d: 30 days
+        90d: 90 days
+        365d: 1 year
+        never: No limit
+    form:
+        name: Name
+        name_help: What uses it, such as the name of a script.
+        scope: Scope
+        scope_help: A read token changes nothing, whatever your rights.
+        lifetime: Valid for
+        lifetime_help: An expired token is refused; create another one then.
+    refused:
+        not_found: Not found.
+        already_expired: This date is already past.
 
 permission:
     issue:

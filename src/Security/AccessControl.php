@@ -66,6 +66,16 @@ final class AccessControl implements ResetInterface
         return $best;
     }
 
+    /**
+     * The API is opened by the account, not by a role on a project: it is
+     * for the people of the agency. What a token then reads and does is
+     * decided by the same rules as in the pages.
+     */
+    public function canUseApi(User $user): bool
+    {
+        return $user->isActive() && $user->isInternal();
+    }
+
     public function canView(User $user, Project|Workspace $scope): bool
     {
         return $user->isInternal() || null !== $this->roleOn($user, $scope);

@@ -10,7 +10,6 @@ use App\Repository\AttachmentRepository;
 use App\Security\AccessControl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -46,17 +45,6 @@ final class AttachmentController extends AbstractController
             throw $this->createNotFoundException('No such attachment for this user.');
         }
 
-        // Images are shown; anything else, HTML or SVG included, is only downloaded.
-        $image = $attachment->isImage();
-        $response = new BinaryFileResponse($storage->path($attachment), headers: [
-            'Content-Type' => $image ? $attachment->getMediaType() : 'application/octet-stream',
-            'X-Content-Type-Options' => 'nosniff',
-        ]);
-        $response->setContentDisposition($image ? ResponseHeaderBag::DISPOSITION_INLINE : ResponseHeaderBag::DISPOSITION_ATTACHMENT, $attachment->getFilename());
-        $response->setAutoLastModified();
-        $response->setPrivate();
-        $response->setMaxAge(3600);
-
-        return $response;
+        return $storage->serve($attachment);
     }
 }

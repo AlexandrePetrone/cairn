@@ -21,6 +21,17 @@ security:
             # no session, no user, no CSRF.
             pattern: ^/webhook/
             security: false
+        api:
+            # The REST API: a personal token in the Authorization header
+            # (Security/ApiTokenHandler), no session, so no cookie signs a
+            # request in and no CSRF token is needed. Its documentation is a
+            # page of the application, left to the `main` firewall.
+            pattern: ^/api(?!/docs)(/|$)
+            stateless: true
+            provider: app_user_provider
+            user_checker: App\Security\UserChecker
+            access_token:
+                token_handler: App\Security\ApiTokenHandler
         main:
             lazy: true
             provider: app_user_provider
@@ -48,6 +59,13 @@ security:
     access_control:
         - { path: ^/login$, roles: PUBLIC_ACCESS }
         - { path: ^/storia, roles: PUBLIC_ACCESS } # dev only: the bundle is disabled in prod
+        # The API: its documentation is read signed in, by those who may use
+        # it (AccessControl::canUseApi(): the internal users); reading the API
+        # needs a token with the `read` scope, anything else `write`
+        # (Security/Voter/ApiScopeVoter).
+        - { path: ^/api/docs, roles: ROLE_INTERNAL }
+        - { path: ^/api(/|$), methods: [GET, HEAD], roles: api.read }
+        - { path: ^/api(/|$), roles: api.write }
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/, roles: ROLE_USER }
 

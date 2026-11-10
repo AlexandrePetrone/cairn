@@ -1,0 +1,7 @@
+framework:
+    rate_limiter:
+        # What the API tokens of one user may send together (Security/ApiRateLimiter).
+        api:
+            policy: sliding_window
+            limit: 300
+            interval: '1 minute'

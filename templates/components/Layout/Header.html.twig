@@ -3,6 +3,7 @@
    In the administration (`admin`): an amber rule and badge, a way back to the application, no project.
    `this` is read before the nested components, whose blocks see their own `this`. #}
 {% set headerUser = this.user %}
+{% set headerCanUseApi = this.canUseApi %}
 {% set headerRoute = app.current_route %}
 {% set headerTabs = [
     { href: path('app_home'), label: 'nav.home'|trans, icon: 'home', active: headerRoute == 'app_home' },
@@ -114,6 +115,9 @@
                 <twig:Ui:Dropdown:Item :href="tab.href" :icon="tab.icon" :active="tab.active" class="md:hidden">{{ tab.label }}</twig:Ui:Dropdown:Item>
             {% endfor %}
             <div class="my-1 border-t border-gray-100 md:hidden"></div>
+        {% endif %}
+        {% if headerCanUseApi %}
+            <twig:Ui:Dropdown:Item href="{{ path('app_api_tokens') }}" icon="key-round" :active="headerRoute == 'app_api_tokens'">{{ 'nav.api_tokens'|trans }}</twig:Ui:Dropdown:Item>
         {% endif %}
         <twig:Ui:Dropdown:Item href="{{ path('app_logout') }}" icon="log-out">{{ 'auth.logout'|trans }}</twig:Ui:Dropdown:Item>
     </twig:Ui:Dropdown>

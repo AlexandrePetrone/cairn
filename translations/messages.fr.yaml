@@ -276,6 +276,7 @@ filter:
 
 nav:
     home: Accueil
+    api_tokens: Jetons d'API
     my_issues: Mes demandes
     projects: Projets
     application: Application
@@ -702,6 +703,51 @@ release:
     refused:
         not_found: Introuvable.
         name_taken: 'Le projet a déjà une version nommée %name%.'
+
+api_token:
+    title: Jetons d'API
+    intro: Un jeton permet à un programme d'appeler l'API de Cairn en votre nom ; il voit et fait ce que vous pouvez voir et faire, jamais plus. Donnez à chaque programme son propre jeton, et révoquez-le quand il n'en a plus besoin.
+    new: Nouveau jeton
+    create: Créer le jeton
+    created:
+        title: Votre nouveau jeton
+        hint: Copiez-le maintenant. Il n'est pas conservé et ne sera plus affiché.
+        usage: 'Envoyez-le avec chaque requête, par exemple :'
+        copy: Copier
+        copied: Copié
+    created_on: 'Créé le %date%'
+    last_used: 'dernière utilisation le %date%'
+    never_used: jamais utilisé
+    expires_on: 'expire le %date%'
+    expired_on: 'Expiré le %date%'
+    revoked_on: 'Révoqué le %date%'
+    no_expiry: sans expiration
+    revoke: Révoquer
+    revoke_confirm: Les programmes qui utilisent ce jeton seront refusés aussitôt. Cette action est définitive.
+    revoked: 'Jeton %name% révoqué.'
+    documentation: Documentation de l'API
+    active: Jetons actifs
+    past: Révoqués et expirés
+    empty: Aucun jeton actif
+    empty_hint: Créez-en un pour connecter un script ou un assistant à Cairn.
+    scope:
+        read: Lecture
+        write: Lecture et écriture
+    lifetime:
+        30d: 30 jours
+        90d: 90 jours
+        365d: 1 an
+        never: Sans limite
+    form:
+        name: Nom
+        name_help: Ce qui l'utilise, par exemple le nom d'un script.
+        scope: Portée
+        scope_help: Un jeton en lecture ne modifie rien, quels que soient vos droits.
+        lifetime: Valable
+        lifetime_help: Un jeton expiré est refusé ; il suffit d'en créer un autre.
+    refused:
+        not_found: Introuvable.
+        already_expired: Cette date est déjà passée.
 
 permission:
     issue:

@@ -14,7 +14,9 @@ Symfony 8.1 on PHP 8.4, installed from `webapp-pack`. Check `composer.json`
 for the exact versions and `symfony.lock` for which recipes ran. Already in
 place: Doctrine ORM + migrations, Messenger (Doctrine transport), Form,
 Validator, Serializer, Security, Twig, Mailer, Notifier, Translation,
-Stimulus, Turbo, Scheduler, and Reprise (`symfony/reprise`) for the assets.
+Stimulus, Turbo, Scheduler, Reprise (`symfony/reprise`) for the assets, and
+API Platform (`api-platform/symfony`, without its Doctrine bridge) for the
+REST API.
 
 Decisions already taken:
 
@@ -41,6 +43,10 @@ Decisions already taken:
   accounts in the administration with a first password they hand over;
   `bin/console app:user:create` (interactive) creates the first
   administrator. Invitation by email and agency SSO come later.
+- API: a REST API under `/api` for the people of the agency, served by
+  API Platform over the same commands and queries as the pages, signed in
+  with personal tokens (see [API](#api)). An MCP server comes next, on the
+  same tokens and the same resources.
 - Workflow engine: the Symfony Workflow component, with state machines
   built at runtime from the configuration snapshot stored in database, not
   from YAML (`framework.workflows` stays empty). They enforce structure and
@@ -111,6 +117,10 @@ src/
                      WorkflowProvider), HasPlace for the objects they move
   Notification/      who follows an issue (SubscriptionRules), which events
                      notify (NotificationDispatcher), the mail (IssueMailer)
+  Api/               the REST API, self-contained: Resource/ the classes API
+                     Platform exposes and their inputs, State/ the providers
+                     and processors that ask the buses, Mapper/ what turns
+                     entities into resources (see API)
   Forge/             the forges (GitLab, GitHub later): ForgeApi and its
                      locator, IssueKeyParser, the neutral remote events in
                      Event/, CodeReferenceConsumer; one folder per forge
@@ -124,8 +134,10 @@ src/
 
 - **Entities carry intent.** Prefer `moveTo()`, `makePrivate()`, `close()`
   over generic setters. Entities never receive services.
-- **Only `Config/` and `Workflow/` are self-contained subtrees**, because they
-  have no equivalent in a standard Symfony project.
+- **Only `Config/`, `Workflow/` and `Api/` are self-contained subtrees**:
+  the first two have no equivalent in a standard Symfony project, the
+  third is another door on the same application and keeps to itself what
+  only it needs.
 - **No catch-all folders.** No `Service/`, no central `Enum/`, no `Dto/`.
   An enum or DTO lives next to what gives it meaning: `Criticality` and
   `PlaceStatus` in `Entity/Enum/` because they are persisted, `FieldType` and
@@ -138,10 +150,11 @@ src/
 
   | Zone        | URL                                    | Shell                       | Controllers            | Templates              |
   |-------------|----------------------------------------|-----------------------------|------------------------|------------------------|
-  | application | `/`, `/issues/…`, `/projects`          | header only                 | `Controller/` root     | `templates/` root      |
+  | application | `/`, `/issues/…`, `/projects`, `/account/…` | header only            | `Controller/` root     | `templates/` root      |
   | project     | `/MD/SPT/…`                            | header + project navigation | `Controller/Project/`  | `templates/project/`   |
   | admin       | `/admin/…`                             | amber header + admin navigation (`Layout:AdminNav`) | `Controller/Admin/`    | `templates/admin/`     |
   | security    | `/login`                               | none                        | `Controller/Security/` | `templates/security/`  |
+  | api         | `/api/…`                               | none: JSON                  | none: `Api/`           | none                   |
 
   Each zone has its base template in `templates/layout/<zone>.html.twig`
   (`project.html.twig`, `app.html.twig`, `admin.html.twig`), which renders the shell and
@@ -241,9 +254,12 @@ src/
   entities hold no collection, and every handler joins what the screen
   reads, so a second model of the same tables would change with every
   screen and would break the pairing of `AccessControl` with its SQL
-  twin, which reason on the same objects. Revisit it only for a JSON
-  API (the Serializer's groups on the entities first, a DTO per resource
-  next), a dashboard heavy in aggregates, or a separate read store. What
+  twin, which reason on the same objects. The REST API did not change
+  it: its handlers are the same, and what it shows is a class per
+  resource in `Api/Resource/`, filled from the entities the queries
+  return, so that the contract given to programs does not move with the
+  entities. Revisit the decision only for a dashboard heavy in
+  aggregates or a separate read store. What
   only the configuration resolves (the labels of an issue's field
   values, `InstanceDefinition::fieldValues()`) is not a query: components
   call it.
@@ -522,6 +538,109 @@ src/
   `Forge/GitHub/` with its own parser and API client behind the same
   `ForgeApi` and events.
 
+### API
+
+- **The API is a second door, not a second application.** Everything
+  under `/api` is API Platform, with `doctrine: false`: a resource is a
+  readonly class of `Api/Resource/` (`IssueResource`, short name
+  `Issue`), never an entity, and each operation names its provider or
+  its processor in `Api/State/`. A provider builds the query with
+  `Security/Viewer` and asks the `QueryBus`; a processor builds the
+  command with the viewer as `actorId`, dispatches it through
+  `Api/State/CommandDispatcher`, then reads the result again through
+  the query, so the answer is what this viewer sees. Neither holds a
+  rule: rights, visibility and refusals are those of the handlers.
+  What the API shows is built in `Api/Mapper/`, one small class per
+  resource that needs services: `IssueMapper` (fields, files, the
+  actions offered and where they lead, decided with `AccessControl`
+  for the viewer), `CommentMapper`, `LinkMapper`, `TrackerMapper`, and
+  `Refs` for what every resource names the same way (a person, whose
+  email is for the agency, a file, another issue, their addresses). A
+  resource that only copies what a query returned builds itself
+  (`ProjectResource::of()`, `ReleaseResource::of()`). The values nested
+  in a resource are readonly classes of `Api/Resource/Value/`
+  (`UserRef`, `FileRef`, `PlaceRef`…), never arrays, so the OpenAPI
+  schema describes them; in JSON-LD they carry a `@type` and no `@id`
+  (`gen_id: false`). `Api/State/Lookup` turns what a URL names into
+  what the viewer may see (`issue()` with `AccessControl::canSee()`,
+  `detail()` through `ShowIssue`).
+- **URLs carry the keys of the application.** A project is `MD-SPT`,
+  an issue `MD-SPT-12`; comments, links, trackers and releases have
+  their id. What the viewer may not see does not exist: 404 from
+  `Lookup`, before any command. The lists a program reads are
+  `GET /api/issues`, whose filters become a `SearchIssues` (a filter
+  the API does not understand is a 400 or a 422, never ignored as in
+  the pages), the projects (`ListVisibleProjects`) and, under a project,
+  its trackers with what their workflow asks of an issue, its members
+  and its releases. An issue comes with its fields, its files and the
+  transitions `AccessControl::transitionsFor()` offers; its comments,
+  links, history and the viewer's subscription are sub-resources.
+- **Writes are the commands, one operation each.** `POST /issues`
+  (`CreateIssue`), `PATCH /issues/{key}` (`UpdateIssue`),
+  `POST /issues/{key}/transitions` (`ApplyTransition`), comments
+  (`AddComment`, `EditComment`, `DeleteComment`), links (`AddLink`,
+  `RemoveLink`), `PUT`/`DELETE /issues/{key}/subscription`
+  (`FollowIssue`, `UnfollowIssue`) and
+  `POST /projects/{key}/attachments` (`UploadAttachment`, multipart: the
+  file waits until its uuid is named in the `attachments` of a write).
+  A file is read back at `GET /attachments/{uuid}/content` (its
+  `contentUrl`), decided by `canSeeAttachment()` and answered by
+  `AttachmentStorage::serve()` like the page of the application, whose
+  address (`url`) only a session opens.
+  The input of an operation is a class of `Api/Resource/` (`…Input`)
+  with the properties of the command minus the actor, and its own
+  constraints. PATCH is a JSON merge patch: `UpdateIssueProcessor` reads
+  which properties the request names, so a property left out neither
+  changes nor asks for its right, and `"assignee": null` or
+  `"release": null` become `UpdateIssue::NOBODY`.
+  `CommandDispatcher` is the pendant of `DispatchesCommands`: an invalid
+  command is a 422 listing its violations, a domain refusal a 422 with
+  the reason (translated when the exception can be), a missing right
+  the handler's `AccessDeniedException`, 403. The administration, the
+  configuration of a project, `MoveIssue` and bulk actions are not
+  exposed: add an operation when a program needs it.
+- **A token signs a request, the account opens the API.** The `api`
+  firewall (`^/api`, stateless, before `main`) knows one way in: a
+  personal token in `Authorization: Bearer`, checked by
+  `Security/ApiTokenHandler`. No session opens it, so no CSRF token is
+  needed. An `ApiToken` belongs to a user, keeps the SHA-256 of its
+  secret (`cairn_` and 64 hex digits, shown once at creation), a scope,
+  an optional expiry and when it was last used (written at most once an
+  hour, by the repository: authenticating is not a command); it is
+  revoked, never deleted. The API is for internal users: the access is
+  the account's, not a role on a project, so there is no permission for
+  it. `AccessControl::canUseApi()` says so, checked when a token is
+  created and at every request, as is the `UserChecker`: a deactivated
+  account, or one made external, loses the use of its tokens. A token
+  acts as its user and may only narrow what they do: its scope
+  (`ApiTokenScope`: `read`, or `write` which reads too) is asked by
+  `access_control` for every request of `/api` by its method
+  (`api.read` for GET and HEAD, `api.write` otherwise) and answered by
+  `Security/Voter/ApiScopeVoter`, so no operation declares it.
+  `Security/ApiRateLimiter` keeps the tokens of a user, together, to 300
+  requests a minute
+  (`config/packages/rate_limiter.yaml`), 429 beyond. Even so, nothing
+  in `Api/` assumes an internal viewer: opening the API to clients
+  would be a change of `canUseApi()` alone.
+- **Tokens are managed by their owner** on `/account/tokens`
+  (`Controller/ApiTokenController`, in the user menu of those who may
+  use the API): `CreateApiToken` returns a `NewApiToken`, the token and
+  the secret that is stored nowhere, carried once to the next page in a
+  flash of its own, with a button copying it (the `clipboard`
+  controller) and a request to try; `RevokeApiToken` confirms in place.
+  The form offers lifetimes (`Form/ApiTokenData::LIFETIMES`, 90 days by
+  default) rather than a date; revoked and expired tokens stay listed
+  apart.
+- **The documentation is a page of the application.** `/api/docs`
+  (Swagger UI, OpenAPI at `/api/docs.jsonopenapi`) is left out of the
+  `api` firewall: it is read signed in, in every environment, by the
+  internal users (`ROLE_INTERNAL` in `access_control`), and the tokens
+  page leads to it. A token does not open it, a session does not open
+  the rest of `/api`: to try an operation there, paste a token in
+  "Authorize". Answers are JSON-LD by default, plain JSON on
+  `Accept: application/json`, errors `application/problem+json`; null
+  properties are left out.
+
 ### Administration
 
 - **The administration is guarded at its door.** Everything under
@@ -748,7 +867,8 @@ src/
 - JavaScript is Stimulus only, one small controller per behaviour in
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`, `dialog`,
   `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`,
-  `workflow-diagram`, `sortable`, `list-filter`, `board`, `load-more`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
+  `workflow-diagram`, `sortable`, `list-filter`, `board`, `load-more`,
+  `clipboard`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
   (`editor` with TipTap, `workflow-diagram` with Mermaid, `board` with
   SortableJS) so that Vite
   splits its imports into chunks only fetched on a page that uses it; write a new one when a component needs it, not before. No
@@ -896,6 +1016,11 @@ Castor are the only things needed on the host. Commands run inside the
   a test checks they define the same ids.
 - Mails land in Mailpit: a comment on a followed issue shows up there once
   the `messenger` worker has sent it.
+- API: create a token on <http://localhost:8000/account/tokens> (any
+  internal user), then `curl -H "Authorization: Bearer cairn_…"
+  http://localhost:8000/api/issues?assignee[]=me`; the operations are
+  listed on <http://localhost:8000/api/docs>, signed in as an internal
+  user.
 - Forges: `FORGE_GITLAB_TOKEN` is empty by default, so a linked
   repository shows the URL and secret to paste in GitLab by hand; a token
   in `.env.local` (with `FORGE_GITLAB_URL`) makes the page install the
@@ -924,7 +1049,9 @@ back, so a test never assumes an id: it reads it from the entity. Tests own
 their data: handler tests build what they check with `AccessFixtures` and
 `IssueFixtures`, page and component tests load `tests/Scene/ShopScene` (one
 shop, its people and ten issues under the test configuration,
-`tests/Config/Fixture/`). The development story is loaded only by the tests
+`tests/Config/Fixture/`). API tests extend `tests/Api/ApiTestCase`: the
+same scene, a token created through `CreateApiToken`, requests sent with
+it as a program would. The development story is loaded only by the tests
 that compare a PHP rule with its SQL over a rich dataset
 (`SearchIssuesVisibilityTest`, `ShowIssueVisibilityTest`,
 `ListProjectMembersTest`, `ListVisibleProjectsTest`) and by `AppStoryTest`.

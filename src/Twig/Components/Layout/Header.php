@@ -9,6 +9,7 @@ use App\Entity\User;
 use App\Message\Query\Project\ListVisibleProjects;
 use App\Message\Query\Project\ProjectSummary;
 use App\Message\QueryBus;
+use App\Security\AccessControl;
 use App\Security\Viewer;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 
@@ -29,6 +30,7 @@ final class Header
     public function __construct(
         private readonly Viewer $viewer,
         private readonly QueryBus $queries,
+        private readonly AccessControl $access,
     ) {
     }
 
@@ -45,5 +47,13 @@ final class Header
     public function getUser(): User
     {
         return $this->viewer->get();
+    }
+
+    /**
+     * Whether the user menu leads to the API tokens.
+     */
+    public function canUseApi(): bool
+    {
+        return $this->access->canUseApi($this->viewer->get());
     }
 }

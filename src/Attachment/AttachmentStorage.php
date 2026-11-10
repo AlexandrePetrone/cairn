@@ -6,7 +6,9 @@ namespace App\Attachment;
 
 use App\Entity\Attachment;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -66,5 +68,25 @@ final class AttachmentStorage
     private function name(Attachment $attachment): string
     {
         return $attachment->getUuid()->toRfc4122();
+    }
+
+    /**
+     * The file as an answer, for whoever the caller found may see it:
+     * images are shown, anything else, HTML or SVG included, is only
+     * downloaded.
+     */
+    public function serve(Attachment $attachment): BinaryFileResponse
+    {
+        $image = $attachment->isImage();
+        $response = new BinaryFileResponse($this->path($attachment), headers: [
+            'Content-Type' => $image ? $attachment->getMediaType() : 'application/octet-stream',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+        $response->setContentDisposition($image ? ResponseHeaderBag::DISPOSITION_INLINE : ResponseHeaderBag::DISPOSITION_ATTACHMENT, $attachment->getFilename());
+        $response->setAutoLastModified();
+        $response->setPrivate();
+        $response->setMaxAge(3600);
+
+        return $response;
     }
 }

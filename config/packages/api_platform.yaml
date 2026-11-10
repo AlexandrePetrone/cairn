@@ -1,0 +1,24 @@
+api_platform:
+    title: Cairn
+    description: 'Reads and changes issues in the name of the user of the token, created on /account/tokens. Paste it in Authorize to try the operations.'
+    show_webby: false
+    version: 1.0.0
+    # The API never reads Doctrine: its resources are the classes of
+    # src/Api/Resource, filled by the query handlers and written through
+    # the commands (src/Api/State).
+    doctrine: false
+    mapping:
+        paths: ['%kernel.project_dir%/src/Api/Resource']
+    defaults:
+        stateless: true
+        # The values nested in a resource (a person, a place, a file) are
+        # not resources: they get a type in JSON-LD, never an address.
+        normalization_context:
+            gen_id: false
+        cache_headers:
+            vary: ['Content-Type', 'Authorization', 'Origin']
+    swagger:
+        http_auth:
+            token:
+                scheme: bearer
+

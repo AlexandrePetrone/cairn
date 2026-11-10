@@ -8,12 +8,13 @@ Cairn is an issue tracker for a web agency and its clients. One instance holds e
 - **Releases, links, files, mentions**: Markdown descriptions and comments with issue references and mentions, attachments, links between issues, optional releases per project.
 - **Notifications by email**: whoever follows an issue receives what they may see of each change, threaded per issue.
 - **GitLab integration**: commits and merge requests mentioning an issue key show on the issue (GitHub to come).
+- **REST API**: the people of the agency connect their scripts with personal tokens; a program reads and does what its user may.
 
 The interface ships in English and French; an instance runs in one language (`CAIRN_LOCALE`).
 
 ## Stack
 
-Symfony 8.1 on PHP 8.4, Doctrine ORM (PostgreSQL, or MariaDB), Messenger for the emails and the scheduled tasks, the Symfony Workflow component for workflows built from the configuration, Twig with Symfony UX (Turbo, Live Components, Stimulus), Tailwind CSS 4 and Vite through [Symfony Reprise](https://github.com/symfony/reprise).
+Symfony 8.1 on PHP 8.4, Doctrine ORM (PostgreSQL, or MariaDB), Messenger for the emails and the scheduled tasks, the Symfony Workflow component for workflows built from the configuration, Twig with Symfony UX (Turbo, Live Components, Stimulus), Tailwind CSS 4 and Vite through [Symfony Reprise](https://github.com/symfony/reprise), [API Platform](https://api-platform.com) for the REST API.
 
 ## Installation
 
@@ -69,6 +70,19 @@ ATTACHMENTS_DIR=/var/lib/cairn/attachments
 FORGE_GITLAB_URL=https://gitlab.example
 FORGE_GITLAB_TOKEN=<token with the api scope>
 ```
+
+## API
+
+The REST API lives under `/api` and is for internal users. Each user creates personal tokens on `/account/tokens` (user menu, "API tokens"): a token reads only or reads and writes, may expire, and is shown once. A program sends it with every request and acts as its user, with the same rights and the same visibility as in the pages.
+
+```bash
+curl -H "Authorization: Bearer cairn_…" "https://cairn.example/api/issues?project=MD-SPT&assignee[]=me"
+curl -H "Authorization: Bearer cairn_…" -H "Content-Type: application/ld+json" \
+     -d '{"transition": "qualify", "comment": "Reproduced."}' \
+     https://cairn.example/api/issues/MD-SPT-12/transitions
+```
+
+Projects (`MD-SPT`) and issues (`MD-SPT-12`) are named by their key. An issue lists the `transitions` its user may apply; `GET /api/projects/{key}/trackers` says which fields a new issue needs. Answers are JSON-LD, or plain JSON with `Accept: application/json`. The operations are documented at `/api/docs`, for internal users signed in to Cairn; paste a token in "Authorize" to try them there. A user's tokens are limited, together, to 300 requests a minute.
 
 ## Local development
 
