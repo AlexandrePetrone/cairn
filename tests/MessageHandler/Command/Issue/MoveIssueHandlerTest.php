@@ -4,16 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\MessageHandler\Command\Issue;
 
-use App\Config\ConfigRegistry;
-use App\Config\Sync\ConfigSynchronizer;
 use App\Entity\Enum\JournalEntryType;
 use App\Entity\JournalEntry;
 use App\Entity\Tracker;
+use App\Message\Command\Issue\ChangeTracker;
 use App\Message\Command\Issue\MoveIssue;
 use App\Message\CommandBus;
 use App\MessageHandler\Command\Issue\IssueException;
-use App\Security\Permission;
-use App\Tests\Config\Fixture\DefinitionFactory;
 use App\Tests\KernelHelpers;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -40,7 +37,7 @@ final class MoveIssueHandlerTest extends KernelTestCase
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
 
-        $this->commands->dispatch(new MoveIssue((int) $this->fixtures->developer->getId(), $issue->getKey(), (int) $this->fixtures->tasks->getId(), 'in_progress'));
+        $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->developer->getId(), $issue->getKey(), (int) $this->fixtures->tasks->getId(), 'in_progress'));
 
         self::assertSame($this->fixtures->tasks->getId(), $issue->getTracker()->getId());
         self::assertSame('in_progress', $issue->getPlace());
@@ -57,7 +54,7 @@ final class MoveIssueHandlerTest extends KernelTestCase
         $issue = $this->fixtures->createIssue($this->fixtures->client);
 
         $this->expectException(AccessDeniedException::class);
-        $this->commands->dispatch(new MoveIssue((int) $this->fixtures->client->getId(), $issue->getKey(), (int) $this->fixtures->tasks->getId(), 'new'));
+        $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->client->getId(), $issue->getKey(), (int) $this->fixtures->tasks->getId(), 'new'));
     }
 
     public function testThePlaceMustExistInTheNewWorkflow(): void
@@ -66,7 +63,7 @@ final class MoveIssueHandlerTest extends KernelTestCase
 
         $this->expectException(IssueException::class);
         $this->expectExceptionMessage('Place "nowhere"');
-        $this->commands->dispatch(new MoveIssue((int) $this->fixtures->developer->getId(), $issue->getKey(), (int) $this->fixtures->tasks->getId(), 'nowhere'));
+        $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->developer->getId(), $issue->getKey(), (int) $this->fixtures->tasks->getId(), 'nowhere'));
     }
 
     public function testTheTrackerMustBelongToTheSameProject(): void
@@ -78,21 +75,7 @@ final class MoveIssueHandlerTest extends KernelTestCase
 
         $this->expectException(IssueException::class);
         $this->expectExceptionMessage('does not belong');
-        $this->commands->dispatch(new MoveIssue((int) $this->fixtures->developer->getId(), $issue->getKey(), (int) $elsewhere->getId(), 'new'));
-    }
-
-    public function testAPrivateTrackerIsNotForAnExternalActor(): void
-    {
-        $permissions = DefinitionFactory::definition()->permissions;
-        $permissions[Permission::IssueChangeTracker->value][] = 'client';
-        $synchronizer = self::getContainer()->get(ConfigSynchronizer::class);
-        $synchronizer->apply($synchronizer->plan(DefinitionFactory::definition(permissions: $permissions)));
-        self::getContainer()->get(ConfigRegistry::class)->reset();
-        $issue = $this->fixtures->createIssue($this->fixtures->client);
-
-        $this->expectException(IssueException::class);
-        $this->expectExceptionMessage('are private');
-        $this->commands->dispatch(new MoveIssue((int) $this->fixtures->client->getId(), $issue->getKey(), (int) $this->fixtures->tasks->getId(), 'new'));
+        $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->developer->getId(), $issue->getKey(), (int) $elsewhere->getId(), 'new'));
     }
 
     public function testAManagerPutsTheIssueOnAnyPlaceWithoutAnAction(): void
@@ -100,7 +83,7 @@ final class MoveIssueHandlerTest extends KernelTestCase
         $issue = $this->fixtures->createIssue($this->fixtures->client);
         $manager = (int) $this->fixtures->manager->getId();
 
-        $this->commands->dispatch(new MoveIssue($manager, $issue->getKey(), null, 'to_test'));
+        $this->commands->dispatch(new MoveIssue($manager, $issue->getKey(), 'to_test'));
 
         self::assertSame('to_test', $issue->getPlace());
         self::assertSame($this->fixtures->bugs->getId(), $issue->getTracker()->getId());
@@ -109,12 +92,40 @@ final class MoveIssueHandlerTest extends KernelTestCase
         self::assertSame(JournalEntryType::Moved, $entry->getType());
         self::assertSame(['from' => 'New', 'from_id' => 'new', 'to' => 'To test', 'to_id' => 'to_test'], $entry->getData());
         self::assertFalse($entry->isPrivate());
+    }
 
-        $this->commands->dispatch(new MoveIssue($manager, $issue->getKey(), (int) $this->fixtures->bugs->getId(), 'done'));
+    public function testTheTrackerMustChange(): void
+    {
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+
+        $this->expectException(IssueException::class);
+        $this->expectExceptionMessage('already in tracker');
+        $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->developer->getId(), $issue->getKey(), (int) $this->fixtures->bugs->getId(), 'new'));
+    }
+
+    public function testTheWorkflowComesFirstWhenAnActionOfTheActorLeadsThere(): void
+    {
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+        $manager = (int) $this->fixtures->manager->getId();
+        $this->commands->dispatch(new MoveIssue($manager, $issue->getKey(), 'to_test'));
+
+        $this->commands->dispatch(new MoveIssue($manager, $issue->getKey(), 'done'));
 
         self::assertSame('done', $issue->getPlace());
         self::assertNotNull($issue->getClosedAt());
-        self::assertSame(['from' => 'To test', 'from_id' => 'to_test', 'to' => 'Closed', 'to_id' => 'done'], $this->lastEntry($issue)->getData());
+        $entry = $this->lastEntry($issue);
+        self::assertSame(JournalEntryType::Transitioned, $entry->getType(), '"Accept" leads there: the action is applied, not the place forced');
+        self::assertSame('Accept', $entry->getData()['transition'] ?? null);
+    }
+
+    public function testAnActionIsEnoughToMoveWithoutTheRightToForce(): void
+    {
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+
+        $this->commands->dispatch(new MoveIssue((int) $this->fixtures->developer->getId(), $issue->getKey(), 'in_progress'));
+
+        self::assertSame('in_progress', $issue->getPlace());
+        self::assertSame(JournalEntryType::Transitioned, $this->lastEntry($issue)->getType(), '"Start" is a developer\'s action');
     }
 
     public function testForcingAPlaceIsARightOfItsOwn(): void
@@ -122,7 +133,7 @@ final class MoveIssueHandlerTest extends KernelTestCase
         $issue = $this->fixtures->createIssue($this->fixtures->client);
 
         $this->expectException(AccessDeniedException::class);
-        $this->commands->dispatch(new MoveIssue((int) $this->fixtures->developer->getId(), $issue->getKey(), null, 'to_test'));
+        $this->commands->dispatch(new MoveIssue((int) $this->fixtures->developer->getId(), $issue->getKey(), 'to_test'));
     }
 
     public function testThePlaceMustExistInTheWorkflow(): void
@@ -131,7 +142,7 @@ final class MoveIssueHandlerTest extends KernelTestCase
 
         $this->expectException(IssueException::class);
         $this->expectExceptionMessage('Place "nowhere"');
-        $this->commands->dispatch(new MoveIssue((int) $this->fixtures->manager->getId(), $issue->getKey(), null, 'nowhere'));
+        $this->commands->dispatch(new MoveIssue((int) $this->fixtures->manager->getId(), $issue->getKey(), 'nowhere'));
     }
 
     public function testTheIssueMustLeaveItsPlace(): void
@@ -140,7 +151,7 @@ final class MoveIssueHandlerTest extends KernelTestCase
 
         $this->expectException(IssueException::class);
         $this->expectExceptionMessage('already on');
-        $this->commands->dispatch(new MoveIssue((int) $this->fixtures->manager->getId(), $issue->getKey(), null, 'new'));
+        $this->commands->dispatch(new MoveIssue((int) $this->fixtures->manager->getId(), $issue->getKey(), 'new'));
     }
 
     private function lastEntry(\App\Entity\Issue $issue): JournalEntry

@@ -60,9 +60,9 @@ return new InstanceDefinition(
         // grant editing the content written by others.
         Permission::IssueEdit->value => $managers,
         Permission::IssueChangeTracker->value => $internal,
-        // Put an issue on any step without an action: a way out of a mistake,
-        // journaled as such, never the normal path.
-        Permission::IssueForcePlace->value => $managers,
+        // Put an issue on any step, even one no action leads to: the agency
+        // may leave the workflow shown to clients, and the journal says so.
+        Permission::IssueForcePlace->value => $internal,
         Permission::IssueAssign->value => $internal,
         Permission::IssueSetCriticality->value => $internalAndClient,
         Permission::IssueSetPrivate->value => $internal,

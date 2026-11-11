@@ -97,8 +97,7 @@ final class ListSelectionActionsHandlerTest extends KernelTestCase
         $names = static fn (SelectionActions $actions): array => array_map(static fn ($tracker): string => $tracker->getName(), $actions->moveTrackers);
 
         self::assertSame(['Bug', 'Feature', 'Internal task'], $names($this->actions('thomas.girard@cairn.test', 'MD-SPT-1', 'MD-SPT-2')), 'force_place keeps the own tracker, change_tracker opens the others');
-        self::assertSame(['Feature', 'Internal task'], $names($this->actions('nadia.benali@cairn.test', 'MD-SPT-1', 'MD-SPT-2')), 'without force_place the own tracker is out');
-        self::assertSame(['Internal task'], $names($this->actions('nadia.benali@cairn.test', 'MD-SPT-1', 'MD-SPT-7')), 'a bug and a feature: only a third tracker suits both');
+        self::assertSame(['Bug', 'Feature', 'Internal task'], $names($this->actions('nadia.benali@cairn.test', 'MD-SPT-1', 'MD-SPT-7')), 'a bug and a feature: each tracker is the own of one and a change for the other');
         self::assertSame([], $names($this->actions('claire.martin@maison-dupont.test', 'MD-SPT-1', 'MD-SPT-2')));
         self::assertSame([], $names($this->actions('thomas.girard@cairn.test', 'MD-SPT-1', $this->scene->intranetBug()->getKey())), 'trackers belong to one project');
     }

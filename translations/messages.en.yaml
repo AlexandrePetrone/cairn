@@ -156,20 +156,12 @@ issue:
         applied: '%key%: "%transition%" applied.'
     respond:
         question: What would you like to do?
-        comment_only: Comment only
-        comment_only_help: Ask a question, add a detail or point something out.
-        comment_required: Comment required.
-        submit: Send
-        choose: Choose what you would like to do.
-    menu:
-        more: More actions
-        move: Move…
+    step:
+        off_workflow: Outside the workflow
+        change_tracker: Change category…
+        change_tracker_title: Change category
+        same: same step
     move:
-        title: 'Move %key%'
-        tracker: Category
-        place: Step
-        no_transition: 'No action leads from %from% to %to%: the issue will be moved outside its workflow.'
-        submit: Move
         done: '%key% moved to %place%.'
     unassigned: Unassigned
     private: Private

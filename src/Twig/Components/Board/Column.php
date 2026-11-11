@@ -11,6 +11,7 @@ use App\Form\IssueListFilters;
 use App\Message\QueryBus;
 use App\Repository\Pagination;
 use App\Security\AccessControl;
+use App\Security\PlaceMove;
 use App\Security\Viewer;
 use App\Twig\Components\IssueList\ListChoices;
 use App\Twig\Components\IssueList\ListScope;
@@ -27,7 +28,8 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * loads when it shows; it then grows by batches, never the whole board at
  * once. The closed places start folded: a narrow rail that counts the
  * issues only, unfolded on demand, where a card can still be dropped. Each
- * card says which places the viewer may move it to; Board:Move moves it
+ * card says which places the viewer may move it to, and which of them lie
+ * outside the workflow (`issue.force_place`); Board:Move moves it
  * and the `board` controller keeps the columns right without asking them
  * again.
  */
@@ -95,13 +97,16 @@ final class Column
     }
 
     /**
-     * The places the viewer may move the issue to, one transition away.
+     * The places the viewer may drop the issue on, and those among them
+     * that no action leads to: reached outside the workflow.
      *
-     * @return list<string>
+     * @return array{places: list<string>, forced: list<string>}
      */
-    public function placesFor(Issue $issue): array
+    public function dropsFor(Issue $issue): array
     {
-        return $this->access->reachablePlaces($this->viewer->get(), $issue);
+        $moves = $this->access->movesFor($this->viewer->get(), $issue);
+
+        return ['places' => PlaceMove::placeIds($moves), 'forced' => PlaceMove::placeIds($moves, forcedOnly: true)];
     }
 
     #[LiveAction]

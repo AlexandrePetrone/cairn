@@ -6,6 +6,8 @@ namespace App\Tests\Twig\Components\Issue;
 
 use App\Entity\Comment;
 use App\Entity\Issue;
+use App\Message\Command\Issue\MoveIssue;
+use App\Message\CommandBus;
 use App\Tests\Scene\ShopScene;
 use App\Twig\Components\Issue\Activity;
 use Doctrine\ORM\EntityManagerInterface;
@@ -15,7 +17,7 @@ use Symfony\UX\LiveComponent\Test\TestLiveComponent;
 
 /**
  * MD-SPT-4 waits on "To test": the client accepts or refuses, a
- * refusal needs a comment.
+ * refusal needs a comment from them.
  */
 final class ActivityTest extends KernelTestCase
 {
@@ -31,21 +33,22 @@ final class ActivityTest extends KernelTestCase
         $this->issue = $this->scene->issue('MD-SPT-4');
     }
 
-    public function testTheBoxOffersTheActionsOfTheViewersRoleOrTheCommentAlone(): void
+    public function testTheDecisionOffersTheActionsOfTheViewersRoleAboveTheCommentBox(): void
     {
         $client = (string) $this->activity('claire.martin@maison-dupont.test')->render();
         self::assertStringContainsString('What would you like to do?', $client);
-        self::assertStringContainsString('value="accept"', $client);
-        self::assertStringContainsString('value="refuse"', $client);
-        self::assertStringContainsString('Comment only', $client);
-        self::assertMatchesRegularExpression('/<button[^>]*disabled[^>]*data-live-action-param="submit"/', $client, 'nothing chosen yet');
+        self::assertStringContainsString('data-live-action-param="apply" data-live-transition-param="accept"', $client);
+        self::assertStringContainsString('data-live-action-param="apply" data-live-transition-param="refuse"', $client);
+        self::assertStringContainsString('data-live-action-param="submit"', $client, 'the comment box, on its own');
         self::assertStringNotContainsString('Comment privately', $client);
 
+        $manager = (string) $this->activity('thomas.girard@cairn.test')->render();
+        self::assertStringContainsString('data-live-transition-param="accept"', $manager, 'the agency reads its actions there too');
+
         $developer = (string) $this->activity('nadia.benali@cairn.test')->render();
-        self::assertStringNotContainsString('value="accept"', $developer, 'acceptance is for the client and the manager');
-        self::assertStringNotContainsString('What would you like to do?', $developer, 'no action, no choice: the editor alone');
+        self::assertStringNotContainsString('data-live-action-param="apply"', $developer, 'acceptance is for the client and the manager');
+        self::assertStringNotContainsString('What would you like to do?', $developer, 'no action, no decision: the comment box alone');
         self::assertStringContainsString('data-live-action-param="submit"', $developer);
-        self::assertDoesNotMatchRegularExpression('/<button[^>]*disabled[^>]*data-live-action-param="submit"/', $developer);
 
         $readOnly = (string) $this->activity('paul.roussel@maison-dupont.test')->render();
         self::assertStringNotContainsString('data-live-action-param="submit"', $readOnly);
@@ -53,83 +56,115 @@ final class ActivityTest extends KernelTestCase
         self::assertStringContainsString('created the issue', $readOnly, 'the thread is shown to everyone');
     }
 
-    public function testEachChoiceSaysWhatItDoes(): void
+    public function testEachActionSaysWhatItDoes(): void
     {
         $claire = 'claire.martin@maison-dupont.test';
 
         $new = (string) $this->activityOn('MD-SPT-1', $claire)->render();
-        self::assertStringNotContainsString('name="outcome"', $new, 'qualifying is for the agency: Claire only comments');
+        self::assertStringNotContainsString('data-live-action-param="apply"', $new, 'qualifying is for the agency: Claire only comments');
         self::assertStringNotContainsString('Qualify', $new);
 
-        $toTest = (string) $this->activity($claire)->render();
-        self::assertStringContainsString('The fix is accepted', $toTest, 'the description of the configuration');
-        self::assertStringContainsString('Comment required.', $toTest, 'under "Refuse"');
-        self::assertStringContainsString('Ask a question, add a detail or point something out.', $toTest);
+        self::assertStringContainsString('The fix is accepted', (string) $this->activity($claire)->render(), 'the description of the configuration');
 
         $done = (string) $this->activityOn('MD-SPT-5', $claire)->render();
-        self::assertStringContainsString('value="reopen"', $done);
+        self::assertStringContainsString('data-live-transition-param="reopen"', $done);
+    }
+
+    public function testAnActionAppliesAtOnceAndKeepsTheCommentBeingWritten(): void
+    {
+        $component = $this->activity('claire.martin@maison-dupont.test');
+        $component->set('body', 'Draft in progress');
+
+        $component->call('apply', ['transition' => 'accept']);
+        $render = $component->render();
+
+        self::assertSame(200, $component->response()->getStatusCode(), 'no redirect');
+        self::assertSame('done', $this->reloaded()->getPlace());
+        self::assertStringContainsString('Draft in progress', (string) $render, 'the comment box is another matter');
+        self::assertNull($component->getDispatchedBrowserEvent($render, 'editor:reset'));
+        self::assertNotNull($component->getEmittedEvent($render, 'issue:changed'));
+        self::assertSame(['message' => 'MD-SPT-4: "Accept" applied.'], $component->getDispatchedBrowserEvent($render, 'toast:show')['payload'] ?? null);
     }
 
     public function testTheAgencyIsNotHeldToTheCommentAskedOfClients(): void
     {
         $component = $this->activity('thomas.girard@cairn.test');
-        self::assertStringNotContainsString('Comment required.', (string) $component->render());
 
-        $component->set('outcome', 'refuse')->call('submit');
+        $component->call('apply', ['transition' => 'refuse']);
 
         self::assertSame('in_progress', $this->reloaded()->getPlace(), 'refused without a word');
     }
 
-    public function testNothingIsSentBeforeAChoice(): void
+    public function testARefusalAsksForItsCommentInTheDecision(): void
     {
         $component = $this->activity('claire.martin@maison-dupont.test');
 
-        $component->set('body', 'Thanks.')->call('submit');
+        $component->call('apply', ['transition' => 'refuse']);
+        $render = (string) $component->render();
+        self::assertSame('to_test', $this->reloaded()->getPlace(), 'nothing applied yet');
+        self::assertStringContainsString('a comment is required to refuse', $render, 'the prompt of the configuration');
+        self::assertStringContainsString('data-live-action-param="confirm"', $render);
+        self::assertStringNotContainsString('data-live-action-param="apply"', $render, 'one decision at a time');
 
-        self::assertStringContainsString('Choose what you would like to do.', (string) $component->render());
-        self::assertNull(self::getContainer()->get(EntityManagerInterface::class)->getRepository(Comment::class)->findOneBy(['body' => 'Thanks.']));
-        self::assertSame('to_test', $this->reloaded()->getPlace());
-    }
+        $component->call('confirm');
+        self::assertSame('to_test', $this->reloaded()->getPlace(), 'still nothing without the comment');
+        self::assertStringContainsString('role="alert"', (string) $component->render());
 
-    public function testTheButtonTakesTheNameOfTheChoice(): void
-    {
-        $component = $this->activity('claire.martin@maison-dupont.test');
-
-        $component->set('outcome', 'accept');
-        self::assertMatchesRegularExpression('/<button[^>]*data-live-action-param="submit"[^>]*>\\s*Accept\\s*<\\/button>/', (string) $component->render());
-
-        $component->set('outcome', 'comment');
-        self::assertMatchesRegularExpression('/<button[^>]*data-live-action-param="submit"[^>]*>\\s*Comment\\s*<\\/button>/', (string) $component->render());
-    }
-
-    public function testARefusalNeedsItsCommentThenRedrawsInPlace(): void
-    {
-        $component = $this->activity('claire.martin@maison-dupont.test');
-
-        $component->set('outcome', 'refuse')->call('submit');
-        self::assertStringContainsString('a comment is required to refuse', (string) $component->render());
-        self::assertSame('to_test', $this->reloaded()->getPlace());
-
-        $component->set('body', 'Still empty in production.')->call('submit');
+        $component->set('reason', 'Still empty in production.')->call('confirm');
         $render = $component->render();
 
-        self::assertSame(200, $component->response()->getStatusCode(), 'no redirect');
         self::assertSame('in_progress', $this->reloaded()->getPlace());
         self::assertStringContainsString('applied &quot;Refuse&quot;', (string) $render);
         self::assertStringContainsString('Still empty in production.', (string) $render);
         $activity = $component->component();
         self::assertInstanceOf(Activity::class, $activity);
-        self::assertSame('', $activity->body, 'the editor is emptied');
-        self::assertNull($activity->outcome, 'the next response starts from no choice');
-        self::assertNotNull($component->getEmittedEvent($render, 'issue:changed'));
+        self::assertNull($activity->awaiting);
+        self::assertSame('', $activity->reason);
         self::assertSame(['message' => 'MD-SPT-4: "Refuse" applied.'], $component->getDispatchedBrowserEvent($render, 'toast:show')['payload'] ?? null);
+    }
+
+    public function testARefusalWrittenWhileTheIssueMovedIsKeptAndRefused(): void
+    {
+        $component = $this->activity('claire.martin@maison-dupont.test');
+        $component->call('apply', ['transition' => 'refuse']);
+        $thomas = $this->scene->user('thomas.girard@cairn.test');
+        self::getContainer()->get(CommandBus::class)->dispatch(new MoveIssue((int) $thomas->getId(), 'MD-SPT-4', 'qualified'));
+
+        $component->set('reason', 'Still empty in production.')->call('confirm');
+        $render = (string) $component->render();
+
+        self::assertStringContainsString('could not be applied', $render);
+        self::assertStringContainsString('data-live-action-param="confirm"', $render, 'the decision stays open');
+        $activity = $component->component();
+        self::assertInstanceOf(Activity::class, $activity);
+        self::assertSame('Still empty in production.', $activity->reason, 'what was written is not lost');
+        self::assertSame('qualified', $this->reloaded()->getPlace());
+    }
+
+    public function testARefusalBeingWrittenIsGivenUp(): void
+    {
+        $component = $this->activity('claire.martin@maison-dupont.test');
+
+        $component->call('apply', ['transition' => 'refuse'])->call('cancelDecision');
+
+        self::assertStringContainsString('data-live-transition-param="accept"', (string) $component->render());
+        self::assertSame('to_test', $this->reloaded()->getPlace());
+    }
+
+    public function testAnActionOfAnotherRoleIsRefused(): void
+    {
+        $component = $this->activity('nadia.benali@cairn.test');
+
+        $component->call('apply', ['transition' => 'accept']);
+
+        self::assertSame('to_test', $this->reloaded()->getPlace());
     }
 
     public function testAClientCommentIsPublicWhateverTheFlag(): void
     {
         $component = $this->activity('claire.martin@maison-dupont.test');
 
-        $component->set('body', 'Thanks, I will look tomorrow.')->set('private', true)->set('outcome', 'comment')->call('submit');
+        $component->set('body', 'Thanks, I will look tomorrow.')->set('private', true)->call('submit');
 
         self::assertStringContainsString('Thanks, I will look tomorrow.', (string) $component->render());
         $comment = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Comment::class)->findOneBy(['issue' => $this->issue], ['id' => 'DESC']);
@@ -141,7 +176,7 @@ final class ActivityTest extends KernelTestCase
     {
         $component = $this->activity('claire.martin@maison-dupont.test');
 
-        $component->set('body', 'Still **empty**, like #MD-SPT-2.')->set('outcome', 'comment')->call('submit');
+        $component->set('body', 'Still **empty**, like #MD-SPT-2.')->call('submit');
         $render = $component->render();
 
         self::assertStringContainsString('Still <strong>empty</strong>, like <a class="issue-reference" href="/MD/SPT/issues/2"', (string) $render);
@@ -159,7 +194,7 @@ final class ActivityTest extends KernelTestCase
         self::assertStringContainsString('draft.txt', (string) $component->render());
 
         $component->call('discard', ['uuid' => $activity->pending[1]]);
-        $component->set('body', 'Here is the quote.')->set('outcome', 'comment')->call('submit');
+        $component->set('body', 'Here is the quote.')->call('submit');
         $render = (string) $component->render();
 
         $comment = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Comment::class)->findOneBy(['issue' => $this->issue], ['id' => 'DESC']);
@@ -197,7 +232,7 @@ final class ActivityTest extends KernelTestCase
         $activity = $claire->component();
         self::assertInstanceOf(Activity::class, $activity);
         $remove = \sprintf('data-live-action-param="removeAttachment" data-live-uuid-param="%s"', $activity->pending[0]);
-        $claire->set('body', 'Here is the quote.')->set('outcome', 'comment')->call('submit');
+        $claire->set('body', 'Here is the quote.')->call('submit');
         self::assertStringContainsString($remove, (string) $claire->render());
 
         $render = (string) $this->activity('nadia.benali@cairn.test')->render();
@@ -275,7 +310,7 @@ final class ActivityTest extends KernelTestCase
     /** Posts a comment from the composer and returns its id. */
     private function postedComment(TestLiveComponent $component, string $body): int
     {
-        $component->set('body', $body)->set('outcome', 'comment')->call('submit');
+        $component->set('body', $body)->call('submit');
         $comment = self::getContainer()->get(EntityManagerInterface::class)->getRepository(Comment::class)->findOneBy(['issue' => $this->issue], ['id' => 'DESC']);
         self::assertSame($body, $comment?->getBody());
 

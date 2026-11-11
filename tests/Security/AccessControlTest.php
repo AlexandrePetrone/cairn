@@ -10,6 +10,7 @@ use App\Entity\Issue;
 use App\Entity\Tracker;
 use App\Security\AccessControl;
 use App\Security\Permission;
+use App\Security\PlaceMove;
 use App\Tests\Config\Fixture\DefinitionFactory;
 use App\Tests\KernelHelpers;
 use Doctrine\ORM\EntityManagerInterface;
@@ -186,6 +187,30 @@ final class AccessControlTest extends KernelTestCase
 
         $this->fixtures->shop->archive();
         self::assertSame([], $this->access->transitionsFor($client, $issue), 'an archived project allows nothing');
+    }
+
+    public function testMovesFollowTheWorkflowFirstThenLeaveItForWhoeverMay(): void
+    {
+        $client = $this->fixtures->user('claire@client.test');
+        $this->fixtures->grantOnWorkspace($client, $this->fixtures->workspace, 'client');
+        $developer = $this->fixtures->user('nadia@agency.test', internal: true);
+        $this->fixtures->grantOnWorkspace($developer, $this->fixtures->workspace, 'developer');
+        $manager = $this->fixtures->user('thomas@agency.test', internal: true);
+        $this->fixtures->grantOnWorkspace($manager, $this->fixtures->workspace, 'project_manager');
+        $tracker = new Tracker($this->fixtures->shop, 'Bug', 'bug');
+        $issue = new Issue($this->fixtures->shop, $tracker, DefinitionFactory::bugWorkflow()->place('to_test'), 1, $client, 'Export', '');
+
+        $moves = static fn (array $moves): array => array_map(static fn (PlaceMove $move): string => $move->place->id.':'.($move->transition->id ?? 'forced'), $moves);
+        self::assertSame(['in_progress:refuse', 'done:accept'], $moves($this->access->movesFor($client, $issue)), 'the actions of the role, in the order of the places');
+        self::assertSame([], $this->access->movesFor($developer, $issue), 'no action, and no issue.force_place');
+        self::assertSame(
+            ['new:forced', 'in_progress:refuse', 'done:accept'],
+            $moves($this->access->movesFor($manager, $issue)),
+            'an action wherever one leads, outside the workflow elsewhere, never to the place the issue is on',
+        );
+
+        $this->fixtures->shop->archive();
+        self::assertSame([], $this->access->movesFor($manager, $issue), 'an archived project allows nothing');
     }
 
     public function testExternalsOnlySeePublicIssuesOfTheirProjects(): void

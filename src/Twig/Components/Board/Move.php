@@ -7,10 +7,12 @@ namespace App\Twig\Components\Board;
 use App\Config\Definition\TransitionDefinition;
 use App\Entity\Issue;
 use App\Message\Command\Issue\ApplyTransition;
+use App\Message\Command\Issue\MoveIssue;
 use App\Message\CommandBus;
 use App\Repository\IssueRepository;
 use App\Security\AccessControl;
 use App\Security\Permission;
+use App\Security\PlaceMove;
 use App\Security\Viewer;
 use App\Twig\Components\DispatchesCommands;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -24,10 +26,11 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 /**
  * Moves a card of the kanban, the only component of the board that acts:
  * the `board` controller calls `move` when a card is dropped on another
- * column, where it stays in the meantime. The transitions the viewer may
- * apply from the issue's place to that place are looked up again here; one
- * that needs no comment applies at once, otherwise a dialog asks for the
- * comment, or which of several actions. Once the move is settled the
+ * column, where it stays in the meantime. How the viewer may take the
+ * issue to that place is looked up again here (AccessControl::movesFor()):
+ * with nothing to ask, MoveIssue takes it there, by the action that leads
+ * to the place or outside the workflow; otherwise a dialog asks for the
+ * comment an action requires, or which of several actions. Once the move is settled the
  * browser is told (`board:moved`): applied, with the places the card may
  * now go to, or not, and the controller puts the card back. No column is
  * read again.
@@ -68,23 +71,27 @@ final class Move
     public function move(CommandBus $commands, #[LiveArg] string $key, #[LiveArg] string $place): void
     {
         $issue = $this->visibleIssue($key);
-        $transitions = null === $issue ? [] : $this->transitionsTo($issue, $place);
-        if (null === $issue || [] === $transitions) {
+        $moves = null === $issue ? [] : $this->movesTo($issue, $place);
+        if (null === $issue || [] === $moves) {
             $this->settle($key);
             $this->dispatchBrowserEvent('toast:show', ['message' => $this->translator->trans('issue.board.not_allowed')]);
 
             return;
         }
-
-        if (1 === \count($transitions) && !$this->isCommentRequired($transitions[0])) {
-            $this->apply($commands, $issue, $transitions[0], null, false);
+        $transition = $moves[0]->transition;
+        if (1 === \count($moves) && (null === $transition || !$this->isCommentRequired($transition))) {
+            // Nothing to ask: MoveIssue takes the action when there is one, forces the place otherwise.
+            $done = null === $transition
+                ? $this->translator->trans('issue.move.done', ['%key%' => $issue->getKey(), '%place%' => $moves[0]->place->label])
+                : $this->translator->trans('issue.transition.applied', ['%key%' => $issue->getKey(), '%transition%' => $transition->label]);
+            $this->settled($issue, $this->refusal($commands, new MoveIssue((int) $this->viewer->get()->getId(), $issue->getKey(), $place)), $done);
 
             return;
         }
 
         $this->issueKey = $issue->getKey();
         $this->place = $place;
-        $this->transitionId = $transitions[0]->id;
+        $this->transitionId = (string) $transition?->id;
         $this->comment = '';
         $this->commentPrivate = false;
         $this->error = null;
@@ -159,31 +166,47 @@ final class Move
 
     private function apply(CommandBus $commands, Issue $issue, TransitionDefinition $transition, ?string $comment, bool $private): void
     {
-        if (!$this->tryCommand($commands, new ApplyTransition((int) $this->viewer->get()->getId(), $issue->getKey(), $transition->id, $comment, $private))) {
-            // Refused: the dialog, when it is open, keeps the card where it was dropped and says why.
-            if (null === $this->issueKey) {
-                $this->settle($issue->getKey());
-                $this->dispatchBrowserEvent('toast:show', ['message' => $this->error]);
-            }
+        $refusal = $this->refusal($commands, new ApplyTransition((int) $this->viewer->get()->getId(), $issue->getKey(), $transition->id, $comment, $private));
+        $this->settled($issue, $refusal, $this->translator->trans('issue.transition.applied', ['%key%' => $issue->getKey(), '%transition%' => $transition->label]));
+    }
+
+    /**
+     * Ends a move the command bus answered: done, it is announced; refused,
+     * the dialog, when it is open, keeps the card where it was dropped and
+     * says why, otherwise the card goes back and a toast says why.
+     */
+    private function settled(Issue $issue, ?string $refusal, string $done): void
+    {
+        if (null === $refusal) {
+            $this->settle($issue->getKey(), $issue);
+            $this->close();
+            $this->announce($done);
 
             return;
         }
-        $this->settle($issue->getKey(), $issue);
-        $this->close();
-        $this->announce($this->translator->trans('issue.transition.applied', ['%key%' => $issue->getKey(), '%transition%' => $transition->label]));
+        if (null === $this->issueKey) {
+            $this->settle($issue->getKey());
+            $this->dispatchBrowserEvent('toast:show', ['message' => $refusal]);
+
+            return;
+        }
+        $this->error = $refusal;
     }
 
     /**
      * Tells the browser how the move of a card ended: applied, with the
-     * places the viewer may now move the issue to from where it stands, or
-     * not, and the card goes back to its column.
+     * places the viewer may now move the issue to from where it stands
+     * (and those among them outside the workflow), or not, and the card
+     * goes back to its column.
      */
     private function settle(string $key, ?Issue $moved = null): void
     {
+        $moves = null === $moved ? [] : $this->access->movesFor($this->viewer->get(), $moved);
         $this->dispatchBrowserEvent('board:moved', [
             'key' => $key,
             'applied' => null !== $moved,
-            'places' => null === $moved ? [] : $this->access->reachablePlaces($this->viewer->get(), $moved),
+            'places' => PlaceMove::placeIds($moves),
+            'forced' => PlaceMove::placeIds($moves, forcedOnly: true),
         ]);
     }
 
@@ -198,14 +221,27 @@ final class Move
     }
 
     /**
+     * How the viewer may take the issue to the place: one move per action
+     * that leads there, or a single one outside the workflow.
+     *
+     * @return list<PlaceMove>
+     */
+    private function movesTo(Issue $issue, string $place): array
+    {
+        return array_values(array_filter(
+            $this->access->movesFor($this->viewer->get(), $issue),
+            static fn (PlaceMove $move): bool => $move->place->id === $place,
+        ));
+    }
+
+    /**
+     * The actions that lead the issue to the place.
+     *
      * @return list<TransitionDefinition>
      */
     private function transitionsTo(Issue $issue, string $place): array
     {
-        return array_values(array_filter(
-            $this->access->transitionsFor($this->viewer->get(), $issue),
-            static fn (TransitionDefinition $transition): bool => $transition->to === $place,
-        ));
+        return array_values(array_filter(array_map(static fn (PlaceMove $move): ?TransitionDefinition => $move->transition, $this->movesTo($issue, $place))));
     }
 
     private function visibleIssue(string $key): ?Issue

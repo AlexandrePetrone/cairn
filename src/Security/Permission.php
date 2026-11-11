@@ -39,14 +39,14 @@ enum Permission: string
      * Whether the permission opens what external users never see: the
      * project configuration shows private trackers and their private
      * issues, managing members shows every account of the instance; or
-     * what breaks the workflow clients are shown: forcing a place. The
-     * configuration grants these to internal-only roles, which
-     * ConfigValidator enforces.
+     * what leaves the workflow clients are shown: forcing a place,
+     * changing the tracker. The configuration grants these to
+     * internal-only roles, which ConfigValidator enforces.
      */
     public function internalOnly(): bool
     {
         return match ($this) {
-            self::ProjectConfigure, self::ProjectManageMembers, self::IssueForcePlace => true,
+            self::ProjectConfigure, self::ProjectManageMembers, self::IssueForcePlace, self::IssueChangeTracker => true,
             default => false,
         };
     }

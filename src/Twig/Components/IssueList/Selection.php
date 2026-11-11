@@ -9,6 +9,7 @@ use App\Entity\Enum\Criticality;
 use App\Entity\Tracker;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
+use App\Message\Command\Issue\ChangeTracker;
 use App\Message\Command\Issue\MoveIssue;
 use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
@@ -204,8 +205,13 @@ final class Selection extends AbstractController
             if (null === $tracker || null === $placeId) {
                 return null;
             }
+            // An issue already in the tracker goes to the place within its workflow, the others change tracker.
             $trackerId = (int) $tracker->getId();
-            $build = static fn (string $key): object => new MoveIssue($actorId, $key, $trackerId, $placeId);
+            $inTracker = [];
+            foreach ($selection->issues as $issue) {
+                $inTracker[$issue->getKey()] = $issue->getTracker()->getId() === $trackerId;
+            }
+            $build = static fn (string $key): object => $inTracker[$key] ? new MoveIssue($actorId, $key, $placeId) : new ChangeTracker($actorId, $key, $trackerId, $placeId);
         } else {
             $criticality = Criticality::tryFrom($this->criticality);
             if (null === $criticality) {

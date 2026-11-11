@@ -1,8 +1,8 @@
-{# Thread and response box of the issue page. The comment being written is the `body` prop, kept across every redraw, including those `issue:changed` triggers.
+{# Thread of the issue page, then what the viewer may do: the actions of the workflow, one line each, and the comment box. The comment being written is the `body` prop, kept across every redraw, including those `issue:changed` triggers.
    The controls are plain HTML: a data-model attribute on a nested component would bind that component instead. #}
 {% set activityDetail = this.detail %}
 {% set activityTransitions = this.transitions %}
-{% set activityChosen = this.chosenTransition %}
+{% set activityAwaiting = this.awaitingTransition %}
 {% set activityCanComment = this.canComment %}
 {% set activityEditable = this.editableComments %}
 {% set activityPendingFiles = this.pendingFiles %}
@@ -95,79 +95,81 @@
                 {% endif %}
             {% endfor %}
         </ol>
+        {# The decision and the comment are two boxes. The decision keeps its slot even when empty, so that the comment editor, whose inside the morph ignores, stays the same sibling and is not recreated. #}
         <div class="mt-6">
-            {% if activityCanComment or activityTransitions is not empty %}
-                {% set activityUndecided = activityTransitions is not empty and outcome is null %}
-                <div class="rounded-lg border border-line-strong bg-surface shadow-sm focus-within:border-focus {{ private ? 'border-amber-solid bg-amber-soft private-hatching' }}">
-                    {# The choice and the refusal keep their slot even when empty: the editor, whose inside the morph ignores, must stay the same sibling or it is recreated. #}
-                    <div>
-                    {% if activityTransitions is not empty %}
-                        {# The choice comes first: an action of the workflow, or a comment alone; nothing chosen in advance. #}
-                        <div role="radiogroup" aria-labelledby="activity-question" class="space-y-2 border-b border-line p-3">
-                            <p id="activity-question" class="text-sm font-medium text-strong">{{ 'issue.respond.question'|trans }}</p>
+            {% if activityTransitions is not empty or activityAwaiting %}
+                <div class="mb-3 rounded-lg border border-line-strong bg-surface shadow-sm">
+                    {% if activityAwaiting %}
+                        {# The action chosen asks for a comment: it is written here, and sent with it. ⌘/Ctrl Enter confirms. #}
+                        <div class="space-y-2.5 p-3">
+                            <p class="text-sm font-medium text-strong">{{ activityAwaiting.label }}</p>
+                            <p id="activity-reason" class="text-sm text-body">{{ activityAwaiting.commentPrompt ?? 'issue.transition.comment_required'|trans }}</p>
+                            <twig:Ui:Form:Editor model="norender|reason" :rows="3" autofocus class="mt-0" aria-labelledby="activity-reason"
+                                                 :issuesUrl="activityEditorUrls.issues" :usersUrl="activityEditorUrls.users" :uploadUrl="activityEditorUrls.upload"
+                                                 data-action="editor:submit->live#action" data-live-action-param="confirm">{{ reason }}</twig:Ui:Form:Editor>
+                            {% if decisionError %}<twig:Ui:Callout tone="danger" size="sm" role="alert">{{ decisionError }}</twig:Ui:Callout>{% endif %}
+                            <div class="flex flex-wrap items-center gap-2">
+                                <twig:Ui:Button :variant="activityAwaiting.style.value == 'default' ? 'secondary' : activityAwaiting.style.value" data-action="live#action" data-live-action-param="confirm" data-loading="addAttribute(disabled)">{{ activityAwaiting.label }}</twig:Ui:Button>
+                                <twig:Ui:Button variant="ghost" data-action="live#action" data-live-action-param="cancelDecision">{{ 'issue.edit.cancel'|trans }}</twig:Ui:Button>
+                            </div>
+                        </div>
+                    {% else %}
+                        {# One line per action of the workflow the viewer may take: its button, in the style the configuration gives it, and what it does. #}
+                        <p class="px-3 pt-3 text-sm font-medium text-strong">{{ 'issue.respond.question'|trans }}</p>
+                        {% if decisionError %}<twig:Ui:Callout tone="danger" size="sm" role="alert" class="mx-3 mt-2">{{ decisionError }}</twig:Ui:Callout>{% endif %}
+                        <ul class="divide-y divide-line-subtle px-3">
                             {% for transition in activityTransitions %}
-                                {% set transitionNeedsComment = this.isCommentRequired(transition) %}
-                                <twig:Ui:Form:RadioCard name="outcome" :value="transition.id" model="outcome" :checked="outcome == transition.id" :title="transition.label" :description="transition.description">
-                                    {% if transitionNeedsComment %}<p class="mt-1 text-xs text-amber">{{ 'issue.respond.comment_required'|trans }}</p>{% endif %}
-                                </twig:Ui:Form:RadioCard>
+                                <li class="flex flex-wrap items-center gap-x-4 gap-y-1.5 py-2.5 sm:flex-nowrap">
+                                    <div class="shrink-0 sm:w-48">
+                                        <twig:Ui:Button :variant="transition.style.value == 'default' ? 'secondary' : transition.style.value" data-action="live#action" data-live-action-param="apply" data-live-transition-param="{{ transition.id }}" data-loading="addAttribute(disabled)">{{ transition.label }}</twig:Ui:Button>
+                                    </div>
+                                    {% if transition.description %}<p class="min-w-0 text-sm text-muted">{{ transition.description }}</p>{% endif %}
+                                </li>
                             {% endfor %}
-                            {% if activityCanComment %}
-                                <twig:Ui:Form:RadioCard name="outcome" value="comment" model="outcome" :checked="outcome == 'comment'" :title="'issue.respond.comment_only'|trans" :description="'issue.respond.comment_only_help'|trans" />
-                            {% endif %}
+                        </ul>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+        <div>
+            {% if activityCanComment %}
+                <div class="rounded-lg border border-line-strong bg-surface shadow-sm focus-within:border-focus {{ private ? 'border-amber-solid bg-amber-soft private-hatching' }}">
+                    {# ⌘/Ctrl Enter sends; a posted comment empties the editor through editor:reset. #}
+                    <twig:Ui:Form:Editor model="norender|body" :rows="3"
+                                         class="mt-0 rounded-none rounded-t-lg border-0 bg-transparent focus-within:ring-0"
+                                         :placeholder="'issue.comment.placeholder'|trans"
+                                         :issuesUrl="activityEditorUrls.issues" :usersUrl="activityEditorUrls.users" :uploadUrl="activityEditorUrls.upload"
+                                         data-action="editor:submit->live#action editor:reset@window->editor#reset" data-live-action-param="submit">{{ body }}</twig:Ui:Form:Editor>
+                    {% if activityPendingFiles is not empty %}
+                        <div class="flex flex-wrap gap-2 px-3 pb-2">
+                            {% for file in activityPendingFiles %}
+                                <twig:Ui:Attachment :name="file.filename" :size="file.size" :image="file.image" :href="attachment_url(file)" class="bg-surface py-1">
+                                    <twig:block name="actions">
+                                        <twig:Ui:IconButton icon="x" size="sm" :label="'attachment.remove'|trans" class="-mr-1" data-action="live#action" data-live-action-param="discard" data-live-uuid-param="{{ file.uuid.toRfc4122 }}" />
+                                    </twig:block>
+                                </twig:Ui:Attachment>
+                            {% endfor %}
                         </div>
                     {% endif %}
-                    </div>
-                    <div>
-                    {# A refusal (no choice, missing comment) sits between the choice and the editor, where the eye goes next. #}
+                    {# A refusal sits just above the button that was pressed. #}
                     {% if error %}
-                        <twig:Ui:Callout tone="danger" size="sm" role="alert" class="rounded-none border-x-0 border-t-0 border-red-line bg-red-soft text-red {{ activityTransitions is empty ? 'rounded-t-lg' }}">{{ error }}</twig:Ui:Callout>
-                    {% endif %}
-                    </div>
-                    {% if activityCanComment %}
-                        {# ⌘/Ctrl Enter sends; a posted comment empties the editor through editor:reset. #}
-                        <twig:Ui:Form:Editor model="norender|body" :rows="3"
-                                             class="mt-0 rounded-none border-0 bg-transparent focus-within:ring-0 {{ activityTransitions is empty and not error ? 'rounded-t-lg' }}"
-                                             :placeholder="'issue.comment.placeholder'|trans"
-                                             :issuesUrl="activityEditorUrls.issues" :usersUrl="activityEditorUrls.users" :uploadUrl="activityEditorUrls.upload"
-                                             data-action="editor:submit->live#action editor:reset@window->editor#reset" data-live-action-param="submit">{{ body }}</twig:Ui:Form:Editor>
-                        {% if activityPendingFiles is not empty %}
-                            <div class="flex flex-wrap gap-2 px-3 pb-2">
-                                {% for file in activityPendingFiles %}
-                                    <twig:Ui:Attachment :name="file.filename" :size="file.size" :image="file.image" :href="attachment_url(file)" class="bg-surface py-1">
-                                        <twig:block name="actions">
-                                            <twig:Ui:IconButton icon="x" size="sm" :label="'attachment.remove'|trans" class="-mr-1" data-action="live#action" data-live-action-param="discard" data-live-uuid-param="{{ file.uuid.toRfc4122 }}" />
-                                        </twig:block>
-                                    </twig:Ui:Attachment>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
+                        <twig:Ui:Callout tone="danger" size="sm" role="alert" class="rounded-none border-x-0 border-b-0 border-red-line bg-red-soft text-red">{{ error }}</twig:Ui:Callout>
                     {% endif %}
                     <div class="flex flex-wrap items-center gap-2 border-t border-line px-3 py-2">
-                        {% if activityCanComment %}
-                            <label title="{{ 'attachment.attach'|trans }}" class="inline-flex cursor-pointer items-center gap-1 rounded p-1 text-xs text-muted hover:bg-sunken hover:text-body" data-loading="action(attach)|addClass(opacity-50)">
-                                {{ ux_icon('lucide:paperclip', { class: 'h-4 w-4' }) }}
-                                <span class="sr-only">{{ 'attachment.attach'|trans }}</span>
-                                <input type="file" name="files[]" multiple class="sr-only" data-controller="file-picker"
-                                       data-action="change->file-picker#chosen file-picker:chosen->live#action" data-live-action-param="files|attach">
+                        <label title="{{ 'attachment.attach'|trans }}" class="inline-flex cursor-pointer items-center gap-1 rounded p-1 text-xs text-muted hover:bg-sunken hover:text-body" data-loading="action(attach)|addClass(opacity-50)">
+                            {{ ux_icon('lucide:paperclip', { class: 'h-4 w-4' }) }}
+                            <span class="sr-only">{{ 'attachment.attach'|trans }}</span>
+                            <input type="file" name="files[]" multiple class="sr-only" data-controller="file-picker"
+                                   data-action="change->file-picker#chosen file-picker:chosen->live#action" data-live-action-param="files|attach">
+                        </label>
+                        {% if this.canMakePrivate %}
+                            <label class="inline-flex items-center gap-1.5 text-xs text-muted cursor-pointer select-none">
+                                <input type="checkbox" data-model="private" {{ private ? 'checked' }} class="h-3.5 w-3.5 rounded border-line-strong text-amber">
+                                <twig:ux:icon name="lucide:lock" class="h-3 w-3" />
+                                {{ 'issue.comment.private'|trans }}
                             </label>
-                            {% if this.canMakePrivate %}
-                                <label class="inline-flex items-center gap-1.5 text-xs text-muted cursor-pointer select-none">
-                                    <input type="checkbox" data-model="private" {{ private ? 'checked' }} class="h-3.5 w-3.5 rounded border-line-strong text-amber">
-                                    <twig:ux:icon name="lucide:lock" class="h-3 w-3" />
-                                    {{ 'issue.comment.private'|trans }}
-                                </label>
-                            {% endif %}
                         {% endif %}
-                        {# One button, named after the choice; inactive until there is one. #}
-                        <twig:Ui:Button class="ml-auto" :variant="activityChosen ? (activityChosen.style.value == 'default' ? 'secondary' : activityChosen.style.value) : 'secondary'" :disabled="activityUndecided" data-action="live#action" data-live-action-param="submit" data-loading="addAttribute(disabled)">
-                            {%- if activityChosen -%}
-                                {{ activityChosen.label }}
-                            {%- elseif activityUndecided -%}
-                                {{ 'issue.respond.submit'|trans }}
-                            {%- else -%}
-                                {{ (private ? 'issue.comment.submit_private' : 'issue.comment.submit')|trans }}
-                            {%- endif -%}
-                        </twig:Ui:Button>
+                        <twig:Ui:Button class="ml-auto" variant="secondary" data-action="live#action" data-live-action-param="submit" data-loading="addAttribute(disabled)">{{ (private ? 'issue.comment.submit_private' : 'issue.comment.submit')|trans }}</twig:Ui:Button>
                     </div>
                 </div>
             {% endif %}

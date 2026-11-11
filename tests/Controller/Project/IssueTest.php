@@ -46,11 +46,13 @@ final class IssueTest extends WebTestCase
         self::assertSelectorTextContains('main', 'created the issue');
         self::assertSelectorTextContains('main', 'changed the assignee: Nobody → Nadia Benali', 'assigned through the command in the fixtures');
         self::assertSelectorTextContains('main [aria-label="Path"]', 'New');
-        self::assertSelectorNotExists('main [data-live-name-value="Issue:Move"] [data-live-action-param="open"]', 'a client may not move the issue');
+        self::assertSelectorExists('main [data-live-name-value="Issue:Activity"] [data-live-transition-param="accept"]', 'her actions are in the response box');
+        self::assertSelectorNotExists('main aside [data-live-action-param="transition"]', 'a client does not pick a step in the side panel');
 
         $this->signInAs('thomas.girard@cairn.test');
         $this->client->request('GET', '/MD/SPT/issues/4');
-        self::assertSelectorExists('main [data-live-name-value="Issue:Move"] [data-live-action-param="open"]', 'the manager has the "⋯" menu');
+        self::assertSelectorExists('main aside [data-live-action-param="transition"][data-live-id-param="accept"]', 'the manager has the step menu');
+        self::assertSelectorExists('main aside [data-live-action-param="move"][data-live-place-param="qualified"]', 'and may leave the workflow');
     }
 
     public function testPrivateCommentsAreForInternalsOnly(): void
@@ -89,7 +91,9 @@ final class IssueTest extends WebTestCase
             self::assertSelectorTextNotContains('main [data-live-name-value="Issue:Activity"]', 'Accept', $email);
             self::assertSelectorTextNotContains('main [data-live-name-value="Issue:Activity"]', 'Refuse', $email);
             self::assertSelectorNotExists('main [data-live-action-param="submit"]', $email);
-            self::assertSelectorNotExists('main [name="outcome"]', $email);
+            self::assertSelectorNotExists('main [data-live-action-param="apply"]', $email);
+            self::assertSelectorNotExists('main [data-live-action-param="transition"]', $email);
+            self::assertSelectorNotExists('main [data-live-action-param="move"]', $email);
         }
     }
 

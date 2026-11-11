@@ -206,17 +206,36 @@ final class AccessControl implements ResetInterface
     }
 
     /**
-     * The places the user may move the issue to, one action away: what a
-     * kanban lets them drop its card on.
+     * Where the user may take the issue from where it stands, in the order
+     * of its workflow: the workflow first, one move per action that leads
+     * to a place; a place no action of theirs leads to is offered outside
+     * the workflow to whoever holds `issue.force_place`. The step menu of
+     * the issue page and the kanban both read this, so that an action is
+     * applied whenever there is one.
      *
-     * @return list<string>
+     * @return list<PlaceMove>
      */
-    public function reachablePlaces(User $user, Issue $issue): array
+    public function movesFor(User $user, Issue $issue): array
     {
-        return array_values(array_unique(array_map(
-            static fn (TransitionDefinition $transition): string => $transition->to,
-            $this->transitionsFor($user, $issue),
-        )));
+        $workflow = $this->config->definition()->workflow($issue->getTracker()->getWorkflowId());
+        $transitions = $this->transitionsFor($user, $issue);
+        $force = $this->isGranted($user, Permission::IssueForcePlace, $issue->getProject());
+
+        $moves = [];
+        foreach ($workflow->places as $place) {
+            if ($place->id === $issue->getPlace()) {
+                continue;
+            }
+            $leading = array_filter($transitions, static fn (TransitionDefinition $transition): bool => $transition->to === $place->id);
+            foreach ($leading as $transition) {
+                $moves[] = new PlaceMove($place, $transition);
+            }
+            if ([] === $leading && $force) {
+                $moves[] = new PlaceMove($place);
+            }
+        }
+
+        return $moves;
     }
 
     public function reset(): void

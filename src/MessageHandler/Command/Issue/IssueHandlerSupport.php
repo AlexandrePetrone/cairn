@@ -4,18 +4,23 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\Command\Issue;
 
+use App\Config\Definition\TransitionDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use App\Entity\Attachment;
 use App\Entity\Comment;
 use App\Entity\Issue;
+use App\Entity\JournalEntry;
 use App\Entity\Project;
 use App\Entity\User;
 use App\Event\IssueEvent;
+use App\Event\IssueTransitioned;
 use App\Repository\AttachmentRepository;
 use App\Repository\CommentRepository;
 use App\Repository\IssueRepository;
 use App\Repository\UserRepository;
 use App\Security\AccessControl;
+use App\Security\Permission;
+use App\Workflow\WorkflowProvider;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
@@ -35,7 +40,51 @@ final class IssueHandlerSupport
         private readonly CommentRepository $comments,
         private readonly EntityManagerInterface $entityManager,
         private readonly EventDispatcherInterface $events,
+        private readonly WorkflowProvider $workflows,
     ) {
+    }
+
+    /**
+     * Applies a transition of the issue's workflow for the actor, with the
+     * comment that may come with it: the one path a transition takes,
+     * whether a command names it (ApplyTransition) or a place is asked for
+     * and it leads there (MoveIssue). The state machine says whether the
+     * issue may take it from its place.
+     *
+     * @param list<string> $attachments uuids of the actor's pending files sent with the comment
+     */
+    public function transition(Issue $issue, User $actor, TransitionDefinition $transition, ?string $comment = null, bool $commentPrivate = false, array $attachments = []): void
+    {
+        $project = $issue->getProject();
+        $workflowId = $issue->getTracker()->getWorkflowId();
+        $definition = $this->workflows->definition($workflowId);
+
+        $this->denyUnless($this->access->canTransition($actor, $transition, $project), \sprintf('apply transition "%s"', $transition->id));
+
+        $workflow = $this->workflows->get($workflowId);
+        if (!$workflow->can($issue, $transition->id)) {
+            throw IssueException::transitionUnavailable($transition->id, $issue->getPlace());
+        }
+
+        $body = trim((string) $comment);
+        if ('' === $body && $this->access->commentRequired($actor, $transition)) {
+            throw IssueException::commentRequired($transition->id);
+        }
+
+        $written = null;
+        if ('' !== $body) {
+            $this->denyUnless($this->access->isGranted($actor, Permission::CommentCreate, $project), 'comment');
+            $this->denyUnless(!$commentPrivate || $this->access->isGranted($actor, Permission::CommentSetPrivate, $project), 'make comments private');
+            $written = new Comment($issue, $actor, $body, $commentPrivate);
+            $this->entityManager->persist($written);
+            $this->claimAttachments($actor, $issue, $attachments, $body, $written);
+        }
+
+        $from = $definition->place($issue->getPlace());
+        $workflow->apply($issue, $transition->id, ['actor' => $actor]);
+        $to = $definition->place($issue->getPlace());
+
+        $this->record(new IssueTransitioned($issue, $actor, [JournalEntry::transitioned($issue, $actor, $transition->label, $from, $to, $written)], $written));
     }
 
     /**

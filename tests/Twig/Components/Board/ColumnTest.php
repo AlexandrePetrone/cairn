@@ -34,7 +34,7 @@ final class ColumnTest extends KernelTestCase
         self::assertStringContainsString('data-board-key="MD-SPT-1"', $render);
         self::assertStringContainsString('data-board-key="MD-SPT-2"', $render);
         self::assertStringNotContainsString('MD-SPT-3', $render);
-        self::assertStringContainsString('data-board-places="qualified rejected"', $render);
+        self::assertStringContainsString('data-board-places="qualified in_progress to_test done rejected" data-board-forced="in_progress to_test done"', $render, 'the agency may force the places no action leads to');
     }
 
     public function testACardTheViewerCannotMoveIsLocked(): void

@@ -79,14 +79,14 @@
                         </twig:Ui:Form:Select>
                     </label>
                 {% elseif action == 'move' %}
-                    <label class="block text-sm text-body">{{ 'issue.move.tracker'|trans }}
+                    <label class="block text-sm text-body">{{ 'issue.show.tracker'|trans }}
                         <twig:Ui:Form:Select model="moveTrackerId">
                             {% for tracker in selectionActions.moveTrackers %}
                                 <option value="{{ tracker.id }}" {{ selectionMoveTracker and tracker.id == selectionMoveTracker.id ? 'selected' }}>{{ tracker.name }}</option>
                             {% endfor %}
                         </twig:Ui:Form:Select>
                     </label>
-                    <label class="block text-sm text-body">{{ 'issue.move.place'|trans }}
+                    <label class="block text-sm text-body">{{ 'issue.show.place'|trans }}
                         <twig:Ui:Form:Select model="movePlaceId">
                             {% for place in selectionMovePlaces %}
                                 <option value="{{ place.id }}" {{ place.id == movePlaceId ? 'selected' }}>{{ place.label }}</option>

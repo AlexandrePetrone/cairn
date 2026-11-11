@@ -226,7 +226,7 @@ src/
   properties it edits, an API will expose one PATCH per resource; states
   such as archived or active are properties, not actions. A message of
   its own is kept for what is not a change of state: a business action
-  (`ApplyTransition`, `MoveIssue`), a sub-resource (comments, files,
+  (`ApplyTransition`, `MoveIssue`, `ChangeTracker`), a sub-resource (comments, files,
   `GrantMembership` / `RevokeMembership`). Don't split an `UpdateX` per
   property or per form: a page edits a resource with one form.
 - **Forms feed commands.** A form binds to a mutable data object in
@@ -346,36 +346,55 @@ src/
 
 ### The issue page
 
-- **The response box asks what to do, and the workflow can be left on
-  purpose.** On the issue page `Issue:Activity` offers, above the comment
-  editor, the transitions the viewer may apply from the issue's place
-  (`AccessControl::transitionsFor()`), each with its configured
-  `description`, and "Comment only" as one more choice; nothing
-  is chosen in advance, and the one button, inactive until then, takes
-  the name of the choice and sends the comment with it (`outcome`,
-  `submit()`). Without any transition, the box is the editor alone; the
-  actions of others are never shown, nor the place an action leads to:
-  clients act because they are asked to choose, not for the step. A
-  transition's `requiresComment` binds external users only
-  (`AccessControl::commentRequired()`, the one place that says so): the
-  agency applies any transition without a word, and `MoveIssue` asks for
-  none either. There is
-  no "whose turn" indicator: the action offered says it. The header
+- **The workflow is the contract with the client; the agency may leave
+  it, and one rule says how.** `AccessControl::movesFor()` lists where a
+  user may take an issue from its place, in the order of the workflow:
+  one `PlaceMove` per action of their role that leads to a place and,
+  for a place no action of theirs leads to, a move outside the workflow
+  when they hold `issue.force_place` (internal-only). The step menu and
+  the kanban read it to show what is offered; `MoveIssue` ("take the
+  issue to this place") is the one place that applies it: its handler
+  takes the action of the actor that leads there when there is one
+  (`IssueHandlerSupport::transition()`, the one path a transition
+  takes, shared with `ApplyTransition`: journaled as the action, the
+  first when several lead there) and writes the place without the state
+  machine only otherwise (journaled `moved`). So the step menu, the
+  kanban and the selection page leave the same trace, and a caller
+  dispatches `ApplyTransition` only when it names the action or sends a
+  comment with it. On the issue page `Issue:Activity` ends the thread with two
+  boxes. The decision lists the transitions the viewer may apply from
+  the issue's place (`AccessControl::transitionsFor()`), internal or
+  not, one line each: a button in the `style` the configuration gives
+  the transition and its `description`. An action applies at once,
+  without a comment; when its `requiresComment` binds the viewer, the
+  decision turns into the `commentPrompt`, an editor and the button, and
+  the comment is sent with the action. `requiresComment` binds external
+  users only (`AccessControl::commentRequired()`, the one place that
+  says so): the agency applies any transition without a word. The
+  comment box below is a comment and nothing else; whoever wants both
+  does both. The actions of others are never shown, nor the place an
+  action leads to: clients act because they are asked to choose, not
+  for the step. There is no "whose turn" indicator: the action offered
+  says it. The header
   shows the path the issue took, as `JournalEntryRepository::findPlaceChanges()`
   reads it from the journal with the labels of the time, private entries
   included: a transition made with a private comment hides its comment
   and its journal line from external users, never the place it led to,
-  which they read in the properties. Whoever holds
-  `issue.force_place` (internal-only) or `issue.change_tracker` gets a
-  "⋯" menu, `Issue:Move`, a sibling of `Issue:Header` laid out by the
-  page: one dialog chooses a tracker of the project and a place of its
-  workflow and dispatches `MoveIssue`, which writes the place without the
-  state machine and journals `moved` (same tracker) or `tracker_changed`;
-  the dialog warns when no action leads from the current place to the
-  chosen one. No reason is asked: the journal line is the trace. The
-  selection page offers the same move (`SelectionActions::$moveTrackers`:
-  the trackers of the project valid for every issue, one `MoveIssue` per
-  issue), the kanban does not.
+  which they read in the properties. In the side panel the step is the
+  first row of `Issue:Properties`: read by external users, a menu for
+  the agency, listing the places of the workflow in its order, the
+  current one checked, a place an action leads to named after the
+  action (one row per action when several lead there), the others
+  greyed. Its last row, for whoever holds `issue.change_tracker`
+  (internal-only too), leads
+  to the other trackers of the project and then to the places of the
+  chosen one (the `panels` controller, everything in the page), which
+  dispatches `ChangeTracker` and journals `tracker_changed`: no action
+  leads from one workflow to another. No reason is
+  asked: the journal line is the trace. The selection page offers the
+  same move (`SelectionActions::$moveTrackers`: the trackers of the
+  project valid for every issue; per issue, `MoveIssue` when it is
+  already in the tracker chosen, `ChangeTracker` otherwise).
 - **Links read from each side.** An `IssueLink` goes from a source to a
   target with a link type of the configuration: the source reads its
   label (Blocks), the target its inverse (Blocked by); a symmetric type
@@ -474,12 +493,15 @@ src/
   `ListChoices::searchColumn()` for its place only and grows by batches
   (`perPage`, the `load-more` controller); a closed place starts
   folded. There is no pagination of the whole board, and nothing loads
-  it whole. Each card lists the places the viewer may move it to
-  (`AccessControl::reachablePlaces()`), so the `board` controller
-  refuses the others while dragging, without asking the server.
-  `Board:Move` is the only component that acts: it finds the transition
-  again, applies it or asks in a `Ui:Dialog` (a required comment,
-  several actions to the same place), and sends the browser
+  it whole. Each card lists the places the viewer may move it to and,
+  among them, those outside the workflow (`AccessControl::movesFor()`),
+  so the `board` controller refuses the others while dragging, without
+  asking the server, and a column reached outside the workflow is
+  dashed. `Board:Move` is the only component that acts: it
+  finds the move again, dispatches `MoveIssue` when there is nothing to
+  ask, otherwise asks in a `Ui:Dialog` (a required comment, several
+  actions to the same place) and applies the transition chosen, and
+  sends the browser
   `board:moved` once the move is settled. The move is optimistic: the
   card stays where it was dropped; applied, the event brings the places
   it may now go to and the controller updates the card and the counts
@@ -635,7 +657,10 @@ src/
   links, history and the viewer's subscription are sub-resources.
 - **Writes are the commands, one operation each.** `POST /issues`
   (`CreateIssue`), `PATCH /issues/{key}` (`UpdateIssue`),
-  `POST /issues/{key}/transitions` (`ApplyTransition`), comments
+  `POST /issues/{key}/transitions` (`ApplyTransition`: the action is
+  named, a comment may come with it), `PUT /issues/{key}/step`
+  (`MoveIssue`: the step is named, the handler finds the way),
+  `PUT /issues/{key}/tracker` (`ChangeTracker`), comments
   (`AddComment`, `EditComment`, `DeleteComment`), links (`AddLink`,
   `RemoveLink`), `PUT`/`DELETE /issues/{key}/subscription`
   (`FollowIssue`, `UnfollowIssue`) and
@@ -655,7 +680,7 @@ src/
   command is a 422 listing its violations, a domain refusal a 422 with
   the reason (translated when the exception can be), a missing right
   the handler's `AccessDeniedException`, 403. The administration, the
-  configuration of a project, `MoveIssue` and bulk actions are not
+  configuration of a project and bulk actions are not
   exposed: add an operation when a program needs it.
 - **A token signs a request, the account opens the API.** The `api`
   firewall (`^/api`, stateless, before `main`) knows one way in: a
@@ -729,8 +754,9 @@ src/
   `GrantMembership`, `InviteUser` to a direct member of that project),
   a refusal stopping the chain where it is. The administration picks the
   person, or the workspace or project, in a `Ui:Picker`. Both permissions show what external users never see (private
-  trackers, every account of the instance), and `issue.force_place`
-  breaks the workflow clients are shown, so the configuration grants
+  trackers, every account of the instance), and `issue.force_place` and
+  `issue.change_tracker` leave the workflow clients are shown, so the
+  configuration grants
   them to internal-only roles: `Permission::internalOnly()` says which,
   `ConfigValidator` refuses the rest. Trackers are never deleted:
   `UpdateTracker` deactivates one (no new issue, out of the menu) or
@@ -892,7 +918,7 @@ src/
   so that on a phone the properties follow the title; on a wide screen the
   panel takes the right column, sticks under the header and scrolls on its
   own when taller than the screen. `Issue:Properties` opens with the
-  tracker and the place, then one row per property: a property the viewer
+  tracker, then one row per property, the step first: a property the viewer
   may change is a `Ui:Dropdown` opened from its value, each choice a
   `Ui:Dropdown:Item` that dispatches `change` with the property and the
   value; the menu spans the row so that it opens within the column, and
@@ -975,7 +1001,7 @@ src/
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`, `dialog`,
   `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`,
   `workflow-diagram`, `sortable`, `list-filter`, `combobox`, `board`,
-  `load-more`, `clipboard`, `filters`, `selection`, `fold`, `list-view`, `theme`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
+  `load-more`, `clipboard`, `filters`, `selection`, `fold`, `list-view`, `theme`, `panels`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
   (`editor` with TipTap, `workflow-diagram` with Mermaid, `board` with
   SortableJS) so that Vite
   splits its imports into chunks only fetched on a page that uses it; write a new one when a component needs it, not before. No

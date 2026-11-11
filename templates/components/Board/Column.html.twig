@@ -1,4 +1,4 @@
-{# A column of the kanban: the place and its count, then its cards, by batches. The list carries the `board` controller: SortableJS drags a card to another column, which the card's `data-board-places` allows, and the controller calls Board:Move, then keeps the counts and the cards right itself.
+{# A column of the kanban: the place and its count, then its cards, by batches. The list carries the `board` controller: SortableJS drags a card to another column, which the card's `data-board-places` allows, and the controller calls Board:Move, then keeps the counts and the cards right itself. While a card is dragged, a column an action leads to lights up; one reached outside the workflow (`data-board-forced`) is dashed.
    A folded column (the closed places, as the page sets it) is a narrow rail: the colour of the place, its count, its label written upwards; a click unfolds it. A card can still be dropped on it: its list fills the rail and hides the card SortableJS would show there, too wide for it, and the rail lights up while a card is over it (data-board-over).
    The list is replaced whole on each redraw (data-skip-morph): Live would otherwise keep a card SortableJS dropped there as it was, with the places it could reach from its former column. #}
 {% set boardColumnPlace = this.place %}
@@ -6,10 +6,10 @@
 {% set boardColumnRemaining = this.remaining %}
 {% set boardColumnClasses = html_cva(
     base: 'group/column relative flex shrink-0 flex-col rounded-lg border border-line bg-sunken/80 transition-all',
-    variants: { open: { true: 'w-72', false: 'w-10 has-[[data-board-state=allowed]]:border-brand-line has-[[data-board-state=denied]]:opacity-40 has-[[data-board-over]]:border-focus has-[[data-board-over]]:bg-brand-soft-hover' } },
+    variants: { open: { true: 'w-72', false: 'w-10 has-[[data-board-state=allowed]]:border-brand-line has-[[data-board-state=forced]]:border-dashed has-[[data-board-state=forced]]:border-line-strong has-[[data-board-state=denied]]:opacity-40 has-[[data-board-over]]:border-focus has-[[data-board-over]]:bg-brand-soft-hover' } },
 ) %}
 {% set boardColumnListClasses = html_cva(
-    base: 'rounded-md transition data-[board-state=allowed]:bg-brand-soft data-[board-state=allowed]:ring-2 data-[board-state=allowed]:ring-brand-line data-[board-state=denied]:opacity-40',
+    base: 'rounded-md transition data-[board-state=allowed]:bg-brand-soft data-[board-state=allowed]:ring-2 data-[board-state=allowed]:ring-brand-line data-[board-state=forced]:outline-2 data-[board-state=forced]:-outline-offset-2 data-[board-state=forced]:outline-dashed data-[board-state=forced]:outline-line-strong data-[board-state=denied]:opacity-40',
     variants: { open: { true: 'flex min-h-24 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2 data-[board-over]:ring-focus', false: 'absolute inset-0 overflow-hidden [&>li]:hidden data-[board-state=allowed]:bg-transparent' } },
 ) %}
 <section {{ attributes.defaults({ class: boardColumnClasses.apply({ open: open }) }) }} data-board-column="{{ placeId }}" data-loading="addClass(opacity-70)">
@@ -33,8 +33,8 @@
         data-controller="board" data-board-place-value="{{ placeId }}" data-skip-morph aria-label="{{ boardColumnPlace.label }}">
         {% if open %}
             {% for issue in boardColumnIssues.items %}
-                {% set boardCardPlaces = this.placesFor(issue) %}
-                <li id="board-card-{{ issue.id }}" data-board-key="{{ issue.key }}" data-board-places="{{ boardCardPlaces|join(' ') }}" class="{{ boardCardPlaces is empty ? 'board-locked' : 'cursor-grab' }}">
+                {% set boardCardDrops = this.dropsFor(issue) %}
+                <li id="board-card-{{ issue.id }}" data-board-key="{{ issue.key }}" data-board-places="{{ boardCardDrops.places|join(' ') }}" data-board-forced="{{ boardCardDrops.forced|join(' ') }}" class="{{ boardCardDrops.places is empty ? 'board-locked' : 'cursor-grab' }}">
                     <twig:Ui:BoardCard
                         :key="issue.key"
                         :title="issue.title"

@@ -80,6 +80,11 @@ final class IssueException extends \DomainException
         return new self(\sprintf('The issue is already on "%s".', $placeLabel));
     }
 
+    public static function sameTracker(string $trackerName): self
+    {
+        return new self(\sprintf('The issue is already in tracker "%s".', $trackerName));
+    }
+
     public static function releaseOutsideProject(string $releaseName, string $projectName): self
     {
         return new self(\sprintf('Release "%s" does not belong to project "%s".', $releaseName, $projectName));

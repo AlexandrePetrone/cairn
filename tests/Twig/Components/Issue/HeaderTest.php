@@ -59,7 +59,7 @@ final class HeaderTest extends KernelTestCase
         self::assertStringContainsString('aria-label="Path"', $render);
         self::assertStringNotContainsString('Moved without an action', $render);
 
-        self::getContainer()->get(CommandBus::class)->dispatch(new MoveIssue((int) $thomas->getId(), 'MD-SPT-4', null, 'qualified'));
+        self::getContainer()->get(CommandBus::class)->dispatch(new MoveIssue((int) $thomas->getId(), 'MD-SPT-4', 'qualified'));
         $component->emit('issue:changed');
 
         $header = $component->component();

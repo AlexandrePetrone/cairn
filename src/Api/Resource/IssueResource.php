@@ -10,6 +10,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\QueryParameter;
 use App\Api\Resource\Value\FileRef;
 use App\Api\Resource\Value\IssueField;
@@ -18,9 +19,11 @@ use App\Api\Resource\Value\OfferedTransition;
 use App\Api\Resource\Value\PlaceRef;
 use App\Api\Resource\Value\UserRef;
 use App\Api\State\ApplyTransitionProcessor;
+use App\Api\State\ChangeTrackerProcessor;
 use App\Api\State\CreateIssueProcessor;
 use App\Api\State\IssueCollectionProvider;
 use App\Api\State\IssueProvider;
+use App\Api\State\MoveIssueProcessor;
 use App\Api\State\UpdateIssueProcessor;
 
 /**
@@ -69,6 +72,22 @@ use App\Api\State\UpdateIssueProcessor;
             read: false,
             processor: ApplyTransitionProcessor::class,
             name: 'issue_transition',
+        ),
+        new Put(
+            uriTemplate: '/issues/{key}/step',
+            description: 'Takes the issue to a step of its workflow: by the action of the token\'s user that leads there when there is one, otherwise outside the workflow, for whoever may. To name the action or send a comment with it, use `transitions`.',
+            input: StepInput::class,
+            read: false,
+            processor: MoveIssueProcessor::class,
+            name: 'issue_step',
+        ),
+        new Put(
+            uriTemplate: '/issues/{key}/tracker',
+            description: 'Moves the issue to another tracker of its project, on a step of the workflow of that tracker.',
+            input: TrackerInput::class,
+            read: false,
+            processor: ChangeTrackerProcessor::class,
+            name: 'issue_tracker',
         ),
     ],
 )]

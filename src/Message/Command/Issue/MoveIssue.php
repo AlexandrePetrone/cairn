@@ -7,22 +7,19 @@ namespace App\Message\Command\Issue;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * Puts an issue on a place outside the workflow's actions: on any place of
- * its own workflow (`issue.force_place`), or in another tracker of the same
- * project on a place chosen in the new workflow (`issue.change_tracker`).
+ * Takes an issue to a place of its workflow, whichever way the actor may:
+ * by the action of theirs that leads there when there is one, otherwise
+ * outside the workflow (`issue.force_place`). A caller that names the
+ * action, or sends a comment with it, dispatches ApplyTransition instead;
+ * another tracker is ChangeTracker.
  * Handled by MoveIssueHandler, which returns the Issue.
  */
 final readonly class MoveIssue
 {
-    /**
-     * @param int|null $trackerId the tracker to move to; null, or the current tracker, keeps the
-     *                            issue in it and only forces the place
-     */
     public function __construct(
         public int $actorId,
         #[Assert\NotBlank(normalizer: 'trim')]
         public string $issueKey,
-        public ?int $trackerId,
         #[Assert\NotBlank(normalizer: 'trim')]
         public string $placeId,
     ) {

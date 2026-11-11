@@ -8,22 +8,24 @@ use App\Entity\Issue;
 use App\Entity\JournalEntry;
 use App\Event\IssueMoved;
 use App\Message\Command\Issue\MoveIssue;
-use App\Repository\TrackerRepository;
 use App\Security\AccessControl;
-use App\Security\Permission;
+use App\Security\PlaceMove;
 use App\Workflow\WorkflowProvider;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 /**
- * The place is written directly, without the state machine: no transition
- * took place, and the journal says so (`moved`, or `tracker_changed`).
+ * The one place that applies "the workflow first": the issue takes the
+ * action of the actor that leads to the place (AccessControl::movesFor(),
+ * the first when several do), as ApplyTransition would; only without one
+ * is the place written directly, without the state machine, and the
+ * journal says so (`moved`).
  */
 #[AsMessageHandler(bus: 'command.bus')]
 final class MoveIssueHandler
 {
     public function __construct(
         private readonly IssueHandlerSupport $support,
-        private readonly TrackerRepository $trackers,
         private readonly AccessControl $access,
         private readonly WorkflowProvider $workflows,
     ) {
@@ -33,52 +35,28 @@ final class MoveIssueHandler
     {
         $actor = $this->support->actor($command->actorId);
         $issue = $this->support->visibleIssue($actor, $command->issueKey);
-        $project = $issue->getProject();
-        $current = $issue->getTracker();
 
-        if (null === $command->trackerId || $command->trackerId === $current->getId()) {
-            $this->support->denyUnless($this->access->isGranted($actor, Permission::IssueForcePlace, $project), 'move the issue without an action');
+        $workflow = $this->workflows->definition($issue->getTracker()->getWorkflowId());
+        $from = $workflow->findPlace($issue->getPlace()) ?? throw IssueException::unknownPlace($issue->getPlace(), $workflow->id);
+        if (!$workflow->hasPlace($command->placeId)) {
+            throw IssueException::unknownPlace($command->placeId, $workflow->id);
+        }
+        $to = $workflow->place($command->placeId);
+        if ($to->id === $from->id) {
+            throw IssueException::samePlace($to->label);
+        }
 
-            $workflow = $this->workflows->definition($current->getWorkflowId());
-            $from = $workflow->findPlace($issue->getPlace()) ?? throw IssueException::unknownPlace($issue->getPlace(), $workflow->id);
-            if (!$workflow->hasPlace($command->placeId)) {
-                throw IssueException::unknownPlace($command->placeId, $workflow->id);
-            }
-            $to = $workflow->place($command->placeId);
-            if ($to->id === $from->id) {
-                throw IssueException::samePlace($to->label);
-            }
+        $move = array_find($this->access->movesFor($actor, $issue), static fn (PlaceMove $move): bool => $move->place->id === $to->id)
+            ?? throw new AccessDeniedException('Not allowed to move the issue without an action.');
 
-            $issue->moveTo($to);
-            $this->support->record(new IssueMoved($issue, $actor, [JournalEntry::moved($issue, $actor, $from, $to)]));
+        if (null !== $move->transition) {
+            $this->support->transition($issue, $actor, $move->transition);
 
             return $issue;
         }
 
-        $this->support->denyUnless($this->access->isGranted($actor, Permission::IssueChangeTracker, $project), 'change the tracker');
-        $tracker = $this->trackers->find($command->trackerId) ?? throw IssueException::notFound('Tracker', $command->trackerId);
-
-        if ($tracker->getProject()->getId() !== $project->getId()) {
-            throw IssueException::trackerOutsideProject($tracker->getName(), $project->getName());
-        }
-        if (!$tracker->isActive()) {
-            throw IssueException::inactiveTracker($tracker->getName());
-        }
-        if ($tracker->isPrivate() && !$actor->isInternal()) {
-            throw IssueException::privateTracker($tracker->getName());
-        }
-
-        $previous = $this->workflows->definition($current->getWorkflowId());
-        $previousPlace = $previous->findPlace($issue->getPlace()) ?? throw IssueException::unknownPlace($issue->getPlace(), $previous->id);
-
-        $workflow = $this->workflows->definition($tracker->getWorkflowId());
-        if (!$workflow->hasPlace($command->placeId)) {
-            throw IssueException::unknownPlace($command->placeId, $workflow->id);
-        }
-        $place = $workflow->place($command->placeId);
-
-        $issue->changeTracker($tracker, $place);
-        $this->support->record(new IssueMoved($issue, $actor, [JournalEntry::trackerChanged($issue, $actor, $current, $previousPlace, $tracker, $place)]));
+        $issue->moveTo($to);
+        $this->support->record(new IssueMoved($issue, $actor, [JournalEntry::moved($issue, $actor, $from, $to)]));
 
         return $issue;
     }

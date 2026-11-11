@@ -8,12 +8,13 @@ import Sortable from 'sortablejs';
  *
  * <section data-board-column> <span data-board-count>3</span>
  *   <ul data-controller="board" data-board-place-value="in_progress">
- *     <li data-board-key="MD-SPT-12" data-board-places="to_test done">
+ *     <li data-board-key="MD-SPT-12" data-board-places="to_test done new" data-board-forced="new">
  *
  * A card goes only to the places its `data-board-places` lists, computed
- * by the server for the viewer; while it is dragged, the columns say
- * which ones (`data-board-state`), and the one under the pointer says it
- * would take it (`data-board-over`). Dropped, it stays where it was put
+ * by the server for the viewer; those of `data-board-forced` are reached
+ * outside the workflow. While it is dragged, the columns say which they
+ * are (`data-board-state`: allowed, forced or denied), and the one under
+ * the pointer says it would take it (`data-board-over`). Dropped, it stays where it was put
  * and Board:Move applies the move, at once or after a dialog. The
  * `board:moved` browser event it sends back settles it here, without
  * reading any column again: applied, the card takes the places it may now
@@ -50,7 +51,7 @@ export default class extends Controller {
             ghostClass: 'opacity-40',
             onStart: (event) => {
                 origins.set(event.item, { place: this.placeValue, next: event.item.nextElementSibling });
-                this.mark(this.places(event.item));
+                this.mark(event.item);
             },
             onEnd: () => {
                 this.mark(null);
@@ -80,13 +81,22 @@ export default class extends Controller {
         return (card.dataset.boardPlaces || '').split(' ').filter(Boolean);
     }
 
-    /** Tells each column whether the card being dragged may go there; null clears it. */
-    mark(places) {
+    forced(card) {
+        return (card.dataset.boardForced || '').split(' ').filter(Boolean);
+    }
+
+    /** Tells each column whether the card being dragged may go there, and whether outside the workflow; null clears it. */
+    mark(card) {
+        const places = card ? this.places(card) : [];
+        const forced = card ? this.forced(card) : [];
         document.querySelectorAll('[data-controller~="board"]').forEach((list) => {
-            if (null === places || list === this.element) {
+            const place = list.dataset.boardPlaceValue;
+            if (null === card || list === this.element) {
                 delete list.dataset.boardState;
+            } else if (!places.includes(place)) {
+                list.dataset.boardState = 'denied';
             } else {
-                list.dataset.boardState = places.includes(list.dataset.boardPlaceValue) ? 'allowed' : 'denied';
+                list.dataset.boardState = forced.includes(place) ? 'forced' : 'allowed';
             }
         });
     }
@@ -117,7 +127,7 @@ export default class extends Controller {
      * it for the board.
      */
     settle(event) {
-        const { key, applied, places } = event.detail || {};
+        const { key, applied, places, forced } = event.detail || {};
         const move = pending.get(key);
         if (!move?.origin) {
             return;
@@ -144,6 +154,7 @@ export default class extends Controller {
             target?.prepend(card);
         }
         card.dataset.boardPlaces = (places || []).join(' ');
+        card.dataset.boardForced = (forced || []).join(' ');
         card.classList.toggle('board-locked', 0 === (places || []).length);
         card.classList.toggle('cursor-grab', (places || []).length > 0);
         if (from) {

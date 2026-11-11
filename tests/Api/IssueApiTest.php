@@ -154,6 +154,67 @@ final class IssueApiTest extends ApiTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    public function testAStepIsReachedByTheWorkflowFirstAndOutsideItOtherwise(): void
+    {
+        $secret = $this->tokenFor(self::DEVELOPER)->secret;
+
+        $issue = $this->api('PUT', '/api/issues/MD-SPT-1/step', $secret, ['place' => 'qualified']);
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame('qualified', $issue['place']['id']);
+        $history = $this->api('GET', '/api/issues/MD-SPT-1/history', $secret);
+        self::assertSame('transitioned', array_last($history['member'])['type'], '"Qualify" leads there: the action is applied');
+
+        $issue = $this->api('PUT', '/api/issues/MD-SPT-1/step', $secret, ['place' => 'done']);
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame('done', $issue['place']['id']);
+        $history = $this->api('GET', '/api/issues/MD-SPT-1/history', $secret);
+        self::assertSame('moved', array_last($history['member'])['type'], 'no action of a developer leads there: issue.force_place');
+
+        $issue = $this->api('PUT', '/api/issues/MD-SPT-1/step', $secret, ['place' => 'done']);
+        self::assertResponseStatusCodeSame(200, 'A PUT may be repeated.');
+        self::assertSame('done', $issue['place']['id']);
+        self::assertCount(\count($history['member']), $this->api('GET', '/api/issues/MD-SPT-1/history', $secret)['member'], 'nothing more happened');
+
+        $this->api('PUT', '/api/issues/MD-SPT-1/step', $secret, ['place' => 'nowhere']);
+        self::assertResponseStatusCodeSame(422, 'A place the workflow does not have.');
+
+        $this->api('PUT', '/api/issues/MD-SPT-1/step', $secret, []);
+        self::assertResponseStatusCodeSame(422, 'No place.');
+
+        $this->api('PUT', '/api/issues/MD-SPT-999/step', $secret, ['place' => 'done']);
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testAnIssueChangesTrackerOnAStepOfTheNewWorkflow(): void
+    {
+        $secret = $this->tokenFor(self::DEVELOPER)->secret;
+        $feature = $this->scene->evolutions->getId();
+
+        $issue = $this->api('PUT', '/api/issues/MD-SPT-1/tracker', $secret, ['tracker' => $feature, 'place' => 'to_estimate']);
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame($feature, $issue['tracker']['id']);
+        self::assertSame('to_estimate', $issue['place']['id']);
+        $history = $this->api('GET', '/api/issues/MD-SPT-1/history', $secret);
+        self::assertSame('tracker_changed', array_last($history['member'])['type']);
+
+        $issue = $this->api('PUT', '/api/issues/MD-SPT-1/tracker', $secret, ['tracker' => $feature, 'place' => 'to_estimate']);
+        self::assertResponseStatusCodeSame(200, 'A PUT may be repeated.');
+        self::assertSame('to_estimate', $issue['place']['id']);
+        self::assertCount(\count($history['member']), $this->api('GET', '/api/issues/MD-SPT-1/history', $secret)['member'], 'nothing more happened');
+
+        $this->api('PUT', '/api/issues/MD-SPT-1/tracker', $secret, ['tracker' => $feature, 'place' => 'planned']);
+        self::assertResponseStatusCodeSame(422, 'Already in that tracker: another step is a move, not a change of tracker.');
+
+        $this->api('PUT', '/api/issues/MD-SPT-2/tracker', $secret, ['tracker' => $feature, 'place' => 'qualified']);
+        self::assertResponseStatusCodeSame(422, 'A place of the former workflow.');
+
+        $this->api('PUT', '/api/issues/MD-SPT-2/tracker', $secret, ['place' => 'new']);
+        self::assertResponseStatusCodeSame(422, 'No tracker.');
+
+        $this->api('PUT', '/api/issues/MD-SPT-999/tracker', $secret, ['tracker' => $feature, 'place' => 'new']);
+        self::assertResponseStatusCodeSame(404);
+    }
+
     public function testAnInternalUserWithoutARoleReadsButDoesNotWrite(): void
     {
         $secret = $this->tokenFor(self::OUTSIDER)->secret;

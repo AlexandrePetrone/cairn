@@ -23,6 +23,7 @@ use App\Security\Permission;
 use App\Security\Viewer;
 use App\Twig\Components\DispatchesCommands;
 use App\Twig\Components\HandlesAttachments;
+use App\Workflow\WorkflowProvider;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Uid\Uuid;
@@ -36,13 +37,14 @@ use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
- * Thread and response box of the issue page. The box asks what to do:
- * one of the workflow actions of the viewer's role, or a comment alone,
- * nothing chosen in advance; one button sends the comment with the
- * choice. Without any action, the box is the comment editor alone. A
- * success redraws the thread in place, tells the other components of the
- * page (`issue:changed`) and shows a toast; the comment being written
- * survives what the other components do.
+ * Thread of the issue page, then what the viewer may do, in two boxes.
+ * The decision lists the workflow actions of the viewer's role, one line
+ * each with what it does: an action applies at once, unless it asks this
+ * viewer for a comment, which is then written in the decision itself and
+ * sent with it (kept on screen if the action is refused). The comment box is a comment and nothing else. A success
+ * redraws the thread in place, tells the other components of the page
+ * (`issue:changed`) and shows a toast; the comment being written survives
+ * an action, and what the other components do.
  */
 #[AsLiveComponent('Issue:Activity')]
 final class Activity
@@ -62,9 +64,16 @@ final class Activity
     #[LiveProp(writable: true)]
     public bool $private = false;
 
-    /** What the response does: `comment`, or the id of a transition; null until chosen. */
+    /** The transition waiting for the comment it requires, null when none does. */
+    #[LiveProp]
+    public ?string $awaiting = null;
+
+    /** The comment written for that transition. */
     #[LiveProp(writable: true)]
-    public ?string $outcome = null;
+    public string $reason = '';
+
+    /** Why the last action of the workflow did not go through; `error` is the comment box's. */
+    public ?string $decisionError = null;
 
     /** @var list<string> uuids of the files sent for the comment being written, pending until it is posted */
     #[LiveProp]
@@ -94,6 +103,7 @@ final class Activity
         private readonly QueryBus $queries,
         private readonly TranslatorInterface $translator,
         private readonly AttachmentRepository $attachments,
+        private readonly WorkflowProvider $workflows,
     ) {
     }
 
@@ -145,15 +155,14 @@ final class Activity
         return $this->access->transitionsFor($this->viewer->get(), $this->issue);
     }
 
-    public function isCommentRequired(TransitionDefinition $transition): bool
+    /**
+     * The transition waiting for its comment. It is read from the workflow,
+     * not from what is offered: if the issue moved in the meantime, what was
+     * written stays on screen and the handler says the action is refused.
+     */
+    public function getAwaitingTransition(): ?TransitionDefinition
     {
-        return $this->access->commentRequired($this->viewer->get(), $transition);
-    }
-
-    /** The transition chosen as the outcome, if it is one the viewer may apply. */
-    public function getChosenTransition(): ?TransitionDefinition
-    {
-        return array_find($this->getTransitions(), fn (TransitionDefinition $transition): bool => $transition->id === $this->outcome);
+        return null === $this->awaiting ? null : $this->workflows->definition($this->issue->getTracker()->getWorkflowId())->transitions[$this->awaiting] ?? null;
     }
 
     public function canComment(): bool
@@ -186,45 +195,63 @@ final class Activity
     }
 
     /**
-     * Sends the response: a comment alone, or the chosen transition with
-     * the comment as its own. The choice is implicit when there is none to
-     * make.
+     * Takes an action of the workflow: at once, or, when it asks this
+     * viewer for a comment, once the comment is written.
+     */
+    #[LiveAction]
+    public function apply(CommandBus $commands, #[LiveArg] string $transition): void
+    {
+        $chosen = $this->offered($transition);
+        if (null === $chosen) {
+            $this->decisionError = $this->translator->trans('issue.action.refused');
+
+            return;
+        }
+        if ($this->access->commentRequired($this->viewer->get(), $chosen)) {
+            $this->awaiting = $chosen->id;
+            $this->reason = '';
+
+            return;
+        }
+
+        $this->transition($commands, $chosen, null);
+    }
+
+    /**
+     * Applies the action that waited for its comment.
+     */
+    #[LiveAction]
+    public function confirm(CommandBus $commands): void
+    {
+        $transition = $this->getAwaitingTransition();
+        if (null === $transition) {
+            $this->cancelDecision();
+            $this->decisionError = $this->translator->trans('issue.action.refused');
+
+            return;
+        }
+        if ('' === trim($this->reason)) {
+            // The prompt is already written above the field.
+            $this->decisionError = $this->translator->trans('issue.comment.empty');
+
+            return;
+        }
+
+        $this->transition($commands, $transition, $this->reason);
+    }
+
+    #[LiveAction]
+    public function cancelDecision(): void
+    {
+        $this->awaiting = null;
+        $this->reason = '';
+    }
+
+    /**
+     * Posts the comment being written.
      */
     #[LiveAction]
     public function submit(CommandBus $commands): void
-    {
-        $transitions = $this->getTransitions();
-        $outcome = [] === $transitions ? 'comment' : $this->outcome;
-        if (null === $outcome) {
-            $this->error = $this->translator->trans('issue.respond.choose');
-
-            return;
-        }
-        if ('comment' === $outcome) {
-            $this->postComment($commands);
-
-            return;
-        }
-
-        $transition = $this->getChosenTransition();
-        if (null === $transition) {
-            $this->error = $this->translator->trans('issue.action.refused');
-
-            return;
-        }
-        if ($this->isCommentRequired($transition) && '' === trim($this->body)) {
-            $this->error = $transition->commentPrompt ?? $this->translator->trans('issue.transition.comment_required');
-
-            return;
-        }
-
-        $command = new ApplyTransition((int) $this->viewer->get()->getId(), $this->issue->getKey(), $transition->id, '' === trim($this->body) ? null : $this->body, $this->private && $this->canMakePrivate(), $this->pending);
-        if ($this->tryCommand($commands, $command)) {
-            $this->posted($this->translator->trans('issue.transition.applied', ['%key%' => $this->issue->getKey(), '%transition%' => $transition->label]));
-        }
-    }
-
-    private function postComment(CommandBus $commands): void
     {
         if (!$this->canComment()) {
             $this->error = $this->translator->trans('issue.action.refused');
@@ -237,9 +264,17 @@ final class Activity
             return;
         }
 
-        if ($this->tryCommand($commands, new AddComment((int) $this->viewer->get()->getId(), $this->issue->getKey(), $this->body, $this->private && $this->canMakePrivate(), $this->pending))) {
-            $this->posted($this->translator->trans('issue.comment.added'));
+        if (!$this->tryCommand($commands, new AddComment((int) $this->viewer->get()->getId(), $this->issue->getKey(), $this->body, $this->private && $this->canMakePrivate(), $this->pending))) {
+            return;
         }
+
+        $this->detail = null;
+        $this->body = '';
+        $this->private = false;
+        $this->pending = [];
+        // The editor sits outside the morph (data-live-ignore): it is told to empty itself.
+        $this->dispatchBrowserEvent('editor:reset');
+        $this->announce($this->translator->trans('issue.comment.added'));
     }
 
     /**
@@ -371,16 +406,21 @@ final class Activity
         return null;
     }
 
-    /** The comment being written went through: the composer starts afresh. */
-    private function posted(string $message): void
+    /** The transition of that id, if it is one the viewer may apply from where the issue stands. */
+    private function offered(string $id): ?TransitionDefinition
     {
+        return array_find($this->getTransitions(), static fn (TransitionDefinition $transition): bool => $transition->id === $id);
+    }
+
+    private function transition(CommandBus $commands, TransitionDefinition $transition, ?string $comment): void
+    {
+        $this->decisionError = $this->refusal($commands, new ApplyTransition((int) $this->viewer->get()->getId(), $this->issue->getKey(), $transition->id, $comment));
+        if (null !== $this->decisionError) {
+            return;
+        }
+
         $this->detail = null;
-        $this->body = '';
-        $this->private = false;
-        $this->pending = [];
-        $this->outcome = null;
-        // The editor sits outside the morph (data-live-ignore): it is told to empty itself.
-        $this->dispatchBrowserEvent('editor:reset');
-        $this->announce($message);
+        $this->cancelDecision();
+        $this->announce($this->translator->trans('issue.transition.applied', ['%key%' => $this->issue->getKey(), '%transition%' => $transition->label]));
     }
 }

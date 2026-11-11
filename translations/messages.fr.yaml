@@ -156,20 +156,12 @@ issue:
         applied: '%key% : « %transition% » appliquée.'
     respond:
         question: Que souhaitez-vous faire ?
-        comment_only: Commenter seulement
-        comment_only_help: Poser une question, préciser ou signaler quelque chose.
-        comment_required: Commentaire obligatoire.
-        submit: Envoyer
-        choose: Choisissez ce que vous souhaitez faire.
-    menu:
-        more: Plus d'actions
-        move: Déplacer…
+    step:
+        off_workflow: Hors workflow
+        change_tracker: Changer de catégorie…
+        change_tracker_title: Changer de catégorie
+        same: même étape
     move:
-        title: 'Déplacer %key%'
-        tracker: Catégorie
-        place: Étape
-        no_transition: 'Aucune action ne mène de %from% à %to% : la demande sera déplacée hors de son workflow.'
-        submit: Déplacer
         done: '%key% déplacée vers %place%.'
     unassigned: Non assigné
     private: Privée
