@@ -6,7 +6,9 @@ namespace App\Twig\Components\Layout;
 
 use App\Entity\Project;
 use App\Entity\Tracker;
+use App\Message\Query\Project\CountProjectIssues;
 use App\Message\Query\Project\ListTrackers;
+use App\Message\Query\Project\ProjectIssueCounts;
 use App\Message\QueryBus;
 use App\Repository\ReleaseRepository;
 use App\Security\Viewer;
@@ -14,7 +16,8 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 
 /**
  * The sidebar of a project: its issue lists and its releases, then its
- * trackers. The current entry is told from the current route.
+ * trackers, each list with the open issues the viewer sees in it. The
+ * current entry is told from the current route.
  */
 #[AsTwigComponent('Layout:ProjectNav')]
 final class ProjectNav
@@ -36,6 +39,15 @@ final class ProjectNav
     public function getTrackers(): array
     {
         return $this->queries->ask(new ListTrackers($this->viewer->get(), $this->project));
+    }
+
+    /**
+     * What each list holds as it comes, not as the viewer last arranged it:
+     * the view they keep of a list filters the page, never this count.
+     */
+    public function getCounts(): ProjectIssueCounts
+    {
+        return $this->queries->ask(new CountProjectIssues($this->viewer->get(), $this->project));
     }
 
     /**

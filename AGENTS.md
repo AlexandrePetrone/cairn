@@ -460,7 +460,10 @@ src/
   shown; an address with parameters shows as it says and remembers
   nothing, so opening one someone shared leaves one's own view alone,
   and a frame request is never redirected (clearing every filter shows
-  the list as it comes, and forgets the view).
+  the list as it comes, and forgets the view). The navigation of a
+  project counts what each list holds as it comes (`CountProjectIssues`:
+  the open issues the viewer sees, in one query), never as the view
+  remembered arranges it.
 - **The kanban is a view of a tracker's list, and loads column by
   column.** The list of a tracker shows as a table or as a kanban
   (`view=board`, two radios of the filter form, a `Ui:Filter:Segments` rail at the right of the title), never

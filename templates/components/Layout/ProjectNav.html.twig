@@ -1,12 +1,13 @@
-{# Project level: the issue lists and the releases, the trackers the viewer may see, then the access and the configuration of the project for those who manage them. #}
+{# Project level: the issue lists and the releases, the trackers the viewer may see, each list with its count of open issues, then the access and the configuration of the project for those who manage them. #}
 {% set route = { workspaceKey: project.workspace.key, projectKey: project.key } %}
 {% set navTrackers = this.trackers %}
+{% set navCounts = this.counts %}
 {% set navReleases = this.hasReleases or is_granted('release.manage', project) %}
 <twig:Ui:Layout:Sidebar :title="project.name">
     <twig:Ui:Layout:Sidebar:Section :label="'nav.project.issues'|trans">
-        <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_issues', route) }}" icon="list" :active="app.current_route == 'app_project_issues'">{{ 'nav.issues.all'|trans }}</twig:Ui:Layout:Sidebar:Item>
-        <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_issues_assigned', route) }}" icon="user" :active="app.current_route == 'app_project_issues_assigned'">{{ 'nav.issues.assigned'|trans }}</twig:Ui:Layout:Sidebar:Item>
-        <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_issues_created', route) }}" icon="pencil" :active="app.current_route == 'app_project_issues_created'">{{ 'nav.issues.created'|trans }}</twig:Ui:Layout:Sidebar:Item>
+        <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_issues', route) }}" icon="list" :count="navCounts.all" :active="app.current_route == 'app_project_issues'">{{ 'nav.issues.all'|trans }}</twig:Ui:Layout:Sidebar:Item>
+        <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_issues_assigned', route) }}" icon="user" :count="navCounts.assigned" :active="app.current_route == 'app_project_issues_assigned'">{{ 'nav.issues.assigned'|trans }}</twig:Ui:Layout:Sidebar:Item>
+        <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_issues_created', route) }}" icon="pencil" :count="navCounts.created" :active="app.current_route == 'app_project_issues_created'">{{ 'nav.issues.created'|trans }}</twig:Ui:Layout:Sidebar:Item>
         {% if navReleases %}
             <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_releases', route) }}" icon="milestone" :active="app.current_route starts with 'app_project_release'">{{ 'nav.project.releases'|trans }}</twig:Ui:Layout:Sidebar:Item>
         {% endif %}
@@ -14,7 +15,7 @@
     {% if navTrackers is not empty %}
         <twig:Ui:Layout:Sidebar:Section :label="'nav.project.trackers'|trans">
             {% for tracker in navTrackers %}
-                <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_issues_tracker', route|merge({ tracker: tracker.id })) }}" icon="kanban" :locked="tracker.private" :active="app.current_route == 'app_project_issues_tracker' and app.current_route_parameters.tracker == tracker.id">{{ tracker.name }}</twig:Ui:Layout:Sidebar:Item>
+                <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_issues_tracker', route|merge({ tracker: tracker.id })) }}" icon="kanban" :count="navCounts.of(tracker)" :locked="tracker.private" :active="app.current_route == 'app_project_issues_tracker' and app.current_route_parameters.tracker == tracker.id">{{ tracker.name }}</twig:Ui:Layout:Sidebar:Item>
             {% endfor %}
         </twig:Ui:Layout:Sidebar:Section>
     {% endif %}
