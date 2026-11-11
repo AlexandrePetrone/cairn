@@ -37,8 +37,8 @@ final class NavigationTest extends WebTestCase
         self::assertSelectorTextContains('main', 'Online shop');
         self::assertSelectorTextContains('main', 'Intranet');
         self::assertSelectorTextNotContains('main', 'Booking site', 'not her workspace');
-        self::assertSelectorTextContains('main section.border-amber-200', 'The CSV export of orders is empty', 'her issue waits for her');
-        self::assertSelectorTextContains('main section.border-amber-200', 'Your issue is waiting');
+        self::assertSelectorTextContains('main section.border-amber-line', 'The CSV export of orders is empty', 'her issue waits for her');
+        self::assertSelectorTextContains('main section.border-amber-line', 'Your issue is waiting');
         self::assertSelectorTextContains('main', 'Created by me');
         self::assertSelectorTextContains('main', 'Endless spinner on the cart page');
     }

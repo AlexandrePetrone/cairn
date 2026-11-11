@@ -5,12 +5,12 @@
 {% set filtersChoices = this.choices %}
 {% set filtersView = this.view %}
 <form id="issue-filters" method="get" action="{{ scope.path }}"
-    class="group/filters border-b border-gray-200 bg-white px-4 sm:px-6"
+    class="group/filters border-b border-line bg-surface px-4 sm:px-6"
     data-turbo-frame="issues" data-view="{{ filtersView }}"
     data-controller="filters" data-action="change->filters#submit input->filters#search" {{ attributes }}>
     {% if title or scope.hasBoard %}
         <div class="flex flex-wrap items-center gap-3 pt-3">
-            {% if title %}<h1 class="font-semibold text-gray-900 text-base">{{ title }}</h1>{% endif %}
+            {% if title %}<h1 class="font-semibold text-strong text-base">{{ title }}</h1>{% endif %}
             {% if scope.hasBoard %}
                 {# The list is the view of an address that names none: its radio sends nothing. #}
                 <twig:Ui:Filter:Segments :label="'issue.board.views'|trans" class="ml-auto">
@@ -27,7 +27,7 @@
                 {% set filtersWorkflowLabel = null %}
                 {% for filtersPlace in filtersChoices.places(filtersScope) %}
                     {% if filtersMixesWorkflows and filtersPlace.workflowLabel != filtersWorkflowLabel %}
-                        <p class="px-2.5 pt-1.5 pb-1 text-[11px] font-medium uppercase tracking-wider text-gray-400 {{ loop.first ? '' : 'mt-1 border-t border-gray-100' }}">{{ filtersPlace.workflowLabel }}</p>
+                        <p class="px-2.5 pt-1.5 pb-1 text-[11px] font-medium uppercase tracking-wider text-faint {{ loop.first ? '' : 'mt-1 border-t border-line-subtle' }}">{{ filtersPlace.workflowLabel }}</p>
                     {% endif %}
                     {% set filtersWorkflowLabel = filtersPlace.workflowLabel %}
                     <twig:Ui:Filter:Option name="places[]" :value="filtersPlace.key" :checked="filtersPlace.key in filters.places">
@@ -42,7 +42,7 @@
                 {% for filtersSummary in filtersChoices.projects %}
                     <twig:Ui:Filter:Option name="projects[]" :value="filtersSummary.project.id" :checked="filtersSummary.project.id in filters.projects">
                         <span class="truncate">{{ filtersSummary.project.name }}</span>
-                        <span class="truncate text-xs text-gray-400">{{ filtersSummary.project.workspace.name }}</span>
+                        <span class="truncate text-xs text-faint">{{ filtersSummary.project.workspace.name }}</span>
                     </twig:Ui:Filter:Option>
                 {% endfor %}
             </twig:Ui:Filter:Menu>
@@ -51,8 +51,8 @@
             <twig:Ui:Filter:Menu :label="'filter.tracker'|trans" :count="filters.trackers|length">
                 {% for filtersTracker in filtersChoices.trackers(filtersScope) %}
                     <twig:Ui:Filter:Option name="trackers[]" :value="filtersTracker.id" :checked="filtersTracker.id in filters.trackers">
-                        <span class="truncate {{ filtersTracker.active ? '' : 'text-gray-400 line-through' }}" {% if not filtersTracker.active %}title="{{ 'project.settings.tracker.inactive_badge'|trans }}"{% endif %}>{{ filtersTracker.name }}</span>
-                        {% if filtersTracker.private %}<twig:ux:icon name="lucide:lock" class="h-3 w-3 shrink-0 text-gray-400" />{% endif %}
+                        <span class="truncate {{ filtersTracker.active ? '' : 'text-faint line-through' }}" {% if not filtersTracker.active %}title="{{ 'project.settings.tracker.inactive_badge'|trans }}"{% endif %}>{{ filtersTracker.name }}</span>
+                        {% if filtersTracker.private %}<twig:ux:icon name="lucide:lock" class="h-3 w-3 shrink-0 text-faint" />{% endif %}
                     </twig:Ui:Filter:Option>
                 {% endfor %}
             </twig:Ui:Filter:Menu>
@@ -85,14 +85,14 @@
                 <twig:Ui:Filter:Option name="releases[]" value="0" :checked="0 in filters.releases">{{ 'issue.list.no_release'|trans }}</twig:Ui:Filter:Option>
                 {% for filtersRelease in filtersChoices.releases(filtersScope) %}
                     <twig:Ui:Filter:Option name="releases[]" :value="filtersRelease.id" :checked="filtersRelease.id in filters.releases">
-                        <span class="truncate font-mono text-xs {{ filtersRelease.open ? '' : 'text-gray-400' }}">{{ filtersRelease.name }}</span>
-                        {% if not filtersRelease.open %}<span class="text-xs text-gray-400">{{ ('release.status.' ~ filtersRelease.status.value)|trans }}</span>{% endif %}
+                        <span class="truncate font-mono text-xs {{ filtersRelease.open ? '' : 'text-faint' }}">{{ filtersRelease.name }}</span>
+                        {% if not filtersRelease.open %}<span class="text-xs text-faint">{{ ('release.status.' ~ filtersRelease.status.value)|trans }}</span>{% endif %}
                     </twig:Ui:Filter:Option>
                 {% endfor %}
             </twig:Ui:Filter:Menu>
         {% endif %}
         <twig:Ui:Filter:Search :value="filters.q" class="w-48 xl:w-60" />
-        <button type="button" class="text-xs text-indigo-600 hover:underline" data-filters-target="clear" data-action="filters#clear" {{ filters.hasFilters ? '' : 'hidden' }}>{{ 'filter.clear'|trans }}</button>
+        <button type="button" class="text-xs text-brand hover:underline" data-filters-target="clear" data-action="filters#clear" {{ filters.hasFilters ? '' : 'hidden' }}>{{ 'filter.clear'|trans }}</button>
         {% set filtersGrouping = filtersChoices.grouping(scope, filters) %}
         {# Open issues are the list of an address that says nothing: that radio sends nothing. #}
         <twig:Ui:Filter:Segments :label="'issue.list.scope.label'|trans" class="ml-auto group-data-[view=board]/filters:hidden">

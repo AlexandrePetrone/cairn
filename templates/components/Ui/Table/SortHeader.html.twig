@@ -5,8 +5,8 @@
     variants: { align: { left: 'text-left', right: 'text-right' } },
 ) %}
 {% set tableSortHeaderButtonClasses = html_cva(
-    base: 'group/sort inline-flex items-center gap-1 uppercase tracking-wider hover:text-gray-800',
-    variants: { active: { true: 'text-gray-900' }, align: { right: 'flex-row-reverse' } },
+    base: 'group/sort inline-flex items-center gap-1 uppercase tracking-wider hover:text-body',
+    variants: { active: { true: 'text-strong' }, align: { right: 'flex-row-reverse' } },
 ) %}
 {% set tableSortHeaderArrow %}
     {% if direction == 'asc' %}

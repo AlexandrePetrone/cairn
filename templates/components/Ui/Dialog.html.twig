@@ -1,14 +1,14 @@
 {# A modal rendered by a live component while something waits for a choice: the backdrop, the close button and Escape (the `dialog` controller) call `closeAction` (a live action name); the first field gets the focus. `description` sits under the title, `content` is the body, `footer` the row of buttons. #}
 {% props title, closeAction = null %}
-{% set dialogPanelClasses = html_cva(base: 'fixed left-1/2 top-24 z-50 w-full max-w-md -translate-x-1/2 rounded-lg border border-gray-200 bg-white p-4 shadow-2xl space-y-3') %}
+{% set dialogPanelClasses = html_cva(base: 'fixed left-1/2 top-24 z-50 w-full max-w-md -translate-x-1/2 rounded-lg border border-line bg-overlay p-4 shadow-2xl space-y-3') %}
 <div data-controller="dialog" data-action="keydown.esc@document->dialog#close" {{ attributes.without('class') }}>
     <div class="fixed inset-0 z-40 bg-black/20" {% if closeAction %}data-action="click->live#action" data-live-action-param="{{ closeAction }}"{% endif %}></div>
     <div class="{{ dialogPanelClasses.apply({}, attributes.render('class'))|tailwind_merge }}" role="dialog" aria-modal="true" aria-label="{{ title }}">
         <div class="flex items-start gap-2">
             <div class="min-w-0 flex-1">
-                <h2 class="font-semibold text-gray-900">{{ title }}</h2>
+                <h2 class="font-semibold text-strong">{{ title }}</h2>
                 {% if block('description') is not empty %}
-                    <div class="mt-0.5 text-xs text-gray-500">{% block description %}{% endblock %}</div>
+                    <div class="mt-0.5 text-xs text-muted">{% block description %}{% endblock %}</div>
                 {% endif %}
             </div>
             {% if closeAction %}
@@ -17,7 +17,7 @@
         </div>
         {% block content %}{% endblock %}
         {% if block('footer') is not empty %}
-            <div class="flex items-center gap-2 border-t border-gray-100 pt-3">{% block footer %}{% endblock %}</div>
+            <div class="flex items-center gap-2 border-t border-line-subtle pt-3">{% block footer %}{% endblock %}</div>
         {% endif %}
     </div>
 </div>

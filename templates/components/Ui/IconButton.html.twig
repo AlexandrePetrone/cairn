@@ -1,9 +1,9 @@
 {# A button that is only an icon, for discreet actions: `label` is its tooltip and accessible name. `danger` turns red on hover. #}
 {% props icon, label, tone = 'default', size = 'md' %}
 {% set iconButtonClasses = html_cva(
-    base: 'inline-flex shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-200 disabled:pointer-events-none disabled:opacity-40',
+    base: 'inline-flex shrink-0 items-center justify-center rounded-md text-faint transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-line disabled:pointer-events-none disabled:opacity-40',
     variants: {
-        tone: { default: 'hover:bg-gray-100 hover:text-gray-700', danger: 'hover:bg-red-50 hover:text-red-600' },
+        tone: { default: 'hover:bg-sunken hover:text-body', danger: 'hover:bg-red-soft hover:text-red' },
         size: { sm: 'h-6 w-6', md: 'h-7 w-7' },
     },
 ) %}

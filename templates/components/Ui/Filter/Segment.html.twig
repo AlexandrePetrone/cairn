@@ -1,6 +1,6 @@
 {# One choice of a Filter:Segments rail: a radio drawn as a segment, raised when checked. `name`, `value`, `id` and `disabled` go to the radio; `icon` is a Lucide name shown before the label, which is the content. #}
 {% props checked = false, icon = null %}
-{% set filterSegmentClasses = html_cva(base: 'inline-flex h-6 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded px-2 text-xs font-medium text-gray-500 hover:text-gray-900 has-[:checked]:bg-white has-[:checked]:text-gray-900 has-[:checked]:shadow-sm has-[:checked]:ring-1 has-[:checked]:ring-gray-900/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-indigo-400 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60') %}
+{% set filterSegmentClasses = html_cva(base: 'inline-flex h-6 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded px-2 text-xs font-medium text-muted hover:text-strong has-[:checked]:bg-raised has-[:checked]:text-strong has-[:checked]:shadow-sm has-[:checked]:ring-1 has-[:checked]:ring-strong/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-focus has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60') %}
 <label class="{{ filterSegmentClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes.without('name', 'value', 'id', 'disabled', 'class') }}>
     <input type="radio" {{ attributes.only('name', 'value', 'id', 'disabled') }} {{ checked ? 'checked' }} class="sr-only">
     {% if icon %}{{ ux_icon('lucide:' ~ icon, { class: 'h-3.5 w-3.5' }) }}{% endif %}

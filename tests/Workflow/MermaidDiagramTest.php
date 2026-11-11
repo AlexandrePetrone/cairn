@@ -45,6 +45,8 @@ final class MermaidDiagramTest extends TestCase
         self::assertStringContainsString('new(["New"]):::open', $this->source);
         self::assertStringContainsString('to_test(["To test"]):::waiting', $this->source);
         self::assertStringContainsString('classDef closed ', $this->source);
+        self::assertStringContainsString('fill:var(--color-blue-soft)', $this->source);
+        self::assertDoesNotMatchRegularExpression('/#[0-9a-f]{6}/i', $this->source, 'Colours are roles, so that the drawing follows the theme.');
     }
 
     public function testLabelsAreEscaped(): void

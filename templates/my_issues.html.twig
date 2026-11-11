@@ -5,10 +5,10 @@
 {% block page_title %}{{ title }}{% endblock %}
 
 {% block content %}
-    <div class="border-b border-gray-100 bg-white px-4 sm:px-6 pt-3">
+    <div class="border-b border-line-subtle bg-surface px-4 sm:px-6 pt-3">
         <div class="flex flex-wrap items-center gap-3">
-            <h1 class="font-semibold text-gray-900 text-base">{{ 'my_issues.heading'|trans }}</h1>
-            <nav class="ml-auto flex items-center gap-1 border-b border-gray-200" aria-label="{{ 'my_issues.heading'|trans }}">
+            <h1 class="font-semibold text-strong text-base">{{ 'my_issues.heading'|trans }}</h1>
+            <nav class="ml-auto flex items-center gap-1 border-b border-line" aria-label="{{ 'my_issues.heading'|trans }}">
                 <twig:Ui:Tab href="{{ path('app_my_issues_assigned') }}" :active="list == 'assigned'">{{ 'nav.issues.assigned'|trans }}</twig:Ui:Tab>
                 <twig:Ui:Tab href="{{ path('app_my_issues_created') }}" :active="list == 'created'">{{ 'nav.issues.created'|trans }}</twig:Ui:Tab>
             </nav>

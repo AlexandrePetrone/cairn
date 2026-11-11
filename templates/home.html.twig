@@ -7,16 +7,16 @@
         <div class="flex items-center gap-3">
             <twig:Ui:Avatar :name="app.user.fullName" :kind="app.user.internal ? 'internal' : 'external'" size="2xl" />
             <div>
-                <h1 class="text-xl font-semibold text-gray-900">{{ 'home.greeting'|trans({ '%name%': app.user.firstName }) }}</h1>
-                <div class="text-xs text-gray-500">{{ 'home.assigned_count'|trans({ '%count%': assigned.total }) }}</div>
+                <h1 class="text-xl font-semibold text-strong">{{ 'home.greeting'|trans({ '%name%': app.user.firstName }) }}</h1>
+                <div class="text-xs text-muted">{{ 'home.assigned_count'|trans({ '%count%': assigned.total }) }}</div>
             </div>
         </div>
 
         <section>
             <div class="mb-2 flex items-center gap-2">
-                <h2 class="font-semibold text-gray-900">{{ 'home.projects.title'|trans }}</h2>
-                <span class="text-xs text-gray-400">{{ 'home.projects.hint'|trans }}</span>
-                <a href="{{ path('app_projects') }}" class="ml-auto text-xs text-indigo-600 hover:underline">{{ 'home.projects.all'|trans }}</a>
+                <h2 class="font-semibold text-strong">{{ 'home.projects.title'|trans }}</h2>
+                <span class="text-xs text-faint">{{ 'home.projects.hint'|trans }}</span>
+                <a href="{{ path('app_projects') }}" class="ml-auto text-xs text-brand hover:underline">{{ 'home.projects.all'|trans }}</a>
             </div>
             {% if projects is empty %}
                 <twig:Ui:EmptyState :title="'home.projects.empty'|trans" icon="folders" bordered>{{ 'home.projects.empty_hint'|trans }}</twig:Ui:EmptyState>
@@ -33,9 +33,9 @@
         </section>
 
         {% if waiting is not empty or blocking is not empty %}
-            <section class="rounded-lg border border-amber-200 bg-amber-50/60">
-                <h2 class="px-4 pt-3 pb-2 text-sm font-semibold text-amber-900">{{ 'home.signals.title'|trans }}</h2>
-                <ul class="divide-y divide-amber-100 border-t border-amber-200 bg-white rounded-b-lg">
+            <section class="rounded-lg border border-amber-line bg-amber-soft/60">
+                <h2 class="px-4 pt-3 pb-2 text-sm font-semibold text-amber">{{ 'home.signals.title'|trans }}</h2>
+                <ul class="divide-y divide-amber-line border-t border-amber-line bg-surface rounded-b-lg">
                     {% for issue in blocking %}{{ include('issue/_row.html.twig', { reason: 'home.signals.blocking'|trans }) }}{% endfor %}
                     {% for issue in waiting %}{{ include('issue/_row.html.twig', { reason: 'home.signals.waiting'|trans }) }}{% endfor %}
                 </ul>
@@ -50,7 +50,7 @@
                 {% if list.issues.items is empty %}
                     <twig:Ui:EmptyState :title="'home.issues_empty'|trans" size="sm" />
                 {% else %}
-                    <ul class="divide-y divide-gray-100">
+                    <ul class="divide-y divide-line-subtle">
                         {% for issue in list.issues.items|slice(0, 6) %}{{ include('issue/_row.html.twig', { reason: null }) }}{% endfor %}
                     </ul>
                 {% endif %}

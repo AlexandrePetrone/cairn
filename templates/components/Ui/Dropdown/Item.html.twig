@@ -1,11 +1,11 @@
 {# A line of a dropdown menu: a link with `href`, a button without (for a live action). #}
 {% props href = null, icon = null, active = false %}
 {% set dropdownItemClasses = html_cva(
-    base: 'flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-gray-50',
-    variants: { active: { true: 'text-indigo-700', false: 'text-gray-700' } },
+    base: 'flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-subtle',
+    variants: { active: { true: 'text-brand', false: 'text-body' } },
 ) %}
 {% set dropdownItemTag = href ? 'a' : 'button' %}
 <{{ dropdownItemTag }} {% if href %}href="{{ href }}"{% else %}type="button"{% endif %} class="{{ dropdownItemClasses.apply({ active: active }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
-    {% if icon %}{{ ux_icon('lucide:' ~ icon, { class: 'h-4 w-4 text-gray-400' }) }}{% endif %}
+    {% if icon %}{{ ux_icon('lucide:' ~ icon, { class: 'h-4 w-4 text-faint' }) }}{% endif %}
     {% block content %}{% endblock %}
 </{{ dropdownItemTag }}>

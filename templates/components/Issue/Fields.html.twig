@@ -7,7 +7,7 @@
         <twig:Ui:Section :title="'issue.show.fields'|trans({ '%tracker%': issue.tracker.name })" icon="sliders-horizontal" :foldable="not editing">
             <twig:block name="actions">
                 {% if fieldsCanEdit and not editing %}
-                    <button type="button" data-action="live#action" data-live-action-param="edit" class="shrink-0 text-xs text-indigo-600 hover:underline">{{ 'issue.edit.edit'|trans }}</button>
+                    <button type="button" data-action="live#action" data-live-action-param="edit" class="shrink-0 text-xs text-brand hover:underline">{{ 'issue.edit.edit'|trans }}</button>
                 {% endif %}
             </twig:block>
             <twig:block name="content">
@@ -21,15 +21,15 @@
                         </div>
                     {{ form_end(form) }}
                 {% elseif fieldsValues is empty %}
-                    <p class="text-xs text-gray-400">{{ 'issue.show.no_fields'|trans }}</p>
+                    <p class="text-xs text-faint">{{ 'issue.show.no_fields'|trans }}</p>
                 {% else %}
                     <dl class="space-y-1.5 text-[13px]">
                         {% for fieldValue in fieldsValues %}
                             <div class="flex items-start gap-3">
-                                <dt class="w-22 shrink-0 pt-0.5 text-xs text-gray-500">{{ fieldValue.field.label }}</dt>
-                                <dd class="min-w-0 flex-1 break-words text-gray-800">
+                                <dt class="w-22 shrink-0 pt-0.5 text-xs text-muted">{{ fieldValue.field.label }}</dt>
+                                <dd class="min-w-0 flex-1 break-words text-body">
                                     {% if fieldValue.field.type.value == 'url' %}
-                                        <a href="{{ fieldValue.value }}" class="break-all text-indigo-600 hover:underline" rel="noopener noreferrer" target="_blank">{{ fieldValue.value|replace({ 'https://': '', 'http://': '' }) }}</a>
+                                        <a href="{{ fieldValue.value }}" class="break-all text-brand hover:underline" rel="noopener noreferrer" target="_blank">{{ fieldValue.value|replace({ 'https://': '', 'http://': '' }) }}</a>
                                     {% elseif fieldValue.field.type.value == 'date' %}
                                         {{ fieldValue.value|date('d/m/Y') }}
                                     {% elseif fieldValue.field.type.value == 'bool' %}

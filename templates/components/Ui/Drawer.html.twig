@@ -1,17 +1,17 @@
 {# Right-hand panel driven by the `drawer` controller; the opening trigger goes in block `trigger`, with data-action="drawer#open". #}
 {% props title %}
-{% set drawerPanelClasses = html_cva(base: 'fixed inset-y-0 right-0 z-50 w-full sm:w-[30rem] translate-x-full bg-white shadow-2xl border-l border-gray-200 transition-transform duration-200 flex flex-col') %}
+{% set drawerPanelClasses = html_cva(base: 'fixed inset-y-0 right-0 z-50 w-full sm:w-[30rem] translate-x-full bg-overlay shadow-2xl border-l border-line transition-transform duration-200 flex flex-col') %}
 <div data-controller="drawer" {{ attributes.without('class') }}>
     {% block trigger %}{% endblock %}
     <div data-drawer-target="backdrop" data-action="click->drawer#close" class="hidden fixed inset-0 z-40 bg-black/10"></div>
     <div data-drawer-target="panel" class="{{ drawerPanelClasses.apply({}, attributes.render('class'))|tailwind_merge }}" role="dialog" aria-label="{{ title }}">
-        <div class="flex items-center gap-2 border-b border-gray-200 px-4 h-12">
-            <h2 class="font-semibold text-gray-900">{{ title }}</h2>
-            <button type="button" data-action="drawer#close" class="ml-auto rounded p-1 text-gray-500 hover:bg-gray-100" aria-label="{{ 'action.close'|trans }}"><twig:ux:icon name="lucide:x" class="h-4 w-4" /></button>
+        <div class="flex items-center gap-2 border-b border-line px-4 h-12">
+            <h2 class="font-semibold text-strong">{{ title }}</h2>
+            <button type="button" data-action="drawer#close" class="ml-auto rounded p-1 text-muted hover:bg-sunken" aria-label="{{ 'action.close'|trans }}"><twig:ux:icon name="lucide:x" class="h-4 w-4" /></button>
         </div>
         <div class="flex-1 overflow-y-auto p-4 space-y-5">{% block content %}{% endblock %}</div>
         {% if block('footer') is not empty %}
-            <div class="border-t border-gray-200 px-4 py-3 flex items-center gap-3">{% block footer %}{% endblock %}</div>
+            <div class="border-t border-line px-4 py-3 flex items-center gap-3">{% block footer %}{% endblock %}</div>
         {% endif %}
     </div>
 </div>

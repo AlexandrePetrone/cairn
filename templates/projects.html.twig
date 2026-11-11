@@ -5,7 +5,7 @@
 {% block content %}
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 space-y-4">
         <div class="flex flex-wrap items-center gap-3">
-            <h1 class="text-xl font-semibold text-gray-900">{{ 'projects.title'|trans }}</h1>
+            <h1 class="text-xl font-semibold text-strong">{{ 'projects.title'|trans }}</h1>
             <form method="get" action="{{ path('app_projects') }}" class="ml-auto w-full sm:w-72">
                 <twig:Ui:Filter:Search :value="q" :placeholder="'projects.search'|trans" class="w-full" />
             </form>
@@ -13,26 +13,26 @@
 
         {% for group in groups %}
             {% set workspace = group|first.project.workspace %}
-            <section class="rounded-lg border border-gray-200 bg-white overflow-hidden {{ workspace.archived ? 'opacity-70' }}">
-                <header class="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-                    <h2 class="font-semibold text-gray-900">{{ workspace.name }}</h2>
+            <section class="rounded-lg border border-line bg-surface overflow-hidden {{ workspace.archived ? 'opacity-70' }}">
+                <header class="flex items-center gap-2 px-4 py-2.5 bg-subtle border-b border-line-subtle">
+                    <h2 class="font-semibold text-strong">{{ workspace.name }}</h2>
                     <twig:Ui:Chip tone="white">{{ workspace.key }}</twig:Ui:Chip>
                     {% if workspace.archived %}<twig:Ui:Badge size="sm">{{ 'project.summary.archived'|trans }}</twig:Ui:Badge>{% endif %}
-                    <span class="ml-auto text-xs text-gray-400">{{ 'projects.count'|trans({ '%count%': group|length }) }}</span>
+                    <span class="ml-auto text-xs text-faint">{{ 'projects.count'|trans({ '%count%': group|length }) }}</span>
                 </header>
-                <ul class="divide-y divide-gray-100">
+                <ul class="divide-y divide-line-subtle">
                     {% for summary in group %}
                         {% set project = summary.project %}
                         <li>
-                            <a href="{{ path('app_project_issues', { workspaceKey: workspace.key, projectKey: project.key }) }}" class="group flex items-center gap-3 px-4 py-2.5 hover:bg-indigo-50/40">
+                            <a href="{{ path('app_project_issues', { workspaceKey: workspace.key, projectKey: project.key }) }}" class="group flex items-center gap-3 px-4 py-2.5 hover:bg-brand-soft/40">
                                 <twig:Ui:Chip class="w-16 text-center shrink-0">{{ project.issuePrefix }}</twig:Ui:Chip>
-                                <span class="truncate font-medium {{ project.readOnly ? 'text-gray-500' : 'text-gray-900' }} group-hover:text-indigo-700">{{ project.name }}</span>
+                                <span class="truncate font-medium {{ project.readOnly ? 'text-muted' : 'text-strong' }} group-hover:text-brand">{{ project.name }}</span>
                                 {% if project.archived %}<twig:Ui:Badge size="sm">{{ 'project.summary.read_only'|trans }}</twig:Ui:Badge>{% endif %}
-                                <span class="ml-auto hidden sm:inline-flex items-center gap-2 text-xs text-gray-500">
+                                <span class="ml-auto hidden sm:inline-flex items-center gap-2 text-xs text-muted">
                                     {% if summary.waiting %}<span class="inline-flex items-center gap-1" title="{{ 'project.summary.waiting'|trans }}"><twig:Ui:Status:Dot status="waiting" />{{ summary.waiting }}</span>{% endif %}
-                                    {% if summary.blocking %}<span class="inline-flex items-center gap-1 text-red-600" title="{{ 'project.summary.blocking'|trans }}">▲ {{ summary.blocking }}</span>{% endif %}
+                                    {% if summary.blocking %}<span class="inline-flex items-center gap-1 text-red" title="{{ 'project.summary.blocking'|trans }}">▲ {{ summary.blocking }}</span>{% endif %}
                                 </span>
-                                <span class="w-24 text-right text-xs tabular-nums {{ summary.open ? 'text-gray-700' : 'text-gray-300' }}">{{ 'project.summary.open'|trans({ '%count%': summary.open }) }}</span>
+                                <span class="w-24 text-right text-xs tabular-nums {{ summary.open ? 'text-body' : 'text-ghost' }}">{{ 'project.summary.open'|trans({ '%count%': summary.open }) }}</span>
                             </a>
                         </li>
                     {% endfor %}

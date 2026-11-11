@@ -760,6 +760,34 @@ src/
   off in `test`), so they need no build.
 - Tailwind v4, configured in CSS (`assets/styles/app.css`: `@theme`, `@utility`,
   `@source`), built by Vite with `@tailwindcss/vite`. No `tailwind.config.js`.
+- **Colours are roles, light and dark.** Every colour is a token of
+  `@theme` in `app.css`, one per line, with its light and its dark value
+  (`--color-surface: light-dark(#ffffff, #161b22)`): grounds (`canvas`,
+  `surface`, `overlay` for what floats, `subtle` for hovers, `sunken`,
+  `raised`, `inverse`), text (`strong`, `body`, `muted`, `faint` for icons
+  and counts, `ghost` for separators, `on-inverse`), lines (`line-subtle`,
+  `line`, `line-strong`), the brand (`brand` for text, `brand-solid`,
+  `brand-soft`, `brand-line`, `focus`) and one family per tone (`red`,
+  `red-soft`, `red-line`, `red-solid`; blue, amber, emerald, violet,
+  orange, sky). Templates and controllers write `bg-surface text-muted`,
+  never a step of the palette (`bg-white`, `text-gray-500`): those would
+  stay the same in the dark theme, and `PaletteClassesTest` refuses them.
+  Slate is the colour of what is dark in both themes (the header, code
+  blocks); white text sits on solid fills. A new role comes with both
+  values and its pairs in `ColourRolesTest`, which checks the contrast of
+  each text on each ground it is written on, in both themes. Markdown
+  (`.prose`), fields left without classes (`@tailwindcss/forms`) and the
+  workflow diagram (`MermaidDiagram` names the roles, the
+  `workflow-diagram` controller resolves them) read the same roles.
+  Mails keep their inline light colours.
+- **The theme is the system's unless chosen.** `color-scheme` on `<html>`
+  picks the side of every `light-dark()`: `light dark` by default, one of
+  them when `data-theme` is set. The choice (light, dark, system) is a rail
+  of the user menu (`Layout:Header`, the `theme` controller), kept by the
+  browser in the `cairn_theme` cookie, not on the account; `base.html.twig`
+  renders `data-theme` from it (`theme_choice()`, `Twig/ThemeExtension`),
+  so a page never starts in the other theme and the sign-in pages follow
+  it too. Turbo keeps the attributes of `<html>` across visits.
 - UI elements are **anonymous Twig components** in `templates/components/Ui/`,
   grouped in folders (`Status/`, `Form/`, `Filter/`…), with `{% props %}`,
   and used with the `Ui:` prefix (`<twig:Ui:Button>`, `<twig:Ui:Form:Input>`).
@@ -814,7 +842,10 @@ src/
   Shared data lives in `storia/data/`. The
   catalogue is at `/storia`, reloaded live by the `storia` service. Its
   snapshots in `tests/storia/snapshots/` run with the test suite; review a
-  diff before `castor qa:storia --update`.
+  diff before `castor qa:storia --update`. The bundle has no theme switch: its
+  previews follow the system, so the dark theme is seen in Storia by
+  switching the system's, or with the DevTools' `prefers-color-scheme`
+  emulation; the snapshots hold classes, not colours.
 - Symfony forms render through `templates/form/theme.html.twig`, registered
   globally in `config/packages/twig.yaml`: each block (`form_row`,
   `form_widget_simple`, `textarea_widget`, `choice_widget_collapsed`,
@@ -944,7 +975,7 @@ src/
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`, `dialog`,
   `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`,
   `workflow-diagram`, `sortable`, `list-filter`, `combobox`, `board`,
-  `load-more`, `clipboard`, `filters`, `selection`, `fold`, `list-view`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
+  `load-more`, `clipboard`, `filters`, `selection`, `fold`, `list-view`, `theme`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
   (`editor` with TipTap, `workflow-diagram` with Mermaid, `board` with
   SortableJS) so that Vite
   splits its imports into chunks only fetched on a page that uses it; write a new one when a component needs it, not before. No

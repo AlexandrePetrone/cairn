@@ -2,7 +2,7 @@
 {% props openLabel, closedLabel, open = false %}
 {% set disclosureClasses = html_cva(base: 'group') %}
 <details class="{{ disclosureClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ open ? 'open' }} {{ attributes }}>
-    <summary class="list-none cursor-pointer inline-flex items-center gap-1 text-xs text-indigo-600 hover:underline">
+    <summary class="list-none cursor-pointer inline-flex items-center gap-1 text-xs text-brand hover:underline">
         <span class="group-open:hidden">{{ closedLabel }}</span>
         <span class="hidden group-open:inline">{{ openLabel }}</span>
         <twig:ux:icon name="lucide:chevron-down" class="h-3 w-3 transition group-open:rotate-180" />

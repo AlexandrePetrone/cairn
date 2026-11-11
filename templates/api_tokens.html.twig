@@ -9,27 +9,27 @@
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-5 space-y-5">
         <div class="flex flex-wrap items-start gap-3">
             <div class="min-w-0 flex-1">
-                <h1 class="text-xl font-semibold text-gray-900">{{ 'api_token.title'|trans }}</h1>
-                <p class="mt-1 max-w-2xl text-sm text-gray-600">{{ 'api_token.intro'|trans }}</p>
+                <h1 class="text-xl font-semibold text-strong">{{ 'api_token.title'|trans }}</h1>
+                <p class="mt-1 max-w-2xl text-sm text-muted">{{ 'api_token.intro'|trans }}</p>
             </div>
             <twig:Ui:Button icon="book-open" href="{{ path('api_doc') }}" data-turbo="false">{{ 'api_token.documentation'|trans }}</twig:Ui:Button>
         </div>
 
         {% for tokenSecret in tokenSecrets %}
-            <section class="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4" role="status">
-                <div class="flex items-center gap-2 text-emerald-900">
+            <section class="rounded-lg border border-emerald-line bg-emerald-soft/60 p-4" role="status">
+                <div class="flex items-center gap-2 text-emerald">
                     <twig:ux:icon name="lucide:key-round" class="h-4 w-4" />
                     <h2 class="font-semibold">{{ 'api_token.created.title'|trans }}</h2>
                 </div>
-                <p class="mt-1 text-sm text-emerald-900/80">{{ 'api_token.created.hint'|trans }}</p>
+                <p class="mt-1 text-sm text-emerald/80">{{ 'api_token.created.hint'|trans }}</p>
                 <div class="mt-3 flex items-stretch gap-2" data-controller="clipboard">
-                    <code class="min-w-0 flex-1 select-all break-all rounded-md bg-white px-3 py-2 font-mono text-sm text-gray-900 ring-1 ring-inset ring-emerald-200" data-clipboard-target="source" data-test="api-token-secret">{{ tokenSecret }}</code>
+                    <code class="min-w-0 flex-1 select-all break-all rounded-md bg-surface px-3 py-2 font-mono text-sm text-strong ring-1 ring-inset ring-emerald-line" data-clipboard-target="source" data-test="api-token-secret">{{ tokenSecret }}</code>
                     <twig:Ui:Button variant="primary" icon="copy" data-action="clipboard#copy">
                         <span data-clipboard-target="idle">{{ 'api_token.created.copy'|trans }}</span>
                         <span data-clipboard-target="done" hidden>{{ 'api_token.created.copied'|trans }}</span>
                     </twig:Ui:Button>
                 </div>
-                <p class="mt-3 text-xs text-emerald-900/80">{{ 'api_token.created.usage'|trans }}</p>
+                <p class="mt-3 text-xs text-emerald/80">{{ 'api_token.created.usage'|trans }}</p>
                 <div class="mt-1 flex items-start gap-2" data-controller="clipboard">
                     <pre class="min-w-0 flex-1 overflow-x-auto rounded-md bg-slate-900 px-3 py-2 font-mono text-xs text-slate-100" data-clipboard-target="source">curl -H "Authorization: Bearer {{ tokenSecret }}" {{ url('app_home') }}api/me</pre>
                     <twig:Ui:IconButton icon="copy" :label="'api_token.created.copy'|trans" data-action="clipboard#copy" />
@@ -40,16 +40,16 @@
         <div class="grid gap-5 items-start lg:grid-cols-[1fr_22rem]">
             <div class="space-y-5 min-w-0">
                 <twig:Ui:Panel :title="'api_token.active'|trans" :count="active|length">
-                    <ul class="divide-y divide-gray-100">
+                    <ul class="divide-y divide-line-subtle">
                         {% for token in active %}
                             <li class="px-4 py-3">
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <twig:ux:icon name="lucide:key-round" class="h-4 w-4 shrink-0 text-gray-400" />
-                                    <span class="font-medium text-gray-900">{{ token.name }}</span>
+                                    <twig:ux:icon name="lucide:key-round" class="h-4 w-4 shrink-0 text-faint" />
+                                    <span class="font-medium text-strong">{{ token.name }}</span>
                                     <twig:Ui:Badge :tone="token.scope.value == 'write' ? 'amber' : 'gray'" size="sm">{{ ('api_token.scope.' ~ token.scope.value)|trans }}</twig:Ui:Badge>
-                                    <span class="ml-auto text-xs text-gray-500">{{ token.expiresAt ? 'api_token.expires_on'|trans({ '%date%': token.expiresAt|date('d/m/Y') }) : 'api_token.no_expiry'|trans }}</span>
+                                    <span class="ml-auto text-xs text-muted">{{ token.expiresAt ? 'api_token.expires_on'|trans({ '%date%': token.expiresAt|date('d/m/Y') }) : 'api_token.no_expiry'|trans }}</span>
                                 </div>
-                                <p class="mt-1 pl-6 text-xs text-gray-500">
+                                <p class="mt-1 pl-6 text-xs text-muted">
                                     {{ 'api_token.created_on'|trans({ '%date%': token.createdAt|date('d/m/Y') }) }}
                                     · {{ token.lastUsedAt ? 'api_token.last_used'|trans({ '%date%': token.lastUsedAt|date('d/m/Y H:i') }) : 'api_token.never_used'|trans }}
                                 </p>
@@ -71,10 +71,10 @@
 
                 {% if past is not empty %}
                     <twig:Ui:Panel :title="'api_token.past'|trans" :count="past|length" muted>
-                        <ul class="divide-y divide-gray-100 text-sm" data-test="api-tokens-past">
+                        <ul class="divide-y divide-line-subtle text-sm" data-test="api-tokens-past">
                             {% for token in past %}
-                                <li class="flex flex-wrap items-center gap-2 px-4 py-2 text-gray-500">
-                                    <span class="font-medium line-through decoration-gray-300">{{ token.name }}</span>
+                                <li class="flex flex-wrap items-center gap-2 px-4 py-2 text-muted">
+                                    <span class="font-medium line-through decoration-line-strong">{{ token.name }}</span>
                                     <twig:Ui:Badge size="sm">{{ ('api_token.scope.' ~ token.scope.value)|trans }}</twig:Ui:Badge>
                                     <span class="ml-auto text-xs">
                                         {{ token.revoked ? 'api_token.revoked_on'|trans({ '%date%': token.revokedAt|date('d/m/Y') }) : 'api_token.expired_on'|trans({ '%date%': token.expiresAt|date('d/m/Y') }) }}
@@ -86,8 +86,8 @@
                 {% endif %}
             </div>
 
-            {{ form_start(form, { attr: { class: 'rounded-lg border border-gray-200 bg-white p-4 space-y-4 lg:sticky lg:top-16' } }) }}
-                <h2 class="font-semibold text-gray-900">{{ 'api_token.new'|trans }}</h2>
+            {{ form_start(form, { attr: { class: 'rounded-lg border border-line bg-surface p-4 space-y-4 lg:sticky lg:top-16' } }) }}
+                <h2 class="font-semibold text-strong">{{ 'api_token.new'|trans }}</h2>
                 {{ form_errors(form) }}
                 {{ form_row(form.name) }}
                 {{ form_row(form.scope) }}

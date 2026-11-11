@@ -1,23 +1,23 @@
 <div class="group/filter relative" data-controller="dropdown" data-filter-menu data-active >
-    <button type="button" data-action="dropdown#toggle" aria-expanded="false" class="inline-flex h-7 items-center gap-1 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-700 hover:bg-gray-50 group-data-[active]/filter:border-indigo-300 group-data-[active]/filter:bg-indigo-50">
+    <button type="button" data-action="dropdown#toggle" aria-expanded="false" class="inline-flex h-7 items-center gap-1 rounded-md border border-line bg-surface px-2 text-xs text-body hover:bg-subtle group-data-[active]/filter:border-brand-line group-data-[active]/filter:bg-brand-soft">
         Criticality
-        <span class="text-indigo-700 font-medium" data-filter-menu-count >1</span>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" height="1em" width="1em" class="h-3 w-3 text-gray-400" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9l6 6l6-6"></path></svg>
+        <span class="text-brand font-medium" data-filter-menu-count >1</span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" height="1em" width="1em" class="h-3 w-3 text-faint" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9l6 6l6-6"></path></svg>
     </button>
-    <div data-dropdown-target="menu" class="hidden absolute top-8 z-30 w-60 rounded-lg border border-gray-200 bg-white shadow-xl left-0">
+    <div data-dropdown-target="menu" class="hidden absolute top-8 z-30 w-60 rounded-lg border border-line bg-overlay shadow-xl left-0">
         <div class="py-1 max-h-64 overflow-y-auto">
-                    <label class="flex items-center gap-2 px-2.5 py-1.5 text-sm hover:bg-gray-50 cursor-pointer" >
-    <input type="checkbox"  name="criticality[]" value="blocking" checked class="h-3.5 w-3.5 border-gray-300 text-indigo-600 rounded">
+                    <label class="flex items-center gap-2 px-2.5 py-1.5 text-sm hover:bg-subtle cursor-pointer" >
+    <input type="checkbox"  name="criticality[]" value="blocking" checked class="h-3.5 w-3.5 border-line-strong text-brand rounded">
     <span class="flex-1 min-w-0 flex items-center gap-2 truncate">Blocking</span>
-    <span class="text-xs text-gray-400 tabular-nums">1</span></label>
-            <label class="flex items-center gap-2 px-2.5 py-1.5 text-sm hover:bg-gray-50 cursor-pointer" >
-    <input type="checkbox"  name="criticality[]" value="high"  class="h-3.5 w-3.5 border-gray-300 text-indigo-600 rounded">
+    <span class="text-xs text-faint tabular-nums">1</span></label>
+            <label class="flex items-center gap-2 px-2.5 py-1.5 text-sm hover:bg-subtle cursor-pointer" >
+    <input type="checkbox"  name="criticality[]" value="high"  class="h-3.5 w-3.5 border-line-strong text-brand rounded">
     <span class="flex-1 min-w-0 flex items-center gap-2 truncate">High</span>
-    <span class="text-xs text-gray-400 tabular-nums">2</span></label>
-            <label class="flex items-center gap-2 px-2.5 py-1.5 text-sm hover:bg-gray-50 cursor-pointer" >
-    <input type="checkbox"  name="criticality[]" value="normal"  class="h-3.5 w-3.5 border-gray-300 text-indigo-600 rounded">
+    <span class="text-xs text-faint tabular-nums">2</span></label>
+            <label class="flex items-center gap-2 px-2.5 py-1.5 text-sm hover:bg-subtle cursor-pointer" >
+    <input type="checkbox"  name="criticality[]" value="normal"  class="h-3.5 w-3.5 border-line-strong text-brand rounded">
     <span class="flex-1 min-w-0 flex items-center gap-2 truncate">Normal</span>
-    <span class="text-xs text-gray-400 tabular-nums">9</span></label>
+    <span class="text-xs text-faint tabular-nums">9</span></label>
             </div>
     </div>
 </div>

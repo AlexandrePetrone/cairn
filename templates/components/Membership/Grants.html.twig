@@ -1,29 +1,29 @@
 {# The memberships of a workspace or a project (one row per person) or of a user (one row per workspace or project). The role of a row is a select bound to `roles`, applied on change; removing a row asks for a confirmation in place; a member still waiting for their password can be invited again. The add form closes the list: the administration picks a person, or a workspace or a project, in a searchable list; on a project, someone is added by email. On a project, the roles inherited from the workspace come first, read-only. #}
-{% set grantsSelectClasses = 'h-8 rounded-md border border-gray-300 bg-white py-0 pl-2 pr-8 text-sm text-gray-700 focus:border-indigo-400 focus:outline-none focus:ring-0' %}
+{% set grantsSelectClasses = 'h-8 rounded-md border border-line-strong bg-surface py-0 pl-2 pr-8 text-sm text-body focus:border-focus focus:outline-none focus:ring-0' %}
 {% set grantsMemberships = this.memberships %}
 {% set grantsInherited = this.inherited %}
 {% set grantsAdmin = is_granted('ROLE_ADMIN') %}
 <div {{ attributes }} class="space-y-4" data-loading="addClass(opacity-60)">
 {% if project %}
-    <section class="rounded-lg border border-gray-200 bg-white">
-        <header class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gray-50/60 rounded-t-lg">
-            <h2 class="font-semibold text-gray-900">{{ 'project.access.inherited'|trans({ '%workspace%': project.workspace.name }) }}</h2>
-            <span class="text-xs text-gray-400">{{ grantsInherited|length }}</span>
+    <section class="rounded-lg border border-line bg-surface">
+        <header class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-line-subtle bg-subtle/60 rounded-t-lg">
+            <h2 class="font-semibold text-strong">{{ 'project.access.inherited'|trans({ '%workspace%': project.workspace.name }) }}</h2>
+            <span class="text-xs text-faint">{{ grantsInherited|length }}</span>
             {% if grantsAdmin %}
-                <a href="{{ path('app_admin_workspace_access', { key: project.workspace.key }) }}" class="ml-auto text-xs text-indigo-600 hover:underline">{{ 'project.access.edit_in_workspace'|trans }}</a>
+                <a href="{{ path('app_admin_workspace_access', { key: project.workspace.key }) }}" class="ml-auto text-xs text-brand hover:underline">{{ 'project.access.edit_in_workspace'|trans }}</a>
             {% endif %}
         </header>
         {% if grantsInherited is empty %}
-            <p class="px-4 py-4 text-center text-sm text-gray-400">{{ 'project.access.no_inherited'|trans }}</p>
+            <p class="px-4 py-4 text-center text-sm text-faint">{{ 'project.access.no_inherited'|trans }}</p>
         {% else %}
-            <ul class="divide-y divide-gray-100">
+            <ul class="divide-y divide-line-subtle">
                 {% for membership in grantsInherited %}
                     {% set grantsUser = membership.user %}
                     <li class="flex items-center gap-3 px-4 py-2">
                         <twig:Ui:Avatar :name="grantsUser.fullName" :kind="grantsUser.internal ? 'internal' : 'external'" size="lg" />
                         <div class="min-w-0 flex-1 leading-tight">
-                            <span class="block text-sm text-gray-900 truncate">{{ grantsUser.fullName }}</span>
-                            <span class="block text-xs text-gray-500 truncate">{{ grantsUser.email }}{% if grantsUser.company %} · {{ grantsUser.company }}{% endif %} · {{ (grantsUser.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</span>
+                            <span class="block text-sm text-strong truncate">{{ grantsUser.fullName }}</span>
+                            <span class="block text-xs text-muted truncate">{{ grantsUser.email }}{% if grantsUser.company %} · {{ grantsUser.company }}{% endif %} · {{ (grantsUser.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</span>
                         </div>
                         {% set grantsRoleLabel = this.roleLabel(membership.role) %}
                         <twig:Ui:Badge>{{ grantsRoleLabel }}</twig:Ui:Badge>
@@ -33,21 +33,21 @@
         {% endif %}
     </section>
 {% endif %}
-<section class="rounded-lg border border-gray-200 bg-white">
+<section class="rounded-lg border border-line bg-surface">
     {% if project %}
-        <header class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-100">
-            <h2 class="font-semibold text-gray-900">{{ 'project.access.direct'|trans }}</h2>
-            <span class="text-xs text-gray-400">{{ grantsMemberships|length }}</span>
-            <span class="text-xs text-gray-500">{{ 'project.access.direct_help'|trans }}</span>
+        <header class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-line-subtle">
+            <h2 class="font-semibold text-strong">{{ 'project.access.direct'|trans }}</h2>
+            <span class="text-xs text-faint">{{ grantsMemberships|length }}</span>
+            <span class="text-xs text-muted">{{ 'project.access.direct_help'|trans }}</span>
         </header>
     {% endif %}
     {% if error %}
         <twig:Ui:Callout tone="danger" size="sm" role="alert" class="m-3">{{ error }}</twig:Ui:Callout>
     {% endif %}
     {% if grantsMemberships is empty %}
-        <p class="px-4 py-6 text-center text-sm text-gray-400">{{ (project ? 'project.access.empty' : workspace ? 'admin.access.empty_workspace' : 'admin.access.empty_user')|trans }}</p>
+        <p class="px-4 py-6 text-center text-sm text-faint">{{ (project ? 'project.access.empty' : workspace ? 'admin.access.empty_workspace' : 'admin.access.empty_user')|trans }}</p>
     {% else %}
-        <ul class="divide-y divide-gray-100">
+        <ul class="divide-y divide-line-subtle">
             {% for membership in grantsMemberships %}
                 {% set grantsUser = membership.user %}
                 {% set grantsPending = (workspace or project) and grantsUser.awaitsPassword %}
@@ -59,22 +59,22 @@
                             <div class="min-w-0 flex-1 leading-tight">
                                 <span class="flex items-center gap-2">
                                     {% if grantsAdmin %}
-                                        <a href="{{ path('app_admin_user', { id: grantsUser.id }) }}" class="text-sm text-gray-900 hover:text-indigo-700 truncate">{{ grantsUser.fullName }}</a>
+                                        <a href="{{ path('app_admin_user', { id: grantsUser.id }) }}" class="text-sm text-strong hover:text-brand truncate">{{ grantsUser.fullName }}</a>
                                     {% else %}
-                                        <span class="text-sm text-gray-900 truncate">{{ grantsUser.fullName }}</span>
+                                        <span class="text-sm text-strong truncate">{{ grantsUser.fullName }}</span>
                                     {% endif %}
                                     {% if grantsPending %}<twig:Ui:Badge tone="amber" size="sm">{{ 'admin.user.state.invited'|trans }}</twig:Ui:Badge>{% endif %}
                                 </span>
-                                <span class="block text-xs text-gray-500 truncate">{{ grantsUser.email }}{% if grantsUser.company %} · {{ grantsUser.company }}{% endif %} · {{ (grantsUser.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}{% if grantsHeld %} · {{ 'project.access.inherits'|trans({ '%role%': this.roleLabel(grantsHeld.role) }) }}{% endif %}</span>
+                                <span class="block text-xs text-muted truncate">{{ grantsUser.email }}{% if grantsUser.company %} · {{ grantsUser.company }}{% endif %} · {{ (grantsUser.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}{% if grantsHeld %} · {{ 'project.access.inherits'|trans({ '%role%': this.roleLabel(grantsHeld.role) }) }}{% endif %}</span>
                             </div>
                         {% else %}
                             <div class="min-w-0 flex-1 flex items-center gap-2 text-sm">
                                 {% if membership.project %}
                                     <twig:Ui:Chip>{{ membership.project.issuePrefix }}</twig:Ui:Chip>
-                                    <span class="text-gray-900 truncate">{{ membership.project.name }}</span>
+                                    <span class="text-strong truncate">{{ membership.project.name }}</span>
                                 {% else %}
                                     <twig:Ui:Chip>{{ membership.workspace.key }}</twig:Ui:Chip>
-                                    <a href="{{ path('app_admin_workspace_access', { key: membership.workspace.key }) }}" class="text-gray-900 hover:text-indigo-700 truncate">{{ 'admin.access.whole_workspace'|trans({ '%name%': membership.workspace.name }) }}</a>
+                                    <a href="{{ path('app_admin_workspace_access', { key: membership.workspace.key }) }}" class="text-strong hover:text-brand truncate">{{ 'admin.access.whole_workspace'|trans({ '%name%': membership.workspace.name }) }}</a>
                                 {% endif %}
                             </div>
                         {% endif %}
@@ -95,7 +95,7 @@
                         </span>
                     </div>
                     {% if revoking == membership.id %}
-                        <div class="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alertdialog">
+                        <div class="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-red-line bg-red-soft px-3 py-2 text-sm text-red" role="alertdialog">
                             <span>{{ 'admin.access.revoke_confirm'|trans }}</span>
                             <span class="ml-auto flex items-center gap-2">
                                 <twig:Ui:Button variant="danger" size="sm" data-action="live#action" data-live-action-param="revoke" data-loading="addAttribute(disabled)">{{ 'admin.access.revoke'|trans }}</twig:Ui:Button>
@@ -111,22 +111,22 @@
         {# Someone is added by email: an account gets a role, an unknown address gets an account, a role and an invitation. #}
         {% set grantsState = this.matchState %}
         {% set grantsMatch = this.match %}
-        <form class="space-y-3 border-t border-gray-100 bg-gray-50/60 px-4 py-3 rounded-b-lg" data-action="live#action:prevent" data-live-action-param="{{ grantsState == 'new' ? 'invite' : 'grant' }}">
+        <form class="space-y-3 border-t border-line-subtle bg-subtle/60 px-4 py-3 rounded-b-lg" data-action="live#action:prevent" data-live-action-param="{{ grantsState == 'new' ? 'invite' : 'grant' }}">
             <twig:Ui:Form:Field :label="'project.access.email'|trans" for="grants-email" :help="grantsState == 'none' ? 'project.access.email_help'|trans : null" compact>
-                <twig:Ui:Form:Input type="email" id="grants-email" model="debounce(400)|email" :value="email" :placeholder="'project.access.email_placeholder'|trans" autocomplete="off" class="bg-white" />
+                <twig:Ui:Form:Input type="email" id="grants-email" model="debounce(400)|email" :value="email" :placeholder="'project.access.email_placeholder'|trans" autocomplete="off" class="bg-surface" />
             </twig:Ui:Form:Field>
             {% if grantsState == 'member' %}
-                <p class="text-sm text-gray-500">{{ 'project.access.already_member'|trans({ '%name%': grantsMatch.fullName }) }}</p>
+                <p class="text-sm text-muted">{{ 'project.access.already_member'|trans({ '%name%': grantsMatch.fullName }) }}</p>
             {% elseif grantsState == 'ceiling' %}
-                <p class="text-sm text-gray-500">{{ 'project.access.inherits_broadest'|trans({ '%name%': grantsMatch.fullName }) }}</p>
+                <p class="text-sm text-muted">{{ 'project.access.inherits_broadest'|trans({ '%name%': grantsMatch.fullName }) }}</p>
             {% elseif grantsState == 'deactivated' %}
-                <p class="text-sm text-gray-500">{{ 'project.access.deactivated'|trans({ '%name%': grantsMatch.fullName }) }}</p>
+                <p class="text-sm text-muted">{{ 'project.access.deactivated'|trans({ '%name%': grantsMatch.fullName }) }}</p>
             {% elseif grantsState == 'existing' %}
                 <div class="flex flex-wrap items-center gap-3">
                     <twig:Ui:Avatar :name="grantsMatch.fullName" :kind="grantsMatch.internal ? 'internal' : 'external'" size="lg" />
                     <div class="min-w-0 flex-1 leading-tight">
-                        <span class="block text-sm text-gray-900 truncate">{{ grantsMatch.fullName }}</span>
-                        <span class="block text-xs text-gray-500 truncate">{% if grantsMatch.company %}{{ grantsMatch.company }} · {% endif %}{{ (grantsMatch.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</span>
+                        <span class="block text-sm text-strong truncate">{{ grantsMatch.fullName }}</span>
+                        <span class="block text-xs text-muted truncate">{% if grantsMatch.company %}{{ grantsMatch.company }} · {% endif %}{{ (grantsMatch.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</span>
                     </div>
                     <select data-model="newRole" aria-label="{{ 'admin.access.role'|trans }}" class="{{ grantsSelectClasses }}">
                         <option value="">{{ 'admin.access.choose_role'|trans }}</option>
@@ -139,13 +139,13 @@
             {% elseif grantsState == 'new' %}
                 {% set grantsCompanies = this.companies %}
                 {% set grantsNewRoles = this.rolesFor(null, true) %}
-                <p class="text-xs text-gray-500">{{ 'project.access.new_account'|trans }}</p>
+                <p class="text-xs text-muted">{{ 'project.access.new_account'|trans }}</p>
                 <div class="grid sm:grid-cols-2 gap-3">
                     <twig:Ui:Form:Field :label="'admin.user.first_name'|trans" for="grants-first-name" required compact>
-                        <twig:Ui:Form:Input id="grants-first-name" model="norender|firstName" :value="firstName" autocomplete="off" class="bg-white" />
+                        <twig:Ui:Form:Input id="grants-first-name" model="norender|firstName" :value="firstName" autocomplete="off" class="bg-surface" />
                     </twig:Ui:Form:Field>
                     <twig:Ui:Form:Field :label="'admin.user.last_name'|trans" for="grants-last-name" required compact>
-                        <twig:Ui:Form:Input id="grants-last-name" model="norender|lastName" :value="lastName" autocomplete="off" class="bg-white" />
+                        <twig:Ui:Form:Input id="grants-last-name" model="norender|lastName" :value="lastName" autocomplete="off" class="bg-surface" />
                     </twig:Ui:Form:Field>
                 </div>
                 <twig:Ui:Form:Field :label="'admin.user.company'|trans" for="grants-company" optional compact>
@@ -163,7 +163,7 @@
             {% endif %}
         </form>
     {% else %}
-        <form class="flex flex-wrap items-center gap-2 border-t border-gray-100 bg-gray-50/60 px-4 py-3 rounded-b-lg" data-action="live#action:prevent" data-live-action-param="grant">
+        <form class="flex flex-wrap items-center gap-2 border-t border-line-subtle bg-subtle/60 px-4 py-3 rounded-b-lg" data-action="live#action:prevent" data-live-action-param="grant">
             {% if workspace %}
                 {% set grantsNewUser = this.newUser %}
                 {% set grantsCandidates = this.candidates %}
@@ -172,7 +172,7 @@
                         <twig:Ui:Dropdown:Item :active="candidate.id == newUserId" data-list-filter-target="item" data-text="{{ candidate.fullName }} {{ candidate.email }} {{ candidate.company }}" data-action="live#action dropdown#close" data-live-action-param="chooseUser" data-live-user-param="{{ candidate.id }}">
                             <twig:Ui:Avatar :name="candidate.fullName" :kind="candidate.internal ? 'internal' : 'external'" size="sm" />
                             <span class="min-w-0 flex-1 truncate">{{ candidate.fullName }}</span>
-                            <span class="text-xs text-gray-400 truncate">{{ candidate.company ?? (candidate.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</span>
+                            <span class="text-xs text-faint truncate">{{ candidate.company ?? (candidate.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</span>
                         </twig:Ui:Dropdown:Item>
                     {% endfor %}
                 </twig:Ui:Picker>
@@ -192,7 +192,7 @@
                                 <twig:Ui:Dropdown:Item :active="newTarget == 'project-' ~ grantsProject.id" data-list-filter-target="item" data-text="{{ grantsProject.name }} {{ grantsProject.issuePrefix }} {{ grantsWorkspace.name }}" data-action="live#action dropdown#close" data-live-action-param="chooseTarget" data-live-target-param="project-{{ grantsProject.id }}">
                                     <twig:Ui:Chip class="shrink-0">{{ grantsProject.issuePrefix }}</twig:Ui:Chip>
                                     <span class="truncate">{{ grantsProject.name }}</span>
-                                    {% if grantsProject.readOnly %}<twig:ux:icon name="lucide:archive" class="ml-auto h-3.5 w-3.5 shrink-0 text-gray-400" />{% endif %}
+                                    {% if grantsProject.readOnly %}<twig:ux:icon name="lucide:archive" class="ml-auto h-3.5 w-3.5 shrink-0 text-faint" />{% endif %}
                                 </twig:Ui:Dropdown:Item>
                             {% endfor %}
                         </twig:Ui:Picker:Group>

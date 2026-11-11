@@ -19,7 +19,7 @@
             <twig:Ui:Dialog :title="'issue.move.title'|trans({ '%key%': issue.key })" closeAction="cancel">
                 <twig:block name="description"><p class="truncate">{{ issue.title }}</p></twig:block>
                 {% if moveChangesTracker %}
-                    <label class="block text-sm text-gray-700">{{ 'issue.move.tracker'|trans }}
+                    <label class="block text-sm text-body">{{ 'issue.move.tracker'|trans }}
                         <twig:Ui:Form:Select model="trackerId">
                             {% for tracker in moveTrackers %}
                                 <option value="{{ tracker.id }}" {{ moveTracker and tracker.id == moveTracker.id ? 'selected' }}>{{ tracker.name }}</option>
@@ -27,7 +27,7 @@
                         </twig:Ui:Form:Select>
                     </label>
                 {% endif %}
-                <label class="block text-sm text-gray-700">{{ 'issue.move.place'|trans }}
+                <label class="block text-sm text-body">{{ 'issue.move.place'|trans }}
                     <twig:Ui:Form:Select model="placeId">
                         {% for place in movePlaces %}
                             <option value="{{ place.id }}" {{ place.id == placeId ? 'selected' }}>{{ place.label }}</option>

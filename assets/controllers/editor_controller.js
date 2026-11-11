@@ -258,7 +258,7 @@ export default class extends Controller {
                     selected = 0;
                     this.popup ??= Object.assign(document.createElement('div'), {
                         role: 'listbox',
-                        className: 'fixed z-50 w-80 max-w-[calc(100vw-2rem)] rounded-md border border-gray-200 bg-white p-1 shadow-lg',
+                        className: 'fixed z-50 w-80 max-w-[calc(100vw-2rem)] rounded-md border border-line bg-overlay p-1 shadow-lg',
                     });
                     document.body.append(this.popup);
                     draw(props);
@@ -296,11 +296,11 @@ export default class extends Controller {
         option.role = 'option';
         option.id = `${this.element.id || 'editor'}-option-${id}`;
         option.setAttribute('aria-selected', String(selected));
-        option.className = `flex w-full items-baseline gap-2 rounded px-2 py-1.5 text-left text-sm ${selected ? 'bg-indigo-50 text-indigo-900' : 'text-gray-700 hover:bg-gray-50'}`;
+        option.className = `flex w-full items-baseline gap-2 rounded px-2 py-1.5 text-left text-sm ${selected ? 'bg-brand-soft text-brand' : 'text-body hover:bg-subtle'}`;
         option.addEventListener('mousedown', (event) => { event.preventDefault(); choose(); });
         option.append(Object.assign(document.createElement('span'), { className: 'shrink-0 font-medium', textContent: label }));
         if (hint) {
-            option.append(Object.assign(document.createElement('span'), { className: 'truncate text-gray-500', textContent: hint }));
+            option.append(Object.assign(document.createElement('span'), { className: 'truncate text-muted', textContent: hint }));
         }
 
         return option;

@@ -295,6 +295,11 @@ nav:
         assigned: Assignées à moi
         created: Créées par moi
 
+theme:
+    label: Thème
+    light: Clair
+    dark: Sombre
+    system: Système
 pagination:
     label: Pagination
     previous: Précédent

@@ -9,19 +9,19 @@
     {% set releasesPast = summaries|filter(summary => not summary.release.open) %}
     <div class="px-4 sm:px-6 py-5 max-w-screen-xl space-y-5">
         <div>
-            <h1 class="text-xl font-semibold text-gray-900">{{ 'release.title'|trans }}</h1>
-            <p class="text-xs text-gray-500">{{ 'release.intro'|trans }}</p>
+            <h1 class="text-xl font-semibold text-strong">{{ 'release.title'|trans }}</h1>
+            <p class="text-xs text-muted">{{ 'release.intro'|trans }}</p>
         </div>
 
         <div class="grid gap-5 items-start {{ form ? 'lg:grid-cols-[1fr_20rem]' : '' }}">
             <div class="space-y-4 min-w-0">
                 {% for summary in releasesOpen %}
                     {% set release = summary.release %}
-                    <section class="rounded-lg border border-gray-200 bg-white px-4 py-3">
+                    <section class="rounded-lg border border-line bg-surface px-4 py-3">
                         <div class="flex flex-wrap items-center gap-3">
-                            <h2 class="font-mono text-lg font-semibold text-gray-900">{{ release.name }}</h2>
+                            <h2 class="font-mono text-lg font-semibold text-strong">{{ release.name }}</h2>
                             {% if release.plannedOn %}
-                                <span class="inline-flex items-center gap-1 text-xs text-gray-500"><twig:ux:icon name="lucide:clock" class="h-3.5 w-3.5" />{{ 'release.planned_on'|trans({ '%date%': release.plannedOn|date('d/m/Y') }) }}</span>
+                                <span class="inline-flex items-center gap-1 text-xs text-muted"><twig:ux:icon name="lucide:clock" class="h-3.5 w-3.5" />{{ 'release.planned_on'|trans({ '%date%': release.plannedOn|date('d/m/Y') }) }}</span>
                             {% endif %}
                             {% if form %}
                                 <div class="ml-auto flex items-center gap-2">
@@ -30,15 +30,15 @@
                                 </div>
                             {% endif %}
                         </div>
-                        {% if release.description %}<p class="mt-1.5 text-sm text-gray-600 whitespace-pre-line">{{ release.description }}</p>{% endif %}
+                        {% if release.description %}<p class="mt-1.5 text-sm text-muted whitespace-pre-line">{{ release.description }}</p>{% endif %}
                         <div class="mt-3 flex items-center gap-3">
                             <twig:Ui:StackedBar :segments="summary.segments" size="sm" class="flex-1" />
-                            <span class="w-10 text-right text-xs tabular-nums text-gray-700">{{ summary.progress }} %</span>
+                            <span class="w-10 text-right text-xs tabular-nums text-body">{{ summary.progress }} %</span>
                         </div>
-                        <div class="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+                        <div class="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
                             <span>{{ 'issue.list.count'|trans({ '%count%': summary.total }) }}</span>
                             <span>{{ 'release.finished'|trans({ '%count%': summary.byStatus.closed }) }}</span>
-                            <a href="{{ path('app_project_issues', releasesRoute|merge({ releases: [release.id], closed: 1 })) }}" class="ml-auto text-indigo-600 hover:underline">{{ 'release.see_issues'|trans }}</a>
+                            <a href="{{ path('app_project_issues', releasesRoute|merge({ releases: [release.id], closed: 1 })) }}" class="ml-auto text-brand hover:underline">{{ 'release.see_issues'|trans }}</a>
                         </div>
                     </section>
                 {% else %}
@@ -47,16 +47,16 @@
 
                 {% if releasesPast is not empty %}
                     <twig:Ui:Panel :title="'release.past'|trans" :count="releasesPast|length">
-                        <ul class="divide-y divide-gray-100 text-sm">
+                        <ul class="divide-y divide-line-subtle text-sm">
                             {% for summary in releasesPast %}
                                 {% set release = summary.release %}
                                 <li class="flex flex-wrap items-center gap-3 px-4 py-2.5">
-                                    <span class="w-24 shrink-0 font-mono font-medium text-gray-800">{{ release.name }}</span>
+                                    <span class="w-24 shrink-0 font-mono font-medium text-body">{{ release.name }}</span>
                                     <twig:Ui:Badge :tone="release.status.value == 'delivered' ? 'emerald' : 'gray'" size="sm">{{ ('release.status.' ~ release.status.value)|trans }}</twig:Ui:Badge>
-                                    <span class="flex-1 min-w-0 truncate text-gray-600">{{ release.description }}</span>
-                                    <span class="text-xs tabular-nums text-gray-500">{{ 'issue.list.count'|trans({ '%count%': summary.total }) }}</span>
-                                    {% if release.deliveredAt %}<span class="text-xs text-gray-500">{{ 'release.delivered_on'|trans({ '%date%': release.deliveredAt|date('d/m/Y') }) }}</span>{% endif %}
-                                    <a href="{{ path('app_project_issues', releasesRoute|merge({ releases: [release.id], closed: 1 })) }}" class="text-gray-400 hover:text-indigo-600" title="{{ 'release.see_issues'|trans }}"><twig:ux:icon name="lucide:list" class="h-4 w-4" /></a>
+                                    <span class="flex-1 min-w-0 truncate text-muted">{{ release.description }}</span>
+                                    <span class="text-xs tabular-nums text-muted">{{ 'issue.list.count'|trans({ '%count%': summary.total }) }}</span>
+                                    {% if release.deliveredAt %}<span class="text-xs text-muted">{{ 'release.delivered_on'|trans({ '%date%': release.deliveredAt|date('d/m/Y') }) }}</span>{% endif %}
+                                    <a href="{{ path('app_project_issues', releasesRoute|merge({ releases: [release.id], closed: 1 })) }}" class="text-faint hover:text-brand" title="{{ 'release.see_issues'|trans }}"><twig:ux:icon name="lucide:list" class="h-4 w-4" /></a>
                                     {% if form %}{{ include('project/_release_status.html.twig', { status: 'open', variant: 'ghost' }) }}{% endif %}
                                 </li>
                             {% endfor %}
@@ -66,8 +66,8 @@
             </div>
 
             {% if form %}
-                {{ form_start(form, { attr: { class: 'rounded-lg border border-gray-200 bg-white p-4 space-y-4' } }) }}
-                    <h2 class="font-semibold text-gray-900">{{ 'release.new'|trans }}</h2>
+                {{ form_start(form, { attr: { class: 'rounded-lg border border-line bg-surface p-4 space-y-4' } }) }}
+                    <h2 class="font-semibold text-strong">{{ 'release.new'|trans }}</h2>
                     {{ form_errors(form) }}
                     {{ form_row(form.name) }}
                     {{ form_row(form.plannedOn) }}

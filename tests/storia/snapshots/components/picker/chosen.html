@@ -1,36 +1,36 @@
 <div class="relative block" data-controller="dropdown" >
-            <button type="button" data-action="dropdown#toggle" aria-expanded="false" aria-haspopup="listbox" class="inline-flex h-9 w-full items-center gap-2 rounded-md border bg-white pl-3 pr-2 text-left text-sm hover:bg-gray-50 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 text-gray-800 border-gray-300">
+            <button type="button" data-action="dropdown#toggle" aria-expanded="false" aria-haspopup="listbox" class="inline-flex h-9 w-full items-center gap-2 rounded-md border bg-surface pl-3 pr-2 text-left text-sm hover:bg-subtle focus:border-focus focus:outline-none focus:ring-2 focus:ring-brand-line text-body border-line-strong">
             <span class="min-w-0 flex-1 truncate">Online shop</span>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" height="1em" width="1em" class="h-3.5 w-3.5 shrink-0 text-gray-400" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m7 15l5 5l5-5M7 9l5-5l5 5"></path></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" height="1em" width="1em" class="h-3.5 w-3.5 shrink-0 text-faint" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m7 15l5 5l5-5M7 9l5-5l5 5"></path></svg>
         </button>
-        <div data-dropdown-target="menu" class="hidden absolute top-full mt-1 z-50 rounded-lg border border-gray-200 bg-white text-gray-800 shadow-xl py-1 left-0 w-full min-w-60">
+        <div data-dropdown-target="menu" class="hidden absolute top-full mt-1 z-50 rounded-lg border border-line bg-overlay text-body shadow-xl py-1 left-0 w-full min-w-60">
                 <div data-controller="list-filter">
-            <label class="-mt-1 flex items-center gap-2 border-b border-gray-100 px-3 py-2 text-gray-400">
+            <label class="-mt-1 flex items-center gap-2 border-b border-line-subtle px-3 py-2 text-faint">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" height="1em" width="1em" class="h-3.5 w-3.5 shrink-0" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="m21 21l-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></g></svg>
-                <input type="search" data-dropdown-target="search" data-action="input->list-filter#filter" placeholder="Search…" aria-label="Search…" autocomplete="off" class="w-full border-0 bg-transparent p-0 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-0">
+                <input type="search" data-dropdown-target="search" data-action="input->list-filter#filter" placeholder="Search…" aria-label="Search…" autocomplete="off" class="w-full border-0 bg-transparent p-0 text-sm text-body placeholder:text-faint focus:outline-none focus:ring-0">
             </label>
             <div class="max-h-72 overflow-y-auto py-1">
                 <div data-list-filter-target="group" >
-    <div class="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Maison Dupont</div>
-    <button type="button" class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-gray-50 text-gray-700"  data-list-filter-target="item" data-text="Maison Dupont MD">
+    <div class="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-faint">Maison Dupont</div>
+    <button type="button" class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-subtle text-body"  data-list-filter-target="item" data-text="Maison Dupont MD">
         The whole Maison Dupont workspace</button>
-        <button type="button" class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-gray-50 text-gray-700"  data-list-filter-target="item" data-text="Online shop MD-SPT">
-        <span class="font-mono text-[11px] font-medium rounded px-1.5 py-0.5 bg-gray-100 text-gray-500" >MD-SPT</span>
+        <button type="button" class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-subtle text-body"  data-list-filter-target="item" data-text="Online shop MD-SPT">
+        <span class="font-mono text-[11px] font-medium rounded px-1.5 py-0.5 bg-sunken text-muted" >MD-SPT</span>
  Online shop</button>
-        <button type="button" class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-gray-50 text-gray-700"  data-list-filter-target="item" data-text="Intranet MD-INT">
-        <span class="font-mono text-[11px] font-medium rounded px-1.5 py-0.5 bg-gray-100 text-gray-500" >MD-INT</span>
+        <button type="button" class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-subtle text-body"  data-list-filter-target="item" data-text="Intranet MD-INT">
+        <span class="font-mono text-[11px] font-medium rounded px-1.5 py-0.5 bg-sunken text-muted" >MD-INT</span>
  Intranet</button>
     </div>
     <div data-list-filter-target="group" >
-    <div class="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Travelia</div>
-    <button type="button" class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-gray-50 text-gray-700"  data-list-filter-target="item" data-text="Travelia TR">
+    <div class="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-faint">Travelia</div>
+    <button type="button" class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-subtle text-body"  data-list-filter-target="item" data-text="Travelia TR">
         The whole Travelia workspace</button>
-        <button type="button" class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-gray-50 text-gray-700"  data-list-filter-target="item" data-text="Booking site TR-RES">
-        <span class="font-mono text-[11px] font-medium rounded px-1.5 py-0.5 bg-gray-100 text-gray-500" >TR-RES</span>
+        <button type="button" class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-subtle text-body"  data-list-filter-target="item" data-text="Booking site TR-RES">
+        <span class="font-mono text-[11px] font-medium rounded px-1.5 py-0.5 bg-sunken text-muted" >TR-RES</span>
  Booking site</button>
     </div>
 
-                <p data-list-filter-target="empty" hidden class="px-3 py-3 text-center text-sm text-gray-400">Nothing matches.</p>
+                <p data-list-filter-target="empty" hidden class="px-3 py-3 text-center text-sm text-faint">Nothing matches.</p>
             </div>
         </div>
         </div>

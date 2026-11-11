@@ -7,10 +7,10 @@
     {% set settingsRoute = { workspaceKey: project.workspace.key, projectKey: project.key } %}
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 space-y-4">
         <div>
-            <h1 class="text-xl font-semibold text-gray-900">{{ 'project.settings.title'|trans }}</h1>
-            <p class="text-xs text-gray-500">{{ 'project.settings.subtitle'|trans({ '%project%': project.name, '%workspace%': project.workspace.name }) }}</p>
+            <h1 class="text-xl font-semibold text-strong">{{ 'project.settings.title'|trans }}</h1>
+            <p class="text-xs text-muted">{{ 'project.settings.subtitle'|trans({ '%project%': project.name, '%workspace%': project.workspace.name }) }}</p>
         </div>
-        <nav class="flex items-center gap-1 border-b border-gray-200">
+        <nav class="flex items-center gap-1 border-b border-line">
             <twig:Ui:Tab href="{{ path('app_project_settings', settingsRoute) }}" :active="app.current_route in ['app_project_settings', 'app_project_settings_tracker']">{{ 'project.settings.tab.trackers'|trans }}</twig:Ui:Tab>
             <twig:Ui:Tab href="{{ path('app_project_settings_general', settingsRoute) }}" :active="app.current_route == 'app_project_settings_general'">{{ 'project.settings.tab.general'|trans }}</twig:Ui:Tab>
             <twig:Ui:Tab href="{{ path('app_project_settings_repositories', settingsRoute) }}" :active="app.current_route == 'app_project_settings_repositories'">{{ 'project.settings.tab.repositories'|trans }}</twig:Ui:Tab>

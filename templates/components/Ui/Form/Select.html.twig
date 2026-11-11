@@ -1,10 +1,10 @@
 {# Options go in the block. `model` becomes its `data-model` in a live component. `invalid` turns the border red. `inline` is the compact row variant of role pickers. #}
 {% props inline = false, invalid = false, model = null %}
 {% set selectClasses = html_cva(
-    base: 'rounded-md border border-gray-300 bg-white px-2 text-sm disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500',
+    base: 'rounded-md border border-line-strong bg-surface px-2 text-sm disabled:cursor-not-allowed disabled:bg-subtle disabled:text-muted',
     variants: {
-        inline: { true: 'h-8 text-gray-700', false: 'mt-1 w-full h-9 focus:border-indigo-400 focus:outline-none' },
-        invalid: { true: 'border-red-400 focus:border-red-400' },
+        inline: { true: 'h-8 text-body', false: 'mt-1 w-full h-9 focus:border-focus focus:outline-none' },
+        invalid: { true: 'border-red-solid focus:border-red-solid' },
     },
 ) %}
 <select class="{{ selectClasses.apply({ inline: inline, invalid: invalid }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}{% if model %} data-model="{{ model }}"{% endif %}>{% block content %}{% endblock %}</select>

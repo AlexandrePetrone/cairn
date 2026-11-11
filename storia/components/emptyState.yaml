@@ -4,7 +4,7 @@ variants:
         args: { title: No issue matches, icon: search }
         blocks:
             content: Try widening the filters or showing closed issues.
-            actions: '<a href="#" class="inline-flex h-7 items-center rounded-md border border-gray-300 bg-white px-2 text-xs text-gray-700 hover:bg-gray-50">Clear all</a>'
+            actions: '<a href="#" class="inline-flex h-7 items-center rounded-md border border-line-strong bg-surface px-2 text-xs text-body hover:bg-subtle">Clear all</a>'
     small_bordered:
         args: { title: No issues, icon: kanban, size: sm, bordered: true }
     amber:

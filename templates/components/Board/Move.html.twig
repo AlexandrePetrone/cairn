@@ -9,11 +9,11 @@
         <twig:Ui:Dialog :title="boardMoveChosen ? boardMoveChosen.label : 'issue.board.choose'|trans" closeAction="cancel">
             <twig:block name="description">
                 <p class="truncate"><span class="font-mono">{{ boardMoveIssue.key }}</span> · {{ boardMoveIssue.title }}</p>
-                {% if boardMoveChosen and boardMoveChosen.description %}<p class="mt-1 text-gray-600">{{ boardMoveChosen.description }}</p>{% endif %}
+                {% if boardMoveChosen and boardMoveChosen.description %}<p class="mt-1 text-muted">{{ boardMoveChosen.description }}</p>{% endif %}
             </twig:block>
             {% if error %}<twig:Ui:Callout tone="danger" size="sm" role="alert">{{ error }}</twig:Ui:Callout>{% endif %}
             {% if boardMoveTransitions|length > 1 %}
-                <label class="block text-sm text-gray-700">{{ 'issue.board.action'|trans }}
+                <label class="block text-sm text-body">{{ 'issue.board.action'|trans }}
                     <twig:Ui:Form:Select model="transitionId" class="mt-1 h-9 w-full">
                         {% for transition in boardMoveTransitions %}
                             <option value="{{ transition.id }}" {{ transition.id == transitionId ? 'selected' }}>{{ transition.label }}</option>
@@ -21,9 +21,9 @@
                     </twig:Ui:Form:Select>
                 </label>
             {% endif %}
-            <label class="block text-sm text-gray-700">
+            <label class="block text-sm text-body">
                 {{ 'issue.bulk.comment_label'|trans }}
-                {% if boardMoveChosen and not boardMoveNeedsComment %}<span class="text-xs text-gray-400">{{ 'form.optional'|trans }}</span>{% endif %}
+                {% if boardMoveChosen and not boardMoveNeedsComment %}<span class="text-xs text-faint">{{ 'form.optional'|trans }}</span>{% endif %}
                 <twig:Ui:Form:Textarea model="norender|comment" rows="4" :placeholder="boardMoveChosen and boardMoveChosen.commentPrompt ? boardMoveChosen.commentPrompt : ''" autofocus>{{ comment }}</twig:Ui:Form:Textarea>
             </label>
             {% if boardMovePrivately %}

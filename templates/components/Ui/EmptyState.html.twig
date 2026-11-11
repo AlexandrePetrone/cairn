@@ -8,28 +8,28 @@
         bordered: { true: 'rounded-lg border border-dashed' },
     },
     compoundVariants: [
-        { bordered: [true], tone: ['gray'], class: 'border-gray-300' },
-        { bordered: [true], tone: ['amber'], class: 'border-amber-300 bg-amber-50/40' },
+        { bordered: [true], tone: ['gray'], class: 'border-line-strong' },
+        { bordered: [true], tone: ['amber'], class: 'border-amber-line bg-amber-soft/40' },
     ],
 ) %}
 {% set emptyStateIconClasses = html_cva(
     base: 'inline-flex items-center justify-center rounded-full',
     variants: {
-        tone: { gray: 'bg-gray-100 text-gray-400', amber: 'bg-amber-100 text-amber-600' },
+        tone: { gray: 'bg-sunken text-faint', amber: 'bg-amber-soft text-amber' },
         size: { sm: 'h-8 w-8 [&>svg]:h-4 [&>svg]:w-4', md: 'h-11 w-11 [&>svg]:h-5 [&>svg]:w-5' },
     },
 ) %}
 {% set emptyStateTitleClasses = html_cva(
     base: 'font-medium',
     variants: {
-        tone: { gray: 'text-gray-900', amber: 'text-amber-900' },
+        tone: { gray: 'text-strong', amber: 'text-amber' },
         size: { sm: 'text-xs', md: 'text-sm' },
     },
 ) %}
 {% set emptyStateTextClasses = html_cva(
     base: 'max-w-sm',
     variants: {
-        tone: { gray: 'text-gray-500', amber: 'text-amber-800' },
+        tone: { gray: 'text-muted', amber: 'text-amber' },
         size: { sm: 'text-[11px]', md: 'text-sm' },
     },
 ) %}

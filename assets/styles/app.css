@@ -43,9 +43,108 @@
 @theme {
     --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
     --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+    /* Colours are roles, each with its light and its dark value: templates write `bg-surface`,
+       `text-muted`, `border-line`, `bg-red-soft`, never a step of the palette. `color-scheme`
+       on <html> picks the side (see below). ColourRolesTest reads these lines: keep one
+       token per line, in hexadecimal. Slate stays the colour of what is dark in both themes
+       (the header, code). */
+
+    /* Grounds, from the page to what floats over it. */
+    --color-canvas: light-dark(#f9fafb, #0e1217);
+    --color-surface: light-dark(#ffffff, #161b22);
+    --color-overlay: light-dark(#ffffff, #1c222a);
+    --color-subtle: light-dark(#f9fafb, #212831);
+    --color-sunken: light-dark(#f3f4f6, #262d37);
+    --color-raised: light-dark(#ffffff, #363e4a);
+    --color-inverse: light-dark(#111827, #e6e9ee);
+
+    /* Text and icons, from the title to the decoration. */
+    --color-strong: light-dark(#111827, #f0f2f5);
+    --color-body: light-dark(#374151, #d1d6dd);
+    --color-muted: light-dark(#667080, #9aa3af);
+    --color-faint: light-dark(#959ca9, #6f7884);
+    --color-ghost: light-dark(#d1d5db, #4a525e);
+    --color-on-inverse: light-dark(#ffffff, #111827);
+
+    /* Lines, from the separator to the edge of a field. */
+    --color-line-subtle: light-dark(#f3f4f6, #222932);
+    --color-line: light-dark(#e5e7eb, #2d343e);
+    --color-line-strong: light-dark(#d1d5db, #434c58);
+    --color-header-line: light-dark(transparent, #2d343e);
+
+    /* The brand: text and links, the solid fill of a primary action, its tinted ground. */
+    --color-brand: light-dark(#4f46e5, #a5b4fc);
+    --color-brand-solid: light-dark(#4f46e5, #5048e5);
+    --color-brand-solid-hover: light-dark(#4338ca, #4338ca);
+    --color-brand-soft: light-dark(#eef2ff, #232849);
+    --color-brand-soft-hover: light-dark(#e0e7ff, #2c3260);
+    --color-brand-line: light-dark(#c7d2fe, #3d4583);
+    --color-focus: light-dark(#7c86f6, #818cf8);
+
+    /* Tones: text, tinted ground, line, and a solid fill that reads in both themes (dots, avatars). */
+    --color-blue: light-dark(#1d4ed8, #93c5fd);
+    --color-blue-soft: light-dark(#eff6ff, #1b2940);
+    --color-blue-line: light-dark(#bfdbfe, #233d66);
+    --color-blue-solid: #3b82f6;
+    --color-amber: light-dark(#92400e, #fcd34d);
+    --color-amber-soft: light-dark(#fffbeb, #322a1d);
+    --color-amber-line: light-dark(#fde68a, #5a431c);
+    --color-amber-solid: #f59e0b;
+    --color-red: light-dark(#b91c1c, #fca5a5);
+    --color-red-soft: light-dark(#fef2f2, #342127);
+    --color-red-line: light-dark(#fecaca, #5c2a30);
+    --color-red-solid: #ef4444;
+    --color-emerald: light-dark(#047857, #6ee7b7);
+    --color-emerald-soft: light-dark(#ecfdf5, #15302e);
+    --color-emerald-line: light-dark(#a7f3d0, #164c40);
+    --color-emerald-solid: #059669;
+    --color-violet: light-dark(#6d28d9, #c4b5fd);
+    --color-violet-soft: light-dark(#f5f3ff, #262440);
+    --color-violet-line: light-dark(#ddd6fe, #3b3066);
+    --color-violet-solid: #8b5cf6;
+    --color-orange: light-dark(#c2410c, #fdba74);
+    --color-orange-soft: light-dark(#fff7ed, #362720);
+    --color-orange-line: light-dark(#fed7aa, #5c371f);
+    --color-orange-solid: #f97316;
+    --color-sky: light-dark(#0369a1, #7dd3fc);
+    --color-sky-soft: light-dark(#f0f9ff, #152e3e);
+
+    /* The stripes behind private content (private-hatching): amber, quieter on a dark ground. */
+    --color-hatch: light-dark(#f59e0b0f, #f59e0b08);
+}
+
+/* The theme: the browser's by default, the one chosen in the user menu when there is one
+   (`data-theme`, written by the server from the `cairn_theme` cookie and by the `theme` controller). */
+:root {
+    color-scheme: light dark;
+}
+:root[data-theme="light"] {
+    color-scheme: light;
+}
+:root[data-theme="dark"] {
+    color-scheme: dark;
 }
 
 @layer base {
+    /* @tailwindcss/forms paints fields white with a grey edge: they take the roles instead,
+       so that a field without classes of its own follows the theme. A class on the field still wins
+       (utilities come after base); `:not([hidden])` only outweighs the plugin's bare `textarea` and `select`. */
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]), textarea:not([hidden]), select:not([hidden]) {
+        background-color: var(--color-surface);
+        border-color: var(--color-line-strong);
+        color: inherit;
+    }
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"])::placeholder,
+    textarea:not([hidden])::placeholder {
+        color: var(--color-faint);
+    }
+    [type="checkbox"]:not(:checked),
+    [type="radio"]:not(:checked) {
+        background-color: var(--color-surface);
+        border-color: var(--color-line-strong);
+    }
+
     /* Native selects get a chevron; @tailwindcss/forms removes the default one. */
     select:not([multiple]) {
         appearance: none;
@@ -59,7 +158,7 @@
 
 @utility private-hatching {
     /* Amber diagonal stripes behind private content, so that internal users never miss it. */
-    background-image: repeating-linear-gradient(135deg, transparent 0 10px, rgb(245 158 11 / 0.06) 10px 20px);
+    background-image: repeating-linear-gradient(135deg, transparent 0 10px, var(--color-hatch) 10px 20px);
 }
 
 @utility scrollbar-thin {
@@ -69,20 +168,42 @@
 /* Written text (markdown filter, editor): references and mentions read the same in both.
    Outside any layer, so that they win over the prose utilities. */
 .issue-reference {
-    @apply rounded bg-indigo-50 px-1 font-mono text-[0.9em] font-medium text-indigo-700 no-underline;
+    @apply rounded bg-brand-soft px-1 font-mono text-[0.9em] font-medium text-brand no-underline;
 }
 a.issue-reference:hover {
-    @apply bg-indigo-100;
+    @apply bg-brand-soft-hover;
 }
 .mention {
-    @apply rounded bg-sky-50 px-1 font-medium text-sky-700;
+    @apply rounded bg-sky-soft px-1 font-medium text-sky;
 }
 .tiptap p.is-editor-empty:first-child::before {
-    @apply pointer-events-none float-left h-0 text-gray-400;
+    @apply pointer-events-none float-left h-0 text-faint;
     content: attr(data-placeholder);
 }
 .tiptap img.ProseMirror-selectednode {
-    @apply ring-2 ring-indigo-400;
+    @apply ring-2 ring-focus;
+}
+
+/* Markdown (typography plugin) reads its colours from the roles, so it follows the theme. */
+.prose {
+    --tw-prose-body: var(--color-body);
+    --tw-prose-headings: var(--color-strong);
+    --tw-prose-lead: var(--color-muted);
+    --tw-prose-links: var(--color-brand);
+    --tw-prose-bold: var(--color-strong);
+    --tw-prose-counters: var(--color-muted);
+    --tw-prose-bullets: var(--color-ghost);
+    --tw-prose-hr: var(--color-line);
+    --tw-prose-quotes: var(--color-strong);
+    --tw-prose-quote-borders: var(--color-line);
+    --tw-prose-captions: var(--color-muted);
+    --tw-prose-kbd: var(--color-strong);
+    --tw-prose-kbd-shadows: color-mix(in srgb, var(--color-strong) 10%, transparent);
+    --tw-prose-code: var(--color-strong);
+    --tw-prose-pre-code: var(--color-slate-200);
+    --tw-prose-pre-bg: var(--color-slate-800);
+    --tw-prose-th-borders: var(--color-line-strong);
+    --tw-prose-td-borders: var(--color-line);
 }
 
 /* Discreet actions (edit, delete) of a `group`: shown on hover or focus, always on touch screens. */

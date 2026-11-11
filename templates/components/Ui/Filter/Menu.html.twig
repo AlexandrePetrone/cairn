@@ -3,15 +3,15 @@
 {% props label, count = 0, active = false, align = 'left' %}
 {% set filterMenuClasses = html_cva(base: 'group/filter relative') %}
 {% set filterMenuPanelClasses = html_cva(
-    base: 'hidden absolute top-8 z-30 w-60 rounded-lg border border-gray-200 bg-white shadow-xl',
+    base: 'hidden absolute top-8 z-30 w-60 rounded-lg border border-line bg-overlay shadow-xl',
     variants: { align: { left: 'left-0', right: 'right-0' } },
 ) %}
-{% set filterMenuTriggerClasses = html_cva(base: 'inline-flex h-7 items-center gap-1 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-700 hover:bg-gray-50 group-data-[active]/filter:border-indigo-300 group-data-[active]/filter:bg-indigo-50') %}
+{% set filterMenuTriggerClasses = html_cva(base: 'inline-flex h-7 items-center gap-1 rounded-md border border-line bg-surface px-2 text-xs text-body hover:bg-subtle group-data-[active]/filter:border-brand-line group-data-[active]/filter:bg-brand-soft') %}
 <div class="{{ filterMenuClasses.apply({}, attributes.render('class'))|tailwind_merge }}" data-controller="dropdown" data-filter-menu {{ active or count > 0 ? 'data-active' }} {{ attributes }}>
     <button type="button" data-action="dropdown#toggle" aria-expanded="false" class="{{ filterMenuTriggerClasses.apply({}) }}">
         {{ label }}
-        <span class="text-indigo-700 font-medium" data-filter-menu-count {{ count > 0 ? '' : 'hidden' }}>{{ count }}</span>
-        <twig:ux:icon name="lucide:chevron-down" class="h-3 w-3 text-gray-400" />
+        <span class="text-brand font-medium" data-filter-menu-count {{ count > 0 ? '' : 'hidden' }}>{{ count }}</span>
+        <twig:ux:icon name="lucide:chevron-down" class="h-3 w-3 text-faint" />
     </button>
     <div data-dropdown-target="menu" class="{{ filterMenuPanelClasses.apply({ align: align }) }}">
         <div class="py-1 max-h-64 overflow-y-auto">

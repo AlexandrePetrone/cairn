@@ -9,12 +9,12 @@
 <div {{ attributes.defaults({ class: 'px-4 sm:px-6 py-4 space-y-3' }) }} data-controller="selection"
     data-selection-one-value="{{ 'issue.bulk.selected.one'|trans }}"
     data-selection-other-value="{{ 'issue.bulk.selected.other'|trans }}">
-    <p class="text-xs text-gray-400">{{ 'issue.list.count'|trans({ '%count%': tableIssues.total }) }}</p>
+    <p class="text-xs text-faint">{{ 'issue.list.count'|trans({ '%count%': tableIssues.total }) }}</p>
     <form id="issue-selection" method="get" action="{{ this.selectionUrl }}" data-selection-target="bar" hidden
-        class="flex flex-wrap items-center gap-3 rounded-lg border border-indigo-200 bg-indigo-50/60 px-3 py-2 text-sm">
+        class="flex flex-wrap items-center gap-3 rounded-lg border border-brand-line bg-brand-soft/60 px-3 py-2 text-sm">
         <input type="hidden" name="from" value="{{ this.listUrl }}">
-        <span class="font-medium text-indigo-900" data-selection-target="count"></span>
-        <button type="button" class="text-xs text-indigo-600 hover:underline" data-action="selection#clear">{{ 'issue.bulk.clear'|trans }}</button>
+        <span class="font-medium text-brand" data-selection-target="count"></span>
+        <button type="button" class="text-xs text-brand hover:underline" data-action="selection#clear">{{ 'issue.bulk.clear'|trans }}</button>
         <twig:Ui:Button variant="primary" size="sm" icon="list-checks" type="submit" class="ml-auto">{{ 'issue.bulk.open'|trans }}</twig:Ui:Button>
     </form>
     {% if tableIssues.items is empty %}
@@ -23,7 +23,7 @@
         <twig:Ui:Table data-controller="fold" data-fold-key-value="{{ scope.path }}#{{ tableGrouping ? tableGrouping.value }}">
             <twig:block name="head">
                 <th class="px-3 py-2 w-8">
-                    <input type="checkbox" aria-label="{{ 'issue.bulk.select_page'|trans }}" data-selection-target="all" data-action="selection#togglePage" class="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600">
+                    <input type="checkbox" aria-label="{{ 'issue.bulk.select_page'|trans }}" data-selection-target="all" data-action="selection#togglePage" class="h-3.5 w-3.5 rounded border-line-strong text-brand">
                 </th>
                 {% for tableColumn in tableColumns %}
                     <twig:Ui:Table:SortHeader
@@ -51,7 +51,7 @@
                         {% elseif tableGrouping.value == 'release' %}
                             <span class="font-mono">{{ tableComponent.releaseLabel(tableGroup.key) ?? 'issue.list.no_release'|trans }}</span>
                         {% else %}
-                            <span>{{ tableGroupIssue.project.name }} <span class="font-normal text-gray-400">· {{ tableGroupIssue.project.workspace.name }}</span></span>
+                            <span>{{ tableGroupIssue.project.name }} <span class="font-normal text-faint">· {{ tableGroupIssue.project.workspace.name }}</span></span>
                         {% endif %}
                     </twig:Ui:Table:GroupRow>
                     {% for issue in tableGroup.issues %}{{ include('components/IssueList/_row.html.twig', { group: tableGroup.key, showProject: tableShowProject }) }}{% endfor %}
@@ -63,7 +63,7 @@
     {% endif %}
 
     {% if tableIssues.pageCount > 1 %}
-        <nav class="flex items-center justify-between text-xs text-gray-500" aria-label="{{ 'pagination.label'|trans }}">
+        <nav class="flex items-center justify-between text-xs text-muted" aria-label="{{ 'pagination.label'|trans }}">
             <span>{{ 'pagination.page_of'|trans({ '%page%': tableIssues.page, '%count%': tableIssues.pageCount }) }}</span>
             <div class="flex items-center gap-2">
                 {% if tableIssues.page > 1 %}

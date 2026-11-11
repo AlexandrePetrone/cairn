@@ -3,8 +3,8 @@
 {% set issueKeyClasses = html_cva(
     base: 'font-mono font-medium',
     variants: {
-        size: { sm: 'text-[11px] text-gray-500', md: 'text-xs text-gray-600', lg: 'text-xs font-semibold text-gray-700' },
-        link: { true: 'hover:text-indigo-600' },
+        size: { sm: 'text-[11px] text-muted', md: 'text-xs text-muted', lg: 'text-xs font-semibold text-body' },
+        link: { true: 'hover:text-brand' },
     },
 ) %}
 {% set issueKeyClass = issueKeyClasses.apply({ size: size, link: href is not null }, attributes.render('class'))|tailwind_merge %}

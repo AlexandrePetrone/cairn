@@ -5,16 +5,16 @@
     base: 'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset',
     variants: {
         criticality: {
-            blocking: 'bg-red-50 text-red-700 ring-red-200',
-            high: 'bg-orange-50 text-orange-700 ring-orange-200',
-            normal: 'bg-gray-50 text-gray-600 ring-gray-200',
-            low: 'bg-gray-50 text-gray-400 ring-gray-200',
+            blocking: 'bg-red-soft text-red ring-red-line',
+            high: 'bg-orange-soft text-orange ring-orange-line',
+            normal: 'bg-subtle text-muted ring-line',
+            low: 'bg-subtle text-faint ring-line',
         },
     },
 ) %}
 {% set criticalityGlyphClasses = html_cva(
     base: 'text-[9px]',
-    variants: { criticality: { blocking: 'text-red-600', high: 'text-orange-500' } },
+    variants: { criticality: { blocking: 'text-red', high: 'text-orange' } },
 ) %}
 {% if iconOnly %}
     {% if criticality in ['blocking', 'high'] %}

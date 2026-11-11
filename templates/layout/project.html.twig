@@ -12,16 +12,16 @@
         <twig:block name="header"><twig:Layout:Header :project="project" /></twig:block>
         <twig:block name="sidebar"><twig:Layout:ProjectNav :project="project" /></twig:block>
         <twig:block name="breadcrumb">
-            <nav class="flex items-center gap-1.5 px-4 sm:px-6 h-10 text-xs text-gray-500 border-b border-gray-200 bg-white/60" aria-label="{{ 'nav.breadcrumb'|trans }}">
+            <nav class="flex items-center gap-1.5 px-4 sm:px-6 h-10 text-xs text-muted border-b border-line bg-surface/60" aria-label="{{ 'nav.breadcrumb'|trans }}">
                 <span>{{ project.workspace.name }}</span>
-                <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-gray-300 shrink-0" />
-                <a href="{{ path('app_project_issues', layoutRoute) }}" class="hover:text-gray-900">{{ project.name }}</a>
-                <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-gray-300 shrink-0" />
-                <span class="text-gray-900 font-medium truncate">{{ layoutPageTitle }}</span>
+                <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-ghost shrink-0" />
+                <a href="{{ path('app_project_issues', layoutRoute) }}" class="hover:text-strong">{{ project.name }}</a>
+                <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-ghost shrink-0" />
+                <span class="text-strong font-medium truncate">{{ layoutPageTitle }}</span>
             </nav>
         </twig:block>
         {% if project.readOnly %}
-            <div class="flex items-center gap-2 px-4 sm:px-6 py-2 text-sm text-amber-900 border-b border-amber-200 bg-amber-50" role="status">
+            <div class="flex items-center gap-2 px-4 sm:px-6 py-2 text-sm text-amber border-b border-amber-line bg-amber-soft" role="status">
                 <twig:ux:icon name="lucide:archive" class="h-4 w-4 shrink-0" />
                 {{ (project.archived ? 'project.read_only.archived' : 'project.read_only.workspace_archived')|trans({ '%workspace%': project.workspace.name }) }}
             </div>

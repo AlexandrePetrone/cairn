@@ -1,9 +1,9 @@
 {# Switch; `name`, `value`, `id`, `required` and `disabled` (default 1) go to the checkbox; amber when it guards something private. #}
 {% props label, checked = false, tone = 'amber' %}
-{% set toggleClasses = html_cva(base: 'inline-flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60') %}
+{% set toggleClasses = html_cva(base: 'inline-flex items-center gap-2 text-xs text-muted cursor-pointer select-none has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60') %}
 {% set toggleTrackClasses = html_cva(
-    base: 'relative inline-block h-4 w-7 rounded-full bg-gray-300 transition',
-    variants: { tone: { amber: 'has-[:checked]:bg-amber-500', indigo: 'has-[:checked]:bg-indigo-600' } },
+    base: 'relative inline-block h-4 w-7 rounded-full bg-line-strong transition',
+    variants: { tone: { amber: 'has-[:checked]:bg-amber-solid', indigo: 'has-[:checked]:bg-brand-solid' } },
 ) %}
 <label class="{{ toggleClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes.without('name', 'value', 'id', 'required', 'disabled', 'class') }}>
     <span class="{{ toggleTrackClasses.apply({ tone: tone }) }}">

@@ -4,8 +4,8 @@
 {% block page_title %}{{ workspace.name }}{% endblock %}
 
 {% block breadcrumb %}
-    <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-gray-300 shrink-0" />
-    <a href="{{ path('app_admin_workspaces') }}" class="hover:text-gray-900">{{ 'admin.nav.workspaces'|trans }}</a>
+    <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-ghost shrink-0" />
+    <a href="{{ path('app_admin_workspaces') }}" class="hover:text-strong">{{ 'admin.nav.workspaces'|trans }}</a>
 {% endblock %}
 
 {% block content %}
@@ -13,8 +13,8 @@
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 space-y-4">
         <div class="flex flex-wrap items-end gap-4">
             <div>
-                <p class="text-xs text-gray-500">{{ 'admin.workspace.label'|trans }}</p>
-                <h1 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <p class="text-xs text-muted">{{ 'admin.workspace.label'|trans }}</p>
+                <h1 class="text-xl font-semibold text-strong flex items-center gap-2">
                     {{ workspace.name }}
                     <twig:Ui:Chip>{{ workspace.key }}</twig:Ui:Chip>
                     {% if workspace.archived %}<twig:Ui:Badge>{{ 'admin.workspace.archived_badge'|trans }}</twig:Ui:Badge>{% endif %}
@@ -24,7 +24,7 @@
                 <twig:Ui:Button icon="plus" href="{{ path('app_admin_project_new', { workspace: workspace.key }) }}" class="ml-auto">{{ 'admin.project.new'|trans }}</twig:Ui:Button>
             {% endif %}
         </div>
-        <nav class="flex items-center gap-1 border-b border-gray-200">
+        <nav class="flex items-center gap-1 border-b border-line">
             <twig:Ui:Tab href="{{ path('app_admin_workspace', workspaceRoute) }}" :active="app.current_route == 'app_admin_workspace'">{{ 'admin.workspace.tab.projects'|trans }}</twig:Ui:Tab>
             <twig:Ui:Tab href="{{ path('app_admin_workspace_access', workspaceRoute) }}" :active="app.current_route == 'app_admin_workspace_access'">{{ 'admin.workspace.tab.access'|trans }}</twig:Ui:Tab>
             <twig:Ui:Tab href="{{ path('app_admin_workspace_settings', workspaceRoute) }}" icon="settings" right :active="app.current_route == 'app_admin_workspace_settings'">{{ 'admin.workspace.tab.settings'|trans }}</twig:Ui:Tab>

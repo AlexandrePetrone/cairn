@@ -4,9 +4,9 @@ variants:
         args: { title: Move MD-SPT-12, closeAction: cancel }
         blocks:
             description: '<span class="font-mono">MD-SPT-12</span> · The CSV export of orders is empty'
-            content: '<p class="text-sm text-gray-700">Dialog content.</p>'
-            footer: '<button type="button" class="inline-flex h-8 items-center rounded-md bg-indigo-600 px-3 text-sm font-medium text-white">Move</button><button type="button" class="inline-flex h-8 items-center rounded-md px-3 text-sm text-gray-600">Cancel</button>'
+            content: '<p class="text-sm text-body">Dialog content.</p>'
+            footer: '<button type="button" class="inline-flex h-8 items-center rounded-md bg-brand-solid px-3 text-sm font-medium text-white">Move</button><button type="button" class="inline-flex h-8 items-center rounded-md px-3 text-sm text-muted">Cancel</button>'
     without_close:
         args: { title: Refuse }
         blocks:
-            content: '<p class="text-sm text-gray-700">A comment is required to refuse.</p>'
+            content: '<p class="text-sm text-body">A comment is required to refuse.</p>'

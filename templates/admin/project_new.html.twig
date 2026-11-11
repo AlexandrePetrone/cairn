@@ -3,14 +3,14 @@
 {% block page_title %}{{ 'admin.project.new'|trans }}{% endblock %}
 
 {% block breadcrumb %}
-    <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-gray-300 shrink-0" />
-    <a href="{{ path('app_admin_projects') }}" class="hover:text-gray-900">{{ 'admin.nav.projects'|trans }}</a>
+    <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-ghost shrink-0" />
+    <a href="{{ path('app_admin_projects') }}" class="hover:text-strong">{{ 'admin.nav.projects'|trans }}</a>
 {% endblock %}
 
 {% block content %}
     <div class="max-w-2xl mx-auto px-4 sm:px-6 py-5 space-y-4">
-        <h1 class="text-xl font-semibold text-gray-900">{{ 'admin.project.new'|trans }}</h1>
-        {{ form_start(form, { attr: { class: 'rounded-lg border border-gray-200 bg-white p-4 space-y-4' } }) }}
+        <h1 class="text-xl font-semibold text-strong">{{ 'admin.project.new'|trans }}</h1>
+        {{ form_start(form, { attr: { class: 'rounded-lg border border-line bg-surface p-4 space-y-4' } }) }}
             {{ form_errors(form) }}
             {{ form_row(form.workspace) }}
             <div class="grid sm:grid-cols-[1fr_8rem] gap-4">

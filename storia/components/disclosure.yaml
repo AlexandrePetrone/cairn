@@ -2,7 +2,7 @@ component: Ui:Disclosure
 variants:
     closed:
         args: { openLabel: Hide details, closedLabel: Show details }
-        blocks: { content: '<p class="text-sm text-gray-600">The details.</p>' }
+        blocks: { content: '<p class="text-sm text-muted">The details.</p>' }
     open:
         args: { openLabel: Hide details, closedLabel: Show details, open: true }
-        blocks: { content: '<p class="text-sm text-gray-600">The details.</p>' }
+        blocks: { content: '<p class="text-sm text-muted">The details.</p>' }

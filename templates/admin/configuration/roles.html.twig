@@ -3,12 +3,12 @@
 {% set configurationSubject = 'roles' %}
 
 {% block configuration_content %}
-    {% set rolesCheck %}<twig:ux:icon name="lucide:check" class="mx-auto h-4 w-4 text-emerald-600" />{% endset %}
-    {% set rolesNone %}<span class="text-gray-300">·</span>{% endset %}
+    {% set rolesCheck %}<twig:ux:icon name="lucide:check" class="mx-auto h-4 w-4 text-emerald" />{% endset %}
+    {% set rolesNone %}<span class="text-ghost">·</span>{% endset %}
 
     <section class="space-y-2">
-        <h2 class="font-semibold text-gray-900">{{ 'admin.configuration.roles.title'|trans }}</h2>
-        <p class="text-xs text-gray-500">{{ 'admin.configuration.roles.intro'|trans }}</p>
+        <h2 class="font-semibold text-strong">{{ 'admin.configuration.roles.title'|trans }}</h2>
+        <p class="text-xs text-muted">{{ 'admin.configuration.roles.intro'|trans }}</p>
         <twig:Ui:Table>
             <twig:block name="head">
                 <th class="px-4 py-2 text-left font-medium">{{ 'admin.configuration.roles.role'|trans }}</th>
@@ -18,12 +18,12 @@
             </twig:block>
             {% for role in definition.roles %}
                 <twig:Ui:Table:Row>
-                    <td class="sm:px-4 sm:py-2.5 order-1 font-medium text-gray-900">
-                        {{ role.label }} <span class="font-mono text-[11px] text-gray-400">{{ role.id }}</span>
+                    <td class="sm:px-4 sm:py-2.5 order-1 font-medium text-strong">
+                        {{ role.label }} <span class="font-mono text-[11px] text-faint">{{ role.id }}</span>
                     </td>
-                    <td class="sm:px-3 sm:py-2.5 order-3 basis-full sm:basis-auto text-xs text-gray-600">{{ (role.internalOnly ? 'admin.configuration.roles.internal_only' : 'admin.configuration.roles.anyone')|trans }}</td>
-                    <td class="sm:px-3 sm:py-2.5 order-4 text-center text-xs text-gray-600" title="{{ 'admin.configuration.roles.follows_new_issues_help'|trans }}">{{ role.followsNewIssues ? rolesCheck : rolesNone }}</td>
-                    <td class="sm:px-4 sm:py-2.5 order-2 ml-auto text-right text-xs text-gray-600">{{ 'admin.configuration.roles.membership_count'|trans({ '%count%': memberships[role.id] ?? 0 }) }}</td>
+                    <td class="sm:px-3 sm:py-2.5 order-3 basis-full sm:basis-auto text-xs text-muted">{{ (role.internalOnly ? 'admin.configuration.roles.internal_only' : 'admin.configuration.roles.anyone')|trans }}</td>
+                    <td class="sm:px-3 sm:py-2.5 order-4 text-center text-xs text-muted" title="{{ 'admin.configuration.roles.follows_new_issues_help'|trans }}">{{ role.followsNewIssues ? rolesCheck : rolesNone }}</td>
+                    <td class="sm:px-4 sm:py-2.5 order-2 ml-auto text-right text-xs text-muted">{{ 'admin.configuration.roles.membership_count'|trans({ '%count%': memberships[role.id] ?? 0 }) }}</td>
                 </twig:Ui:Table:Row>
             {% endfor %}
         </twig:Ui:Table>
@@ -33,24 +33,24 @@
     </section>
 
     <section class="space-y-2">
-        <h2 class="font-semibold text-gray-900">{{ 'admin.configuration.permissions.title'|trans }}</h2>
-        <p class="text-xs text-gray-500">{{ 'admin.configuration.permissions.intro'|trans }}</p>
-        <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <h2 class="font-semibold text-strong">{{ 'admin.configuration.permissions.title'|trans }}</h2>
+        <p class="text-xs text-muted">{{ 'admin.configuration.permissions.intro'|trans }}</p>
+        <div class="overflow-x-auto rounded-lg border border-line bg-surface">
             <table class="w-full text-sm">
-                <thead class="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
+                <thead class="bg-subtle text-[11px] uppercase tracking-wider text-muted">
                     <tr>
                         <th class="px-4 py-2 text-left font-medium">{{ 'admin.configuration.permissions.permission'|trans }}</th>
                         {% for role in definition.roles %}<th class="px-3 py-2 text-center font-medium whitespace-nowrap">{{ role.label }}</th>{% endfor %}
                         <th class="px-3 py-2 text-center font-medium whitespace-nowrap">{{ 'admin.user.type.admin'|trans }}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
+                <tbody class="divide-y divide-line-subtle">
                     {% for permission in permissions %}
                         {% set granted = definition.rolesGranted(permission) %}
                         <tr>
                             <td class="px-4 py-2.5">
-                                <div class="text-gray-900">{{ ('permission.' ~ permission.value ~ '.label')|trans }}</div>
-                                <div class="text-xs text-gray-500">{{ ('permission.' ~ permission.value ~ '.help')|trans }}</div>
+                                <div class="text-strong">{{ ('permission.' ~ permission.value ~ '.label')|trans }}</div>
+                                <div class="text-xs text-muted">{{ ('permission.' ~ permission.value ~ '.help')|trans }}</div>
                             </td>
                             {% for role in definition.roles %}<td class="px-3 py-2.5 text-center">{{ role.id in granted ? rolesCheck : rolesNone }}</td>{% endfor %}
                             <td class="px-3 py-2.5 text-center">{{ rolesCheck }}</td>

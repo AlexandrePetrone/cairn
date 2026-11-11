@@ -1,6 +1,6 @@
 {# A choice among a few, always visible in a filter bar: a light rail holding Filter:Segment radios, the chosen one raised on it. As tall as a Filter:Menu trigger. `label` names the group for screen readers. #}
 {% props label = null %}
-{% set filterSegmentsClasses = html_cva(base: 'inline-flex items-center gap-0.5 rounded-md bg-gray-100 p-0.5') %}
+{% set filterSegmentsClasses = html_cva(base: 'inline-flex items-center gap-0.5 rounded-md bg-sunken p-0.5') %}
 <div role="radiogroup"{% if label %} aria-label="{{ label }}"{% endif %} class="{{ filterSegmentsClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
     {% block content %}{% endblock %}
 </div>

@@ -7,7 +7,7 @@
     {% if entry.type.isCode %}
         {% set journalData = entry.data %}
         {% set journalPush = entry.type.value == 'commits_pushed' %}
-        <span class="absolute -left-3 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-slate-700 text-white ring-2 ring-gray-50" title="{{ ('forge.' ~ entry.text('forge'))|trans }}"><twig:ux:icon name="lucide:git-branch" class="h-3.5 w-3.5" /></span>
+        <span class="absolute -left-3 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-slate-700 text-white ring-2 ring-line-subtle" title="{{ ('forge.' ~ entry.text('forge'))|trans }}"><twig:ux:icon name="lucide:git-branch" class="h-3.5 w-3.5" /></span>
         <twig:Ui:CodeCard :kind="journalPush ? 'commit' : 'merge_request'"
                           :heading="journalPush ? 'issue.code.heading.commits'|trans({ '%count%': journalData.commits|length, '%branch%': entry.text('branch') }) : 'issue.code.heading.merge_request'|trans({ '%number%': entry.text('number') })"
                           :href="entry.text('url')|default(null)" :repository="entry.text('repository')" :at="entry.at|date('d/m/Y H:i')"
@@ -17,32 +17,32 @@
                 <ul class="mt-2 space-y-1 text-xs">
                     {% for commit in journalData.commits %}
                         <li class="flex items-center gap-2">
-                            {% if commit.url %}<a href="{{ commit.url }}" target="_blank" rel="noopener" class="font-mono text-indigo-600 hover:underline">{{ commit.sha }}</a>{% else %}<span class="font-mono text-gray-600">{{ commit.sha }}</span>{% endif %}
-                            <span class="min-w-0 flex-1 truncate text-gray-800" title="{{ commit.title }}">{{ commit.title }}</span>
-                            {% if commit.author %}<span class="shrink-0 text-gray-400">{{ commit.author }}</span>{% endif %}
+                            {% if commit.url %}<a href="{{ commit.url }}" target="_blank" rel="noopener" class="font-mono text-brand hover:underline">{{ commit.sha }}</a>{% else %}<span class="font-mono text-muted">{{ commit.sha }}</span>{% endif %}
+                            <span class="min-w-0 flex-1 truncate text-body" title="{{ commit.title }}">{{ commit.title }}</span>
+                            {% if commit.author %}<span class="shrink-0 text-faint">{{ commit.author }}</span>{% endif %}
                         </li>
                     {% endfor %}
                 </ul>
             {% endif %}
         </twig:Ui:CodeCard>
     {% else %}
-        <span class="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-gray-300 ring-2 ring-gray-50"></span>
-        <div class="text-xs text-gray-500">
-            <span class="font-medium text-gray-700">{{ entry.author ? entry.author.fullName : 'issue.show.system'|trans }}</span>
+        <span class="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-line-strong ring-2 ring-line-subtle"></span>
+        <div class="text-xs text-muted">
+            <span class="font-medium text-body">{{ entry.author ? entry.author.fullName : 'issue.show.system'|trans }}</span>
             {{ journalLabel }}
-            <span class="text-gray-400">· {{ entry.at|date('d/m/Y H:i') }}</span>
+            <span class="text-faint">· {{ entry.at|date('d/m/Y H:i') }}</span>
         </div>
         {% if journalVersions %}
             <twig:Ui:Disclosure :closedLabel="'issue.event.versions'|trans" :openLabel="'issue.event.hide_versions'|trans" class="mt-1">
                 <div class="grid gap-3 text-sm sm:grid-cols-2">
-                    <div class="rounded-md border border-red-100 bg-red-50/50 p-3"><div class="mb-1 text-xs font-medium uppercase text-red-500">{{ 'issue.event.before'|trans }}</div><div class="prose prose-sm max-w-none">{{ journalVersions.from|markdown }}</div></div>
-                    <div class="rounded-md border border-emerald-100 bg-emerald-50/50 p-3"><div class="mb-1 text-xs font-medium uppercase text-emerald-600">{{ 'issue.event.after'|trans }}</div><div class="prose prose-sm max-w-none">{{ journalVersions.to|markdown }}</div></div>
+                    <div class="rounded-md border border-red-line bg-red-soft/50 p-3"><div class="mb-1 text-xs font-medium uppercase text-red">{{ 'issue.event.before'|trans }}</div><div class="prose prose-sm max-w-none">{{ journalVersions.from|markdown }}</div></div>
+                    <div class="rounded-md border border-emerald-line bg-emerald-soft/50 p-3"><div class="mb-1 text-xs font-medium uppercase text-emerald">{{ 'issue.event.after'|trans }}</div><div class="prose prose-sm max-w-none">{{ journalVersions.to|markdown }}</div></div>
                 </div>
             </twig:Ui:Disclosure>
         {% endif %}
         {% if journalDeletedBody is not null %}
             <twig:Ui:Disclosure :closedLabel="'issue.event.deleted_comment'|trans" :openLabel="'issue.event.hide_deleted_comment'|trans" class="mt-1">
-                <div class="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm"><div class="prose prose-sm max-w-none">{{ journalDeletedBody|markdown }}</div></div>
+                <div class="rounded-md border border-line bg-subtle p-3 text-sm"><div class="prose prose-sm max-w-none">{{ journalDeletedBody|markdown }}</div></div>
             </twig:Ui:Disclosure>
         {% endif %}
     {% endif %}

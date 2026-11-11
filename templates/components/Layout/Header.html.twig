@@ -5,6 +5,7 @@
 {% set headerUser = this.user %}
 {% set headerCanUseApi = this.canUseApi %}
 {% set headerRoute = app.current_route %}
+{% set headerTheme = theme_choice() %}
 {% set headerTabs = [
     { href: path('app_home'), label: 'nav.home'|trans, icon: 'home', active: headerRoute == 'app_home' },
     { href: path('app_my_issues_assigned'), label: 'nav.my_issues'|trans, icon: 'inbox', active: headerRoute starts with 'app_my_issues' },
@@ -16,7 +17,7 @@
 ) %}
 {% set headerClasses = html_cva(
     base: 'sticky top-0 z-50 h-12 bg-slate-900 text-slate-300 flex items-center gap-2 px-3 sm:px-4',
-    variants: { admin: { true: 'border-b-2 border-amber-400' } },
+    variants: { admin: { true: 'border-b-2 border-amber-solid', false: 'border-b border-header-line' } },
 ) %}
 <header class="{{ headerClasses.apply({ admin: admin }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
     {% if project or admin %}
@@ -29,7 +30,7 @@
         <span class="hidden sm:inline font-semibold text-white">Cairn</span>
     </a>
     {% if admin %}
-        <span class="inline-flex items-center gap-1.5 rounded-md bg-amber-400/15 px-2 py-1 text-xs font-semibold uppercase tracking-wider text-amber-300 ring-1 ring-inset ring-amber-400/30">
+        <span class="inline-flex items-center gap-1.5 rounded-md bg-amber-solid/15 px-2 py-1 text-xs font-semibold uppercase tracking-wider text-amber-300 ring-1 ring-inset ring-amber-solid/30">
             <twig:ux:icon name="lucide:settings" class="h-3.5 w-3.5" />{{ 'admin.title'|trans }}
         </span>
         <a href="{{ path('app_home') }}" class="ml-2 hidden sm:inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">{{ 'admin.back'|trans }}</a>
@@ -53,21 +54,21 @@
                 </button>
             </twig:block>
             <div data-controller="list-filter">
-                <label class="flex items-center gap-2 px-3 pb-2 pt-1 border-b border-gray-100 text-gray-400">
+                <label class="flex items-center gap-2 px-3 pb-2 pt-1 border-b border-line-subtle text-faint">
                     <twig:ux:icon name="lucide:search" class="h-4 w-4" />
                     <input type="search" data-dropdown-target="search" data-action="input->list-filter#filter" placeholder="{{ 'nav.switch_project'|trans }}" autocomplete="off"
-                           class="w-full border-0 bg-transparent p-0 text-sm text-gray-800 outline-none placeholder:text-gray-400 focus:ring-0">
+                           class="w-full border-0 bg-transparent p-0 text-sm text-body outline-none placeholder:text-faint focus:ring-0">
                 </label>
                 <div class="max-h-80 overflow-y-auto py-1">
                     {% for group in headerProjects %}
                         {% set headerWorkspace = (group|first).project.workspace %}
                         <div data-list-filter-target="group">
-                            <div class="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">{{ headerWorkspace.name }}</div>
+                            <div class="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-faint">{{ headerWorkspace.name }}</div>
                             {% for summary in group %}
                                 {% set headerOther = summary.project %}
                                 <a href="{{ path('app_project_issues', { workspaceKey: headerWorkspace.key, projectKey: headerOther.key }) }}"
                                    data-list-filter-target="item" data-text="{{ headerOther.name }} {{ headerOther.issuePrefix }} {{ headerWorkspace.name }}"
-                                   class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-gray-50 {{ headerOther.id == project.id ? 'text-indigo-700 font-medium' : (headerOther.readOnly ? 'text-gray-400' : 'text-gray-700') }}"
+                                   class="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-subtle {{ headerOther.id == project.id ? 'text-brand font-medium' : (headerOther.readOnly ? 'text-faint' : 'text-body') }}"
                                    {% if headerOther.id == project.id %}aria-current="page"{% endif %}>
                                     <twig:Ui:Chip class="shrink-0">{{ headerOther.issuePrefix }}</twig:Ui:Chip>
                                     <span class="truncate">{{ headerOther.name }}</span>
@@ -76,9 +77,9 @@
                             {% endfor %}
                         </div>
                     {% endfor %}
-                    <p data-list-filter-target="empty" hidden class="px-3 py-3 text-center text-sm text-gray-400">{{ 'projects.no_match'|trans }}</p>
+                    <p data-list-filter-target="empty" hidden class="px-3 py-3 text-center text-sm text-faint">{{ 'projects.no_match'|trans }}</p>
                 </div>
-                <a href="{{ path('app_projects') }}" class="block border-t border-gray-100 px-3 pt-2 pb-1 text-xs text-indigo-600 hover:underline">{{ 'home.projects.all'|trans }}</a>
+                <a href="{{ path('app_projects') }}" class="block border-t border-line-subtle px-3 pt-2 pb-1 text-xs text-brand hover:underline">{{ 'home.projects.all'|trans }}</a>
             </div>
         </twig:Ui:Dropdown>
     {% endif %}
@@ -95,26 +96,34 @@
     {% endif %}
     <twig:Ui:Dropdown align="right">
         <twig:block name="trigger">
-            <button type="button" data-action="dropdown#toggle" aria-expanded="false" aria-haspopup="menu" class="flex items-center gap-1.5 rounded-full hover:ring-2 hover:ring-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-400" title="{{ headerUser.fullName }}">
+            <button type="button" data-action="dropdown#toggle" aria-expanded="false" aria-haspopup="menu" class="flex items-center gap-1.5 rounded-full hover:ring-2 hover:ring-slate-600 focus:outline-none focus:ring-2 focus:ring-focus" title="{{ headerUser.fullName }}">
                 <twig:Ui:Avatar :name="headerUser.fullName" :kind="headerUser.internal ? 'internal' : 'external'" size="lg" />
                 <twig:ux:icon name="lucide:chevron-down" class="hidden sm:block h-3.5 w-3.5 text-slate-400" />
             </button>
         </twig:block>
-        <div class="flex items-center gap-2.5 px-3 py-2.5 border-b border-gray-100">
+        <div class="flex items-center gap-2.5 px-3 py-2.5 border-b border-line-subtle">
             <twig:Ui:Avatar :name="headerUser.fullName" :kind="headerUser.internal ? 'internal' : 'external'" size="xl" />
             <div class="min-w-0 leading-tight">
-                <div class="text-sm font-medium text-gray-900 truncate">{{ headerUser.fullName }}</div>
-                <div class="text-xs text-gray-500 truncate">{{ headerUser.email }}</div>
+                <div class="text-sm font-medium text-strong truncate">{{ headerUser.fullName }}</div>
+                <div class="text-xs text-muted truncate">{{ headerUser.email }}</div>
             </div>
+        </div>
+        <div class="px-3 py-2.5 border-b border-line-subtle" data-controller="theme" data-action="change->theme#choose">
+            <div class="mb-1.5 text-xs text-muted">{{ 'theme.label'|trans }}</div>
+            <twig:Ui:Filter:Segments :label="'theme.label'|trans" class="grid w-full grid-cols-3">
+                {% for headerChoice, headerIcon in { light: 'sun', dark: 'moon', system: 'monitor' } %}
+                    <twig:Ui:Filter:Segment name="theme" :value="headerChoice" :icon="headerIcon" :checked="headerTheme == headerChoice" class="justify-center">{{ ('theme.' ~ headerChoice)|trans }}</twig:Ui:Filter:Segment>
+                {% endfor %}
+            </twig:Ui:Filter:Segments>
         </div>
         {% if project or admin %}
             <twig:Ui:Dropdown:Item href="{{ path('app_home') }}" icon="home">{{ 'nav.home'|trans }}</twig:Ui:Dropdown:Item>
-            <div class="my-1 border-t border-gray-100"></div>
+            <div class="my-1 border-t border-line-subtle"></div>
         {% else %}
             {% for tab in headerTabs %}
                 <twig:Ui:Dropdown:Item :href="tab.href" :icon="tab.icon" :active="tab.active" class="md:hidden">{{ tab.label }}</twig:Ui:Dropdown:Item>
             {% endfor %}
-            <div class="my-1 border-t border-gray-100 md:hidden"></div>
+            <div class="my-1 border-t border-line-subtle md:hidden"></div>
         {% endif %}
         {% if headerCanUseApi %}
             <twig:Ui:Dropdown:Item href="{{ path('app_api_tokens') }}" icon="key-round" :active="headerRoute == 'app_api_tokens'">{{ 'nav.api_tokens'|trans }}</twig:Ui:Dropdown:Item>

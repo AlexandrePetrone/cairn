@@ -1,13 +1,13 @@
 {# The header of a group in a table: a chevron that folds it, the label in the content, `count` the size of the group. `colspan` spans the columns of the table. The button carries the attributes (what folds the group) and says whether it is open (`aria-expanded`), which turns the chevron. #}
 {% props count = null, collapsed = false, colspan = 1 %}
-{% set tableGroupRowClasses = html_cva(base: 'flex sm:table-row bg-gray-50/80 border-t border-gray-200') %}
-{% set tableGroupRowChevronClasses = html_cva(base: 'h-3.5 w-3.5 text-gray-400 transition-transform group-aria-expanded/fold:rotate-90') %}
+{% set tableGroupRowClasses = html_cva(base: 'flex sm:table-row bg-subtle/80 border-t border-line') %}
+{% set tableGroupRowChevronClasses = html_cva(base: 'h-3.5 w-3.5 text-faint transition-transform group-aria-expanded/fold:rotate-90') %}
 <tr class="{{ tableGroupRowClasses.apply({}, attributes.render('class'))|tailwind_merge }}">
-    <th colspan="{{ colspan }}" scope="rowgroup" class="w-full px-3 py-2 text-left text-sm font-medium text-gray-800">
+    <th colspan="{{ colspan }}" scope="rowgroup" class="w-full px-3 py-2 text-left text-sm font-medium text-body">
         <button type="button" class="group/fold inline-flex items-center gap-2" aria-expanded="{{ collapsed ? 'false' : 'true' }}" {{ attributes }}>
             <twig:ux:icon name="lucide:chevron-right" class="{{ tableGroupRowChevronClasses.apply({}) }}" />
             {% block content %}{% endblock %}
-            {% if count is not null %}<span class="text-xs font-normal text-gray-400 tabular-nums">{{ count }}</span>{% endif %}
+            {% if count is not null %}<span class="text-xs font-normal text-faint tabular-nums">{{ count }}</span>{% endif %}
         </button>
     </th>
 </tr>

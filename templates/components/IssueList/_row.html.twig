@@ -2,24 +2,24 @@
 {% set rowClosed = issue.status.value == 'closed' %}
 {% set issueRoute = { workspaceKey: issue.project.workspace.key, projectKey: issue.project.key } %}
 {% set issueHref = path('app_issue_show', issueRoute|merge({ number: issue.number })) %}
-<twig:Ui:Table:Row :closed="rowClosed" class="has-[:checked]:bg-indigo-50/60" data-fold-target="row" data-fold-group="{{ group }}">
+<twig:Ui:Table:Row :closed="rowClosed" class="has-[:checked]:bg-brand-soft/60" data-fold-target="row" data-fold-group="{{ group }}">
     <td class="sm:px-3 sm:py-2.5 order-1">
-        <input type="checkbox" form="issue-selection" name="ids[]" value="{{ issue.id }}" aria-label="{{ issue.key }}" data-selection-target="box" data-action="selection#refresh" class="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600">
+        <input type="checkbox" form="issue-selection" name="ids[]" value="{{ issue.id }}" aria-label="{{ issue.key }}" data-selection-target="box" data-action="selection#refresh" class="h-3.5 w-3.5 rounded border-line-strong text-brand">
     </td>
     <td class="sm:px-3 sm:py-2.5 order-1 whitespace-nowrap"><twig:Ui:IssueKey :key="issue.key" href="{{ issueHref }}" /></td>
     {% if showProject %}
         <td class="sm:px-3 sm:py-2.5 order-5 whitespace-nowrap text-xs">
-            <a href="{{ path('app_project_issues', issueRoute) }}" class="text-gray-700 hover:text-indigo-700">{{ issue.project.name }}</a>
-            <span class="hidden lg:inline text-gray-400">· {{ issue.project.workspace.name }}</span>
+            <a href="{{ path('app_project_issues', issueRoute) }}" class="text-body hover:text-brand">{{ issue.project.name }}</a>
+            <span class="hidden lg:inline text-faint">· {{ issue.project.workspace.name }}</span>
         </td>
     {% endif %}
-    <td class="sm:px-3 sm:py-2.5 order-4 basis-full sm:basis-auto {{ rowClosed ? 'text-gray-500' : 'text-gray-900' }}">
-        <a href="{{ issueHref }}" class="hover:text-indigo-700">{{ issue.title }}</a>
+    <td class="sm:px-3 sm:py-2.5 order-4 basis-full sm:basis-auto {{ rowClosed ? 'text-muted' : 'text-strong' }}">
+        <a href="{{ issueHref }}" class="hover:text-brand">{{ issue.title }}</a>
         {% if issue.private %}<twig:Ui:Badge tone="amber" size="sm" icon="lock">{{ 'issue.private'|trans }}</twig:Ui:Badge>{% endif %}
     </td>
-    <td class="sm:px-3 sm:py-2.5 order-5 whitespace-nowrap text-xs text-gray-600">{{ issue.tracker.name }}</td>
+    <td class="sm:px-3 sm:py-2.5 order-5 whitespace-nowrap text-xs text-muted">{{ issue.tracker.name }}</td>
     <td class="sm:px-3 sm:py-2.5 order-6 whitespace-nowrap"><twig:Ui:Status:Step :status="issue.status.value" :label="issue_place(issue)" /></td>
     <td class="sm:px-3 sm:py-2.5 order-2 whitespace-nowrap"><twig:Ui:Criticality:Badge :criticality="issue.criticality.value" /></td>
     <td class="sm:px-3 sm:py-2.5 order-7 whitespace-nowrap"><twig:Ui:Avatar :name="issue.assignee ? issue.assignee.fullName : null" :kind="issue.assignee and issue.assignee.internal ? 'internal' : 'external'" size="sm" /></td>
-    <td class="sm:px-3 sm:py-2.5 order-3 ml-auto sm:ml-0 text-right whitespace-nowrap text-xs text-gray-400">{{ issue.updatedAt|date('d/m/Y') }}</td>
+    <td class="sm:px-3 sm:py-2.5 order-3 ml-auto sm:ml-0 text-right whitespace-nowrap text-xs text-faint">{{ issue.updatedAt|date('d/m/Y') }}</td>
 </twig:Ui:Table:Row>

@@ -4,7 +4,7 @@
 {% set codeEmpty = codeMergeRequests is empty and codeCommitsByBranch is empty %}
 {% set codeCommitCount = codeCommitsByBranch|reduce((count, commits) => count + commits|length, 0) %}
 {% set codeStateTones = { opened: 'blue', reopened: 'blue', merged: 'violet', closed: 'gray' } %}
-{% set codeStateIconClasses = { opened: 'text-blue-500', reopened: 'text-blue-500', merged: 'text-violet-500', closed: 'text-gray-400' } %}
+{% set codeStateIconClasses = { opened: 'text-blue', reopened: 'text-blue', merged: 'text-violet', closed: 'text-faint' } %}
 <div {{ attributes.defaults({ class: codeEmpty ? 'hidden' : '' }) }} data-loading="addClass(opacity-60)">
     {% if not codeEmpty %}
         <twig:Ui:Section :title="'issue.code.title'|trans" icon="git-branch" tone="violet" :open="false">
@@ -14,10 +14,10 @@
                     {% if codeMergeRequests is not empty %}
                         {% set codeFirst = codeMergeRequests|first %}
                         {% set codeFirstState = codeFirst.state ? codeFirst.state.value : 'opened' %}
-                        <span class="font-mono text-indigo-600">!{{ codeFirst.externalId }}</span>
+                        <span class="font-mono text-brand">!{{ codeFirst.externalId }}</span>
                         <twig:Ui:Badge :tone="codeStateTones[codeFirstState]" size="sm">{{ ('issue.code.state.' ~ codeFirstState)|trans }}</twig:Ui:Badge>
                     {% else %}
-                        <span class="whitespace-nowrap text-gray-400">{{ 'issue.code.commits_count'|trans({ '%count%': codeCommitCount }) }}</span>
+                        <span class="whitespace-nowrap text-faint">{{ 'issue.code.commits_count'|trans({ '%count%': codeCommitCount }) }}</span>
                     {% endif %}
                 </span>
             </twig:block>
@@ -27,15 +27,15 @@
                         {% for mergeRequest in codeMergeRequests %}
                             {% set codeState = mergeRequest.state ? mergeRequest.state.value : 'opened' %}
                             <li>
-                                <a href="{{ mergeRequest.url }}" target="_blank" rel="noopener" class="-mx-1.5 flex items-start gap-2 rounded-md px-1.5 py-1 hover:bg-gray-50">
+                                <a href="{{ mergeRequest.url }}" target="_blank" rel="noopener" class="-mx-1.5 flex items-start gap-2 rounded-md px-1.5 py-1 hover:bg-subtle">
                                     <twig:ux:icon name="lucide:git-pull-request" class="mt-0.5 h-3.5 w-3.5 shrink-0 {{ codeStateIconClasses[codeState] }}" />
                                     <span class="min-w-0 flex-1">
                                         <span class="flex items-center gap-1.5 text-xs">
-                                            <span class="font-mono font-medium text-gray-700">!{{ mergeRequest.externalId }}</span>
+                                            <span class="font-mono font-medium text-body">!{{ mergeRequest.externalId }}</span>
                                             <twig:Ui:Badge :tone="codeStateTones[codeState]" size="sm">{{ ('issue.code.state.' ~ codeState)|trans }}</twig:Ui:Badge>
                                         </span>
-                                        <span class="mt-0.5 block truncate text-[13px] text-gray-800" title="{{ mergeRequest.title }}">{{ mergeRequest.title }}</span>
-                                        {% if mergeRequest.branch %}<span class="mt-0.5 block truncate font-mono text-[11px] text-gray-400" title="{{ mergeRequest.branch }}">{{ mergeRequest.branch }}</span>{% endif %}
+                                        <span class="mt-0.5 block truncate text-[13px] text-body" title="{{ mergeRequest.title }}">{{ mergeRequest.title }}</span>
+                                        {% if mergeRequest.branch %}<span class="mt-0.5 block truncate font-mono text-[11px] text-faint" title="{{ mergeRequest.branch }}">{{ mergeRequest.branch }}</span>{% endif %}
                                     </span>
                                 </a>
                             </li>
@@ -44,16 +44,16 @@
                 {% endif %}
                 {% for codeBranch, codeCommits in codeCommitsByBranch %}
                     <div class="{{ loop.first and codeMergeRequests is empty ? '' : 'mt-2' }}">
-                        <div class="flex items-center gap-1.5 text-[11px] text-gray-500">
+                        <div class="flex items-center gap-1.5 text-[11px] text-muted">
                             <twig:ux:icon name="lucide:git-commit-horizontal" class="h-3.5 w-3.5 shrink-0" />
                             <span class="min-w-0 truncate font-mono" title="{{ codeBranch }}">{{ codeBranch }}</span>
-                            <span class="whitespace-nowrap text-gray-400">· {{ 'issue.code.commits_count'|trans({ '%count%': codeCommits|length }) }}</span>
+                            <span class="whitespace-nowrap text-faint">· {{ 'issue.code.commits_count'|trans({ '%count%': codeCommits|length }) }}</span>
                         </div>
                         <div class="mt-1 flex flex-wrap items-center gap-1">
                             {% for commit in codeCommits|slice(0, 5) %}
-                                <a href="{{ commit.url }}" target="_blank" rel="noopener" class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[11px] text-gray-700 hover:bg-indigo-50 hover:text-indigo-700" title="{{ commit.title }} — {{ commit.authorName }}">{{ commit.shortSha }}</a>
+                                <a href="{{ commit.url }}" target="_blank" rel="noopener" class="rounded bg-sunken px-1.5 py-0.5 font-mono text-[11px] text-body hover:bg-brand-soft hover:text-brand" title="{{ commit.title }} — {{ commit.authorName }}">{{ commit.shortSha }}</a>
                             {% endfor %}
-                            {% if codeCommits|length > 5 %}<span class="text-[11px] text-gray-400">+{{ codeCommits|length - 5 }}</span>{% endif %}
+                            {% if codeCommits|length > 5 %}<span class="text-[11px] text-faint">+{{ codeCommits|length - 5 }}</span>{% endif %}
                         </div>
                     </div>
                 {% endfor %}

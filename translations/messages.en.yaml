@@ -295,6 +295,11 @@ nav:
         assigned: Assigned to me
         created: Created by me
 
+theme:
+    label: Theme
+    light: Light
+    dark: Dark
+    system: System
 pagination:
     label: Pagination
     previous: Previous

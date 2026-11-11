@@ -3,17 +3,17 @@
 {% block page_title %}{{ 'admin.user.new'|trans }}{% endblock %}
 
 {% block breadcrumb %}
-    <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-gray-300 shrink-0" />
-    <a href="{{ path('app_admin_users') }}" class="hover:text-gray-900">{{ 'admin.nav.users'|trans }}</a>
+    <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-ghost shrink-0" />
+    <a href="{{ path('app_admin_users') }}" class="hover:text-strong">{{ 'admin.nav.users'|trans }}</a>
 {% endblock %}
 
 {% block content %}
     <div class="max-w-2xl mx-auto px-4 sm:px-6 py-5 space-y-4">
         <div>
-            <h1 class="text-xl font-semibold text-gray-900">{{ 'admin.user.new'|trans }}</h1>
-            <p class="text-xs text-gray-500">{{ 'admin.user.new_help'|trans }}</p>
+            <h1 class="text-xl font-semibold text-strong">{{ 'admin.user.new'|trans }}</h1>
+            <p class="text-xs text-muted">{{ 'admin.user.new_help'|trans }}</p>
         </div>
-        {{ form_start(form, { attr: { class: 'rounded-lg border border-gray-200 bg-white p-4 space-y-4' } }) }}
+        {{ form_start(form, { attr: { class: 'rounded-lg border border-line bg-surface p-4 space-y-4' } }) }}
             {{ form_errors(form) }}
             <div class="grid sm:grid-cols-2 gap-4">
                 {{ form_row(form.firstName) }}

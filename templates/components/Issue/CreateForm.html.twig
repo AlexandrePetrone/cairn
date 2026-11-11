@@ -6,8 +6,8 @@
 <div {{ attributes }} class="space-y-6">
     <section>
         <div class="flex items-baseline gap-2 mb-2">
-            <h2 class="font-semibold text-gray-900">{{ 'issue.create.choose'|trans }}</h2>
-            <span class="text-xs text-gray-400">{{ 'issue.create.choose_hint'|trans }}</span>
+            <h2 class="font-semibold text-strong">{{ 'issue.create.choose'|trans }}</h2>
+            <span class="text-xs text-faint">{{ 'issue.create.choose_hint'|trans }}</span>
         </div>
         <div class="grid sm:grid-cols-3 gap-3" data-loading="addClass(opacity-60)">
             {% for tracker in createTrackers %}
@@ -25,8 +25,8 @@
             {% endif %}
 
             <section>
-                <h2 class="font-semibold text-gray-900 mb-2">{{ 'issue.create.describe'|trans }}</h2>
-                <div class="rounded-lg border border-gray-200 bg-white divide-y divide-gray-100">
+                <h2 class="font-semibold text-strong mb-2">{{ 'issue.create.describe'|trans }}</h2>
+                <div class="rounded-lg border border-line bg-surface divide-y divide-line-subtle">
                     <div class="p-4">{{ form_row(form.title) }}</div>
                     <div class="p-4">{{ form_row(form.description) }}</div>
                     {% if form.fields|length > 0 %}
@@ -45,11 +45,11 @@
             {% if form.assignee is defined or form.private is defined %}
                 <section>
                     <div class="flex items-baseline gap-2 mb-2">
-                        <h2 class="font-semibold text-gray-900">{{ 'issue.create.qualification'|trans }}</h2>
+                        <h2 class="font-semibold text-strong">{{ 'issue.create.qualification'|trans }}</h2>
                         <twig:Ui:Badge tone="amber" size="sm" icon="lock">{{ 'issue.create.internal'|trans }}</twig:Ui:Badge>
-                        <span class="text-xs text-gray-400">{{ 'issue.create.qualification_hint'|trans }}</span>
+                        <span class="text-xs text-faint">{{ 'issue.create.qualification_hint'|trans }}</span>
                     </div>
-                    <div class="rounded-lg border border-amber-200 bg-amber-50/40 private-hatching p-4 grid sm:grid-cols-3 gap-4">
+                    <div class="rounded-lg border border-amber-line bg-amber-soft/40 private-hatching p-4 grid sm:grid-cols-3 gap-4">
                         {% if form.assignee is defined %}{{ form_row(form.assignee) }}{% endif %}
                         {% if form.private is defined %}{{ form_row(form.private, { row_attr: { class: 'self-end' } }) }}{% endif %}
                     </div>
@@ -59,11 +59,11 @@
         {{ form_end(form) }}
 
         <section>
-            <h2 class="font-semibold text-gray-900 mb-2">{{ 'attachment.title'|trans }}</h2>
-            <label class="flex cursor-pointer flex-col items-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-5 text-center text-sm text-gray-500 hover:border-indigo-300 hover:bg-indigo-50/30" data-loading="action(attach)|addClass(opacity-60)">
-                {{ ux_icon('lucide:paperclip', { class: 'h-5 w-5 text-gray-400' }) }}
+            <h2 class="font-semibold text-strong mb-2">{{ 'attachment.title'|trans }}</h2>
+            <label class="flex cursor-pointer flex-col items-center rounded-lg border-2 border-dashed border-line-strong bg-surface p-5 text-center text-sm text-muted hover:border-brand-line hover:bg-brand-soft/30" data-loading="action(attach)|addClass(opacity-60)">
+                {{ ux_icon('lucide:paperclip', { class: 'h-5 w-5 text-faint' }) }}
                 <span class="mt-1">{{ 'attachment.choose'|trans }}</span>
-                <span class="text-xs text-gray-400">{{ 'attachment.limit'|trans }}</span>
+                <span class="text-xs text-faint">{{ 'attachment.limit'|trans }}</span>
                 <input type="file" name="files[]" multiple class="sr-only" data-controller="file-picker"
                        data-action="change->file-picker#chosen file-picker:chosen->live#action" data-live-action-param="files|attach">
             </label>
@@ -73,7 +73,7 @@
             {% if createPendingFiles is not empty %}
                 <div class="mt-2 flex flex-wrap gap-2">
                     {% for file in createPendingFiles %}
-                        <twig:Ui:Attachment :name="file.filename" :size="file.size" :image="file.image" :href="attachment_url(file)" class="bg-white">
+                        <twig:Ui:Attachment :name="file.filename" :size="file.size" :image="file.image" :href="attachment_url(file)" class="bg-surface">
                             <twig:block name="actions">
                                 <twig:Ui:IconButton icon="x" size="sm" :label="'attachment.remove'|trans" class="-mr-1" data-action="live#action" data-live-action-param="discard" data-live-uuid-param="{{ file.uuid.toRfc4122 }}" />
                             </twig:block>
@@ -83,7 +83,7 @@
             {% endif %}
         </section>
 
-        <div class="sticky bottom-0 border-t border-gray-200 bg-white/95 backdrop-blur py-3 flex items-center gap-3">
+        <div class="sticky bottom-0 border-t border-line bg-surface/95 backdrop-blur py-3 flex items-center gap-3">
             <twig:Ui:Button variant="primary" size="lg" type="submit" form="issue-form" data-loading="addAttribute(disabled)">{{ 'issue.create.submit'|trans }}</twig:Ui:Button>
             <twig:Ui:Button variant="ghost" size="lg" href="{{ path('app_project_issues', { workspaceKey: project.workspace.key, projectKey: project.key }) }}">{{ 'issue.create.cancel'|trans }}</twig:Ui:Button>
         </div>

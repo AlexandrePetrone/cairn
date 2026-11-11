@@ -4,31 +4,31 @@
 
 {% block configuration_content %}
     <section class="space-y-2">
-        <h2 class="font-semibold text-gray-900">{{ 'admin.configuration.history.policy'|trans }}</h2>
-        <p class="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
-            <span class="font-medium text-gray-900">{{ ('migration_policy.' ~ definition.migrationPolicy.value ~ '.label')|trans }}</span> :
+        <h2 class="font-semibold text-strong">{{ 'admin.configuration.history.policy'|trans }}</h2>
+        <p class="rounded-lg border border-line bg-surface px-4 py-3 text-sm text-body">
+            <span class="font-medium text-strong">{{ ('migration_policy.' ~ definition.migrationPolicy.value ~ '.label')|trans }}</span> :
             {{ ('migration_policy.' ~ definition.migrationPolicy.value ~ '.help')|trans }}
         </p>
     </section>
 
     <section class="space-y-2">
-        <h2 class="font-semibold text-gray-900">{{ 'admin.configuration.history.title'|trans }}</h2>
-        <p class="text-xs text-gray-500">{{ 'admin.configuration.history.intro'|trans }}</p>
-        <ol class="rounded-lg border border-gray-200 bg-white divide-y divide-gray-100 text-sm">
+        <h2 class="font-semibold text-strong">{{ 'admin.configuration.history.title'|trans }}</h2>
+        <p class="text-xs text-muted">{{ 'admin.configuration.history.intro'|trans }}</p>
+        <ol class="rounded-lg border border-line bg-surface divide-y divide-line-subtle text-sm">
             {% for snapshot in snapshots %}
                 <li class="px-4 py-3 space-y-1">
                     <div class="flex flex-wrap items-center gap-2">
-                        <span class="font-medium text-gray-900">{{ snapshot.appliedAt|date('d/m/Y H:i') }}</span>
+                        <span class="font-medium text-strong">{{ snapshot.appliedAt|date('d/m/Y H:i') }}</span>
                         {% if loop.first %}<twig:Ui:Badge tone="emerald" size="sm">{{ 'admin.configuration.history.current'|trans }}</twig:Ui:Badge>{% endif %}
-                        <span class="text-xs text-gray-500">{{ snapshot.appliedBy ? 'admin.configuration.history.by'|trans({ '%name%': snapshot.appliedBy }) }}</span>
-                        <span class="ml-auto font-mono text-[11px] text-gray-400" title="{{ snapshot.hash }}">{{ snapshot.hash|slice(0, 12) }}</span>
+                        <span class="text-xs text-muted">{{ snapshot.appliedBy ? 'admin.configuration.history.by'|trans({ '%name%': snapshot.appliedBy }) }}</span>
+                        <span class="ml-auto font-mono text-[11px] text-faint" title="{{ snapshot.hash }}">{{ snapshot.hash|slice(0, 12) }}</span>
                     </div>
                     {% set historyChanges = snapshot.summary|split("\n")|filter(line => line|trim is not empty) %}
                     {% if historyChanges is empty %}
-                        <p class="text-xs text-gray-500">{{ 'admin.configuration.history.no_changes'|trans }}</p>
+                        <p class="text-xs text-muted">{{ 'admin.configuration.history.no_changes'|trans }}</p>
                     {% else %}
                         <twig:Ui:Disclosure :closedLabel="'admin.configuration.history.show_changes'|trans({ '%count%': historyChanges|length })" :openLabel="'admin.configuration.history.hide_changes'|trans">
-                            <pre class="whitespace-pre-wrap font-sans text-xs text-gray-600">{{ snapshot.summary }}</pre>
+                            <pre class="whitespace-pre-wrap font-sans text-xs text-muted">{{ snapshot.summary }}</pre>
                         </twig:Ui:Disclosure>
                     {% endif %}
                 </li>

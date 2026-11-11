@@ -1,6 +1,6 @@
 {# A titled group of picker items, hidden with them when the search leaves none. #}
 {% props label %}
 <div data-list-filter-target="group" {{ attributes }}>
-    <div class="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">{{ label }}</div>
+    <div class="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-faint">{{ label }}</div>
     {% block content %}{% endblock %}
 </div>

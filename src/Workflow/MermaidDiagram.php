@@ -17,12 +17,16 @@ use App\Entity\Enum\PlaceStatus;
  */
 final class MermaidDiagram
 {
-    /** Fill and stroke of each status, as Ui:Status:Dot colours them. */
+    /**
+     * Fill and stroke of each status, as Ui:Status:Dot colours them. The
+     * colours are the roles of app.css, which the `workflow-diagram`
+     * controller resolves when drawing, so that the drawing follows the theme.
+     */
     private const array STATUS_STYLES = [
-        'open' => 'fill:#eff6ff,stroke:#3b82f6,color:#1e3a8a',
-        'in_progress' => 'fill:#fffbeb,stroke:#f59e0b,color:#78350f',
-        'waiting' => 'fill:#f5f3ff,stroke:#8b5cf6,color:#4c1d95',
-        'closed' => 'fill:#f3f4f6,stroke:#9ca3af,color:#374151',
+        'open' => 'fill:var(--color-blue-soft),stroke:var(--color-blue-solid),color:var(--color-blue)',
+        'in_progress' => 'fill:var(--color-amber-soft),stroke:var(--color-amber-solid),color:var(--color-amber)',
+        'waiting' => 'fill:var(--color-violet-soft),stroke:var(--color-violet-solid),color:var(--color-violet)',
+        'closed' => 'fill:var(--color-sunken),stroke:var(--color-faint),color:var(--color-body)',
     ];
 
     public function render(WorkflowDefinition $workflow): string
@@ -44,7 +48,7 @@ final class MermaidDiagram
         foreach (PlaceStatus::cases() as $status) {
             $lines[] = \sprintf('  classDef %s %s', $status->value, self::STATUS_STYLES[$status->value]);
         }
-        $lines[] = '  classDef start fill:#111827,stroke:#111827';
+        $lines[] = '  classDef start fill:var(--color-strong),stroke:var(--color-strong)';
 
         return implode("\n", $lines)."\n";
     }

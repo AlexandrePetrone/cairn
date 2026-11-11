@@ -3,6 +3,6 @@ variants:
     default:
         args: { title: Invite users }
         blocks:
-            trigger: '<button type="button" data-action="drawer#open" class="inline-flex h-8 items-center rounded-md bg-indigo-600 px-3 text-sm font-medium text-white">Invite</button>'
-            content: '<p class="text-sm text-gray-600">Drawer content.</p>'
-            footer: '<button type="button" class="inline-flex h-8 items-center rounded-md bg-indigo-600 px-3 text-sm font-medium text-white">Send</button>'
+            trigger: '<button type="button" data-action="drawer#open" class="inline-flex h-8 items-center rounded-md bg-brand-solid px-3 text-sm font-medium text-white">Invite</button>'
+            content: '<p class="text-sm text-muted">Drawer content.</p>'
+            footer: '<button type="button" class="inline-flex h-8 items-center rounded-md bg-brand-solid px-3 text-sm font-medium text-white">Send</button>'

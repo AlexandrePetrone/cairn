@@ -1,9 +1,9 @@
 {# Radio group drawn as segments; `options` maps value => label, `value` is the selected one. `name`, `required` and `disabled` go to every radio input. #}
 {% props options, value = null %}
-{% set segmentedClasses = html_cva(base: 'mt-1 inline-flex flex-wrap rounded-md border border-gray-300 p-0.5 text-sm') %}
+{% set segmentedClasses = html_cva(base: 'mt-1 inline-flex flex-wrap rounded-md border border-line-strong p-0.5 text-sm') %}
 <div class="{{ segmentedClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes.without('name', 'required', 'disabled', 'class') }}>
     {% for optionValue, optionLabel in options %}
-        <label class="cursor-pointer whitespace-nowrap rounded px-2.5 py-1 has-[:checked]:bg-gray-900 has-[:checked]:text-white text-gray-700 hover:bg-gray-100 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60">
+        <label class="cursor-pointer whitespace-nowrap rounded px-2.5 py-1 has-[:checked]:bg-inverse has-[:checked]:text-on-inverse text-body hover:bg-sunken has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60">
             <input type="radio" {{ attributes.only('name', 'required', 'disabled') }} value="{{ optionValue }}" {{ optionValue == value ? 'checked' }} class="sr-only">
             {{ optionLabel }}
         </label>

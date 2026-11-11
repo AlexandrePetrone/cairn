@@ -5,29 +5,29 @@
         <twig:Ui:EmptyState :title="'issue.selection.empty'|trans" bordered class="lg:col-span-2">{{ 'issue.selection.empty_hint'|trans }}</twig:Ui:EmptyState>
     {% else %}
         <section>
-            <h2 class="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">{{ 'issue.selection.issues'|trans({ '%count%': selectionActions.issues|length }) }}</h2>
+            <h2 class="mb-2 text-xs font-medium uppercase tracking-wider text-muted">{{ 'issue.selection.issues'|trans({ '%count%': selectionActions.issues|length }) }}</h2>
             <twig:Ui:Table>
                 {% for issue in selectionActions.issues %}
                     {% set issueRoute = { workspaceKey: issue.project.workspace.key, projectKey: issue.project.key } %}
                     <twig:Ui:Table:Row>
                         <td class="sm:px-3 sm:py-2.5 order-1 whitespace-nowrap"><twig:Ui:IssueKey :key="issue.key" href="{{ path('app_issue_show', issueRoute|merge({ number: issue.number })) }}" /></td>
-                        <td class="sm:px-3 sm:py-2.5 order-4 basis-full sm:basis-auto text-gray-900">
+                        <td class="sm:px-3 sm:py-2.5 order-4 basis-full sm:basis-auto text-strong">
                             {{ issue.title }}
-                            {% if selectionActions.acrossProjects %}<span class="text-xs text-gray-400">· {{ issue.project.name }}</span>{% endif %}
+                            {% if selectionActions.acrossProjects %}<span class="text-xs text-faint">· {{ issue.project.name }}</span>{% endif %}
                         </td>
-                        <td class="sm:px-3 sm:py-2.5 order-2 whitespace-nowrap text-xs text-gray-600">{{ issue.tracker.name }}</td>
+                        <td class="sm:px-3 sm:py-2.5 order-2 whitespace-nowrap text-xs text-muted">{{ issue.tracker.name }}</td>
                         <td class="sm:px-3 sm:py-2.5 order-3 whitespace-nowrap"><twig:Ui:Status:Step :status="issue.status.value" :label="issue_place(issue)" /></td>
                     </twig:Ui:Table:Row>
                 {% endfor %}
             </twig:Ui:Table>
         </section>
 
-        <section class="rounded-lg border border-gray-200 bg-white p-4 space-y-4 lg:sticky lg:top-16">
+        <section class="rounded-lg border border-line bg-surface p-4 space-y-4 lg:sticky lg:top-16">
             {% if error %}<twig:Ui:Callout tone="danger" size="sm" role="alert">{{ error }}</twig:Ui:Callout>{% endif %}
             {% if action is null %}
-                <h2 class="font-semibold text-gray-900">{{ 'issue.bulk.choose'|trans }}</h2>
+                <h2 class="font-semibold text-strong">{{ 'issue.bulk.choose'|trans }}</h2>
                 {% if not selectionActions.hasAnything %}
-                    <p class="text-sm text-gray-500">{{ 'issue.bulk.nothing_in_common'|trans }}</p>
+                    <p class="text-sm text-muted">{{ 'issue.bulk.nothing_in_common'|trans }}</p>
                 {% else %}
                     {% if selectionActions.transitions is not empty %}
                         <div class="flex flex-wrap gap-2">
@@ -36,9 +36,9 @@
                             {% endfor %}
                         </div>
                     {% else %}
-                        <p class="text-xs text-gray-500">{{ 'issue.bulk.no_common_transition'|trans }}</p>
+                        <p class="text-xs text-muted">{{ 'issue.bulk.no_common_transition'|trans }}</p>
                     {% endif %}
-                    <div class="flex flex-wrap gap-2 border-t border-gray-100 pt-4">
+                    <div class="flex flex-wrap gap-2 border-t border-line-subtle pt-4">
                         {% if selectionActions.canAssign %}<twig:Ui:Button size="sm" icon="user" data-action="live#action" data-live-action-param="choose" data-live-choice-param="assign">{{ 'issue.bulk.assign'|trans }}</twig:Ui:Button>{% endif %}
                         {% if selectionActions.canComment %}<twig:Ui:Button size="sm" icon="message-square" data-action="live#action" data-live-action-param="choose" data-live-choice-param="comment">{{ 'issue.bulk.comment'|trans }}</twig:Ui:Button>{% endif %}
                         {% if selectionActions.canSetCriticality %}<twig:Ui:Button size="sm" icon="flame" data-action="live#action" data-live-action-param="choose" data-live-choice-param="criticality">{{ 'issue.bulk.criticality'|trans }}</twig:Ui:Button>{% endif %}
@@ -50,10 +50,10 @@
                 {% set selectionTransition = selectionActions.transitionFor(action) %}
                 {% set selectionMoveTracker = this.moveTracker %}
                 {% set selectionMovePlaces = this.movePlaces %}
-                <h2 class="font-semibold text-gray-900">{{ this.actionLabel }}</h2>
-                <p class="text-xs text-gray-500">{{ 'issue.bulk.applies_to'|trans({ '%count%': selectionActions.issues|length }) }}</p>
+                <h2 class="font-semibold text-strong">{{ this.actionLabel }}</h2>
+                <p class="text-xs text-muted">{{ 'issue.bulk.applies_to'|trans({ '%count%': selectionActions.issues|length }) }}</p>
                 {% if action == 'assign' %}
-                    <label class="block text-sm text-gray-700">{{ 'issue.field.assignee'|trans }}
+                    <label class="block text-sm text-body">{{ 'issue.field.assignee'|trans }}
                         <twig:Ui:Form:Select model="assigneeId">
                             <option value="">{{ 'issue.show.nobody'|trans }}</option>
                             {% for member in selectionActions.assignees %}
@@ -62,7 +62,7 @@
                         </twig:Ui:Form:Select>
                     </label>
                 {% elseif action == 'criticality' %}
-                    <label class="block text-sm text-gray-700">{{ 'issue.field.criticality'|trans }}
+                    <label class="block text-sm text-body">{{ 'issue.field.criticality'|trans }}
                         <twig:Ui:Form:Select model="criticality">
                             {% for selectionCriticality in enum_cases('App\\Entity\\Enum\\Criticality')|reverse %}
                                 <option value="{{ selectionCriticality.value }}" {{ selectionCriticality.value == criticality ? 'selected' }}>{{ ('criticality.' ~ selectionCriticality.value)|trans }}</option>
@@ -70,7 +70,7 @@
                         </twig:Ui:Form:Select>
                     </label>
                 {% elseif action == 'release' %}
-                    <label class="block text-sm text-gray-700">{{ 'issue.show.release'|trans }}
+                    <label class="block text-sm text-body">{{ 'issue.show.release'|trans }}
                         <twig:Ui:Form:Select model="releaseId">
                             <option value="">{{ 'issue.show.no_release'|trans }}</option>
                             {% for release in selectionActions.releases %}
@@ -79,14 +79,14 @@
                         </twig:Ui:Form:Select>
                     </label>
                 {% elseif action == 'move' %}
-                    <label class="block text-sm text-gray-700">{{ 'issue.move.tracker'|trans }}
+                    <label class="block text-sm text-body">{{ 'issue.move.tracker'|trans }}
                         <twig:Ui:Form:Select model="moveTrackerId">
                             {% for tracker in selectionActions.moveTrackers %}
                                 <option value="{{ tracker.id }}" {{ selectionMoveTracker and tracker.id == selectionMoveTracker.id ? 'selected' }}>{{ tracker.name }}</option>
                             {% endfor %}
                         </twig:Ui:Form:Select>
                     </label>
-                    <label class="block text-sm text-gray-700">{{ 'issue.move.place'|trans }}
+                    <label class="block text-sm text-body">{{ 'issue.move.place'|trans }}
                         <twig:Ui:Form:Select model="movePlaceId">
                             {% for place in selectionMovePlaces %}
                                 <option value="{{ place.id }}" {{ place.id == movePlaceId ? 'selected' }}>{{ place.label }}</option>
@@ -96,17 +96,17 @@
                     <twig:Ui:Callout tone="amber" size="sm">{{ 'issue.bulk.move_hint'|trans }}</twig:Ui:Callout>
                 {% endif %}
                 {% if action == 'comment' or (selectionTransition and selectionActions.canComment) %}
-                    <label class="block text-sm text-gray-700">
+                    <label class="block text-sm text-body">
                         {{ 'issue.bulk.comment_label'|trans }}
-                        {% if selectionTransition and not selectionTransition.requiresComment %}<span class="text-xs text-gray-400">{{ 'form.optional'|trans }}</span>{% endif %}
+                        {% if selectionTransition and not selectionTransition.requiresComment %}<span class="text-xs text-faint">{{ 'form.optional'|trans }}</span>{% endif %}
                         <twig:Ui:Form:Textarea model="norender|comment" rows="5" :placeholder="selectionTransition and selectionTransition.commentPrompt ? selectionTransition.commentPrompt : 'issue.bulk.comment_hint'|trans">{{ comment }}</twig:Ui:Form:Textarea>
                     </label>
-                    <p class="text-xs text-gray-400">{{ 'issue.bulk.comment_each'|trans }}</p>
+                    <p class="text-xs text-faint">{{ 'issue.bulk.comment_each'|trans }}</p>
                     {% if selectionActions.canCommentPrivately %}
                         <twig:Ui:Form:Checkbox model="commentPrivate" :label="'issue.comment.private'|trans" :checked="commentPrivate" tone="amber" />
                     {% endif %}
                 {% endif %}
-                <div class="flex items-center gap-2 border-t border-gray-100 pt-4">
+                <div class="flex items-center gap-2 border-t border-line-subtle pt-4">
                     <twig:Ui:Button variant="primary" data-action="live#action" data-live-action-param="apply" data-loading="addAttribute(disabled)">{{ 'issue.bulk.confirm'|trans({ '%count%': selectionActions.issues|length }) }}</twig:Ui:Button>
                     <twig:Ui:Button variant="ghost" data-action="live#action" data-live-action-param="back">{{ 'issue.edit.cancel'|trans }}</twig:Ui:Button>
                 </div>

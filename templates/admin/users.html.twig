@@ -6,13 +6,13 @@
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 space-y-4">
         <div class="flex flex-wrap items-center gap-3">
             <div>
-                <h1 class="text-xl font-semibold text-gray-900">{{ 'admin.nav.users'|trans }}</h1>
-                <p class="text-xs text-gray-500">{{ 'admin.user.count'|trans({ '%count%': users.total }) }}</p>
+                <h1 class="text-xl font-semibold text-strong">{{ 'admin.nav.users'|trans }}</h1>
+                <p class="text-xs text-muted">{{ 'admin.user.count'|trans({ '%count%': users.total }) }}</p>
             </div>
             <twig:Ui:Button variant="primary" icon="plus" href="{{ path('app_admin_user_new') }}" class="ml-auto">{{ 'admin.user.new'|trans }}</twig:Ui:Button>
         </div>
 
-        <form method="get" action="{{ path('app_admin_users') }}" class="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3" data-controller="autosubmit" data-action="change->autosubmit#submit">
+        <form method="get" action="{{ path('app_admin_users') }}" class="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface px-4 py-3" data-controller="autosubmit" data-action="change->autosubmit#submit">
             <twig:Ui:Filter:Menu :label="'admin.filter.type'|trans" :count="filters.type|length">
                 {% for type in ['internal', 'external'] %}
                     <twig:Ui:Filter:Option name="type[]" :value="type" :checked="type in filters.type">{{ ('admin.user.type.' ~ type)|trans }}</twig:Ui:Filter:Option>
@@ -25,7 +25,7 @@
             </twig:Ui:Filter:Menu>
             <twig:Ui:Filter:Search :value="filters.q" :placeholder="'admin.user.search'|trans" />
             {% if not filters.isEmpty %}
-                <a href="{{ path('app_admin_users') }}" class="text-xs text-indigo-600 hover:underline">{{ 'filter.clear'|trans }}</a>
+                <a href="{{ path('app_admin_users') }}" class="text-xs text-brand hover:underline">{{ 'filter.clear'|trans }}</a>
             {% endif %}
         </form>
 
@@ -44,15 +44,15 @@
                             <a href="{{ path('app_admin_user', { id: user.id }) }}" class="flex items-center gap-2.5">
                                 <twig:Ui:Avatar :name="user.fullName" :kind="user.internal ? 'internal' : 'external'" size="lg" />
                                 <span class="min-w-0 leading-tight">
-                                    <span class="block text-gray-900 group-hover:text-indigo-700 truncate">
+                                    <span class="block text-strong group-hover:text-brand truncate">
                                         {{ user.fullName }}
                                         {% if user.admin %}<twig:Ui:Badge tone="indigo" size="sm">{{ 'admin.user.admin_badge'|trans }}</twig:Ui:Badge>{% endif %}
                                     </span>
-                                    <span class="block text-xs text-gray-500 truncate">{{ user.email }}{% if user.company %} · {{ user.company }}{% endif %}</span>
+                                    <span class="block text-xs text-muted truncate">{{ user.email }}{% if user.company %} · {{ user.company }}{% endif %}</span>
                                 </span>
                             </a>
                         </td>
-                        <td class="sm:px-3 sm:py-2.5 order-2 text-xs {{ user.internal ? 'text-gray-700' : 'text-gray-500' }}">{{ (user.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</td>
+                        <td class="sm:px-3 sm:py-2.5 order-2 text-xs {{ user.internal ? 'text-body' : 'text-muted' }}">{{ (user.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</td>
                         <td class="sm:px-4 sm:py-2.5 order-3 ml-auto sm:ml-0">
                             {% if not user.active %}
                                 <twig:Ui:Badge>{{ 'admin.user.state.deactivated'|trans }}</twig:Ui:Badge>
@@ -68,7 +68,7 @@
         {% endif %}
 
         {% if users.pageCount > 1 %}
-            <nav class="flex items-center justify-between text-xs text-gray-500" aria-label="{{ 'pagination.label'|trans }}">
+            <nav class="flex items-center justify-between text-xs text-muted" aria-label="{{ 'pagination.label'|trans }}">
                 <span>{{ 'pagination.page_of'|trans({ '%page%': users.page, '%count%': users.pageCount }) }}</span>
                 <div class="flex items-center gap-2">
                     {% if users.page > 1 %}

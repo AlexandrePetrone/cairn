@@ -3,11 +3,11 @@
 {% block title %}{{ 'auth.login.title'|trans }} · Cairn{% endblock %}
 
 {% block card %}
-    <form method="post" action="{{ path('app_login') }}" class="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-        <h1 class="text-base font-semibold text-gray-900">{{ 'auth.login.title'|trans }}</h1>
+    <form method="post" action="{{ path('app_login') }}" class="rounded-lg border border-line bg-surface p-6 space-y-4">
+        <h1 class="text-base font-semibold text-strong">{{ 'auth.login.title'|trans }}</h1>
 
         {% if error %}
-            <twig:Ui:Callout tone="danger" size="sm" class="border-red-200 bg-red-50 text-red-700" role="alert">
+            <twig:Ui:Callout tone="danger" size="sm" class="border-red-line bg-red-soft text-red" role="alert">
                 {{ error.messageKey|trans(error.messageData, 'security') }}
             </twig:Ui:Callout>
         {% endif %}
@@ -18,7 +18,7 @@
 
         <twig:Ui:Form:Field :label="'auth.login.password'|trans" for="password" required>
             <twig:Ui:Form:Input type="password" id="password" name="password" autocomplete="current-password" required />
-            <a href="{{ path('app_password_request') }}" class="mt-1 inline-block text-xs text-indigo-600 hover:underline">{{ 'auth.login.forgot'|trans }}</a>
+            <a href="{{ path('app_password_request') }}" class="mt-1 inline-block text-xs text-brand hover:underline">{{ 'auth.login.forgot'|trans }}</a>
         </twig:Ui:Form:Field>
 
         <twig:Ui:Form:Checkbox name="_remember_me" :label="'auth.login.remember_me'|trans" />

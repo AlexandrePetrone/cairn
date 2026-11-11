@@ -11,7 +11,7 @@ variants:
         blocks:
             content: |
                 <ul class="mt-2 space-y-1 text-xs">
-                    <li class="flex items-center gap-2"><a href="#" class="font-mono text-indigo-600 hover:underline">a1b2c3d4</a><span class="min-w-0 flex-1 truncate text-gray-800">fix(export): paginate the export</span><span class="shrink-0 text-gray-400">Nadia Benali</span></li>
-                    <li class="flex items-center gap-2"><a href="#" class="font-mono text-indigo-600 hover:underline">e4f5a6b7</a><span class="min-w-0 flex-1 truncate text-gray-800">test(export): the 8,000 orders case</span><span class="shrink-0 text-gray-400">Nadia Benali</span></li>
-                    <li class="flex items-center gap-2"><a href="#" class="font-mono text-indigo-600 hover:underline">9c8d7e6f</a><span class="min-w-0 flex-1 truncate text-gray-800">chore: changelog</span><span class="shrink-0 text-gray-400">Léa Fontaine</span></li>
+                    <li class="flex items-center gap-2"><a href="#" class="font-mono text-brand hover:underline">a1b2c3d4</a><span class="min-w-0 flex-1 truncate text-body">fix(export): paginate the export</span><span class="shrink-0 text-faint">Nadia Benali</span></li>
+                    <li class="flex items-center gap-2"><a href="#" class="font-mono text-brand hover:underline">e4f5a6b7</a><span class="min-w-0 flex-1 truncate text-body">test(export): the 8,000 orders case</span><span class="shrink-0 text-faint">Nadia Benali</span></li>
+                    <li class="flex items-center gap-2"><a href="#" class="font-mono text-brand hover:underline">9c8d7e6f</a><span class="min-w-0 flex-1 truncate text-body">chore: changelog</span><span class="shrink-0 text-faint">Léa Fontaine</span></li>
                 </ul>

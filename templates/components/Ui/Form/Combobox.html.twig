@@ -3,16 +3,16 @@
 {% set comboboxControlAttributes = ['name', 'value', 'id', 'placeholder', 'required', 'disabled', 'maxlength', 'aria-describedby'] %}
 {% set comboboxClasses = html_cva(base: 'relative') %}
 {% set comboboxInputClasses = html_cva(
-    base: 'mt-1 w-full h-9 rounded-md border border-gray-300 bg-white px-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500',
-    variants: { invalid: { true: 'border-red-400 focus:border-red-400 focus:ring-red-100' } },
+    base: 'mt-1 w-full h-9 rounded-md border border-line-strong bg-surface px-3 text-sm focus:border-focus focus:outline-none focus:ring-2 focus:ring-brand-line disabled:cursor-not-allowed disabled:bg-subtle disabled:text-muted',
+    variants: { invalid: { true: 'border-red-solid focus:border-red-solid focus:ring-red-line' } },
 ) %}
 <div class="{{ comboboxClasses.apply({}, attributes.render('class'))|tailwind_merge }}" data-controller="combobox" {{ attributes.without('class', ...comboboxControlAttributes) }}>
     <input type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" autocomplete="off" class="{{ comboboxInputClasses.apply({ invalid: invalid }) }}"
            data-combobox-target="input" data-action="input->combobox#filter focus->combobox#open keydown->combobox#navigate"
            {{ attributes.only(...comboboxControlAttributes) }}{% if model %} data-model="{{ model }}"{% endif %}>
-    <ul role="listbox" hidden data-combobox-target="list" class="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-xl">
+    <ul role="listbox" hidden data-combobox-target="list" class="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-lg border border-line bg-overlay py-1 shadow-xl">
         {% for suggestion in suggestions %}
-            <li><button type="button" role="option" tabindex="-1" data-combobox-target="option" data-action="combobox#choose" class="block w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50 aria-selected:bg-indigo-50 aria-selected:text-indigo-700">{{ suggestion }}</button></li>
+            <li><button type="button" role="option" tabindex="-1" data-combobox-target="option" data-action="combobox#choose" class="block w-full px-3 py-1.5 text-left text-sm text-body hover:bg-subtle aria-selected:bg-brand-soft aria-selected:text-brand">{{ suggestion }}</button></li>
         {% endfor %}
     </ul>
 </div>
