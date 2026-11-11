@@ -64,9 +64,26 @@ final class Fields
         return $definition->fieldValues($definition->workflow($this->issue->getTracker()->getWorkflowId()), $this->issue->getFieldValues(), $this->viewer->get()->isInternal());
     }
 
+    /**
+     * Whether the viewer may fill in a field: they may edit the issue and
+     * its workflow has a field for them. A workflow without any, or with
+     * internal-only ones for an external viewer, offers nothing to edit.
+     */
     public function canEdit(): bool
     {
-        return $this->access->canEditIssue($this->viewer->get(), $this->issue);
+        $viewer = $this->viewer->get();
+        if (!$this->access->canEditIssue($viewer, $this->issue)) {
+            return false;
+        }
+
+        $definition = $this->config->definition();
+        foreach ($definition->workflow($this->issue->getTracker()->getWorkflowId())->fields as $usage) {
+            if ($viewer->isInternal() || !$definition->field($usage->field)->internalOnly) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     #[LiveAction]

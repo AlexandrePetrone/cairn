@@ -69,6 +69,18 @@ final class FieldsTest extends KernelTestCase
         $component->submitForm(['fields' => ['environment' => '']], 'save');
     }
 
+    public function testAWorkflowWithoutFieldsShowsNoCard(): void
+    {
+        $task = $this->scene->issue('MD-SPT-6');
+        $component = $this->createLiveComponent('Issue:Fields', ['issue' => $task])->actingAs($this->scene->user('thomas.girard@cairn.test'));
+
+        $render = (string) $component->render();
+        self::assertStringNotContainsString('data-live-action-param="edit"', $render, 'nothing to fill in, even for who may edit the issue');
+        self::assertStringNotContainsString('<details', $render, 'no card');
+
+        self::assertStringNotContainsString('<form', (string) $component->call('edit')->render(), 'and no empty form when asked anyway');
+    }
+
     private function fields(string $email): TestLiveComponent
     {
         return $this->createLiveComponent('Issue:Fields', ['issue' => $this->issue])->actingAs($this->scene->user($email));

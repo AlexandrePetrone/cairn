@@ -1,4 +1,4 @@
-{# The fields of the issue's workflow, a card of the side panel: read, or edited as one form by whoever may edit the issue; while editing, the card does not fold. `this` is read before the nested component, whose blocks see their own `this`. #}
+{# The fields of the issue's workflow, a card of the side panel: read, or edited as one form by whoever may edit the issue; while editing, the card does not fold. Nothing shows when there is nothing to read nor to fill in: a workflow without fields has no card. `this` is read before the nested component, whose blocks see their own `this`. #}
 {% set fieldsCanEdit = this.canEdit %}
 {% set fieldsValues = editing ? [] : this.values %}
 {% set fieldsShown = editing or fieldsValues is not empty or fieldsCanEdit %}
