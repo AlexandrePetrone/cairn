@@ -214,6 +214,23 @@ final class UserHandlersTest extends KernelTestCase
         $this->commands->dispatch(new ResetPassword($token, 'another password'));
     }
 
+    public function testSettingAPasswordEndsEveryOtherLinkOfTheAccount(): void
+    {
+        $ines = $this->fixtures->user('ines@client.test');
+        $tokens = self::getContainer()->get(PasswordTokens::class);
+        $invitation = $tokens->issueInvitation($ines);
+        // The invitation was sent a while ago: a reset is refused while a link is that recent.
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->createQuery('UPDATE '.PasswordToken::class.' t SET t.requestedAt = :then')->execute(['then' => new \DateTimeImmutable('-1 day')]);
+        array_map($entityManager->refresh(...), $entityManager->getRepository(PasswordToken::class)->findAll());
+        $reset = $tokens->issueReset($ines);
+
+        $this->commands->dispatch(new ResetPassword($reset, 'a new password'));
+
+        $this->expectException(PasswordLinkException::class);
+        $this->commands->dispatch(new ResetPassword($invitation, 'the password of whoever kept the older mail'));
+    }
+
     public function testOnlyWhatIsGivenChanges(): void
     {
         $claire = $this->fixtures->user('claire@client.test');

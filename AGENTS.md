@@ -53,7 +53,8 @@ Decisions already taken:
   (`RequestPasswordReset`, link valid an hour, a lost invitation
   included) answers the same page whatever the address: unknown,
   deactivated or asked again within five minutes, nothing is sent. `ResetPassword` consumes
-  the token and sets the password, which ends the open sessions. The
+  the token, with every other link of the account, and sets the password,
+  which ends the open sessions. The
   single-use tokens are `symfonycasts/reset-password-bundle`'s
   (`Entity/PasswordToken`, hashed verifier), behind `Security/PasswordTokens`,
   the only class that talks to it; the mails are `Notification/AccountMailer`.

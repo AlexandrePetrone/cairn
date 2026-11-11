@@ -80,7 +80,8 @@ final class PasswordTokens
     public function consume(string $token): User
     {
         $user = $this->peek($token);
-        $this->helper->removeResetRequest($token);
+        // Every link of the account, not this one alone: an older invitation or reset must not outlive the password it could replace.
+        $this->tokens->removeRequests($user);
 
         return $user;
     }
