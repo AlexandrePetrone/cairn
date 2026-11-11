@@ -45,7 +45,10 @@ trait KernelHelpers
         \assert($events instanceof MessageEvents);
         $email = $events->getMessages()[0] ?? null;
         \assert($email instanceof Email, 'a mail was sent');
-        \assert(1 === preg_match('~href="https?://[^/]+(/password/set/[A-Za-z0-9_-]+)"~', (string) $email->getHtmlBody(), $matches), 'the mail carries one link');
+        // Not inside an assert(): PHP skips its expression when assertions are off, as on the CI.
+        if (1 !== preg_match('~href="https?://[^/]+(/password/set/[A-Za-z0-9_-]+)"~', (string) $email->getHtmlBody(), $matches)) {
+            throw new \LogicException('The mail carries no password link.');
+        }
 
         return $matches[1];
     }

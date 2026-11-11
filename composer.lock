@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "34c51efb3dd6ef0250e0a8229cdd1db2",
+    "content-hash": "0b6b3c2656611ba70c79b9b58d3be780",
     "packages": [
         {
             "name": "api-platform/documentation",
@@ -11603,7 +11603,8 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-24T11:36:00+00:00"
+            "time": "2026-10-24T11:36:00+00:00",
+            "published-time": "2026-10-24T11:36:12+00:00"
         },
         {
             "name": "phpstan/phpstan-doctrine",
