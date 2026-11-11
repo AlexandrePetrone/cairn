@@ -205,6 +205,20 @@ final class AccessControl implements ResetInterface
         ));
     }
 
+    /**
+     * The places the user may move the issue to, one action away: what a
+     * kanban lets them drop its card on.
+     *
+     * @return list<string>
+     */
+    public function reachablePlaces(User $user, Issue $issue): array
+    {
+        return array_values(array_unique(array_map(
+            static fn (TransitionDefinition $transition): string => $transition->to,
+            $this->transitionsFor($user, $issue),
+        )));
+    }
+
     public function reset(): void
     {
         $this->memberships = [];

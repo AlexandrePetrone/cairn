@@ -6,32 +6,46 @@ import Sortable from 'sortablejs';
 /*
  * The cards of a kanban column, dragged to another column with SortableJS:
  *
- * <ul data-controller="board" data-board-place-value="in_progress">
+ * <section data-board-column> <span data-board-count>3</span>
+ *   <ul data-controller="board" data-board-place-value="in_progress">
  *     <li data-board-key="MD-SPT-12" data-board-places="to_test done">
  *
  * A card goes only to the places its `data-board-places` lists, computed
  * by the server for the viewer; while it is dragged, the columns say
  * which ones (`data-board-state`), and the one under the pointer says it
- * would take it (`data-board-over`). Dropped, it stays where it was put and
- * Issue:BoardMove applies the move; the `board:moved` browser event it
- * sends back redraws the two columns concerned as the server has them.
- * The order within a column is the server's.
+ * would take it (`data-board-over`). Dropped, it stays where it was put
+ * and Board:Move applies the move, at once or after a dialog. The
+ * `board:moved` browser event it sends back settles it here, without
+ * reading any column again: applied, the card takes the places it may now
+ * go to and the two columns count again; refused or cancelled, it goes
+ * back where it came from. Until then the card cannot be dragged again
+ * (`board-pending`): one move is settled at a time. A column that loaded
+ * again in the meantime already shows the card as the server has it, so
+ * the origin is looked up by its place, never trusted as an element. The
+ * order within a column is the server's the next time the column loads.
  */
+
+/** Where each card being moved came from: its list, its place and the card that followed it. */
+const origins = new WeakMap();
+
 export default class extends Controller {
     static values = { place: String };
 
     connect() {
-        this.redraw = this.redraw.bind(this);
-        window.addEventListener('board:moved', this.redraw);
+        this.settle = this.settle.bind(this);
+        window.addEventListener('board:moved', this.settle);
         this.sortable = Sortable.create(this.element, {
             group: 'board',
             sort: false,
             draggable: 'li[data-board-key]',
-            filter: '.board-locked',
+            filter: '.board-locked, .board-pending',
             preventOnFilter: false,
             animation: 150,
             ghostClass: 'opacity-40',
-            onStart: (event) => this.mark(this.places(event.item)),
+            onStart: (event) => {
+                origins.set(event.item, { list: this.element, place: this.placeValue, next: event.item.nextElementSibling });
+                this.mark(this.places(event.item));
+            },
             onEnd: () => {
                 this.mark(null);
                 this.over(null);
@@ -42,12 +56,15 @@ export default class extends Controller {
 
                 return allowed;
             },
-            onAdd: (event) => this.move(event.item.dataset.boardKey),
+            onAdd: (event) => {
+                event.item.classList.add('board-pending');
+                this.move(event.item.dataset.boardKey);
+            },
         });
     }
 
     disconnect() {
-        window.removeEventListener('board:moved', this.redraw);
+        window.removeEventListener('board:moved', this.settle);
         this.sortable?.destroy();
     }
 
@@ -87,14 +104,43 @@ export default class extends Controller {
         component.action('move', { key, place: this.placeValue });
     }
 
-    async redraw(event) {
-        const { from, to } = event.detail || {};
-        if (this.placeValue !== from && this.placeValue !== to) {
+    /** The move of a card ended; the column that holds the card acts. */
+    settle(event) {
+        const { key, applied, places } = event.detail || {};
+        const card = [...this.element.children].find((item) => item.dataset.boardKey === key);
+        const origin = card ? origins.get(card) : null;
+        if (!card || !origin) {
             return;
         }
-        const column = this.element.closest('[data-live-name-value]');
-        if (column) {
-            (await getComponent(column)).render();
+        origins.delete(card);
+        card.classList.remove('board-pending');
+        // The origin column may have loaded again since the drop: its list is then another element, drawn with the card still in it.
+        const reloaded = !origin.list.isConnected;
+        const list = reloaded ? document.querySelector(`[data-controller~="board"][data-board-place-value="${CSS.escape(origin.place)}"]`) : origin.list;
+        const stale = reloaded && list ? [...list.children].find((item) => item.dataset.boardKey === key) : null;
+        if (!applied) {
+            if (reloaded) {
+                card.remove();
+            } else {
+                list.insertBefore(card, origin.next?.parentElement === list ? origin.next : null);
+            }
+
+            return;
+        }
+        stale?.remove();
+        card.dataset.boardPlaces = (places || []).join(' ');
+        card.classList.toggle('board-locked', 0 === (places || []).length);
+        card.classList.toggle('cursor-grab', (places || []).length > 0);
+        if (list) {
+            this.count(list, -1);
+        }
+        this.count(this.element, 1);
+    }
+
+    count(list, change) {
+        const count = list.closest('[data-board-column]')?.querySelector('[data-board-count]');
+        if (count) {
+            count.textContent = Math.max(0, (parseInt(count.textContent, 10) || 0) + change);
         }
     }
 }

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Twig\Components\Issue;
+namespace App\Tests\Twig\Components\Board;
 
 use App\Entity\Tracker;
 use App\Tests\Scene\ShopScene;
-use App\Twig\Components\Issue\BoardColumn;
+use App\Twig\Components\Board\Column;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
@@ -15,7 +15,7 @@ use Symfony\UX\LiveComponent\Test\TestLiveComponent;
  * The columns of the bug kanban of the scene: MD-SPT-1 and 2 are new
  * (blocking and low), 3 is in progress, 4 waits for acceptance, 5 is done.
  */
-final class BoardColumnTest extends KernelTestCase
+final class ColumnTest extends KernelTestCase
 {
     use InteractsWithLiveComponents;
 
@@ -45,26 +45,30 @@ final class BoardColumnTest extends KernelTestCase
         self::assertStringContainsString('board-locked', $render);
     }
 
-    public function testTheFiltersReceivedFromThePageApply(): void
+    public function testTheFiltersOfTheAddressApplyAsTheyDoToTheList(): void
     {
-        $render = (string) $this->column('new', 'thomas.girard@cairn.test', ['criticality' => ['blocking']])->render();
+        $render = (string) $this->column('new', 'thomas.girard@cairn.test', ['query' => ['criticality' => ['blocking'], 'places' => ['bug:done'], 'group' => 'assignee', 'sort' => 'title']])->render();
 
-        self::assertStringContainsString('MD-SPT-1', $render);
+        self::assertStringContainsString('MD-SPT-1', $render, 'the place filter, the grouping and the sort belong to the list');
         self::assertStringNotContainsString('MD-SPT-2', $render);
+
+        $render = (string) $this->column('new', 'thomas.girard@cairn.test', ['query' => ['q' => 'footer']])->render();
+        self::assertStringContainsString('MD-SPT-2', $render);
+        self::assertStringNotContainsString('MD-SPT-1"', $render);
     }
 
     public function testAColumnGrowsByBatches(): void
     {
-        foreach (range(1, BoardColumn::BATCH + 5) as $index) {
+        foreach (range(1, Column::BATCH + 5) as $index) {
             $this->scene->bug("Bug {$index}");
         }
         $column = $this->column('new', 'thomas.girard@cairn.test');
 
-        self::assertSame(BoardColumn::BATCH, substr_count((string) $column->render(), 'data-board-key='));
+        self::assertSame(Column::BATCH, substr_count((string) $column->render(), 'data-board-key='));
         self::assertStringContainsString('Show more (7)', (string) $column->render());
 
         $column->call('more');
-        self::assertSame(BoardColumn::BATCH + 7, substr_count((string) $column->render(), 'data-board-key='));
+        self::assertSame(Column::BATCH + 7, substr_count((string) $column->render(), 'data-board-key='));
         self::assertStringNotContainsString('Show more', (string) $column->render());
     }
 
@@ -84,11 +88,11 @@ final class BoardColumnTest extends KernelTestCase
     }
 
     /**
-     * @param array<string, mixed> $filters
+     * @param array<string, mixed> $props
      */
-    private function column(string $place, string $email, array $filters = []): TestLiveComponent
+    private function column(string $place, string $email, array $props = []): TestLiveComponent
     {
-        return $this->createLiveComponent('Issue:BoardColumn', ['tracker' => $this->bugs(), 'placeId' => $place, ...$filters])
+        return $this->createLiveComponent('Board:Column', ['tracker' => $this->bugs(), 'placeId' => $place, ...$props])
             ->actingAs($this->scene->user($email));
     }
 

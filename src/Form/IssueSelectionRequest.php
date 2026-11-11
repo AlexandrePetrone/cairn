@@ -30,14 +30,7 @@ final readonly class IssueSelectionRequest
      */
     public function ids(): array
     {
-        $ids = [];
-        foreach ($this->ids as $value) {
-            if (\is_string($value) && ctype_digit($value) && (int) $value > 0) {
-                $ids[(int) $value] = (int) $value;
-            }
-        }
-
-        return \array_slice(array_values($ids), 0, ListSelectionActions::MAX);
+        return \array_slice(QueryIds::of($this->ids), 0, ListSelectionActions::MAX);
     }
 
     /**

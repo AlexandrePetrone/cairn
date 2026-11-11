@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Twig\Components\Issue;
+namespace App\Tests\Twig\Components\Board;
 
 use App\Entity\Issue;
 use App\Tests\Scene\ShopScene;
@@ -16,7 +16,7 @@ use Symfony\UX\LiveComponent\Test\TestLiveComponent;
  * Claire's acceptance (refusing it needs a comment). Nadia develops on
  * the shop, Claire is its client.
  */
-final class BoardMoveTest extends KernelTestCase
+final class MoveTest extends KernelTestCase
 {
     use InteractsWithLiveComponents;
 
@@ -36,11 +36,11 @@ final class BoardMoveTest extends KernelTestCase
         $render = $mover->render();
 
         self::assertSame('qualified', $this->reloaded('MD-SPT-1')->getPlace());
-        self::assertSame(['from' => 'new', 'to' => 'qualified'], $mover->getDispatchedBrowserEvent($render, 'board:moved')['payload'] ?? null);
+        self::assertSame(['key' => 'MD-SPT-1', 'applied' => true, 'places' => ['rejected', 'in_progress']], $mover->getDispatchedBrowserEvent($render, 'board:moved')['payload'] ?? null, 'the card learns where it may go from its new place');
         self::assertNotNull($mover->getEmittedEvent($render, 'issue:changed'));
     }
 
-    public function testAPlaceNoTransitionReachesIsRefusedAndTheColumnsRedraw(): void
+    public function testAPlaceNoTransitionReachesIsRefusedAndTheCardGoesBack(): void
     {
         $mover = $this->mover('nadia.benali@cairn.test');
 
@@ -48,7 +48,7 @@ final class BoardMoveTest extends KernelTestCase
         $render = $mover->render();
 
         self::assertSame('new', $this->reloaded('MD-SPT-1')->getPlace());
-        self::assertSame(['from' => 'new', 'to' => 'done'], $mover->getDispatchedBrowserEvent($render, 'board:moved')['payload'] ?? null);
+        self::assertSame(['key' => 'MD-SPT-1', 'applied' => false, 'places' => []], $mover->getDispatchedBrowserEvent($render, 'board:moved')['payload'] ?? null);
         self::assertNotNull($mover->getDispatchedBrowserEvent($render, 'toast:show'));
     }
 
@@ -61,7 +61,9 @@ final class BoardMoveTest extends KernelTestCase
         self::assertSame('to_test', $this->reloaded('MD-SPT-4')->getPlace(), 'nothing applied yet');
 
         $mover->call('confirm');
-        self::assertStringContainsString('comment is required', (string) $mover->render());
+        $render = $mover->render();
+        self::assertStringContainsString('comment is required', (string) $render);
+        self::assertNull($mover->getDispatchedBrowserEvent($render, 'board:moved'), 'the card waits where it was dropped while the dialog is open');
 
         $mover->set('comment', 'The file is still empty.')->call('confirm');
         self::assertSame('in_progress', $this->reloaded('MD-SPT-4')->getPlace());
@@ -87,7 +89,7 @@ final class BoardMoveTest extends KernelTestCase
         $render = $mover->render();
 
         self::assertSame('to_test', $this->reloaded('MD-SPT-4')->getPlace());
-        self::assertSame(['from' => 'to_test', 'to' => 'in_progress'], $mover->getDispatchedBrowserEvent($render, 'board:moved')['payload'] ?? null);
+        self::assertSame(['key' => 'MD-SPT-4', 'applied' => false, 'places' => []], $mover->getDispatchedBrowserEvent($render, 'board:moved')['payload'] ?? null);
     }
 
     public function testAClientAppliesOnlyHerOwnTransitions(): void
@@ -103,7 +105,7 @@ final class BoardMoveTest extends KernelTestCase
 
     private function mover(string $email): TestLiveComponent
     {
-        return $this->createLiveComponent('Issue:BoardMove')->actingAs($this->scene->user($email));
+        return $this->createLiveComponent('Board:Move')->actingAs($this->scene->user($email));
     }
 
     private function reloaded(string $key): Issue

@@ -1,18 +1,16 @@
-{# One filter dimension: a dropdown of Filter:Option checkboxes. `count` is the number of selected values, which highlights the trigger; `active` highlights it without a count (display options). `align` right opens the panel leftwards, for a menu at the end of a bar. #}
+{# One filter dimension: a dropdown of Filter:Option checkboxes. `count` is the number of selected values, which highlights the trigger; `active` highlights it without a count (display options). `align` right opens the panel leftwards, for a menu at the end of a bar.
+   The highlight follows `data-active` on the root and the count is an element of its own, so that a form which is not redrawn after a change keeps both up to date itself (the `filters` controller). #}
 {% props label, count = 0, active = false, align = 'left' %}
-{% set filterMenuClasses = html_cva(base: 'relative') %}
+{% set filterMenuClasses = html_cva(base: 'group/filter relative') %}
 {% set filterMenuPanelClasses = html_cva(
     base: 'hidden absolute top-8 z-30 w-60 rounded-lg border border-gray-200 bg-white shadow-xl',
     variants: { align: { left: 'left-0', right: 'right-0' } },
 ) %}
-{% set filterMenuTriggerClasses = html_cva(
-    base: 'inline-flex h-7 items-center gap-1 rounded-md border bg-white px-2 text-xs text-gray-700 hover:bg-gray-50',
-    variants: { active: { true: 'border-indigo-300 bg-indigo-50', false: 'border-gray-200' } },
-) %}
-<div class="{{ filterMenuClasses.apply({}, attributes.render('class'))|tailwind_merge }}" data-controller="dropdown" {{ attributes }}>
-    <button type="button" data-action="dropdown#toggle" aria-expanded="false" class="{{ filterMenuTriggerClasses.apply({ active: active or count > 0 })|tailwind_merge }}">
+{% set filterMenuTriggerClasses = html_cva(base: 'inline-flex h-7 items-center gap-1 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-700 hover:bg-gray-50 group-data-[active]/filter:border-indigo-300 group-data-[active]/filter:bg-indigo-50') %}
+<div class="{{ filterMenuClasses.apply({}, attributes.render('class'))|tailwind_merge }}" data-controller="dropdown" data-filter-menu {{ active or count > 0 ? 'data-active' }} {{ attributes }}>
+    <button type="button" data-action="dropdown#toggle" aria-expanded="false" class="{{ filterMenuTriggerClasses.apply({}) }}">
         {{ label }}
-        {% if count > 0 %}<span class="text-indigo-700 font-medium">{{ count }}</span>{% endif %}
+        <span class="text-indigo-700 font-medium" data-filter-menu-count {{ count > 0 ? '' : 'hidden' }}>{{ count }}</span>
         <twig:ux:icon name="lucide:chevron-down" class="h-3 w-3 text-gray-400" />
     </button>
     <div data-dropdown-target="menu" class="{{ filterMenuPanelClasses.apply({ align: align }) }}">

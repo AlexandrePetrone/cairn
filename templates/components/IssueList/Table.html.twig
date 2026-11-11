@@ -1,0 +1,78 @@
+{# The issues of a list: the count, the bar of the checked rows, the table and the pager. Headers and pager are links to the same list arranged otherwise, followed inside the `issues` frame; every other link leaves it (the frame's `target`). Nothing here asks the server for what only the screen knows: rows are checked and groups folded in the browser (`selection`, `fold`), and the checked rows go to the selection page as a GET form.
+   The sentence that counts the checked rows is given to the browser in its two forms, one and several, with `%count%` left in for it to fill. #}
+{# Inside the blocks of nested components `this` is that component: they read these. #}
+{% set tableComponent = this %}
+{% set tableIssues = this.issues %}
+{% set tableGrouping = this.grouping %}
+{% set tableColumns = this.columns %}
+{% set tableShowProject = scope.showProject %}
+<div {{ attributes.defaults({ class: 'px-4 sm:px-6 py-4 space-y-3' }) }} data-controller="selection"
+    data-selection-one-value="{{ 'issue.bulk.selected.one'|trans }}"
+    data-selection-other-value="{{ 'issue.bulk.selected.other'|trans }}">
+    <p class="text-xs text-gray-400">{{ 'issue.list.count'|trans({ '%count%': tableIssues.total }) }}</p>
+    <form id="issue-selection" method="get" action="{{ this.selectionUrl }}" data-selection-target="bar" hidden
+        class="flex flex-wrap items-center gap-3 rounded-lg border border-indigo-200 bg-indigo-50/60 px-3 py-2 text-sm">
+        <input type="hidden" name="from" value="{{ this.listUrl }}">
+        <span class="font-medium text-indigo-900" data-selection-target="count"></span>
+        <button type="button" class="text-xs text-indigo-600 hover:underline" data-action="selection#clear">{{ 'issue.bulk.clear'|trans }}</button>
+        <twig:Ui:Button variant="primary" size="sm" icon="list-checks" type="submit" class="ml-auto">{{ 'issue.bulk.open'|trans }}</twig:Ui:Button>
+    </form>
+    {% if tableIssues.items is empty %}
+        <twig:Ui:EmptyState :title="'issue.list.empty'|trans" bordered>{{ 'issue.list.empty_hint'|trans }}</twig:Ui:EmptyState>
+    {% else %}
+        <twig:Ui:Table data-controller="fold" data-fold-key-value="{{ scope.path }}#{{ tableGrouping ? tableGrouping.value }}">
+            <twig:block name="head">
+                <th class="px-3 py-2 w-8">
+                    <input type="checkbox" aria-label="{{ 'issue.bulk.select_page'|trans }}" data-selection-target="all" data-action="selection#togglePage" class="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600">
+                </th>
+                {% for tableColumn in tableColumns %}
+                    <twig:Ui:Table:SortHeader
+                        :href="tableComponent.sortUrl(tableColumn)" data-turbo-frame="issues"
+                        :direction="tableComponent.sortDirection(tableColumn)"
+                        :align="tableColumn == 'updated' ? 'right' : 'left'"
+                        class="{{ { key: 'w-32', project: 'w-44', title: '', tracker: 'w-32', place: 'w-44', criticality: 'w-28', assignee: 'w-12', updated: 'w-28' }[tableColumn] }}"
+                    >{{ ('issue.list.column.' ~ tableColumn)|trans }}</twig:Ui:Table:SortHeader>
+                {% endfor %}
+            </twig:block>
+            {% if tableGrouping %}
+                {% for tableGroup in tableComponent.groups %}
+                    {% set tableGroupIssue = tableGroup.first %}
+                    <twig:Ui:Table:GroupRow :count="tableGroup.total" :colspan="tableColumns|length + 1"
+                        data-action="fold#toggle" data-fold-target="toggle" data-fold-group-param="{{ tableGroup.key }}">
+                        {% if tableGrouping.value == 'place' %}
+                            <twig:Ui:Status:Step :status="tableGroupIssue.status.value" :label="tableComponent.placeLabel(tableGroup.key)" />
+                        {% elseif tableGrouping.value == 'criticality' %}
+                            <twig:Ui:Criticality:Badge :criticality="tableGroupIssue.criticality.value" />
+                        {% elseif tableGrouping.value == 'assignee' %}
+                            <span class="inline-flex items-center gap-2">
+                                <twig:Ui:Avatar :name="tableGroupIssue.assignee ? tableGroupIssue.assignee.fullName : null" :kind="tableGroupIssue.assignee and tableGroupIssue.assignee.internal ? 'internal' : 'external'" size="xs" />
+                                {{ tableGroupIssue.assignee ? tableGroupIssue.assignee.fullName : 'issue.unassigned'|trans }}
+                            </span>
+                        {% elseif tableGrouping.value == 'release' %}
+                            <span class="font-mono">{{ tableComponent.releaseLabel(tableGroup.key) ?? 'issue.list.no_release'|trans }}</span>
+                        {% else %}
+                            <span>{{ tableGroupIssue.project.name }} <span class="font-normal text-gray-400">· {{ tableGroupIssue.project.workspace.name }}</span></span>
+                        {% endif %}
+                    </twig:Ui:Table:GroupRow>
+                    {% for issue in tableGroup.issues %}{{ include('components/IssueList/_row.html.twig', { group: tableGroup.key, showProject: tableShowProject }) }}{% endfor %}
+                {% endfor %}
+            {% else %}
+                {% for issue in tableIssues.items %}{{ include('components/IssueList/_row.html.twig', { group: null, showProject: tableShowProject }) }}{% endfor %}
+            {% endif %}
+        </twig:Ui:Table>
+    {% endif %}
+
+    {% if tableIssues.pageCount > 1 %}
+        <nav class="flex items-center justify-between text-xs text-gray-500" aria-label="{{ 'pagination.label'|trans }}">
+            <span>{{ 'pagination.page_of'|trans({ '%page%': tableIssues.page, '%count%': tableIssues.pageCount }) }}</span>
+            <div class="flex items-center gap-2">
+                {% if tableIssues.page > 1 %}
+                    <twig:Ui:Button size="sm" href="{{ this.pageUrl(tableIssues.page - 1) }}" data-turbo-frame="issues">{{ 'pagination.previous'|trans }}</twig:Ui:Button>
+                {% endif %}
+                {% if tableIssues.page < tableIssues.pageCount %}
+                    <twig:Ui:Button size="sm" href="{{ this.pageUrl(tableIssues.page + 1) }}" data-turbo-frame="issues">{{ 'pagination.next'|trans }}</twig:Ui:Button>
+                {% endif %}
+            </div>
+        </nav>
+    {% endif %}
+</div>

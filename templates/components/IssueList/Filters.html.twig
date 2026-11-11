@@ -1,0 +1,112 @@
+{# The bar of an issue list: its `title` and, at its right, the views of a tracker (list, kanban) as two joined buttons, then one menu per filter the list offers (`dimensions`), then the display menu (grouping, finished issues). Places, never statuses.
+   A GET form whose controls are the parameters of the address, submitted to the `issues` frame on every change by the `filters` controller; it is not redrawn, so the controller also keeps the counts of the menus and the "clear" button up to date. What only the list uses (the place filter, the display menu) hides while the kanban shows (`data-view`). #}
+{# Inside the blocks of nested components `this` is that component: they read these. #}
+{% set filtersScope = scope %}
+{% set filtersChoices = this.choices %}
+{% set filtersView = this.view %}
+<form id="issue-filters" method="get" action="{{ scope.path }}"
+    class="group/filters border-b border-gray-200 bg-white px-4 sm:px-6"
+    data-turbo-frame="issues" data-view="{{ filtersView }}"
+    data-controller="filters" data-action="change->filters#submit input->filters#search" {{ attributes }}>
+    {% if title or scope.hasBoard %}
+        <div class="flex flex-wrap items-center gap-3 pt-3">
+            {% if title %}<h1 class="font-semibold text-gray-900 text-base">{{ title }}</h1>{% endif %}
+            {% if scope.hasBoard %}
+                <div class="ml-auto inline-flex overflow-hidden rounded-md border border-gray-200" role="radiogroup" aria-label="{{ 'issue.board.views'|trans }}">
+                    {# The list is the view of an address that names none: its radio sends nothing. #}
+                    {% for filtersViewChoice in [{ value: '', icon: 'list', label: 'issue.board.list' }, { value: 'board', icon: 'kanban', label: 'issue.board.title' }] %}
+                        <label class="inline-flex h-8 cursor-pointer items-center gap-1.5 px-3 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 has-[:checked]:bg-gray-900 has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-inset has-[:focus-visible]:ring-indigo-400 {{ loop.first ? '' : 'border-l border-gray-200' }}">
+                            <input type="radio" name="view" value="{{ filtersViewChoice.value }}" class="sr-only" {{ (filtersView == 'board') == (filtersViewChoice.value == 'board') ? 'checked' }}>
+                            {{ ux_icon('lucide:' ~ filtersViewChoice.icon, { class: 'h-4 w-4' }) }}
+                            {{ filtersViewChoice.label|trans }}
+                        </label>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+    <div role="search" class="flex flex-wrap items-center gap-2 py-3">
+        {% if scope.offers('place') %}
+            {% set filtersMixesWorkflows = filtersChoices.mixesWorkflows(scope) %}
+            <twig:Ui:Filter:Menu :label="'filter.place'|trans" :count="filters.places|length" class="group-data-[view=board]/filters:hidden">
+                {% set filtersWorkflowLabel = null %}
+                {% for filtersPlace in filtersChoices.places(filtersScope) %}
+                    {% if filtersMixesWorkflows and filtersPlace.workflowLabel != filtersWorkflowLabel %}
+                        <p class="px-2.5 pt-1.5 pb-1 text-[11px] font-medium uppercase tracking-wider text-gray-400 {{ loop.first ? '' : 'mt-1 border-t border-gray-100' }}">{{ filtersPlace.workflowLabel }}</p>
+                    {% endif %}
+                    {% set filtersWorkflowLabel = filtersPlace.workflowLabel %}
+                    <twig:Ui:Filter:Option name="places[]" :value="filtersPlace.key" :checked="filtersPlace.key in filters.places">
+                        <twig:Ui:Status:Dot :status="filtersPlace.status.value" />
+                        <span class="truncate">{{ filtersPlace.label }}</span>
+                    </twig:Ui:Filter:Option>
+                {% endfor %}
+            </twig:Ui:Filter:Menu>
+        {% endif %}
+        {% if scope.offers('project') %}
+            <twig:Ui:Filter:Menu :label="'filter.project'|trans" :count="filters.projects|length">
+                {% for filtersSummary in filtersChoices.projects %}
+                    <twig:Ui:Filter:Option name="projects[]" :value="filtersSummary.project.id" :checked="filtersSummary.project.id in filters.projects">
+                        <span class="truncate">{{ filtersSummary.project.name }}</span>
+                        <span class="truncate text-xs text-gray-400">{{ filtersSummary.project.workspace.name }}</span>
+                    </twig:Ui:Filter:Option>
+                {% endfor %}
+            </twig:Ui:Filter:Menu>
+        {% endif %}
+        {% if scope.offers('tracker') %}
+            <twig:Ui:Filter:Menu :label="'filter.tracker'|trans" :count="filters.trackers|length">
+                {% for filtersTracker in filtersChoices.trackers(filtersScope) %}
+                    <twig:Ui:Filter:Option name="trackers[]" :value="filtersTracker.id" :checked="filtersTracker.id in filters.trackers">
+                        <span class="truncate {{ filtersTracker.active ? '' : 'text-gray-400 line-through' }}" {% if not filtersTracker.active %}title="{{ 'project.settings.tracker.inactive_badge'|trans }}"{% endif %}>{{ filtersTracker.name }}</span>
+                        {% if filtersTracker.private %}<twig:ux:icon name="lucide:lock" class="h-3 w-3 shrink-0 text-gray-400" />{% endif %}
+                    </twig:Ui:Filter:Option>
+                {% endfor %}
+            </twig:Ui:Filter:Menu>
+        {% endif %}
+        {% if scope.offers('criticality') %}
+            <twig:Ui:Filter:Menu :label="'filter.criticality'|trans" :count="filters.criticality|length">
+                {% for filtersCriticality in enum_cases('App\\Entity\\Enum\\Criticality')|reverse %}
+                    <twig:Ui:Filter:Option name="criticality[]" :value="filtersCriticality.value" :checked="filtersCriticality.value in filters.criticalityValues">
+                        {{ ('criticality.' ~ filtersCriticality.value)|trans }}
+                    </twig:Ui:Filter:Option>
+                {% endfor %}
+            </twig:Ui:Filter:Menu>
+        {% endif %}
+        {% if scope.offers('assignee') %}
+            <twig:Ui:Filter:Menu :label="'filter.assignee'|trans" :count="filters.assignees|length">
+                <twig:Ui:Filter:Option name="assignees[]" value="0" :checked="0 in filters.assignees">
+                    <twig:Ui:Avatar size="xs" />
+                    {{ 'issue.unassigned'|trans }}
+                </twig:Ui:Filter:Option>
+                {% for filtersMember in filtersChoices.members(filtersScope) %}
+                    <twig:Ui:Filter:Option name="assignees[]" :value="filtersMember.id" :checked="filtersMember.id in filters.assignees">
+                        <twig:Ui:Avatar size="xs" :name="filtersMember.fullName" :kind="filtersMember.internal ? 'internal' : 'external'" />
+                        {{ filtersMember.fullName }}
+                    </twig:Ui:Filter:Option>
+                {% endfor %}
+            </twig:Ui:Filter:Menu>
+        {% endif %}
+        {% if filtersChoices.offersReleases(scope) %}
+            <twig:Ui:Filter:Menu :label="'filter.release'|trans" :count="filters.releases|length">
+                <twig:Ui:Filter:Option name="releases[]" value="0" :checked="0 in filters.releases">{{ 'issue.list.no_release'|trans }}</twig:Ui:Filter:Option>
+                {% for filtersRelease in filtersChoices.releases(filtersScope) %}
+                    <twig:Ui:Filter:Option name="releases[]" :value="filtersRelease.id" :checked="filtersRelease.id in filters.releases">
+                        <span class="truncate font-mono text-xs {{ filtersRelease.open ? '' : 'text-gray-400' }}">{{ filtersRelease.name }}</span>
+                        {% if not filtersRelease.open %}<span class="text-xs text-gray-400">{{ ('release.status.' ~ filtersRelease.status.value)|trans }}</span>{% endif %}
+                    </twig:Ui:Filter:Option>
+                {% endfor %}
+            </twig:Ui:Filter:Menu>
+        {% endif %}
+        <twig:Ui:Filter:Search :value="filters.q" class="w-48 xl:w-60" />
+        <button type="button" class="text-xs text-indigo-600 hover:underline" data-filters-target="clear" data-action="filters#clear" {{ filters.hasFilters ? '' : 'hidden' }}>{{ 'filter.clear'|trans }}</button>
+        {% set filtersGrouping = filtersChoices.grouping(scope, filters) %}
+        <twig:Ui:Filter:Menu :label="'issue.list.display.label'|trans" :active="filtersGrouping is not null or filters.closed" align="right" class="ml-auto group-data-[view=board]/filters:hidden">
+            <p class="px-2.5 pt-1.5 pb-1 text-[11px] font-medium uppercase tracking-wider text-gray-400">{{ 'issue.list.group.label'|trans }}</p>
+            <twig:Ui:Filter:Option single name="group" value="" :checked="filtersGrouping is null">{{ 'issue.list.group.none'|trans }}</twig:Ui:Filter:Option>
+            {% for filtersGroupingChoice in filtersChoices.groupings(filtersScope) %}
+                <twig:Ui:Filter:Option single name="group" :value="filtersGroupingChoice.value" :checked="filtersGrouping == filtersGroupingChoice">{{ ('issue.list.group.' ~ filtersGroupingChoice.value)|trans }}</twig:Ui:Filter:Option>
+            {% endfor %}
+            <div class="my-1 border-t border-gray-100"></div>
+            <twig:Ui:Filter:Option name="closed" value="1" :checked="filters.closed">{{ 'issue.list.display.closed'|trans }}</twig:Ui:Filter:Option>
+        </twig:Ui:Filter:Menu>
+    </div>
+</form>

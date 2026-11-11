@@ -1,4 +1,4 @@
-{# The dialog of a move on the kanban, shown only while a move waits for a comment or for the choice of an action; the `board` controller calls `move` on this component. #}
+{# The dialog of a move on the kanban, shown only while a move waits for a comment or for the choice of an action; the `board` controller calls `move` on this component, and puts the card back when the move is cancelled. #}
 {% set boardMoveIssue = this.issue %}
 <div {{ attributes }} data-board-move>
     {% if boardMoveIssue %}

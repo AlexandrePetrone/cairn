@@ -1,4 +1,4 @@
-{# A column of the kanban: the place and its count, then its cards, by batches. The list carries the `board` controller: SortableJS drags a card to another column, which the card's `data-board-places` allows, and the controller calls Issue:BoardMove.
+{# A column of the kanban: the place and its count, then its cards, by batches. The list carries the `board` controller: SortableJS drags a card to another column, which the card's `data-board-places` allows, and the controller calls Board:Move, then keeps the counts and the cards right itself.
    A folded column (the closed places, as the page sets it) is a narrow rail: the colour of the place, its count, its label written upwards; a click unfolds it. A card can still be dropped on it: its list fills the rail and hides the card SortableJS would show there, too wide for it, and the rail lights up while a card is over it (data-board-over).
    The list is replaced whole on each redraw (data-skip-morph): Live would otherwise keep a card SortableJS dropped there as it was, with the places it could reach from its former column. #}
 {% set boardColumnPlace = this.place %}
@@ -16,7 +16,7 @@
     {% if open %}
         <header class="flex items-center gap-2 px-3 py-2.5">
             <twig:Ui:Status:Step :status="boardColumnPlace.status.value" :label="boardColumnPlace.label" class="min-w-0 truncate text-sm font-medium text-gray-800" />
-            <span class="text-xs tabular-nums text-gray-400">{{ boardColumnIssues.total }}</span>
+            <span class="text-xs tabular-nums text-gray-400" data-board-count>{{ boardColumnIssues.total }}</span>
             {% if boardColumnPlace.status.value == 'closed' %}
                 <twig:Ui:IconButton icon="x" size="sm" :label="'issue.board.fold'|trans" class="ml-auto" data-action="live#action" data-live-action-param="toggle" />
             {% endif %}
@@ -25,7 +25,7 @@
         <button type="button" class="relative z-10 flex h-full w-full flex-col items-center gap-2 py-3 text-gray-500 hover:text-gray-800 group-has-[[data-board-over]]/column:text-indigo-700"
             title="{{ 'issue.board.unfold'|trans({ '%place%': boardColumnPlace.label }) }}" data-action="live#action" data-live-action-param="toggle">
             <twig:Ui:Status:Dot :status="boardColumnPlace.status.value" />
-            <span class="rounded-full border border-gray-200 bg-white px-1.5 text-[11px] font-medium tabular-nums text-gray-600">{{ boardColumnIssues.total }}</span>
+            <span class="rounded-full border border-gray-200 bg-white px-1.5 text-[11px] font-medium tabular-nums text-gray-600" data-board-count>{{ boardColumnIssues.total }}</span>
             <span class="mt-1 rotate-180 text-xs font-medium [writing-mode:vertical-rl]">{{ boardColumnPlace.label }}</span>
         </button>
     {% endif %}

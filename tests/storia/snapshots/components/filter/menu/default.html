@@ -1,7 +1,8 @@
-<div class="relative" data-controller="dropdown" >
-    <button type="button" data-action="dropdown#toggle" aria-expanded="false" class="inline-flex h-7 items-center gap-1 rounded-md border bg-white px-2 text-xs text-gray-700 hover:bg-gray-50 border-gray-200">
+<div class="group/filter relative" data-controller="dropdown" data-filter-menu  >
+    <button type="button" data-action="dropdown#toggle" aria-expanded="false" class="inline-flex h-7 items-center gap-1 rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-700 hover:bg-gray-50 group-data-[active]/filter:border-indigo-300 group-data-[active]/filter:bg-indigo-50">
         Criticality
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" height="1em" width="1em" class="h-3 w-3 text-gray-400" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9l6 6l6-6"></path></svg>
+        <span class="text-indigo-700 font-medium" data-filter-menu-count hidden>0</span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" height="1em" width="1em" class="h-3 w-3 text-gray-400" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9l6 6l6-6"></path></svg>
     </button>
     <div data-dropdown-target="menu" class="hidden absolute top-8 z-30 w-60 rounded-lg border border-gray-200 bg-white shadow-xl left-0">
         <div class="py-1 max-h-64 overflow-y-auto">

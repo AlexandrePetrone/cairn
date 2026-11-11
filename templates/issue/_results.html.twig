@@ -1,0 +1,13 @@
+{# What an issue list shows under its filters: the table, or the kanban of a tracker. It is the frame every change of the address reloads alone, the page around it being drawn once; a frame request is answered with this template only. Expects `scope` and `filters`.
+   Links leave the frame (`target`) unless they say they arrange the list (the headers that sort it, the pager). The hidden fields repeat the sort to the filter form, which is outside the frame: a filter, or the other view, then keeps the order. #}
+{% set resultsSort = scope.sort(filters) %}
+<turbo-frame id="issues" target="_top" data-turbo-action="advance" class="block transition-opacity aria-busy:opacity-60"
+    data-controller="list-view" data-action="turbo:frame-load->list-view#remember">
+    <input type="hidden" form="issue-filters" name="sort" value="{{ resultsSort ? resultsSort.value }}">
+    <input type="hidden" form="issue-filters" name="order" value="{{ resultsSort and filters.order.name == 'Descending' ? 'desc' }}">
+    {% if scope.view(filters) == 'board' %}
+        <twig:Board:Columns :scope="scope" :filters="filters" />
+    {% else %}
+        <twig:IssueList:Table :scope="scope" :filters="filters" />
+    {% endif %}
+</turbo-frame>

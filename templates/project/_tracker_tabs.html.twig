@@ -1,6 +1,0 @@
-{# The two views of a tracker, its list and its kanban. Expects `project`, `tracker` and `view` (list or board). #}
-{% set trackerTabsRoute = { workspaceKey: project.workspace.key, projectKey: project.key, tracker: tracker.id } %}
-<nav class="mt-2 flex items-center gap-1" aria-label="{{ 'issue.board.views'|trans }}">
-    <twig:Ui:Tab href="{{ path('app_project_issues_tracker', trackerTabsRoute) }}" icon="list" :active="view == 'list'">{{ 'issue.board.list'|trans }}</twig:Ui:Tab>
-    <twig:Ui:Tab href="{{ path('app_project_board', trackerTabsRoute) }}" icon="kanban" :active="view == 'board'">{{ 'issue.board.title'|trans }}</twig:Ui:Tab>
-</nav>

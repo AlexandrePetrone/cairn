@@ -12,7 +12,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * The bulk actions on the issues checked in a list across projects (my
- * issues): Issue:Selection shows them and what may be done to all of
+ * issues): IssueList:Selection shows them and what may be done to all of
  * them, then goes back to the list, or home. A project's lists have their
  * own selection page, in the project's layout
  * (Project/IssueSelectionController).

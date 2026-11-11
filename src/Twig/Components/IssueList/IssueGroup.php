@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Twig\Components\Issue;
+namespace App\Twig\Components\IssueList;
 
 use App\Entity\Issue;
 use App\Message\Query\Issue\IssueGrouping;
@@ -21,7 +21,6 @@ final readonly class IssueGroup
         public string $key,
         public int $total,
         public array $issues,
-        public bool $collapsed,
     ) {
     }
 
@@ -30,12 +29,11 @@ final readonly class IssueGroup
      * groups.
      *
      * @param list<Issue>        $issues
-     * @param array<string, int> $totals    group key => issues of the group on every page (Pagination::$groupTotals)
-     * @param list<string>       $collapsed keys of the folded groups
+     * @param array<string, int> $totals group key => issues of the group on every page (Pagination::$groupTotals)
      *
      * @return list<self>
      */
-    public static function split(array $issues, IssueGrouping $grouping, array $totals, array $collapsed): array
+    public static function split(array $issues, IssueGrouping $grouping, array $totals): array
     {
         $groups = [];
         $key = null;
@@ -43,14 +41,14 @@ final readonly class IssueGroup
         foreach ($issues as $issue) {
             $issueKey = $grouping->keyOf($issue);
             if ($issueKey !== $key && [] !== $members) {
-                $groups[] = new self((string) $key, $totals[(string) $key] ?? \count($members), $members, \in_array($key, $collapsed, true));
+                $groups[] = new self((string) $key, $totals[(string) $key] ?? \count($members), $members);
                 $members = [];
             }
             $key = $issueKey;
             $members[] = $issue;
         }
         if ([] !== $members) {
-            $groups[] = new self((string) $key, $totals[(string) $key] ?? \count($members), $members, \in_array($key, $collapsed, true));
+            $groups[] = new self((string) $key, $totals[(string) $key] ?? \count($members), $members);
         }
 
         return $groups;

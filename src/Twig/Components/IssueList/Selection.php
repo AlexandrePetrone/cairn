@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Twig\Components\Issue;
+namespace App\Twig\Components\IssueList;
 
 use App\Config\Definition\PlaceDefinition;
 use App\Entity\Enum\Criticality;
@@ -35,7 +35,7 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * own transaction: a refusal on one issue leaves the others done, and the
  * user is told which. Then back to the list.
  */
-#[AsLiveComponent('Issue:Selection')]
+#[AsLiveComponent('IssueList:Selection')]
 final class Selection extends AbstractController
 {
     use ComponentToolsTrait;

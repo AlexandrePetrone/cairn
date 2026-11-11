@@ -1,6 +1,6 @@
 {% extends 'layout/app.html.twig' %}
 
-{% set title = ('my_issues.title.' ~ scope)|trans %}
+{% set title = ('my_issues.title.' ~ list)|trans %}
 
 {% block page_title %}{{ title }}{% endblock %}
 
@@ -9,10 +9,10 @@
         <div class="flex flex-wrap items-center gap-3">
             <h1 class="font-semibold text-gray-900 text-base">{{ 'my_issues.heading'|trans }}</h1>
             <nav class="ml-auto flex items-center gap-1 border-b border-gray-200" aria-label="{{ 'my_issues.heading'|trans }}">
-                <twig:Ui:Tab href="{{ path('app_my_issues_assigned') }}" :active="scope == 'assigned'">{{ 'nav.issues.assigned'|trans }}</twig:Ui:Tab>
-                <twig:Ui:Tab href="{{ path('app_my_issues_created') }}" :active="scope == 'created'">{{ 'nav.issues.created'|trans }}</twig:Ui:Tab>
+                <twig:Ui:Tab href="{{ path('app_my_issues_assigned') }}" :active="list == 'assigned'">{{ 'nav.issues.assigned'|trans }}</twig:Ui:Tab>
+                <twig:Ui:Tab href="{{ path('app_my_issues_created') }}" :active="list == 'created'">{{ 'nav.issues.created'|trans }}</twig:Ui:Tab>
             </nav>
         </div>
     </div>
-    <twig:Issue:List :assigneeId="assigneeId" :authorId="authorId" :dimensions="dimensions" showProject />
+    {{ include('issue/_list.html.twig', { title: null }) }}
 {% endblock %}

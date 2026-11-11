@@ -21,7 +21,7 @@ REST API.
 Decisions already taken:
 
 - Persistence: Doctrine ORM, schema compatible with both MariaDB and
-  PostgreSQL. Nothing is ever physically deleted, with seven exceptions:
+  PostgreSQL. Nothing is ever physically deleted, with eight exceptions:
   a removed attachment (file and row, the journal keeps its name), a
   deleted comment (row and files, the journal keeps its text, author and
   date), a revoked membership (memberships are the current state of
@@ -31,11 +31,13 @@ Decisions already taken:
   code repository a manager unlinks from a project (it is configuration,
   like a membership; the code references it produced stay), and a
   password token once used, replaced by a newer one or long expired (a
-  credential, not history).
+  credential, not history), and the view someone keeps of an issue list
+  (`ListView`: personal, replaced by the next, gone with it).
 - Interface: server-rendered Twig + Turbo + UX Twig/Live Components, Tailwind
-  for styling, no JavaScript framework: the kanban is Live components
-  with SortableJS in a Stimulus controller, the rich-text editor is
-  TipTap driven by a Stimulus controller.
+  for styling, no JavaScript framework: an issue list is a GET form and
+  a Turbo frame, the kanban is Live components with SortableJS in a
+  Stimulus controller, the rich-text editor is TipTap driven by a
+  Stimulus controller.
 - Auth: SecurityBundle `form_login` on `/login` (email + password, stateless
   CSRF, remember me), logout on `/logout`; every other route requires
   `ROLE_USER`, except `/password/…`. Emails are stored lowercase and
@@ -178,8 +180,9 @@ src/
   exposes the `page_title` and `content` blocks; a page extends it and
   fills them. The root of `Controller/` holds application-level pages
   only, never a controller that found no home. Components are not
-  grouped by zone but by what they display (`Layout/`, `Issue/`,
-  `Project/`): a component serving two zones must not lie about either.
+  grouped by zone but by what they display (`Layout/`, `Issue/` for the
+  page of one issue, `IssueList/`, `Board/`): a component serving two
+  zones must not lie about either.
 - **URLs carry keys, not ids, and one route per need.** A project page is
   `/MD/SPT/issues`: the workspace key, the project key, then the screen.
   An action receives it as `#[CurrentProject] Project $project`, resolved
@@ -191,8 +194,9 @@ src/
   so no controller checks it; the project layout shows a banner saying so. A list with another scope is
   another route of the same controller (`/issues/assigned`,
   `/issues/created`, `/issues/tracker/{id}`: trackers have no key), never
-  a query parameter that switches the view: the route fixes the scope and
-  the filters it offers.
+  a query parameter that switches the scope: the route fixes the scope and
+  the filters it offers, the query string only arranges what it shows
+  (filters, sort, grouping, list or kanban).
 
 ### Writes and reads
 
@@ -396,19 +400,34 @@ src/
 
 ### Issue lists, kanban and bulk actions
 
-- **Issue lists are one query, shown by one component.** `SearchIssues`
-  serves every list. `Issue:List` (`Twig/Components/Issue/IssueList`,
-  `List` being reserved) builds it: the page gives the scope (project,
-  tracker, assignee, author) as props the browser cannot change, and the
-  filters it offers (`dimensions`); the filter values, the sorted column
-  (`sort`, `order`) and the grouping (`group`) are writable props bound
-  to the query string (`url: true`), so a list as the user arranged it is
-  an address and the URL follows without a reload. A value the list does
-  not know is ignored, never an error. Ids arrive from the browser as
-  text: such props are typed `list<int|string>`, because the bundle
-  silently drops a query string value that does not match the prop's
-  type, and are normalised after hydration. A filter, a sort or a
-  grouping goes back to page 1.
+- **An issue list is an address: a route for its scope, a query string
+  for its arrangement.** `SearchIssues` serves every list. The route
+  fixes a `ListScope` (`Twig/Components/IssueList/`: project, tracker,
+  assignee, author, the filters offered as `dimensions`, the bare path
+  of the list) that the browser cannot change; `Form/IssueListFilters`
+  reads the query string (filter values, `sort`, `order`, `group`,
+  `page`, `view`) and keeps what it understands: a value the list does
+  not know is ignored, never an error. `IssueList/ListChoices` gives
+  what the list offers its viewer (places, trackers, members, releases,
+  groupings) and is the one place that builds the `SearchIssues`, for
+  the table and for the columns of the kanban alike. The controllers
+  (`Project/IssueListController`, `MyIssuesController`) only build the
+  scope; `Controller/ShowsIssueList` answers for all of them.
+  The page is drawn once. `IssueList:Filters` is a GET form outside the
+  `issues` Turbo frame (`templates/issue/_results.html.twig`): the
+  `filters` controller submits it to the frame on every change, so only
+  the results are asked for (a request carrying `Turbo-Frame: issues`
+  is answered with the frame alone), the address follows
+  (`data-turbo-action="advance"`, so the back button walks the filters)
+  and the menus stay as the user left them; since the form is not
+  redrawn, the controller keeps their counts and the "clear" button up
+  to date. Inside the frame the headers that sort and the pager are
+  links to the same list arranged otherwise (`ListScope::url()`), every
+  other link leaves it (`target="_top"`), and hidden fields repeat the
+  sort to the form. What only the screen knows never goes to the
+  server: rows are checked by the `selection` controller, groups folded
+  by `fold` (kept in `sessionStorage` per list and grouping). A filter,
+  a sort or a grouping goes back to page 1.
   Users filter and group by place, never by status. A place is named
   with its workflow, `workflow:place` (`Workflow/PlaceCatalog::key()`,
   `Repository/IssueOrder::PLACE_KEY` in SQL): a list mixing workflows
@@ -421,46 +440,58 @@ src/
   latest activity). A grouped list (`IssueGrouping`: place, criticality,
   assignee, project across projects, release in a project that has
   some) gets the total of each group over
-  every page (`Pagination::$groupTotals`); the component cuts its page
-  into groups (`IssueGroup::split()`). The key of a group is written in
+  every page (`Pagination::$groupTotals`); `IssueList:Table` cuts its
+  page into groups (`IssueGroup::split()`). The key of a group is written in
   SQL (`IssueOrder::groupKey()`) and in PHP (`IssueGrouping::keyOf()`),
-  compared for every grouping by `SearchIssuesGroupingTest`. A folded
-  group (`collapsed`, not in the URL) stays folded until the grouping
-  changes. The query returns a
-  `Repository/Pagination` of `Issue` entities with tracker, project,
-  workspace and assignee joined, 50 per page. Place labels come from the
-  configuration through the `issue_place()` Twig function. The
-  controllers of the lists (`Project/IssueListController`,
-  `MyIssuesController`) only choose the scope; the filter bar and rows
-  are `templates/issue/_filters.html.twig`, `_list.html.twig` and
-  `_list_row.html.twig`. The home page keeps its own compact panels,
-  outside the component.
-- **The kanban loads column by column.** A tracker shows as a list or a
-  kanban (`/MD/SPT/issues/tracker/{id}/board`, tabs between them),
-  never across trackers since a kanban has one workflow. Its filters
-  are a GET form (`Form/BoardFilters`), so a filtered board is an
-  address. Each place is an `Issue:BoardColumn` rendered with
-  `loading="lazy"`: it loads when it shows, asks `SearchIssues` for its
-  place only and grows by batches (`perPage`, the `load-more`
-  controller); a closed place starts folded. There is no pagination of
-  the whole board, and nothing loads it whole. Each card lists the
-  places the viewer may move it to (`AccessControl::transitionsFor()`),
-  so the `board` controller refuses the others while dragging, without
-  asking the server. `Issue:BoardMove` is the only component that acts:
-  it finds the transition again, applies it or asks in a `Ui:Dialog` (a
-  required comment, several actions to the same place), and sends the
-  browser `board:moved` so that the two columns concerned redraw as the
-  server has them, whatever the outcome.
-- **Bulk actions go through a selection page.** Rows of `Issue:List` are
-  checked page by page; the selection bar links to the selection page
-  with the ids and the filtered list to come back to (`from`, kept only
-  when it is a path of this site, `Form/IssueSelectionRequest`). The
+  compared for every grouping by `SearchIssuesGroupingTest`. The query
+  returns a `Repository/Pagination` of `Issue` entities with tracker,
+  project, workspace and assignee joined, 50 per page. Place labels come
+  from the configuration through the `issue_place()` Twig function. The
+  home page keeps its own compact panels, outside these components.
+- **The address alone means "my view of this list".** A list remembers
+  how each person last arranged it (`ListView`: the user, the bare path
+  of the list, the query string, without the page nor the words
+  searched). After a change made on the page, the `list-view`
+  controller tells the list, with a PUT at its own address
+  (`RememberListView`); a GET never writes. A page request for the bare
+  address is redirected to the remembered one, so the links of the
+  navigation stay bare and the address shown is always the arrangement
+  shown; an address with parameters shows as it says and remembers
+  nothing, so opening one someone shared leaves one's own view alone,
+  and a frame request is never redirected (clearing every filter shows
+  the list as it comes, and forgets the view).
+- **The kanban is a view of a tracker's list, and loads column by
+  column.** The list of a tracker shows as a table or as a kanban
+  (`view=board`, two radios of the filter form shown as joined buttons at the right of the title), never
+  across trackers since a kanban has one workflow; both read the same
+  filters, the place filter, the sort and the grouping applying to the
+  table only. `Board:Columns` draws one `Board:Column` per place with
+  `loading="lazy"`: it loads when it shows, asks
+  `ListChoices::searchColumn()` for its place only and grows by batches
+  (`perPage`, the `load-more` controller); a closed place starts
+  folded. There is no pagination of the whole board, and nothing loads
+  it whole. Each card lists the places the viewer may move it to
+  (`AccessControl::reachablePlaces()`), so the `board` controller
+  refuses the others while dragging, without asking the server.
+  `Board:Move` is the only component that acts: it finds the transition
+  again, applies it or asks in a `Ui:Dialog` (a required comment,
+  several actions to the same place), and sends the browser
+  `board:moved` once the move is settled. The move is optimistic: the
+  card stays where it was dropped; applied, the event brings the places
+  it may now go to and the controller updates the card and the counts
+  of the two columns without reading them again; refused or cancelled,
+  the controller puts the card back.
+- **Bulk actions go through a selection page.** Rows of `IssueList:Table`
+  are checked page by page; the selection bar is a GET form that sends
+  the selection page the ids and the filtered list to come back to
+  (`from`, kept only when it is a path of this site,
+  `Form/IssueSelectionRequest`). The
   page has a route per zone, `/MD/SPT/issues/selection` for the lists of
   a project and `/issues/selection` for those across projects, and one
   template, `issue/selection.html.twig`, which extends the layout of the
   zone (the project's when the controller passes `project`): both
   layouts expose the same blocks. The controller resolves where to come
-  back (`back`: the list, or the zone's default). There `Issue:Selection` asks
+  back (`back`: the list, or the zone's default). There `IssueList:Selection` asks
   `ListSelectionActions` what the selection allows, which is strictly
   what applies to every issue: the transitions available from each
   issue's place to the viewer's role on its project, matched by
@@ -909,7 +940,7 @@ src/
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`, `dialog`,
   `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`,
   `workflow-diagram`, `sortable`, `list-filter`, `combobox`, `board`,
-  `load-more`, `clipboard`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
+  `load-more`, `clipboard`, `filters`, `selection`, `fold`, `list-view`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
   (`editor` with TipTap, `workflow-diagram` with Mermaid, `board` with
   SortableJS) so that Vite
   splits its imports into chunks only fetched on a page that uses it; write a new one when a component needs it, not before. No

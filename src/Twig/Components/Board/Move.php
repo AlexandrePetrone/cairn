@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Twig\Components\Issue;
+namespace App\Twig\Components\Board;
 
 use App\Config\Definition\TransitionDefinition;
 use App\Entity\Issue;
@@ -24,14 +24,16 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 /**
  * Moves a card of the kanban, the only component of the board that acts:
  * the `board` controller calls `move` when a card is dropped on another
- * column. The transitions the viewer may apply from the issue's place to
- * that place are looked up again here; one that needs no comment applies
- * at once, otherwise a dialog asks for the comment, or which of several
- * actions. Whatever the outcome, the browser is told (`board:moved`) so
- * that the two columns redraw as the server has them.
+ * column, where it stays in the meantime. The transitions the viewer may
+ * apply from the issue's place to that place are looked up again here; one
+ * that needs no comment applies at once, otherwise a dialog asks for the
+ * comment, or which of several actions. Once the move is settled the
+ * browser is told (`board:moved`): applied, with the places the card may
+ * now go to, or not, and the controller puts the card back. No column is
+ * read again.
  */
-#[AsLiveComponent('Issue:BoardMove')]
-final class BoardMove
+#[AsLiveComponent('Board:Move')]
+final class Move
 {
     use ComponentToolsTrait;
     use DefaultActionTrait;
@@ -68,7 +70,8 @@ final class BoardMove
         $issue = $this->visibleIssue($key);
         $transitions = null === $issue ? [] : $this->transitionsTo($issue, $place);
         if (null === $issue || [] === $transitions) {
-            $this->refuse($issue?->getPlace(), $place, $this->translator->trans('issue.board.not_allowed'));
+            $this->settle($key);
+            $this->dispatchBrowserEvent('toast:show', ['message' => $this->translator->trans('issue.board.not_allowed')]);
 
             return;
         }
@@ -116,8 +119,9 @@ final class BoardMove
     #[LiveAction]
     public function cancel(): void
     {
-        $issue = null === $this->issueKey ? null : $this->visibleIssue($this->issueKey);
-        $this->dispatchBrowserEvent('board:moved', ['from' => $issue?->getPlace(), 'to' => $this->place]);
+        if (null !== $this->issueKey) {
+            $this->settle($this->issueKey);
+        }
         $this->close();
     }
 
@@ -155,22 +159,32 @@ final class BoardMove
 
     private function apply(CommandBus $commands, Issue $issue, TransitionDefinition $transition, ?string $comment, bool $private): void
     {
-        $from = $issue->getPlace();
-        $applied = $this->tryCommand($commands, new ApplyTransition((int) $this->viewer->get()->getId(), $issue->getKey(), $transition->id, $comment, $private));
-        $this->dispatchBrowserEvent('board:moved', ['from' => $from, 'to' => $transition->to]);
-        if (!$applied) {
-            $this->dispatchBrowserEvent('toast:show', ['message' => $this->error]);
+        if (!$this->tryCommand($commands, new ApplyTransition((int) $this->viewer->get()->getId(), $issue->getKey(), $transition->id, $comment, $private))) {
+            // Refused: the dialog, when it is open, keeps the card where it was dropped and says why.
+            if (null === $this->issueKey) {
+                $this->settle($issue->getKey());
+                $this->dispatchBrowserEvent('toast:show', ['message' => $this->error]);
+            }
 
             return;
         }
+        $this->settle($issue->getKey(), $issue);
         $this->close();
         $this->announce($this->translator->trans('issue.transition.applied', ['%key%' => $issue->getKey(), '%transition%' => $transition->label]));
     }
 
-    private function refuse(?string $from, string $to, string $message): void
+    /**
+     * Tells the browser how the move of a card ended: applied, with the
+     * places the viewer may now move the issue to from where it stands, or
+     * not, and the card goes back to its column.
+     */
+    private function settle(string $key, ?Issue $moved = null): void
     {
-        $this->dispatchBrowserEvent('board:moved', ['from' => $from, 'to' => $to]);
-        $this->dispatchBrowserEvent('toast:show', ['message' => $message]);
+        $this->dispatchBrowserEvent('board:moved', [
+            'key' => $key,
+            'applied' => null !== $moved,
+            'places' => null === $moved ? [] : $this->access->reachablePlaces($this->viewer->get(), $moved),
+        ]);
     }
 
     private function close(): void

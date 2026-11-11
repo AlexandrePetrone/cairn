@@ -2,19 +2,18 @@
 
 declare(strict_types=1);
 
-namespace App\Twig\Components\Issue;
+namespace App\Twig\Components\Board;
 
 use App\Config\Definition\PlaceDefinition;
-use App\Config\Definition\TransitionDefinition;
-use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
 use App\Entity\Tracker;
-use App\Message\Query\Issue\SearchIssues;
+use App\Form\IssueListFilters;
 use App\Message\QueryBus;
 use App\Repository\Pagination;
 use App\Security\AccessControl;
 use App\Security\Viewer;
-use App\Workflow\PlaceCatalog;
+use App\Twig\Components\IssueList\ListChoices;
+use App\Twig\Components\IssueList\ListScope;
 use App\Workflow\WorkflowProvider;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
@@ -23,16 +22,17 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
  * One column of a kanban: the issues of the tracker at one place, as the
- * viewer sees them and as the board filters them (props the browser
- * cannot change). The page renders it lazily, so a column loads when it
- * shows; it then grows by batches, never the whole board at once. The
- * page folds the closed places: a narrow rail that counts the issues
- * only, unfolded on demand, where a card can still be dropped. Each card says
- * which places the viewer may move it to; Issue:BoardMove moves it, and
- * the `board` controller redraws the two columns concerned.
+ * viewer sees them and as the address of the list filters them (props the
+ * browser cannot change). Board:Columns renders it lazily, so a column
+ * loads when it shows; it then grows by batches, never the whole board at
+ * once. The closed places start folded: a narrow rail that counts the
+ * issues only, unfolded on demand, where a card can still be dropped. Each
+ * card says which places the viewer may move it to; Board:Move moves it
+ * and the `board` controller keeps the columns right without asking them
+ * again.
  */
-#[AsLiveComponent('Issue:BoardColumn')]
-final class BoardColumn
+#[AsLiveComponent('Board:Column')]
+final class Column
 {
     use DefaultActionTrait;
 
@@ -45,22 +45,11 @@ final class BoardColumn
     #[LiveProp]
     public string $placeId;
 
-    /** @var list<string> Criticality values */
+    /** @var array<string, mixed> the filters of the list, as its address says them (IssueListFilters::toQuery()) */
     #[LiveProp]
-    public array $criticality = [];
+    public array $query = [];
 
-    /** @var list<int> user ids, 0 for unassigned */
-    #[LiveProp]
-    public array $assignees = [];
-
-    /** @var list<int> release ids, 0 for no release */
-    #[LiveProp]
-    public array $releases = [];
-
-    #[LiveProp]
-    public string $q = '';
-
-    /** The batches shown, kept when the column redraws after a move. */
+    /** The batches shown, kept when the column redraws. */
     #[LiveProp(writable: true)]
     public int $batches = 1;
 
@@ -76,6 +65,7 @@ final class BoardColumn
         private readonly Viewer $viewer,
         private readonly AccessControl $access,
         private readonly WorkflowProvider $workflows,
+        private readonly ListChoices $choices,
     ) {
     }
 
@@ -91,16 +81,11 @@ final class BoardColumn
      */
     public function getIssues(): Pagination
     {
-        return $this->issues ??= $this->queries->ask(new SearchIssues(
-            viewer: $this->viewer->get(),
-            projectId: $this->tracker->getProject()->getId(),
-            place: [PlaceCatalog::key($this->tracker->getWorkflowId(), $this->placeId)],
-            tracker: [(int) $this->tracker->getId()],
-            assignee: $this->assignees,
-            criticality: array_values(array_filter(array_map(Criticality::tryFrom(...), $this->criticality))),
-            release: $this->releases,
-            q: $this->q,
-            perPage: $this->open ? min(200, self::BATCH * max(1, $this->batches)) : 1,
+        return $this->issues ??= $this->queries->ask($this->choices->searchColumn(
+            ListScope::ofTracker($this->tracker),
+            IssueListFilters::fromQuery($this->query),
+            $this->placeId,
+            $this->open ? min(200, self::BATCH * max(1, $this->batches)) : 1,
         ));
     }
 
@@ -116,10 +101,7 @@ final class BoardColumn
      */
     public function placesFor(Issue $issue): array
     {
-        return array_values(array_unique(array_map(
-            static fn (TransitionDefinition $transition): string => $transition->to,
-            $this->access->transitionsFor($this->viewer->get(), $issue),
-        )));
+        return $this->access->reachablePlaces($this->viewer->get(), $issue);
     }
 
     #[LiveAction]

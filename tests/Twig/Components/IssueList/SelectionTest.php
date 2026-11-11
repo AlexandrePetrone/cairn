@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Twig\Components\Issue;
+namespace App\Tests\Twig\Components\IssueList;
 
 use App\Entity\Comment;
 use App\Entity\Enum\Criticality;
@@ -180,7 +180,7 @@ final class SelectionTest extends KernelTestCase
     {
         $ids = array_map(fn (string $key): int => (int) $this->reloaded($key)->getId(), array_values($keys));
 
-        return $this->createLiveComponent('Issue:Selection', ['issueIds' => $ids, 'back' => self::FROM])
+        return $this->createLiveComponent('IssueList:Selection', ['issueIds' => $ids, 'back' => self::FROM])
             ->actingAs($this->user($email));
     }
 

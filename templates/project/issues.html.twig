@@ -1,13 +1,9 @@
 {% extends 'layout/project.html.twig' %}
 
-{% set title = tracker ? tracker.name : ('issue.list.title.' ~ scope)|trans %}
+{% set title = scope.tracker ? scope.tracker.name : ('issue.list.title.' ~ list)|trans %}
 
 {% block page_title %}{{ title }}{% endblock %}
 
 {% block content %}
-    <div class="border-b border-gray-100 bg-white px-4 sm:px-6 pt-3">
-        <h1 class="font-semibold text-gray-900 text-base">{{ title }}</h1>
-        {% if tracker %}{{ include('project/_tracker_tabs.html.twig', { view: 'list' }) }}{% endif %}
-    </div>
-    <twig:Issue:List :project="project" :tracker="tracker" :assigneeId="assigneeId" :authorId="authorId" :dimensions="dimensions" />
+    {{ include('issue/_list.html.twig') }}
 {% endblock %}

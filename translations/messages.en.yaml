@@ -203,7 +203,6 @@ issue:
         count: '{0}No issues|{1}1 issue|]1,Inf[ %count% issues'
         display:
             label: Display
-            grouped: 'Grouped by %grouping%'
             closed: Finished issues
         group:
             label: Group by
@@ -213,8 +212,6 @@ issue:
             assignee: Assignee
             project: Project
             release: Release
-            collapse: Fold the group
-            expand: Unfold the group
         no_release: No release
         empty: No issue matches
         empty_hint: Widen the filters or show closed issues.
@@ -228,7 +225,9 @@ issue:
             assignee: Assignee
             updated: Updated
     bulk:
-        selected: '{1}1 issue selected|]1,Inf[ %count% issues selected'
+        selected:
+            one: '%count% issue selected'
+            other: '%count% issues selected'
         select_page: Select the whole page
         clear: Uncheck all
         open: Bulk actions

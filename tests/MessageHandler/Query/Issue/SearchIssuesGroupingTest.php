@@ -8,7 +8,7 @@ use App\Message\Query\Issue\IssueGrouping;
 use App\Message\Query\Issue\SearchIssues;
 use App\Message\QueryBus;
 use App\Tests\Scene\ShopScene;
-use App\Twig\Components\Issue\IssueGroup;
+use App\Twig\Components\IssueList\IssueGroup;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -35,7 +35,7 @@ final class SearchIssuesGroupingTest extends KernelTestCase
 
             self::assertGreaterThan(1, \count($result->groupTotals), $grouping->value.': several groups');
             self::assertSame($result->total, array_sum($result->groupTotals), $grouping->value.': every issue counted once');
-            $groups = IssueGroup::split($result->items, $grouping, $result->groupTotals, []);
+            $groups = IssueGroup::split($result->items, $grouping, $result->groupTotals);
             foreach ($groups as $group) {
                 self::assertArrayHasKey($group->key, $result->groupTotals, \sprintf('%s: the SQL knows the group "%s"', $grouping->value, $group->key));
                 self::assertSame($result->groupTotals[$group->key], $group->total);

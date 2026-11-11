@@ -11,3 +11,7 @@ variants:
         args: { direction: desc, align: right }
         blocks:
             content: Updated
+    link:
+        args: { href: '/issues?sort=updated', direction: asc }
+        blocks:
+            content: Updated

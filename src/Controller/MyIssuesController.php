@@ -5,30 +5,38 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Twig\Components\IssueList\ListScope;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 /**
  * The issues of the signed-in user across every project they see: those
- * assigned to them, those they created. One route per scope; Issue:List
- * searches, and reads the filter values from the query string.
+ * assigned to them, those they created. One route per scope; the address
+ * says how the list is arranged, and ShowsIssueList answers.
  */
 #[Route('/issues')]
 final class MyIssuesController extends AbstractController
 {
+    use ShowsIssueList;
+
     private const array DIMENSIONS = ['place', 'project', 'criticality'];
 
-    #[Route('/assigned', name: 'app_my_issues_assigned', methods: ['GET'])]
-    public function assigned(#[CurrentUser] User $viewer): Response
+    #[Route('/assigned', name: 'app_my_issues_assigned', methods: ['GET', 'PUT'])]
+    public function assigned(Request $request, #[CurrentUser] User $viewer): Response
     {
-        return $this->render('my_issues.html.twig', ['scope' => 'assigned', 'dimensions' => self::DIMENSIONS, 'assigneeId' => $viewer->getId(), 'authorId' => null]);
+        $scope = new ListScope($request->getBaseUrl().$request->getPathInfo(), self::DIMENSIONS, assigneeId: $viewer->getId(), showProject: true);
+
+        return $this->issueList($request, $viewer, $scope, 'my_issues.html.twig', ['list' => 'assigned']);
     }
 
-    #[Route('/created', name: 'app_my_issues_created', methods: ['GET'])]
-    public function created(#[CurrentUser] User $viewer): Response
+    #[Route('/created', name: 'app_my_issues_created', methods: ['GET', 'PUT'])]
+    public function created(Request $request, #[CurrentUser] User $viewer): Response
     {
-        return $this->render('my_issues.html.twig', ['scope' => 'created', 'dimensions' => self::DIMENSIONS, 'assigneeId' => null, 'authorId' => $viewer->getId()]);
+        $scope = new ListScope($request->getBaseUrl().$request->getPathInfo(), self::DIMENSIONS, authorId: $viewer->getId(), showProject: true);
+
+        return $this->issueList($request, $viewer, $scope, 'my_issues.html.twig', ['list' => 'created']);
     }
 }
