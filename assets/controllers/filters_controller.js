@@ -14,12 +14,22 @@ import { Controller } from '@hotwired/stimulus';
  * Since the form is not redrawn, the controller keeps up to date what the
  * server drew first: the count and the highlight of each menu
  * (`data-active`), the "clear" button, and the view the form says it shows
- * (`data-view`, from the checked `view` radio). When it connects it also
- * reads its controls again from the address: the back button brings back
- * the results of an earlier address with the form as it was left since.
+ * (`data-view`, from the checked `view` radio). When the back button
+ * brings the page back it also reads its controls again from the address:
+ * the results are those of an earlier address, the form is as it was left
+ * since. A page Turbo just fetched is left as the server drew it: the bare
+ * address of a list is redirected to the view its reader keeps, and Turbo
+ * renders that page before it puts the address it was redirected to in
+ * the bar.
  * Empty fields are left out of the address. Typing in the search field submits after a pause and
  * replaces the address instead of adding one to the history per pause.
  */
+/* How Turbo came to the page being shown: `restore` for the back and forward buttons, null for a page the browser loaded itself. */
+let visitAction = null;
+document.addEventListener('turbo:visit', (event) => {
+    visitAction = event.detail.action;
+});
+
 export default class extends Controller {
     static targets = ['clear'];
 
@@ -32,7 +42,9 @@ export default class extends Controller {
             }
         };
         this.element.addEventListener('formdata', this.clean);
-        this.sync();
+        if (null === visitAction || 'restore' === visitAction) {
+            this.sync();
+        }
         this.refresh();
     }
 
