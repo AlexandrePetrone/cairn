@@ -1,5 +1,5 @@
-{# Text-like input. `invalid` turns the border red. `readonly` renders the grey monospace field of frozen values. #}
-{% props type = 'text', readonly = false, invalid = false %}
+{# Text-like input. `invalid` turns the border red. `readonly` renders the grey monospace field of frozen values. `model` becomes its `data-model` in a live component. #}
+{% props type = 'text', readonly = false, invalid = false, model = null %}
 {% set inputClasses = html_cva(
     base: 'mt-1 w-full h-9 rounded-md border border-gray-300 text-sm',
     variants: {
@@ -14,5 +14,5 @@
 {% if readonly %}
     <div class="{{ inputClass }}" {{ attributes }}>{% block content %}{% endblock %}</div>
 {% else %}
-    <input type="{{ type }}" class="{{ inputClass }}" {{ attributes }}>
+    <input type="{{ type }}" class="{{ inputClass }}" {{ attributes }}{% if model %} data-model="{{ model }}"{% endif %}>
 {% endif %}

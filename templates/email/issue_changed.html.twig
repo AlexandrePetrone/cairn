@@ -1,55 +1,45 @@
 {# What happened to an issue, for one subscriber: the lines of the journal the command wrote, the comment that came with it, the description of the issue, a link to it. The caller left out what the recipient may not see; the comment HTML was rendered for them. #}
-<!DOCTYPE html>
-<html lang="{{ app.locale }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ issue.key }}</title>
-</head>
-<body style="margin:0;padding:24px 16px;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#111827;font-size:15px;line-height:1.5;">
-    <div style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
-        <div style="padding:16px 24px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;">
-            {{ issue.project.workspace.name }} · {{ issue.project.name }} · <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#374151;">{{ issue.key }}</span>
-        </div>
-        <div style="padding:20px 24px;">
-            <h1 style="margin:0 0 4px;font-size:18px;line-height:1.3;"><a href="{{ issueUrl }}" style="color:#111827;text-decoration:none;">{{ issue.title }}</a></h1>
-            <p style="margin:0 0 16px;font-size:13px;color:#6b7280;">
-                {{ 'issue.show.place'|trans }} : <strong style="color:#374151;">{{ issue_place(issue) }}</strong>
-                · {{ 'issue.show.criticality'|trans }} : <strong style="color:#374151;">{{ ('criticality.' ~ issue.criticality.value)|trans }}</strong>
-                · {{ 'issue.show.assignee'|trans }} : <strong style="color:#374151;">{{ issue.assignee ? issue.assignee.fullName : 'issue.show.nobody'|trans }}</strong>
-            </p>
+{% extends 'email/_layout.html.twig' %}
 
-            <p style="margin:0 0 8px;font-weight:600;">{{ actor.fullName }}</p>
-            {% if entries is not empty %}
-                <ul style="margin:0 0 12px;padding-left:20px;color:#374151;">
-                    {% for entry in entries %}
-                        <li>{{ entry|journal_label }}</li>
-                    {% endfor %}
-                </ul>
-            {% elseif comment %}
-                <p style="margin:0 0 12px;color:#374151;">{{ 'email.issue.commented'|trans }}</p>
-            {% endif %}
-            {% if comment %}
-                <div style="margin:0 0 16px;padding:12px 16px;border-left:3px solid {{ comment.private ? '#f59e0b' : '#6366f1' }};background:#f9fafb;border-radius:0 6px 6px 0;">
-                    {% if comment.private %}<p style="margin:0 0 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#b45309;">{{ 'issue.comment.private_badge'|trans }}</p>{% endif %}
-                    {{ commentHtml|raw }}
-                </div>
-            {% endif %}
+{% block title %}{{ issue.key }}{% endblock %}
 
-            {% if descriptionHtml %}
-                <div style="margin:20px 0 0;padding-top:16px;border-top:1px solid #e5e7eb;">
-                    <p style="margin:0 0 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;">{{ 'email.issue.description'|trans }}</p>
-                    <div style="color:#374151;">{{ descriptionHtml|raw }}</div>
-                </div>
-            {% endif %}
+{% block strip %}{{ issue.project.workspace.name }} · {{ issue.project.name }} · <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#374151;">{{ issue.key }}</span>{% endblock %}
 
-            <p style="margin:20px 0 0;">
-                <a href="{{ issueUrl }}" style="display:inline-block;padding:8px 14px;background:#4f46e5;color:#ffffff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:500;">{{ 'email.issue.view'|trans }}</a>
-            </p>
+{% block body %}
+    <h1 style="margin:0 0 4px;font-size:18px;line-height:1.3;"><a href="{{ issueUrl }}" style="color:#111827;text-decoration:none;">{{ issue.title }}</a></h1>
+    <p style="margin:0 0 16px;font-size:13px;color:#6b7280;">
+        {{ 'issue.show.place'|trans }} : <strong style="color:#374151;">{{ issue_place(issue) }}</strong>
+        · {{ 'issue.show.criticality'|trans }} : <strong style="color:#374151;">{{ ('criticality.' ~ issue.criticality.value)|trans }}</strong>
+        · {{ 'issue.show.assignee'|trans }} : <strong style="color:#374151;">{{ issue.assignee ? issue.assignee.fullName : 'issue.show.nobody'|trans }}</strong>
+    </p>
+
+    <p style="margin:0 0 8px;font-weight:600;">{{ actor.fullName }}</p>
+    {% if entries is not empty %}
+        <ul style="margin:0 0 12px;padding-left:20px;color:#374151;">
+            {% for entry in entries %}
+                <li>{{ entry|journal_label }}</li>
+            {% endfor %}
+        </ul>
+    {% elseif comment %}
+        <p style="margin:0 0 12px;color:#374151;">{{ 'email.issue.commented'|trans }}</p>
+    {% endif %}
+    {% if comment %}
+        <div style="margin:0 0 16px;padding:12px 16px;border-left:3px solid {{ comment.private ? '#f59e0b' : '#6366f1' }};background:#f9fafb;border-radius:0 6px 6px 0;">
+            {% if comment.private %}<p style="margin:0 0 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#b45309;">{{ 'issue.comment.private_badge'|trans }}</p>{% endif %}
+            {{ commentHtml|raw }}
         </div>
-        <div style="padding:12px 24px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;">
-            {{ 'email.issue.footer'|trans({ '%key%': issue.key }) }}
+    {% endif %}
+
+    {% if descriptionHtml %}
+        <div style="margin:20px 0 0;padding-top:16px;border-top:1px solid #e5e7eb;">
+            <p style="margin:0 0 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#9ca3af;">{{ 'email.issue.description'|trans }}</p>
+            <div style="color:#374151;">{{ descriptionHtml|raw }}</div>
         </div>
-    </div>
-</body>
-</html>
+    {% endif %}
+
+    <p style="margin:20px 0 0;">
+        <a href="{{ issueUrl }}" style="display:inline-block;padding:8px 14px;background:#4f46e5;color:#ffffff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:500;">{{ 'email.issue.view'|trans }}</a>
+    </p>
+{% endblock %}
+
+{% block footer %}{{ 'email.issue.footer'|trans({ '%key%': issue.key }) }}{% endblock %}

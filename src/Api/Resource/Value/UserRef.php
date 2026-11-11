@@ -15,6 +15,7 @@ final readonly class UserRef
         public bool $internal,
         /** For the agency only. */
         public ?string $email = null,
+        public ?string $company = null,
     ) {
     }
 }

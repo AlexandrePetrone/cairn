@@ -51,7 +51,7 @@ final class SearchUsersHandler
 
         if ('' !== trim($query->q)) {
             $queryBuilder
-                ->andWhere("LOWER(u.firstName) LIKE :text ESCAPE '!' OR LOWER(u.lastName) LIKE :text ESCAPE '!' OR u.email LIKE :text ESCAPE '!'")
+                ->andWhere("LOWER(u.firstName) LIKE :text ESCAPE '!' OR LOWER(u.lastName) LIKE :text ESCAPE '!' OR u.email LIKE :text ESCAPE '!' OR LOWER(u.company) LIKE :text ESCAPE '!'")
                 ->setParameter('text', SearchText::containing($query->q));
         }
         if (1 === \count($query->type)) {

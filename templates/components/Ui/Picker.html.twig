@@ -1,0 +1,37 @@
+{# A choice among many: a field-like button shows what is chosen (`label`, or `placeholder` when nothing is) and opens a list narrowed by a search field. Put `Ui:Dropdown:Item`s in the content, each with `data-list-filter-target="item"` and a `data-text`, its action picking (a live action, then `dropdown#close`); group them in `Ui:Picker:Group`s when they are. Structure only: the picker holds no data. `invalid` turns the border red. #}
+{% props label = null, placeholder = '', searchPlaceholder = '', empty = '', width = 'full', invalid = false %}
+{% set pickerClasses = html_cva(base: 'block') %}
+{% set pickerTriggerClasses = html_cva(
+    base: 'inline-flex h-9 w-full items-center gap-2 rounded-md border bg-white pl-3 pr-2 text-left text-sm hover:bg-gray-50 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100',
+    variants: {
+        chosen: { true: 'text-gray-800', false: 'text-gray-400' },
+        invalid: { true: 'border-red-400', false: 'border-gray-300' },
+    },
+) %}
+{% set pickerLabel = label %}
+{% set pickerPlaceholder = placeholder %}
+{% set pickerSearchPlaceholder = searchPlaceholder %}
+{% set pickerEmpty = empty %}
+{% set pickerTriggerClass = pickerTriggerClasses.apply({ chosen: label is not null, invalid: invalid }) %}
+{# The caller's items, read before the nested dropdown whose own `content` block hosts them. #}
+{% set pickerItems %}{% block content %}{% endblock %}{% endset %}
+<twig:Ui:Dropdown :width="width" class="{{ pickerClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ ...attributes.without('class') }}>
+    <twig:block name="trigger">
+        <button type="button" data-action="dropdown#toggle" aria-expanded="false" aria-haspopup="listbox" class="{{ pickerTriggerClass }}">
+            <span class="min-w-0 flex-1 truncate">{{ pickerLabel ?? pickerPlaceholder }}</span>
+            <twig:ux:icon name="lucide:chevrons-up-down" class="h-3.5 w-3.5 shrink-0 text-gray-400" />
+        </button>
+    </twig:block>
+    <twig:block name="content">
+        <div data-controller="list-filter">
+            <label class="-mt-1 flex items-center gap-2 border-b border-gray-100 px-3 py-2 text-gray-400">
+                <twig:ux:icon name="lucide:search" class="h-3.5 w-3.5 shrink-0" />
+                <input type="search" data-dropdown-target="search" data-action="input->list-filter#filter" placeholder="{{ pickerSearchPlaceholder }}" aria-label="{{ pickerSearchPlaceholder }}" autocomplete="off" class="w-full border-0 bg-transparent p-0 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-0">
+            </label>
+            <div class="max-h-72 overflow-y-auto py-1">
+                {{ pickerItems }}
+                <p data-list-filter-target="empty" hidden class="px-3 py-3 text-center text-sm text-gray-400">{{ pickerEmpty }}</p>
+            </div>
+        </div>
+    </twig:block>
+</twig:Ui:Dropdown>

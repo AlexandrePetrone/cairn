@@ -5,7 +5,7 @@
     base: 'hidden absolute top-full mt-1 z-50 rounded-lg border border-gray-200 bg-white text-gray-800 shadow-xl py-1',
     variants: {
         align: { left: 'left-0', right: 'right-0' },
-        width: { sm: 'w-60', md: 'w-64', lg: 'w-80' },
+        width: { sm: 'w-60', md: 'w-64', lg: 'w-80', full: 'w-full min-w-60' },
     },
 ) %}
 <div class="{{ dropdownClasses.apply({}, attributes.render('class'))|tailwind_merge }}" data-controller="dropdown" {{ attributes }}>

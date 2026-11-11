@@ -312,7 +312,33 @@ auth:
         password: Password
         remember_me: Keep me signed in
         submit: Sign in
+        forgot: Forgot password?
     logout: Log out
+    password:
+        back_to_login: Back to sign in
+        set_done: Your password is set. You can sign in.
+        request:
+            title: Forgot password?
+            intro: Give the address of your account. If it exists, you will receive a link to choose a new password.
+            email: Email address
+            submit: Send me a link
+        requested:
+            title: Check your mailbox
+            text: If an account uses this address, a mail with a link is on its way. The link works for an hour.
+        set:
+            title: Choose your password
+            intro: 'For the account %email%.'
+            password: New password
+            password_repeat: New password, again
+            help: At least 8 characters.
+            submit: Set my password
+        invalid:
+            title: This link cannot be used
+            text: Ask for a new link, or sign in if you already have a password.
+            request_again: Ask for a new link
+        refused:
+            expired: This link has expired.
+            invalid: This link is invalid or was already used.
 
 home:
     greeting: 'Hello %name%'
@@ -449,20 +475,26 @@ admin:
         revoke: Revoke access
         revoke_confirm: Revoke this access?
         revoked: Access revoked.
+        search_user: Search a person…
+        search_target: Search a workspace or a project…
+        no_match: Nothing matches.
     user:
         count: '{0}No accounts|{1}1 account|]1,Inf[ %count% accounts'
         new: New user
-        created: 'Account of %name% created. Hand them their password.'
+        new_help: The person receives an invitation by mail and chooses their password from it.
+        create_and_invite: Create and invite
+        created: 'Account of %name% created, an invitation was sent to %email%.'
+        invitation_pending: 'The invitation sent to %email% has not been accepted yet: the account has no password and cannot sign in.'
+        invitation_resend: Resend the invitation
+        invitation_sent: 'Invitation sent to %email%.'
         search: Name or email…
         empty: No user matches.
         admin_badge: Admin
         first_name: First name
         last_name: Last name
         email: Email address
-        password: Password
-        password_help: At least 8 characters. Hand it to the person, who cannot change it themselves yet.
-        new_password: New password
-        new_password_help: Leave empty to keep the current password.
+        company: Company
+        company_help: 'Free text: the companies already known are suggested as you type.'
         active_label: Active account
         active_help: A deactivated account can no longer sign in. Its access, history and mentions are kept.
         column:
@@ -477,6 +509,7 @@ admin:
             external: External
         state:
             active: Active
+            invited: Invited
             deactivated: Deactivated
     configuration:
         intro: 'Read-only: the configuration changes in the instance file, then applies with app:config:sync.'
@@ -563,6 +596,10 @@ admin:
         email_taken: 'An account already uses %email%.'
         last_admin: At least one active administrator must remain.
         holds_internal_roles: '%name% holds roles for internal users only (%where%): revoke them before making this person external.'
+        deactivated: '%name% is deactivated: reactivate the account first.'
+        already_activated: '%name% already chose a password: they can use "Forgot password?" on the sign-in page.'
+        not_member: '%name% holds no role on %project%.'
+        external_only_from_project: An account created from a project is external.
 
 project:
     summary:
@@ -658,6 +695,18 @@ project:
         direct_help: granted or widened here, valid on this project only
         empty: Nobody holds a role on this project directly.
         inherits: 'inherits "%role%" from the workspace'
+        email: Email address
+        email_help: 'An existing account gets a role; a new address gets an account, a role and an invitation by mail.'
+        email_placeholder: name@company.com
+        already_member: '%name% already holds a role on this project.'
+        inherits_broadest: '%name% already inherits the broadest role from the workspace.'
+        deactivated: '%name% is deactivated: an administrator can reactivate the account.'
+        new_account: 'No account uses this address: an external account will be created and invited by mail.'
+        invalid_account: Give the person a first name and a last name.
+        invite: Create and invite
+        invited: Account created, invitation sent.
+        resend: Resend the invitation
+        resent: Invitation sent.
 
 workflow:
     diagram:
@@ -836,3 +885,17 @@ email:
         description: Description
         view: View the issue
         footer: 'You receive this message because you follow the issue %key%. To stop, open it and choose "Unfollow".'
+    invitation:
+        subject: Your Cairn account
+        greeting: 'Hello %name%,'
+        text: An account was created for you on Cairn, where you will follow the issues of your projects. Choose your password to sign in.
+        button: Choose my password
+        validity: 'This link works for %days% days. Past that, ask for a new one with "Forgot password?" on the sign-in page.'
+        footer: 'This message was sent to %email% because an account was created for this address. If you did not expect it, you can ignore it.'
+    password_reset:
+        subject: Your Cairn password
+        greeting: 'Hello %name%,'
+        text: You asked for a new password. Choose it from the link below.
+        button: Choose a new password
+        validity: This link works for an hour and once.
+        footer: If you did not ask for this, ignore this message; your password stays as it is.

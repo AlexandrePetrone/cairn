@@ -8,22 +8,35 @@
 {% endblock %}
 
 {% block content %}
+    {% set userPending = user.awaitsPassword %}
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-5 space-y-5">
         <div class="flex flex-wrap items-center gap-4">
             <twig:Ui:Avatar :name="user.fullName" :kind="user.internal ? 'internal' : 'external'" size="2xl" />
             <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
                     <h1 class="text-xl font-semibold text-gray-900">{{ user.fullName }}</h1>
-                    {% if user.active %}
-                        <twig:Ui:Badge tone="emerald">{{ 'admin.user.state.active'|trans }}</twig:Ui:Badge>
-                    {% else %}
+                    {% if not user.active %}
                         <twig:Ui:Badge>{{ 'admin.user.state.deactivated'|trans }}</twig:Ui:Badge>
+                    {% elseif userPending %}
+                        <twig:Ui:Badge tone="amber">{{ 'admin.user.state.invited'|trans }}</twig:Ui:Badge>
+                    {% else %}
+                        <twig:Ui:Badge tone="emerald">{{ 'admin.user.state.active'|trans }}</twig:Ui:Badge>
                     {% endif %}
                     {% if user.admin %}<twig:Ui:Badge tone="indigo">{{ 'admin.user.type.admin'|trans }}</twig:Ui:Badge>{% endif %}
                 </div>
-                <p class="mt-0.5 text-sm text-gray-500">{{ user.email }} · {{ (user.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</p>
+                <p class="mt-0.5 text-sm text-gray-500">{{ user.email }}{% if user.company %} · {{ user.company }}{% endif %} · {{ (user.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</p>
             </div>
+            {% if userPending %}
+                <form method="post" action="{{ path('app_admin_user_invite', { id: user.id }) }}" class="ml-auto">
+                    <input type="hidden" name="_token" value="{{ csrf_token('submit') }}" data-controller="csrf-protection">
+                    <twig:Ui:Button type="submit" icon="send">{{ 'admin.user.invitation_resend'|trans }}</twig:Ui:Button>
+                </form>
+            {% endif %}
         </div>
+
+        {% if userPending %}
+            <twig:Ui:Callout tone="amber" size="sm">{{ 'admin.user.invitation_pending'|trans({ '%email%': user.email }) }}</twig:Ui:Callout>
+        {% endif %}
 
         {{ form_start(form, { attr: { class: 'rounded-lg border border-gray-200 bg-white p-4 sm:p-5 space-y-4' } }) }}
             {{ form_errors(form) }}
@@ -33,7 +46,7 @@
             </div>
             <div class="grid sm:grid-cols-2 gap-4">
                 {{ form_row(form.email) }}
-                {{ form_row(form.password) }}
+                {{ form_row(form.company) }}
             </div>
             {{ form_row(form.type) }}
             {{ form_row(form.active) }}

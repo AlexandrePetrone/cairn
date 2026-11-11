@@ -64,6 +64,9 @@ final class ProjectApiTest extends ApiTestCase
         self::assertContains('Nadia Benali', $names);
         self::assertContains('Claire Martin', $names);
         self::assertNotContains('Marc Petit', $names, 'A developer of another project is not a member.');
+        $companies = array_column($members['member'], 'company', 'name');
+        self::assertSame('Maison Dupont', $companies['Claire Martin']);
+        self::assertArrayNotHasKey('Nadia Benali', $companies, 'no company: the property is left out');
     }
 
     public function testTheReleasesComeWithTheirProgress(): void

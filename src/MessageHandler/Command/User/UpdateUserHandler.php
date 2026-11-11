@@ -10,7 +10,6 @@ use App\Message\Command\User\UpdateUser;
 use App\Repository\MembershipRepository;
 use App\Repository\UserRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
  * The rules hold on the account as the command leaves it: the email stays
@@ -25,7 +24,6 @@ final class UpdateUserHandler
         private readonly UserRepository $users,
         private readonly MembershipRepository $memberships,
         private readonly ConfigRegistry $config,
-        private readonly UserPasswordHasherInterface $passwordHasher,
     ) {
     }
 
@@ -56,11 +54,11 @@ final class UpdateUserHandler
         if (null !== $command->firstName || null !== $command->lastName) {
             $user->rename($command->firstName ?? $user->getFirstName(), $command->lastName ?? $user->getLastName());
         }
+        if (null !== $command->company) {
+            $user->changeCompany($command->company);
+        }
         $internal ? $user->makeInternal($admin) : $user->makeExternal();
         $active ? $user->reactivate() : $user->deactivate();
-        if (null !== $command->plainPassword) {
-            $user->setPassword($this->passwordHasher->hashPassword($user, $command->plainPassword));
-        }
     }
 
     private function assertNoInternalRole(User $user): void

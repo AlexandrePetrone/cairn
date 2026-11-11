@@ -26,6 +26,7 @@ final readonly class MeResource
         public string $email,
         public bool $internal,
         public bool $admin,
+        public ?string $company,
         /** What the token allows: `read`, or `write` which reads too. */
         public string $scope,
     ) {
@@ -33,6 +34,6 @@ final readonly class MeResource
 
     public static function of(User $user, ApiToken $token): self
     {
-        return new self((int) $user->getId(), $user->getFullName(), $user->getEmail(), $user->isInternal(), $user->isAdmin(), $token->getScope()->value);
+        return new self((int) $user->getId(), $user->getFullName(), $user->getEmail(), $user->isInternal(), $user->isAdmin(), $user->getCompany(), $token->getScope()->value);
     }
 }

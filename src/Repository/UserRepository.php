@@ -38,6 +38,25 @@ class UserRepository extends ServiceEntityRepository implements UserLoaderInterf
     }
 
     /**
+     * The companies already typed on an account, for the suggestions of
+     * the form: distinct, by name.
+     *
+     * @return list<string>
+     */
+    public function findCompanies(): array
+    {
+        /** @var list<array{company: string}> $rows */
+        $rows = $this->createQueryBuilder('u')
+            ->select('DISTINCT u.company AS company')
+            ->andWhere('u.company IS NOT NULL')
+            ->orderBy('u.company')
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_column($rows, 'company');
+    }
+
+    /**
      * Who may still administer the instance: at least one must remain.
      */
     public function countActiveAdministrators(): int

@@ -160,15 +160,15 @@ final class ShopScene
     private function people(): void
     {
         foreach ([
-            ['thomas.girard@cairn.test', 'Thomas', 'Girard', true],
-            ['nadia.benali@cairn.test', 'Nadia', 'Benali', true],
-            ['lea.fontaine@cairn.test', 'Léa', 'Fontaine', true],
-            ['marc.petit@cairn.test', 'Marc', 'Petit', true],
-            ['claire.martin@maison-dupont.test', 'Claire', 'Martin', false],
-            ['paul.roussel@maison-dupont.test', 'Paul', 'Roussel', false],
-            ['sophie.bernard@travelia.test', 'Sophie', 'Bernard', false],
-        ] as [$email, $firstName, $lastName, $internal]) {
-            $this->users[$email] = new User($email, $firstName, $lastName, $internal);
+            ['thomas.girard@cairn.test', 'Thomas', 'Girard', true, null],
+            ['nadia.benali@cairn.test', 'Nadia', 'Benali', true, null],
+            ['lea.fontaine@cairn.test', 'Léa', 'Fontaine', true, null],
+            ['marc.petit@cairn.test', 'Marc', 'Petit', true, null],
+            ['claire.martin@maison-dupont.test', 'Claire', 'Martin', false, 'Maison Dupont'],
+            ['paul.roussel@maison-dupont.test', 'Paul', 'Roussel', false, 'Maison Dupont'],
+            ['sophie.bernard@travelia.test', 'Sophie', 'Bernard', false, 'Travelia'],
+        ] as [$email, $firstName, $lastName, $internal, $company]) {
+            $this->users[$email] = new User($email, $firstName, $lastName, $internal, $company);
             $this->entityManager->persist($this->users[$email]);
         }
         $this->users['julie.admin@cairn.test'] = new User('julie.admin@cairn.test', 'Julie', 'Admin');

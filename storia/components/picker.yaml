@@ -1,0 +1,5 @@
+# Composite: rendered by picker.html.twig next to this file.
+variants:
+    default: { args: { label: null } }
+    chosen: { args: { label: 'Online shop' } }
+    invalid: { args: { label: null, invalid: true } }

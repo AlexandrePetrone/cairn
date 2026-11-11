@@ -32,7 +32,7 @@ final class Refs
      */
     public function user(User $user): UserRef
     {
-        return new UserRef((int) $user->getId(), $user->getFullName(), $user->isInternal(), $this->viewer->get()->isInternal() ? $user->getEmail() : null);
+        return new UserRef((int) $user->getId(), $user->getFullName(), $user->isInternal(), $this->viewer->get()->isInternal() ? $user->getEmail() : null, $user->getCompany());
     }
 
     public function file(Attachment $attachment): FileRef

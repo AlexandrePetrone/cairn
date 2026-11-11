@@ -35,11 +35,12 @@ final readonly class MemberResource
         public bool $internal,
         /** For the agency only. */
         public ?string $email = null,
+        public ?string $company = null,
     ) {
     }
 
     public static function of(UserRef $user): self
     {
-        return new self($user->id, $user->name, $user->internal, $user->email);
+        return new self($user->id, $user->name, $user->internal, $user->email, $user->company);
     }
 }

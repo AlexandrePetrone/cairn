@@ -21,7 +21,7 @@ REST API.
 Decisions already taken:
 
 - Persistence: Doctrine ORM, schema compatible with both MariaDB and
-  PostgreSQL. Nothing is ever physically deleted, with six exceptions:
+  PostgreSQL. Nothing is ever physically deleted, with seven exceptions:
   a removed attachment (file and row, the journal keeps its name), a
   deleted comment (row and files, the journal keeps its text, author and
   date), a revoked membership (memberships are the current state of
@@ -29,20 +29,35 @@ Decisions already taken:
   of both issues keeps it), an issue subscription a person ends
   (following is the current state, personal and unjournaled), and a
   code repository a manager unlinks from a project (it is configuration,
-  like a membership; the code references it produced stay).
+  like a membership; the code references it produced stay), and a
+  password token once used, replaced by a newer one or long expired (a
+  credential, not history).
 - Interface: server-rendered Twig + Turbo + UX Twig/Live Components, Tailwind
   for styling, no JavaScript framework: the kanban is Live components
   with SortableJS in a Stimulus controller, the rich-text editor is
   TipTap driven by a Stimulus controller.
 - Auth: SecurityBundle `form_login` on `/login` (email + password, stateless
   CSRF, remember me), logout on `/logout`; every other route requires
-  `ROLE_USER`. Emails are stored lowercase and `UserRepository` loads the
-  user. `Security/UserChecker` refuses deactivated accounts and
-  `User::isEqualTo()` ends their open sessions; `login_throttling` blocks
-  an email or an address after five failures. Administrators create
-  accounts in the administration with a first password they hand over;
+  `ROLE_USER`, except `/password/…`. Emails are stored lowercase and
+  `UserRepository` loads the user. `Security/UserChecker` refuses
+  deactivated accounts and `User::isEqualTo()` ends their open sessions;
+  `login_throttling` blocks an email or an address after five failures.
+  Nobody types a password for someone else: an account is created without
+  one (`CreateUser`) and `InviteUser` mails a link, valid a week, to the
+  page that sets it (`Controller/Security/PasswordController`); it can be
+  sent again while the account has no password, each link replacing the
+  previous one. An account without a password cannot sign in (Symfony
+  refuses a null password). "Forgot password?" on the login page
+  (`RequestPasswordReset`, link valid an hour, a lost invitation
+  included) answers the same page whatever the address: unknown,
+  deactivated or asked again within five minutes, nothing is sent. `ResetPassword` consumes
+  the token and sets the password, which ends the open sessions. The
+  single-use tokens are `symfonycasts/reset-password-bundle`'s
+  (`Entity/PasswordToken`, hashed verifier), behind `Security/PasswordTokens`,
+  the only class that talks to it; the mails are `Notification/AccountMailer`.
   `bin/console app:user:create` (interactive) creates the first
-  administrator. Invitation by email and agency SSO come later.
+  administrator with a password, before any mailer exists. Agency SSO
+  comes later.
 - API: a REST API under `/api` for the people of the agency, served by
   API Platform over the same commands and queries as the pages, signed in
   with personal tokens (see [API](#api)). An MCP server comes next, on the
@@ -79,6 +94,7 @@ columns are what the English and the French catalogues show.
 | `Role`           | Role              | Rôle             | Defined in configuration.                                        |
 | `Membership`     | Access            | Accès            | Role of a user on a project or a workspace. No organisation entity: a client is a workspace. |
 | `internal` flag  | Internal/External | Interne/Externe  | Agency user vs client user.                                      |
+| `company`        | Company           | Société          | Free text on a user, suggested from the values already typed.   |
 | `private`        | Private           | Privé            | Hidden from external users.                                      |
 | `Release`        | Release           | Version          | Planned delivery, optional per project.                          |
 | `JournalEntry`   | History           | Historique       | Immutable journal, keeps the labels of the time.                 |
@@ -109,14 +125,15 @@ src/
                      webhook endpoint is the Webhook component's controller
   Form/              form types and their data objects
   Security/          voters, AccessControl and its SQL twin Visibility,
-                     authenticators
+                     authenticators, PasswordTokens (invitation and reset links)
   Twig/Components/   PHP-backed Twig components, when a component needs logic
   Config/            instance config pipeline: Definition/, validator, diff,
                      sync, ConfigRegistry; config-only enums
   Workflow/          state machines built from the snapshot (WorkflowFactory,
                      WorkflowProvider), HasPlace for the objects they move
   Notification/      who follows an issue (SubscriptionRules), which events
-                     notify (NotificationDispatcher), the mail (IssueMailer)
+                     notify (NotificationDispatcher), the mails (IssueMailer,
+                     AccountMailer)
   Api/               the REST API, self-contained: Resource/ the classes API
                      Platform exposes and their inputs, State/ the providers
                      and processors that ask the buses, Mapper/ what turns
@@ -483,8 +500,14 @@ src/
   recipient with what they may see (`AccessControl` at sending time: a
   private journal line or comment goes to internal users only, nothing
   visible means no mail), the comment rendered for them by
-  `MarkdownRenderer`, links made absolute. One template,
-  `templates/email/issue_changed.html.twig`; the mails of an issue form a
+  `MarkdownRenderer`, links made absolute. One template per mail
+  (`templates/email/issue_changed.html.twig`, `invitation.html.twig`,
+  `password_reset.html.twig`, over `_layout.html.twig`); the account
+  mails are sent by their handler, the mail message landing in the
+  Doctrine transport inside the command's transaction, so it leaves only
+  if the command commits; until the worker sends it, and in `failed`
+  after three refusals, the row holds the link in clear, so `failed` is
+  purged, never kept. The mails of an issue form a
   thread (`Message-ID` of the creation mail, `In-Reply-To` and
   `References` on the others). Immediate sending only: a digest would
   store instead of sending, nothing in the model waits for it. A worker
@@ -611,7 +634,8 @@ src/
   the account's, not a role on a project, so there is no permission for
   it. `AccessControl::canUseApi()` says so, checked when a token is
   created and at every request, as is the `UserChecker`: a deactivated
-  account, or one made external, loses the use of its tokens. A token
+  account, or one made external, loses the use of its tokens; an account
+  still waiting for its password cannot sign in, so holds none. A token
   acts as its user and may only narrow what they do: its scope
   (`ApiTokenScope`: `read`, or `write` which reads too) is asked by
   `access_control` for every request of `/api` by its method
@@ -662,7 +686,14 @@ src/
   `MessageHandler/Command/ProjectActor` (one call per handler), may
   act on that project only (never on a workspace membership) and never
   archives, since an archived project grants nobody the right to bring
-  it back. Both permissions show what external users never see (private
+  it back. On the Access page someone is added by email
+  (`Membership:Grants` in project mode): an existing account gets a
+  role, an unknown address gets an account, the role and an invitation,
+  three ordinary commands in a row (`CreateUser` with `actorId` and
+  `projectId`, which refuses an internal or administrator account,
+  `GrantMembership`, `InviteUser` to a direct member of that project),
+  a refusal stopping the chain where it is. The administration picks the
+  person, or the workspace or project, in a `Ui:Picker`. Both permissions show what external users never see (private
   trackers, every account of the instance), and `issue.force_place`
   breaks the workflow clients are shown, so the configuration grants
   them to internal-only roles: `Permission::internalOnly()` says which,
@@ -717,7 +748,7 @@ src/
   is the live binding: a `data-model` on a nested component binds that
   component to the parent, not its input, so a form control takes a
   `model` prop and renders it as its control's `data-model`
-  (`Ui:Form:Editor`, `Checkbox`, `Select`, `Textarea`, `Ui:Filter:Option`,
+  (`Ui:Form:Editor`, `Input`, `Combobox`, `Checkbox`, `Select`, `Textarea`, `Ui:Filter:Option`,
   `Search`).
   Variables a component sets for itself carry its name: the main recipe is
   `<component>Classes` (`buttonClasses`), an inner element's
@@ -864,11 +895,21 @@ src/
   backdrop, the cross and Escape; the `dialog` controller focuses the
   first field). A `Ui:Dropdown:Item` without `href` is a
   button, for a live action in a menu.
+- **Choosing among many is a `Ui:Picker`, typing with suggestions a
+  `Ui:Form:Combobox`.** `Ui:Picker` is a field-like button that opens a
+  `Ui:Dropdown` with a search field narrowing the `Ui:Dropdown:Item`s
+  it is given (`list-filter`), grouped in `Ui:Picker:Group`s; each item
+  calls a live action that records the choice, and the button shows its
+  `label`. Everything is in the page, filtered in the browser: enough
+  for the accounts, workspaces and projects of an instance.
+  `Ui:Form:Combobox` (the `combobox` controller, `CompanyType` in forms)
+  is a text input whose `suggestions` are offered as one types; what
+  matches none stays as typed. Neither needs a JavaScript dependency.
 - JavaScript is Stimulus only, one small controller per behaviour in
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`, `dialog`,
   `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`,
-  `workflow-diagram`, `sortable`, `list-filter`, `board`, `load-more`,
-  `clipboard`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
+  `workflow-diagram`, `sortable`, `list-filter`, `combobox`, `board`,
+  `load-more`, `clipboard`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
   (`editor` with TipTap, `workflow-diagram` with Mermaid, `board` with
   SortableJS) so that Vite
   splits its imports into chunks only fetched on a page that uses it; write a new one when a component needs it, not before. No

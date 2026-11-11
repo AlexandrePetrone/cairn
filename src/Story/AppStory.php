@@ -126,14 +126,15 @@ final class AppStory extends Story
             'nadia' => ['nadia.benali@cairn.test', 'Nadia', 'Benali', 'internal'],
             'lea' => ['lea.fontaine@cairn.test', 'Léa', 'Fontaine', 'internal'],
             'marc' => ['marc.petit@cairn.test', 'Marc', 'Petit', 'internal'],
-            'claire' => ['claire.martin@maison-dupont.test', 'Claire', 'Martin', 'external'],
-            'paul' => ['paul.roussel@maison-dupont.test', 'Paul', 'Roussel', 'external'],
-            'ines' => ['ines.garnier@vallier.test', 'Inès', 'Garnier', 'external'],
-            'remi' => ['remi.colin@natura.test', 'Rémi', 'Colin', 'external'],
-            'sophie' => ['sophie.bernard@travelia.test', 'Sophie', 'Bernard', 'external'],
+            'claire' => ['claire.martin@maison-dupont.test', 'Claire', 'Martin', 'external', 'Maison Dupont'],
+            'paul' => ['paul.roussel@maison-dupont.test', 'Paul', 'Roussel', 'external', 'Maison Dupont'],
+            'ines' => ['ines.garnier@vallier.test', 'Inès', 'Garnier', 'external', 'Vallier'],
+            'remi' => ['remi.colin@natura.test', 'Rémi', 'Colin', 'external', 'Natura'],
+            'sophie' => ['sophie.bernard@travelia.test', 'Sophie', 'Bernard', 'external', 'Travelia'],
         ];
-        foreach ($people as $key => [$email, $firstName, $lastName, $kind]) {
-            $factory = UserFactory::new(['email' => $email, 'firstName' => $firstName, 'lastName' => $lastName]);
+        foreach ($people as $key => $person) {
+            [$email, $firstName, $lastName, $kind] = $person;
+            $factory = UserFactory::new(['email' => $email, 'firstName' => $firstName, 'lastName' => $lastName, 'company' => $person[4] ?? null]);
             $this->users[$key] = match ($kind) {
                 'admin' => $factory->admin()->create(),
                 'internal' => $factory->internal()->create(),

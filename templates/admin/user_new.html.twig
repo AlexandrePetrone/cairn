@@ -9,18 +9,23 @@
 
 {% block content %}
     <div class="max-w-2xl mx-auto px-4 sm:px-6 py-5 space-y-4">
-        <h1 class="text-xl font-semibold text-gray-900">{{ 'admin.user.new'|trans }}</h1>
+        <div>
+            <h1 class="text-xl font-semibold text-gray-900">{{ 'admin.user.new'|trans }}</h1>
+            <p class="text-xs text-gray-500">{{ 'admin.user.new_help'|trans }}</p>
+        </div>
         {{ form_start(form, { attr: { class: 'rounded-lg border border-gray-200 bg-white p-4 space-y-4' } }) }}
             {{ form_errors(form) }}
             <div class="grid sm:grid-cols-2 gap-4">
                 {{ form_row(form.firstName) }}
                 {{ form_row(form.lastName) }}
             </div>
-            {{ form_row(form.email) }}
+            <div class="grid sm:grid-cols-2 gap-4">
+                {{ form_row(form.email) }}
+                {{ form_row(form.company) }}
+            </div>
             {{ form_row(form.type) }}
-            {{ form_row(form.password) }}
             <div class="flex items-center gap-2">
-                <twig:Ui:Button type="submit" variant="primary" size="lg">{{ 'admin.create'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button type="submit" variant="primary" size="lg" icon="send">{{ 'admin.user.create_and_invite'|trans }}</twig:Ui:Button>
                 <twig:Ui:Button variant="ghost" size="lg" href="{{ path('app_admin_users') }}">{{ 'admin.cancel'|trans }}</twig:Ui:Button>
             </div>
         {{ form_end(form) }}

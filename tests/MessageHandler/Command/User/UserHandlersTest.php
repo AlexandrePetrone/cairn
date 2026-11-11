@@ -4,24 +4,37 @@ declare(strict_types=1);
 
 namespace App\Tests\MessageHandler\Command\User;
 
+use App\Entity\PasswordToken;
+use App\Entity\User;
+use App\Message\Command\User\CreateUser;
+use App\Message\Command\User\InviteUser;
+use App\Message\Command\User\RequestPasswordReset;
+use App\Message\Command\User\ResetPassword;
 use App\Message\Command\User\UpdateUser;
 use App\Message\CommandBus;
 use App\MessageHandler\Command\User\UserException;
 use App\Repository\MembershipRepository;
+use App\Security\PasswordLinkException;
+use App\Security\PasswordTokens;
 use App\Tests\KernelHelpers;
 use App\Tests\Security\AccessFixtures;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Bundle\FrameworkBundle\Test\MailerAssertionsTrait;
 use Symfony\Component\Messenger\Exception\ValidationFailedException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 /**
- * UpdateUser. Test roles: project_manager and developer are internal
- * only, client is not.
+ * The account commands: CreateUser, UpdateUser, InviteUser,
+ * RequestPasswordReset and ResetPassword. Test roles: project_manager and
+ * developer are internal only, client is not. Mails are sent on the spot
+ * in the test environment, so they can be counted.
  */
 final class UserHandlersTest extends KernelTestCase
 {
     use KernelHelpers;
+    use MailerAssertionsTrait;
 
     private CommandBus $commands;
     private AccessFixtures $fixtures;
@@ -34,16 +47,188 @@ final class UserHandlersTest extends KernelTestCase
         $this->fixtures = new AccessFixtures(self::getContainer()->get(EntityManagerInterface::class));
     }
 
+    public function testAnAccountIsCreatedWithoutAPasswordAndWithACompany(): void
+    {
+        $user = $this->commands->dispatch(new CreateUser('Ines@Vallier.test', 'Inès', 'Garnier', company: ' Vallier '));
+
+        self::assertInstanceOf(User::class, $user);
+        self::assertSame('ines@vallier.test', $user->getEmail());
+        self::assertFalse($user->hasPassword(), 'the invitation gives the password');
+        self::assertSame('Vallier', $user->getCompany());
+        self::assertFalse($user->isInternal());
+    }
+
+    public function testTheConsoleStillGivesAPassword(): void
+    {
+        $user = $this->commands->dispatch(new CreateUser('admin@agency.test', 'Julie', 'Morel', admin: true, plainPassword: 'correct horse'));
+
+        self::assertInstanceOf(User::class, $user);
+        self::assertTrue($user->isAdmin());
+        self::assertTrue(self::getContainer()->get(UserPasswordHasherInterface::class)->isPasswordValid($user, 'correct horse'));
+    }
+
+    public function testAManagerCreatesAnExternalAccountFromTheirProjectOnly(): void
+    {
+        $thomas = $this->fixtures->user('thomas@agency.test', internal: true);
+        $this->fixtures->grantOnWorkspace($thomas, $this->fixtures->workspace, 'project_manager');
+        $nadia = $this->fixtures->user('nadia@agency.test', internal: true);
+        $this->fixtures->grantOnProject($nadia, $this->fixtures->shop, 'developer');
+        $shop = (int) $this->fixtures->shop->getId();
+
+        $user = $this->commands->dispatch(new CreateUser('paul@client.test', 'Paul', 'Roussel', actorId: $thomas->getId(), projectId: $shop));
+        self::assertInstanceOf(User::class, $user);
+        self::assertFalse($user->isInternal());
+
+        try {
+            $this->commands->dispatch(new CreateUser('yann@agency.test', 'Yann', 'Leroy', internal: true, actorId: $thomas->getId(), projectId: $shop));
+            self::fail('A manager creates external accounts only.');
+        } catch (UserException $e) {
+            self::assertStringContainsString('external', $e->getMessage());
+        }
+
+        try {
+            $this->commands->dispatch(new CreateUser('remi@client.test', 'Rémi', 'Colin', actorId: $nadia->getId(), projectId: $shop));
+            self::fail('A developer does not manage members.');
+        } catch (AccessDeniedException) {
+        }
+
+        try {
+            $this->commands->dispatch(new CreateUser('remi@client.test', 'Rémi', 'Colin', actorId: $thomas->getId(), projectId: (int) $this->fixtures->otherProject->getId()));
+            self::fail('Not their project.');
+        } catch (AccessDeniedException) {
+        }
+
+        $this->expectException(ValidationFailedException::class);
+        $this->commands->dispatch(new CreateUser('remi@client.test', 'Rémi', 'Colin', actorId: $thomas->getId()));
+    }
+
+    public function testAnInvitationGoesToAnActiveAccountWithoutAPassword(): void
+    {
+        $claire = $this->fixtures->user('claire@client.test');
+
+        $this->commands->dispatch(new InviteUser((int) $claire->getId()));
+
+        self::assertEmailCount(1);
+        $email = self::getMailerMessage();
+        self::assertNotNull($email);
+        self::assertEmailAddressContains($email, 'to', 'claire@client.test');
+        self::assertEmailHtmlBodyContains($email, '/password/set/');
+        self::assertCount(1, self::getContainer()->get(EntityManagerInterface::class)->getRepository(PasswordToken::class)->findBy(['user' => $claire]));
+
+        $this->commands->dispatch(new InviteUser((int) $claire->getId()));
+        self::assertEmailCount(2, message: 'invited again, as often as needed');
+        self::assertCount(1, self::getContainer()->get(EntityManagerInterface::class)->getRepository(PasswordToken::class)->findBy(['user' => $claire]), 'the new link replaces the previous one');
+
+        $claire->deactivate();
+        try {
+            $this->commands->dispatch(new InviteUser((int) $claire->getId()));
+            self::fail('A deactivated account is not invited.');
+        } catch (UserException $e) {
+            self::assertStringContainsString('deactivated', $e->getMessage());
+        }
+
+        $claire->reactivate();
+        $claire->setPassword('hashed');
+        try {
+            $this->commands->dispatch(new InviteUser((int) $claire->getId()));
+            self::fail('An account with a password is not invited.');
+        } catch (UserException $e) {
+            self::assertStringContainsString('already has a password', $e->getMessage());
+        }
+        self::assertEmailCount(2);
+    }
+
+    public function testAManagerInvitesADirectMemberOfTheirProject(): void
+    {
+        $thomas = $this->fixtures->user('thomas@agency.test', internal: true);
+        $this->fixtures->grantOnWorkspace($thomas, $this->fixtures->workspace, 'project_manager');
+        $nadia = $this->fixtures->user('nadia@agency.test', internal: true);
+        $this->fixtures->grantOnProject($nadia, $this->fixtures->shop, 'developer');
+        $claire = $this->fixtures->user('claire@client.test');
+        $this->fixtures->grantOnWorkspace($claire, $this->fixtures->workspace, 'client');
+        $paul = $this->fixtures->user('paul@client.test');
+        $this->fixtures->grantOnProject($paul, $this->fixtures->shop, 'client');
+        $shop = (int) $this->fixtures->shop->getId();
+
+        $this->commands->dispatch(new InviteUser((int) $paul->getId(), $thomas->getId(), $shop));
+        self::assertEmailCount(1);
+
+        try {
+            $this->commands->dispatch(new InviteUser((int) $claire->getId(), $thomas->getId(), $shop));
+            self::fail('Claire holds her role on the workspace, not on the project.');
+        } catch (UserException $e) {
+            self::assertStringContainsString('no role on', $e->getMessage());
+        }
+
+        try {
+            $this->commands->dispatch(new InviteUser((int) $paul->getId(), $nadia->getId(), $shop));
+            self::fail('A developer does not manage members.');
+        } catch (AccessDeniedException) {
+        }
+
+        $this->expectException(ValidationFailedException::class);
+        $this->commands->dispatch(new InviteUser((int) $paul->getId(), $thomas->getId()));
+    }
+
+    public function testAResetLinkGoesToAnActiveAccountAndSaysNothingOtherwise(): void
+    {
+        $claire = $this->fixtures->user('claire@client.test');
+        $claire->setPassword('hashed');
+        $paul = $this->fixtures->user('paul@client.test');
+        $paul->setPassword('hashed');
+        $paul->deactivate();
+        $this->fixtures->user('ines@client.test');
+        self::getContainer()->get(EntityManagerInterface::class)->flush();
+
+        $this->commands->dispatch(new RequestPasswordReset('nobody@client.test'));
+        $this->commands->dispatch(new RequestPasswordReset('paul@client.test'));
+        self::assertEmailCount(0, message: 'unknown or deactivated: nothing');
+
+        $this->commands->dispatch(new RequestPasswordReset('ines@client.test'));
+        self::assertEmailCount(1, message: 'a lost invitation is replaced the same way');
+
+        $this->commands->dispatch(new RequestPasswordReset('Claire@Client.test'));
+        self::assertEmailCount(2);
+
+        $this->commands->dispatch(new RequestPasswordReset('claire@client.test'));
+        self::assertEmailCount(2, message: 'asked again too soon: nothing, quietly');
+    }
+
+    public function testResetPasswordConsumesTheToken(): void
+    {
+        $claire = $this->fixtures->user('claire@client.test');
+        $claire->setPassword('hashed');
+        $token = self::getContainer()->get(PasswordTokens::class)->issueReset($claire);
+
+        try {
+            $this->commands->dispatch(new ResetPassword(substr($token, 0, -1).('a' === substr($token, -1) ? 'b' : 'a'), 'a new password'));
+            self::fail('A tampered token is refused.');
+        } catch (PasswordLinkException $e) {
+            self::assertStringContainsString('invalid', $e->getMessage());
+        }
+
+        $this->commands->dispatch(new ResetPassword($token, 'a new password'));
+        self::assertTrue(self::getContainer()->get(UserPasswordHasherInterface::class)->isPasswordValid($claire, 'a new password'));
+
+        $this->expectException(PasswordLinkException::class);
+        $this->commands->dispatch(new ResetPassword($token, 'another password'));
+    }
+
     public function testOnlyWhatIsGivenChanges(): void
     {
         $claire = $this->fixtures->user('claire@client.test');
+        $claire->changeCompany('Maison Dupont');
 
         $this->commands->dispatch(new UpdateUser((int) $claire->getId(), lastName: 'Dupont'));
 
         self::assertSame('Claire Dupont', $claire->getFullName());
         self::assertSame('claire@client.test', $claire->getEmail());
+        self::assertSame('Maison Dupont', $claire->getCompany());
         self::assertFalse($claire->isInternal());
         self::assertTrue($claire->isActive());
+
+        $this->commands->dispatch(new UpdateUser((int) $claire->getId(), company: ''));
+        self::assertNull($claire->getCompany(), 'an empty company clears it');
     }
 
     public function testTheEmailStaysUnique(): void
@@ -122,14 +307,5 @@ final class UserHandlersTest extends KernelTestCase
 
         $this->commands->dispatch(new UpdateUser((int) $claire->getId(), active: true));
         self::assertTrue($claire->isActive());
-    }
-
-    public function testAnAdministratorSetsThePassword(): void
-    {
-        $claire = $this->fixtures->user('claire@client.test');
-
-        $this->commands->dispatch(new UpdateUser((int) $claire->getId(), plainPassword: 'a password'));
-
-        self::assertTrue(self::getContainer()->get(UserPasswordHasherInterface::class)->isPasswordValid($claire, 'a password'));
     }
 }

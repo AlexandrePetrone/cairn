@@ -2,3 +2,6 @@ admin:
     key_invalid: 2 to 5 uppercase letters.
 code_repository:
     path_invalid: "A repository path is written group/project."
+auth:
+    password:
+        mismatch: The two passwords differ.

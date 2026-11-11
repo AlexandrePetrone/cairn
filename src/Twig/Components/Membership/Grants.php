@@ -11,6 +11,8 @@ use App\Entity\User;
 use App\Entity\Workspace;
 use App\Message\Command\Membership\GrantMembership;
 use App\Message\Command\Membership\RevokeMembership;
+use App\Message\Command\User\CreateUser;
+use App\Message\Command\User\InviteUser;
 use App\Message\CommandBus;
 use App\Message\Query\Project\ListProjects;
 use App\Message\Query\Workspace\ListWorkspaces;
@@ -19,6 +21,7 @@ use App\Repository\MembershipRepository;
 use App\Repository\UserRepository;
 use App\Security\Viewer;
 use App\Twig\Components\DispatchesCommands;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
@@ -33,8 +36,12 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * exactly one of the three: grant a role, change it, take it back after a
  * confirmation. The rules are GrantMembership's; a refusal is shown in
  * place. The first two serve the administration, which acts without an
- * actor; on a project, the viewer acts and the roles inherited from the
- * workspace are shown read-only, a direct role only widening them.
+ * actor and picks the person, or the workspace or project, in a
+ * searchable list. On a project, the viewer acts and the roles inherited
+ * from the workspace are shown read-only, a direct role only widening
+ * them; someone is added by email: an existing account gets a role, an
+ * unknown address gets an external account, the role and an invitation.
+ * A member who has not chosen their password yet can be invited again.
  */
 #[AsLiveComponent('Membership:Grants')]
 final class Grants
@@ -42,6 +49,14 @@ final class Grants
     use ComponentToolsTrait;
     use DefaultActionTrait;
     use DispatchesCommands;
+
+    /** Under the email field, what the address led to. */
+    public const string NONE = 'none';
+    public const string NEW = 'new';
+    public const string EXISTING = 'existing';
+    public const string MEMBER = 'member';
+    public const string CEILING = 'ceiling';
+    public const string DEACTIVATED = 'deactivated';
 
     #[LiveProp]
     public ?Workspace $workspace = null;
@@ -56,7 +71,7 @@ final class Grants
     #[LiveProp(writable: true)]
     public array $roles = [];
 
-    /** On a workspace or a project: who gets the new role. */
+    /** On a workspace: who gets the new role. */
     #[LiveProp(writable: true)]
     public ?int $newUserId = null;
 
@@ -66,6 +81,20 @@ final class Grants
 
     #[LiveProp(writable: true)]
     public string $newRole = '';
+
+    /** On a project: the address of who gets the new role. */
+    #[LiveProp(writable: true, onUpdated: 'onEmailChanged')]
+    public string $email = '';
+
+    /** On a project, for an unknown address: the account to create. */
+    #[LiveProp(writable: true)]
+    public string $firstName = '';
+
+    #[LiveProp(writable: true)]
+    public string $lastName = '';
+
+    #[LiveProp(writable: true)]
+    public string $company = '';
 
     /** The membership whose removal waits for a confirmation. */
     #[LiveProp(writable: true)]
@@ -77,6 +106,12 @@ final class Grants
     /** @var array<int, Membership>|null read once per render, `align()` forgets it */
     private ?array $loadedInherited = null;
 
+    /** @var array{string, User|null}|null what `email` leads to, read once per render */
+    private ?array $loadedMatch = null;
+
+    /** @var list<array{workspace: Workspace, projects: list<Project>}>|null read once per render */
+    private ?array $loadedTargets = null;
+
     public function __construct(
         private readonly MembershipRepository $memberships,
         private readonly UserRepository $users,
@@ -84,6 +119,7 @@ final class Grants
         private readonly ConfigRegistry $config,
         private readonly TranslatorInterface $translator,
         private readonly Viewer $viewer,
+        private readonly ValidatorInterface $validator,
     ) {
     }
 
@@ -96,6 +132,16 @@ final class Grants
         $this->user = $user;
         $this->project = $project;
         $this->align();
+    }
+
+    public function onEmailChanged(): void
+    {
+        $this->loadedMatch = null;
+        $this->newRole = '';
+        $this->firstName = '';
+        $this->lastName = '';
+        $this->company = '';
+        $this->error = null;
     }
 
     /**
@@ -120,19 +166,20 @@ final class Grants
      * The roles of the configuration that may go to the user: an external
      * user gets no internal-only role, and on a project only the roles
      * wider than the one they inherit from the workspace. Without a user
-     * yet, all of them.
+     * yet, all of them, or those of an external user when `external`.
      *
      * @return array<string, string> role id => label
      */
-    public function rolesFor(?User $user): array
+    public function rolesFor(?User $user, bool $external = false): array
     {
         $definition = $this->config->definition();
         $inherited = null !== $user ? ($this->getInherited()[(int) $user->getId()] ?? null)?->getRole() : null;
         $ceiling = null !== $inherited && $definition->hasRole($inherited) ? $definition->roleRank($inherited) : null;
+        $external = $external || (null !== $user && !$user->isInternal());
 
         $roles = [];
         foreach ($definition->roles as $role) {
-            if (null !== $user && !$user->isInternal() && $role->internalOnly) {
+            if ($external && $role->internalOnly) {
                 continue;
             }
             if (null !== $ceiling && $definition->roleRank($role->id) >= $ceiling) {
@@ -155,9 +202,8 @@ final class Grants
     }
 
     /**
-     * On a workspace or a project: the active users who hold no role on it
-     * yet and may be given one. On a project, those who inherit a role may
-     * get a wider one, so whoever inherits the broadest is not offered.
+     * On a workspace: the active users who hold no role on it yet and may
+     * be given one.
      *
      * @return list<User>
      */
@@ -177,21 +223,114 @@ final class Grants
     }
 
     /**
-     * For a user: the workspaces, each followed by its projects.
+     * For a user: the workspaces, each with its projects.
      *
-     * @return array<string, array<string, string>> workspace name => [target => label]
+     * @return list<array{workspace: Workspace, projects: list<Project>}>
      */
     public function getTargets(): array
     {
+        return $this->loadedTargets ??= $this->loadTargets();
+    }
+
+    /**
+     * @return list<array{workspace: Workspace, projects: list<Project>}>
+     */
+    private function loadTargets(): array
+    {
+        $projects = [];
+        foreach ($this->queries->ask(new ListProjects()) as $project) {
+            $projects[(int) $project->getWorkspace()->getId()][] = $project;
+        }
         $targets = [];
         foreach ($this->queries->ask(new ListWorkspaces()) as $workspace) {
-            $targets[$workspace->getName()]['workspace-'.$workspace->getId()] = $this->translator->trans('admin.access.whole_workspace', ['%name%' => $workspace->getName()]);
-        }
-        foreach ($this->queries->ask(new ListProjects()) as $project) {
-            $targets[$project->getWorkspace()->getName()]['project-'.$project->getId()] = $project->getIssuePrefix().' · '.$project->getName();
+            $targets[] = ['workspace' => $workspace, 'projects' => $projects[(int) $workspace->getId()] ?? []];
         }
 
         return $targets;
+    }
+
+    /**
+     * What the chosen target reads as, for the picker's button.
+     */
+    public function getTargetLabel(): ?string
+    {
+        [$kind, $id] = explode('-', $this->newTarget.'-', 3) + [1 => ''];
+        foreach ($this->getTargets() as ['workspace' => $workspace, 'projects' => $projects]) {
+            if ('workspace' === $kind && $workspace->getId() === (int) $id) {
+                return $this->translator->trans('admin.access.whole_workspace', ['%name%' => $workspace->getName()]);
+            }
+            foreach ($projects as $project) {
+                if ('project' === $kind && $project->getId() === (int) $id) {
+                    return $project->getIssuePrefix().' · '.$project->getName();
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The companies already known, suggested when creating an account.
+     *
+     * @return list<string>
+     */
+    public function getCompanies(): array
+    {
+        return $this->users->findCompanies();
+    }
+
+    /**
+     * On a project: the account behind the address typed, if any.
+     */
+    public function getMatch(): ?User
+    {
+        return ($this->loadedMatch ??= $this->match())[1];
+    }
+
+    /**
+     * On a project: what the address typed leads to, one of the constants.
+     */
+    public function getMatchState(): string
+    {
+        return ($this->loadedMatch ??= $this->match())[0];
+    }
+
+    /**
+     * @return array{string, User|null} the state and the account
+     */
+    private function match(): array
+    {
+        $email = trim($this->email);
+        // what `CreateUser` would refuse is not looked up: one rule says what an address is
+        if ('' === $email || 0 < \count($this->validator->validatePropertyValue(CreateUser::class, 'email', $email))) {
+            return [self::NONE, null];
+        }
+        $match = $this->users->loadUserByIdentifier($email);
+        if (null === $match) {
+            return [self::NEW, null];
+        }
+        if (!$match->isActive()) {
+            return [self::DEACTIVATED, $match];
+        }
+        foreach ($this->getMemberships() as $membership) {
+            if ($membership->getUser()->getId() === $match->getId()) {
+                return [self::MEMBER, $match];
+            }
+        }
+
+        return [[] === $this->rolesFor($match) ? self::CEILING : self::EXISTING, $match];
+    }
+
+    #[LiveAction]
+    public function chooseTarget(#[LiveArg] string $target): void
+    {
+        $this->newTarget = $target;
+    }
+
+    #[LiveAction]
+    public function chooseUser(#[LiveArg] int $user): void
+    {
+        $this->newUserId = $user;
     }
 
     #[LiveAction]
@@ -201,7 +340,8 @@ final class Grants
         if (null !== $this->workspace) {
             $command = null !== $this->newUserId ? new GrantMembership($this->newUserId, $this->workspace->getId(), null, $this->newRole) : null;
         } elseif (null !== $this->project) {
-            $command = null !== $this->newUserId ? new GrantMembership($this->newUserId, null, $this->project->getId(), $this->newRole, $this->actorId()) : null;
+            $match = self::EXISTING === $this->getMatchState() ? $this->getMatch() : null;
+            $command = null !== $match ? new GrantMembership((int) $match->getId(), null, $this->project->getId(), $this->newRole, $this->actorId()) : null;
         } else {
             [$kind, $id] = explode('-', $this->newTarget.'-', 3) + [1 => ''];
             $command = match ($kind) {
@@ -219,10 +359,53 @@ final class Grants
             return;
         }
 
-        $this->newUserId = null;
-        $this->newTarget = '';
-        $this->newRole = '';
+        $this->reset();
         $this->done('admin.access.granted');
+    }
+
+    /**
+     * On a project, for an unknown address: the external account, its
+     * role, then its invitation, each its own command. A refusal stops
+     * there and is shown; what went through stays.
+     */
+    #[LiveAction]
+    public function invite(CommandBus $commands): void
+    {
+        $this->error = null;
+        if (null === $this->project || self::NEW !== $this->getMatchState() || '' === $this->newRole) {
+            $this->error = $this->translator->trans('admin.access.incomplete');
+
+            return;
+        }
+
+        $create = new CreateUser(trim($this->email), $this->firstName, $this->lastName, company: $this->company, actorId: $this->actorId(), projectId: $this->project->getId());
+        if (!$this->tryCommand($commands, $create, $this->translator->trans('project.access.invalid_account'))) {
+            return;
+        }
+        $this->loadedMatch = null;
+        $userId = (int) $this->getMatch()?->getId();
+
+        if (!$this->tryCommand($commands, new GrantMembership($userId, null, $this->project->getId(), $this->newRole, $this->actorId()))) {
+            return;
+        }
+        if (!$this->tryCommand($commands, new InviteUser($userId, $this->actorId(), $this->project->getId()))) {
+            return;
+        }
+
+        $this->reset();
+        $this->done('project.access.invited');
+    }
+
+    /**
+     * Sends a member their invitation again.
+     */
+    #[LiveAction]
+    public function resend(CommandBus $commands, #[LiveArg] int $user): void
+    {
+        $this->error = null;
+        if ($this->tryCommand($commands, new InviteUser($user, $this->actorId(), $this->project?->getId()))) {
+            $this->done('project.access.resent');
+        }
     }
 
     #[LiveAction]
@@ -278,6 +461,18 @@ final class Grants
     private function actorId(): ?int
     {
         return null !== $this->project ? $this->viewer->get()->getId() : null;
+    }
+
+    private function reset(): void
+    {
+        $this->newUserId = null;
+        $this->newTarget = '';
+        $this->newRole = '';
+        $this->email = '';
+        $this->firstName = '';
+        $this->lastName = '';
+        $this->company = '';
+        $this->loadedMatch = null;
     }
 
     private function done(string $message): void

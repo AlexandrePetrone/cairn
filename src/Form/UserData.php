@@ -9,8 +9,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * What the account form collects; the controller turns it into CreateUser
- * or UpdateUser. The password is required at creation only: on an
- * existing account, left empty, it does not change.
+ * or UpdateUser. No password: the person chooses it from the invitation.
  */
 final class UserData
 {
@@ -30,14 +29,13 @@ final class UserData
     #[Assert\Length(max: 80)]
     public ?string $lastName = null;
 
+    #[Assert\Length(max: 120)]
+    public ?string $company = null;
+
     #[Assert\Choice(choices: [self::INTERNAL, self::ADMIN, self::EXTERNAL])]
     public string $type = self::EXTERNAL;
 
     public bool $active = true;
-
-    #[Assert\NotBlank(groups: ['creation'])]
-    #[Assert\Length(min: 8)]
-    public ?string $password = null;
 
     public static function fromUser(User $user): self
     {
@@ -45,6 +43,7 @@ final class UserData
         $data->email = $user->getEmail();
         $data->firstName = $user->getFirstName();
         $data->lastName = $user->getLastName();
+        $data->company = $user->getCompany();
         $data->type = match (true) {
             $user->isAdmin() => self::ADMIN,
             $user->isInternal() => self::INTERNAL,

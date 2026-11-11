@@ -48,16 +48,18 @@
                                         {{ user.fullName }}
                                         {% if user.admin %}<twig:Ui:Badge tone="indigo" size="sm">{{ 'admin.user.admin_badge'|trans }}</twig:Ui:Badge>{% endif %}
                                     </span>
-                                    <span class="block text-xs text-gray-500 truncate">{{ user.email }}</span>
+                                    <span class="block text-xs text-gray-500 truncate">{{ user.email }}{% if user.company %} · {{ user.company }}{% endif %}</span>
                                 </span>
                             </a>
                         </td>
                         <td class="sm:px-3 sm:py-2.5 order-2 text-xs {{ user.internal ? 'text-gray-700' : 'text-gray-500' }}">{{ (user.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</td>
                         <td class="sm:px-4 sm:py-2.5 order-3 ml-auto sm:ml-0">
-                            {% if user.active %}
-                                <twig:Ui:Badge tone="emerald">{{ 'admin.user.state.active'|trans }}</twig:Ui:Badge>
-                            {% else %}
+                            {% if not user.active %}
                                 <twig:Ui:Badge>{{ 'admin.user.state.deactivated'|trans }}</twig:Ui:Badge>
+                            {% elseif user.awaitsPassword %}
+                                <twig:Ui:Badge tone="amber">{{ 'admin.user.state.invited'|trans }}</twig:Ui:Badge>
+                            {% else %}
+                                <twig:Ui:Badge tone="emerald">{{ 'admin.user.state.active'|trans }}</twig:Ui:Badge>
                             {% endif %}
                         </td>
                     </twig:Ui:Table:Row>

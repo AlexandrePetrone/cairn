@@ -1,0 +1,14 @@
+{# The pages seen before signing in: the logo over one centered card (block `card`). #}
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <main class="min-h-screen grid place-items-center px-4">
+        <div class="w-full max-w-sm">
+            <div class="mb-6 flex items-center justify-center gap-2">
+                <span class="h-8 w-8 rounded bg-indigo-500 grid place-items-center text-white font-bold">C</span>
+                <span class="text-lg font-semibold text-gray-900">Cairn</span>
+            </div>
+            {% block card %}{% endblock %}
+        </div>
+    </main>
+{% endblock %}

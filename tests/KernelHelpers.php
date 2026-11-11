@@ -9,6 +9,8 @@ use App\Config\Sync\ConfigSynchronizer;
 use App\Message\CommandBus;
 use App\Message\QueryBus;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Mailer\Event\MessageEvents;
+use Symfony\Component\Mime\Email;
 
 /**
  * Shortcuts for kernel tests: a configuration in force (the test instance
@@ -31,6 +33,21 @@ trait KernelHelpers
     protected static function queryBus(): QueryBus
     {
         return new QueryBus(self::getContainer()->get('query.bus'));
+    }
+
+    /**
+     * The path of the link in the last mail sent, for the invitation and
+     * reset flows: `/password/set/{token}`.
+     */
+    protected static function passwordLink(): string
+    {
+        $events = self::getContainer()->get('mailer.message_logger_listener')->getEvents();
+        \assert($events instanceof MessageEvents);
+        $email = $events->getMessages()[0] ?? null;
+        \assert($email instanceof Email, 'a mail was sent');
+        \assert(1 === preg_match('~href="https?://[^/]+(/password/set/[A-Za-z0-9_-]+)"~', (string) $email->getHtmlBody(), $matches), 'the mail carries one link');
+
+        return $matches[1];
     }
 
     protected static function applyConfiguration(): void

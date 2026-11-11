@@ -17,8 +17,10 @@ use Symfony\Component\Messenger\Exception\ValidationFailedException;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Creates an account, typically the first administrator of an instance.
- * Everything is asked interactively; the password is typed twice, hidden.
+ * Creates an account, typically the first administrator of an instance,
+ * before any mailer can send an invitation. Everything is asked
+ * interactively; the password is typed twice, hidden. The
+ * administration never asks one: it invites.
  */
 #[AsCommand(name: 'app:user:create', description: 'Create a user account (interactive)')]
 final class UserCreateCommand
@@ -47,6 +49,7 @@ final class UserCreateCommand
         $email = (string) $io->ask('Email address (used to sign in)');
         $firstName = (string) $io->ask('First name');
         $lastName = (string) $io->ask('Last name');
+        $company = (string) $io->ask('Company (leave empty if none)');
         $types = array_map($this->translator->trans(...), self::TYPES);
         $type = $io->choice('Account type', $types, UserData::EXTERNAL);
         if (!\is_string($type) || !isset($types[$type])) {
@@ -60,7 +63,7 @@ final class UserCreateCommand
         }
 
         try {
-            $user = $this->commands->dispatch(new CreateUser($email, $firstName, $lastName, $password, internal: UserData::EXTERNAL !== $type, admin: UserData::ADMIN === $type));
+            $user = $this->commands->dispatch(new CreateUser($email, $firstName, $lastName, internal: UserData::EXTERNAL !== $type, admin: UserData::ADMIN === $type, company: '' === $company ? null : $company, plainPassword: $password));
         } catch (ValidationFailedException $e) {
             foreach ($e->getViolations() as $violation) {
                 $io->error(\sprintf('%s: %s', $violation->getPropertyPath(), $violation->getMessage()));

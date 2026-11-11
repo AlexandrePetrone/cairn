@@ -27,7 +27,7 @@ final class UserCreateCommandTest extends KernelTestCase
 
     public function testCreatesAnAdministratorWhoCanSignIn(): void
     {
-        $exitCode = $this->answer(['Julie@Agency.test', 'Julie', 'Morel', 'Administrator', 'correct horse', 'correct horse']);
+        $exitCode = $this->answer(['Julie@Agency.test', 'Julie', 'Morel', '', 'Administrator', 'correct horse', 'correct horse']);
 
         self::assertSame(Command::SUCCESS, $exitCode, $this->tester->getDisplay());
         $user = self::getContainer()->get(UserRepository::class)->findOneBy(['email' => 'julie@agency.test']);
@@ -35,17 +35,20 @@ final class UserCreateCommandTest extends KernelTestCase
         self::assertTrue($user->isAdmin());
         self::assertTrue($user->isInternal());
         self::assertTrue(self::getContainer()->get(UserPasswordHasherInterface::class)->isPasswordValid($user, 'correct horse'));
+        self::assertNull($user->getCompany());
     }
 
     public function testAnExternalAccountIsTheDefaultType(): void
     {
-        self::assertSame(Command::SUCCESS, $this->answer(['claire@client.test', 'Claire', 'Martin', '', 'correct horse', 'correct horse']));
-        self::assertFalse(self::getContainer()->get(UserRepository::class)->findOneBy(['email' => 'claire@client.test'])?->isInternal());
+        self::assertSame(Command::SUCCESS, $this->answer(['claire@client.test', 'Claire', 'Martin', 'Maison Dupont', '', 'correct horse', 'correct horse']));
+        $claire = self::getContainer()->get(UserRepository::class)->findOneBy(['email' => 'claire@client.test']);
+        self::assertFalse($claire?->isInternal());
+        self::assertSame('Maison Dupont', $claire?->getCompany());
     }
 
     public function testRefusesDifferentPasswords(): void
     {
-        self::assertSame(Command::FAILURE, $this->answer(['nadia@agency.test', 'Nadia', 'Benali', 'Internal', 'correct horse', 'correct house']));
+        self::assertSame(Command::FAILURE, $this->answer(['nadia@agency.test', 'Nadia', 'Benali', '', 'Internal', 'correct horse', 'correct house']));
         self::assertStringContainsString('differ', $this->tester->getDisplay());
         self::assertNull(self::getContainer()->get(UserRepository::class)->findOneBy(['email' => 'nadia@agency.test']));
     }
@@ -54,13 +57,13 @@ final class UserCreateCommandTest extends KernelTestCase
     {
         UserFactory::createOne(['email' => 'claire@client.test']);
 
-        self::assertSame(Command::FAILURE, $this->answer(['claire@client.test', 'Claire', 'Martin', '', 'correct horse', 'correct horse']));
+        self::assertSame(Command::FAILURE, $this->answer(['claire@client.test', 'Claire', 'Martin', '', '', 'correct horse', 'correct horse']));
         self::assertStringContainsString('already uses', $this->tester->getDisplay());
     }
 
     public function testRefusesAnInvalidEmailAndAShortPassword(): void
     {
-        self::assertSame(Command::FAILURE, $this->answer(['not-an-email', 'Claire', 'Martin', '', 'short', 'short']));
+        self::assertSame(Command::FAILURE, $this->answer(['not-an-email', 'Claire', 'Martin', '', '', 'short', 'short']));
         $display = $this->tester->getDisplay();
         self::assertStringContainsString('email', $display);
         self::assertStringContainsString('plainPassword', $display);

@@ -58,6 +58,7 @@ security:
     # Note: Only the *first* matching rule is applied
     access_control:
         - { path: ^/login$, roles: PUBLIC_ACCESS }
+        - { path: ^/password, roles: PUBLIC_ACCESS } # forgot password, set the password from a link
         - { path: ^/storia, roles: PUBLIC_ACCESS } # dev only: the bundle is disabled in prod
         # The API: its documentation is read signed in, by those who may use
         # it (AccessControl::canUseApi(): the internal users); reading the API

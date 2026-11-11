@@ -1,0 +1,22 @@
+{# The shell every mail shares: grey page, white card, a strip (block `strip`), the body (block `body`) and a footer (block `footer`). Inline styles only. #}
+<!DOCTYPE html>
+<html lang="{{ app.locale }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Cairn{% endblock %}</title>
+</head>
+<body style="margin:0;padding:24px 16px;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#111827;font-size:15px;line-height:1.5;">
+    <div style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+        <div style="padding:16px 24px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;">
+            {% block strip %}Cairn{% endblock %}
+        </div>
+        <div style="padding:20px 24px;">
+            {% block body %}{% endblock %}
+        </div>
+        <div style="padding:12px 24px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;">
+            {% block footer %}{% endblock %}
+        </div>
+    </div>
+</body>
+</html>

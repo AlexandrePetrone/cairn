@@ -312,7 +312,33 @@ auth:
         password: Mot de passe
         remember_me: Rester connecté
         submit: Se connecter
+        forgot: Mot de passe oublié ?
     logout: Se déconnecter
+    password:
+        back_to_login: Retour à la connexion
+        set_done: Votre mot de passe est enregistré. Vous pouvez vous connecter.
+        request:
+            title: Mot de passe oublié ?
+            intro: Indiquez l'adresse de votre compte. S'il existe, vous recevrez un lien pour choisir un nouveau mot de passe.
+            email: Adresse e-mail
+            submit: Recevoir un lien
+        requested:
+            title: Consultez votre messagerie
+            text: Si un compte utilise cette adresse, un e-mail avec un lien est en route. Le lien est valable une heure.
+        set:
+            title: Choisissez votre mot de passe
+            intro: 'Pour le compte %email%.'
+            password: Nouveau mot de passe
+            password_repeat: Nouveau mot de passe, à nouveau
+            help: 8 caractères au moins.
+            submit: Enregistrer mon mot de passe
+        invalid:
+            title: Ce lien ne peut pas être utilisé
+            text: Demandez un nouveau lien, ou connectez-vous si vous avez déjà un mot de passe.
+            request_again: Demander un nouveau lien
+        refused:
+            expired: Ce lien a expiré.
+            invalid: Ce lien est invalide ou a déjà été utilisé.
 
 home:
     greeting: 'Bonjour %name%'
@@ -449,20 +475,26 @@ admin:
         revoke: Retirer l'accès
         revoke_confirm: Retirer cet accès ?
         revoked: Accès retiré.
+        search_user: Rechercher une personne…
+        search_target: Rechercher un espace ou un projet…
+        no_match: Rien ne correspond.
     user:
         count: '{0}Aucun compte|{1}1 compte|]1,Inf[ %count% comptes'
         new: Nouvel utilisateur
-        created: 'Compte de %name% créé. Transmettez-lui son mot de passe.'
+        new_help: La personne reçoit une invitation par e-mail et y choisit son mot de passe.
+        create_and_invite: Créer et inviter
+        created: 'Compte de %name% créé, une invitation a été envoyée à %email%.'
+        invitation_pending: "L'invitation envoyée à %email% n'a pas encore été acceptée : le compte n'a pas de mot de passe et ne peut pas se connecter."
+        invitation_resend: Renvoyer l'invitation
+        invitation_sent: 'Invitation envoyée à %email%.'
         search: Nom ou adresse…
         empty: Aucun utilisateur ne correspond.
         admin_badge: Admin
         first_name: Prénom
         last_name: Nom
         email: Adresse e-mail
-        password: Mot de passe
-        password_help: 8 caractères au moins. À transmettre à la personne, qui ne peut pas encore le changer elle-même.
-        new_password: Nouveau mot de passe
-        new_password_help: Laissez vide pour garder le mot de passe actuel.
+        company: Société
+        company_help: 'Texte libre : les sociétés déjà connues sont proposées pendant la saisie.'
         active_label: Compte actif
         active_help: Un compte désactivé ne peut plus se connecter. Ses accès, son historique et ses mentions sont conservés.
         column:
@@ -477,6 +509,7 @@ admin:
             external: Externe
         state:
             active: Actif
+            invited: Invité
             deactivated: Désactivé
     configuration:
         intro: 'Lecture seule : la configuration se change dans le fichier d''instance, puis s''applique avec app:config:sync.'
@@ -563,6 +596,10 @@ admin:
         email_taken: 'Un compte utilise déjà l''adresse %email%.'
         last_admin: Il doit rester au moins un administrateur actif.
         holds_internal_roles: '%name% a des rôles réservés aux internes (%where%) : retirez-les avant de passer cette personne en externe.'
+        deactivated: "%name% est désactivé : réactivez d'abord le compte."
+        already_activated: '%name% a déjà choisi un mot de passe : « Mot de passe oublié ? » sur la page de connexion lui en donne un nouveau.'
+        not_member: "%name% n'a aucun rôle sur %project%."
+        external_only_from_project: Un compte créé depuis un projet est externe.
 
 project:
     summary:
@@ -658,6 +695,18 @@ project:
         direct_help: ajoutés ou élargis ici, valables sur ce projet seulement
         empty: "Personne n'a de rôle directement sur ce projet."
         inherits: "hérite « %role% » de l'espace"
+        email: Adresse e-mail
+        email_help: 'Un compte existant reçoit un rôle ; une adresse inconnue reçoit un compte, un rôle et une invitation par e-mail.'
+        email_placeholder: nom@societe.fr
+        already_member: '%name% a déjà un rôle sur ce projet.'
+        inherits_broadest: "%name% hérite déjà du rôle le plus large depuis l'espace."
+        deactivated: '%name% est désactivé : un administrateur peut réactiver le compte.'
+        new_account: "Aucun compte n'utilise cette adresse : un compte externe sera créé et invité par e-mail."
+        invalid_account: Donnez un prénom et un nom à la personne.
+        invite: Créer et inviter
+        invited: Compte créé, invitation envoyée.
+        resend: Renvoyer l'invitation
+        resent: Invitation envoyée.
 
 workflow:
     diagram:
@@ -836,3 +885,17 @@ email:
         description: Description
         view: Voir la demande
         footer: 'Vous recevez ce message parce que vous suivez la demande %key%. Pour ne plus la suivre, ouvrez-la et choisissez « Ne plus suivre ».'
+    invitation:
+        subject: Votre compte Cairn
+        greeting: 'Bonjour %name%,'
+        text: Un compte a été créé pour vous sur Cairn, où vous suivrez les demandes de vos projets. Choisissez votre mot de passe pour vous connecter.
+        button: Choisir mon mot de passe
+        validity: 'Ce lien est valable %days% jours. Passé ce délai, demandez-en un nouveau avec « Mot de passe oublié ? » sur la page de connexion.'
+        footer: "Ce message a été envoyé à %email% parce qu'un compte a été créé pour cette adresse. Si vous ne l'attendiez pas, vous pouvez l'ignorer."
+    password_reset:
+        subject: Votre mot de passe Cairn
+        greeting: 'Bonjour %name%,'
+        text: Vous avez demandé un nouveau mot de passe. Choisissez-le depuis le lien ci-dessous.
+        button: Choisir un nouveau mot de passe
+        validity: Ce lien est valable une heure et une seule fois.
+        footer: Si vous n'êtes pas à l'origine de cette demande, ignorez ce message ; votre mot de passe reste inchangé.

@@ -17,7 +17,9 @@ use function Symfony\Component\Clock\now;
  * drives what is private; `admin` is an internal user who also manages
  * workspaces, users and memberships, and holds every permission. A
  * deactivated account cannot sign in (Security/UserChecker) and loses its
- * open sessions at the next request (isEqualTo).
+ * open sessions at the next request (isEqualTo). An account is created
+ * without a password and gets one from its invitation link; `company`
+ * is free text.
  */
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'app_user')]
@@ -40,6 +42,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Equatab
     #[ORM\Column(nullable: true)]
     private ?string $password = null;
 
+    #[ORM\Column(length: 120, nullable: true)]
+    private ?string $company = null;
+
     #[ORM\Column]
     private bool $internal;
 
@@ -52,7 +57,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Equatab
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
-    public function __construct(string $email, string $firstName, string $lastName, bool $internal = false)
+    public function __construct(string $email, string $firstName, string $lastName, bool $internal = false, ?string $company = null)
     {
         $email = mb_strtolower(trim($email));
         if ('' === $email) {
@@ -63,6 +68,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Equatab
         $this->firstName = trim($firstName);
         $this->lastName = trim($lastName);
         $this->internal = $internal;
+        $this->changeCompany($company);
         $this->createdAt = now();
     }
 
@@ -162,9 +168,43 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Equatab
         $this->email = $email;
     }
 
+    /**
+     * The organisation the person belongs to, as typed: free text, shared
+     * through the suggestions of the form. Empty means none.
+     */
+    public function getCompany(): ?string
+    {
+        return $this->company;
+    }
+
+    public function changeCompany(?string $company): void
+    {
+        $company = trim((string) $company);
+        $this->company = '' === $company ? null : $company;
+    }
+
     public function setPassword(string $hashedPassword): void
     {
         $this->password = $hashedPassword;
+    }
+
+    /**
+     * An account without a password has not accepted its invitation yet:
+     * it cannot sign in (Symfony refuses a null password) and may be
+     * invited again.
+     */
+    public function hasPassword(): bool
+    {
+        return null !== $this->password;
+    }
+
+    /**
+     * Still invited: active, without a password. The screens show it and
+     * offer to send the invitation again.
+     */
+    public function awaitsPassword(): bool
+    {
+        return $this->active && null === $this->password;
     }
 
     public function getPassword(): ?string

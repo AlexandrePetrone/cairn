@@ -10,7 +10,8 @@ use Zenstruck\Foundry\Object\Instantiator;
 use Zenstruck\Foundry\Persistence\PersistentObjectFactory;
 
 /**
- * Users get the password `cairn` unless `plainPassword` is given.
+ * Users get the password `cairn` unless `plainPassword` is given;
+ * `company` is a constructor argument, null by default.
  *
  * @extends PersistentObjectFactory<User>
  */
@@ -46,6 +47,7 @@ final class UserFactory extends PersistentObjectFactory
             'firstName' => self::faker()->firstName(),
             'lastName' => self::faker()->lastName(),
             'internal' => false,
+            'company' => null,
         ];
     }
 

@@ -47,6 +47,26 @@ final class UserException extends \DomainException implements TranslatableInterf
         return new self(\sprintf('%s holds internal roles on: %s.', $userName, implode(', ', $where)), 'admin.refused.holds_internal_roles', ['%name%' => $userName, '%where%' => implode(', ', $where)]);
     }
 
+    public static function deactivated(string $userName): self
+    {
+        return new self(\sprintf('%s is deactivated.', $userName), 'admin.refused.deactivated', ['%name%' => $userName]);
+    }
+
+    public static function alreadyActivated(string $userName): self
+    {
+        return new self(\sprintf('%s already has a password.', $userName), 'admin.refused.already_activated', ['%name%' => $userName]);
+    }
+
+    public static function notMemberOf(string $userName, string $projectName): self
+    {
+        return new self(\sprintf('%s holds no role on %s.', $userName, $projectName), 'admin.refused.not_member', ['%name%' => $userName, '%project%' => $projectName]);
+    }
+
+    public static function externalOnlyFromProject(): self
+    {
+        return new self('An account created from a project is external.', 'admin.refused.external_only_from_project');
+    }
+
     public function trans(TranslatorInterface $translator, ?string $locale = null): string
     {
         return $translator->trans($this->reason, $this->parameters, null, $locale);

@@ -1,0 +1,5 @@
+component: Ui:Form:Combobox
+variants:
+    default: { args: { name: company, placeholder: 'Company…', suggestions: ['Maison Dupont', 'Natura', 'Travelia'] } }
+    with_value: { args: { name: company, value: Maison Dupont, suggestions: ['Maison Dupont', 'Natura', 'Travelia'] } }
+    invalid: { args: { name: company, value: 'A name far too long for a company', invalid: true, suggestions: ['Maison Dupont', 'Natura', 'Travelia'] } }

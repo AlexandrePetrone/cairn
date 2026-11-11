@@ -1,0 +1,6 @@
+form: App\Form\Type\CompanyType
+options:
+    label: Company
+    required: false
+    help: The organisation the person works for; the companies already known are suggested.
+    suggestions: [Maison Dupont, Natura, Travelia]

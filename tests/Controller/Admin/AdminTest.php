@@ -7,9 +7,11 @@ namespace App\Tests\Controller\Admin;
 use App\Entity\Project;
 use App\Entity\User;
 use App\Entity\Workspace;
+use App\Tests\KernelHelpers;
 use App\Tests\Scene\ShopScene;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
+use Symfony\Bundle\FrameworkBundle\Test\MailerAssertionsTrait;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
@@ -19,6 +21,9 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class AdminTest extends WebTestCase
 {
+    use KernelHelpers;
+    use MailerAssertionsTrait;
+
     private KernelBrowser $client;
     private ShopScene $scene;
 
@@ -106,32 +111,102 @@ final class AdminTest extends WebTestCase
         self::assertTrue($this->entity(Project::class, ['key' => 'INT'])?->isArchived());
     }
 
-    public function testAnAccountIsCreatedThenEdited(): void
+    public function testAnAccountIsCreatedWithoutAPasswordAndInvitedThenEdited(): void
     {
         $this->signInAsAdmin();
         $this->client->request('GET', '/admin/users/new');
-        $this->client->submitForm('Create', [
+        self::assertSelectorNotExists('input[type="password"]', 'nobody types a password for someone else');
+
+        $this->client->submitForm('Create and invite', [
             'user[firstName]' => 'Inès',
             'user[lastName]' => 'Garnier',
             'user[email]' => 'ines@natura.test',
+            'user[company]' => 'Natura',
             'user[type]' => 'external',
-            'user[password]' => 'short',
         ]);
-        self::assertResponseStatusCodeSame(422, 'password too short');
-
-        $this->client->submitForm('Create', ['user[password]' => 'a long password']);
         $ines = $this->entity(User::class, ['email' => 'ines@natura.test']);
         self::assertNotNull($ines);
         self::assertFalse($ines->isInternal());
+        self::assertFalse($ines->hasPassword());
+        self::assertSame('Natura', $ines->getCompany());
         self::assertResponseRedirects('/admin/users/'.$ines->getId());
+        self::assertEmailCount(1);
+        $email = self::getMailerMessage();
+        self::assertNotNull($email);
+        self::assertEmailAddressContains($email, 'to', 'ines@natura.test');
 
         $this->client->followRedirect();
-        $this->client->submitForm('Save', ['user[lastName]' => 'Garnier-Roy', 'user[type]' => 'internal', 'user[password]' => '']);
+        self::assertSelectorTextContains('main', 'Invited');
+        self::assertSelectorExists('form[action="/admin/users/'.$ines->getId().'/invite"]');
+
+        $this->client->submitForm('Save', ['user[lastName]' => 'Garnier-Roy', 'user[type]' => 'internal', 'user[company]' => '']);
         self::assertResponseRedirects();
         $ines = $this->entity(User::class, ['email' => 'ines@natura.test']) ?? self::fail('Inès vanished');
         self::assertSame('Inès Garnier-Roy', $ines->getFullName());
         self::assertTrue($ines->isInternal(), 'one form, one save');
-        self::assertNotNull($ines->getPassword(), 'an empty password field keeps the password');
+        self::assertNull($ines->getCompany(), 'an emptied company is cleared');
+    }
+
+    public function testAnInvitationIsFollowedToChooseThePassword(): void
+    {
+        $this->signInAsAdmin();
+        $this->client->request('GET', '/admin/users/new');
+        $this->client->submitForm('Create and invite', [
+            'user[firstName]' => 'Inès',
+            'user[lastName]' => 'Garnier',
+            'user[email]' => 'ines@natura.test',
+            'user[type]' => 'external',
+        ]);
+        $link = self::passwordLink();
+
+        $this->client->request('GET', '/logout');
+        $this->client->request('GET', $link);
+        self::assertResponseRedirects('/password/set', message: 'the token leaves the address');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('h1', 'Choose your password');
+        self::assertSelectorTextContains('main', 'ines@natura.test');
+
+        $this->client->submitForm('Set my password', ['password_set[password][first]' => 'a long password', 'password_set[password][second]' => 'a long password']);
+        self::assertResponseRedirects('/login');
+        $this->client->followRedirect();
+        $this->client->submitForm('Sign in', ['email' => 'ines@natura.test', 'password' => 'a long password']);
+        self::assertResponseRedirects('/');
+    }
+
+    public function testAnInvitationIsResent(): void
+    {
+        $this->signInAsAdmin();
+        $this->client->request('GET', '/admin/users/new');
+        $this->client->submitForm('Create and invite', [
+            'user[firstName]' => 'Inès',
+            'user[lastName]' => 'Garnier',
+            'user[email]' => 'ines@natura.test',
+            'user[type]' => 'external',
+        ]);
+        $firstLink = self::passwordLink();
+        $ines = $this->entity(User::class, ['email' => 'ines@natura.test']) ?? self::fail('no account');
+
+        $this->client->followRedirect();
+        $this->client->submitForm('Resend the invitation');
+        self::assertResponseRedirects('/admin/users/'.$ines->getId());
+        self::assertEmailCount(1);
+        $secondLink = self::passwordLink();
+        self::assertNotSame($firstLink, $secondLink);
+
+        $thomas = $this->entity(User::class, ['email' => 'thomas.girard@cairn.test']) ?? self::fail('no Thomas');
+        $thomas->setPassword('hashed');
+        self::getContainer()->get(EntityManagerInterface::class)->flush();
+        $this->client->request('GET', '/admin/users/'.$thomas->getId());
+        self::assertSelectorNotExists('form[action$="/invite"]', 'an account with a password is not invited again');
+
+        $visitor = $this->client;
+        $visitor->request('GET', '/logout');
+        $visitor->request('GET', $firstLink);
+        $visitor->followRedirect();
+        self::assertSelectorTextContains('h1', 'This link cannot be used', 'the new link replaces the old one');
+        $visitor->request('GET', $secondLink);
+        $visitor->followRedirect();
+        self::assertSelectorTextContains('h1', 'Choose your password');
     }
 
     public function testMakingAManagerExternalIsRefusedWithTheReason(): void

@@ -42,6 +42,7 @@ final class LoginTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('html[lang="en"]', 'CAIRN_LOCALE is English by default');
+        self::assertSelectorExists('a[href="/password/forgot"]', 'a way out of a forgotten password');
     }
 
     public function testAUserSignsInWithEmailAndPassword(): void

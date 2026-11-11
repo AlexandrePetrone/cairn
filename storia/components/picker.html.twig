@@ -1,0 +1,11 @@
+<twig:Ui:Picker :label="label" :invalid="invalid|default(false)" placeholder="Choose a workspace or a project…" searchPlaceholder="Search…" empty="Nothing matches.">
+    <twig:Ui:Picker:Group label="Maison Dupont">
+        <twig:Ui:Dropdown:Item data-list-filter-target="item" data-text="Maison Dupont MD">The whole Maison Dupont workspace</twig:Ui:Dropdown:Item>
+        <twig:Ui:Dropdown:Item data-list-filter-target="item" data-text="Online shop MD-SPT" :active="label == 'Online shop'"><twig:Ui:Chip>MD-SPT</twig:Ui:Chip> Online shop</twig:Ui:Dropdown:Item>
+        <twig:Ui:Dropdown:Item data-list-filter-target="item" data-text="Intranet MD-INT"><twig:Ui:Chip>MD-INT</twig:Ui:Chip> Intranet</twig:Ui:Dropdown:Item>
+    </twig:Ui:Picker:Group>
+    <twig:Ui:Picker:Group label="Travelia">
+        <twig:Ui:Dropdown:Item data-list-filter-target="item" data-text="Travelia TR">The whole Travelia workspace</twig:Ui:Dropdown:Item>
+        <twig:Ui:Dropdown:Item data-list-filter-target="item" data-text="Booking site TR-RES"><twig:Ui:Chip>TR-RES</twig:Ui:Chip> Booking site</twig:Ui:Dropdown:Item>
+    </twig:Ui:Picker:Group>
+</twig:Ui:Picker>
