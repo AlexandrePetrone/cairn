@@ -20,13 +20,19 @@ import Sortable from 'sortablejs';
  * go to and the two columns count again; refused or cancelled, it goes
  * back where it came from. Until then the card cannot be dragged again
  * (`board-pending`): one move is settled at a time. A column that loaded
- * again in the meantime already shows the card as the server has it, so
- * the origin is looked up by its place, never trusted as an element. The
- * order within a column is the server's the next time the column loads.
+ * again in the meantime was drawn by the server as it had the issue then,
+ * so both ends are looked up by their place and by what they hold now.
+ * The order within a column is the server's the next time the column
+ * loads.
  */
 
-/** Where each card being moved came from: its list, its place and the card that followed it. */
+/** Where the card being dragged came from: its place and the card that followed it. */
 const origins = new WeakMap();
+
+/** The moves waiting for their `board:moved`, by issue key: the card, where it came from and the place it was dropped on. */
+const pending = new Map();
+
+const listOf = (place) => document.querySelector(`[data-controller~="board"][data-board-place-value="${CSS.escape(place)}"]`);
 
 export default class extends Controller {
     static values = { place: String };
@@ -43,7 +49,7 @@ export default class extends Controller {
             animation: 150,
             ghostClass: 'opacity-40',
             onStart: (event) => {
-                origins.set(event.item, { list: this.element, place: this.placeValue, next: event.item.nextElementSibling });
+                origins.set(event.item, { place: this.placeValue, next: event.item.nextElementSibling });
                 this.mark(this.places(event.item));
             },
             onEnd: () => {
@@ -57,8 +63,10 @@ export default class extends Controller {
                 return allowed;
             },
             onAdd: (event) => {
+                const key = event.item.dataset.boardKey;
                 event.item.classList.add('board-pending');
-                this.move(event.item.dataset.boardKey);
+                pending.set(key, { card: event.item, origin: origins.get(event.item), to: this.placeValue });
+                this.move(key);
             },
         });
     }
@@ -104,37 +112,46 @@ export default class extends Controller {
         component.action('move', { key, place: this.placeValue });
     }
 
-    /** The move of a card ended; the column that holds the card acts. */
+    /**
+     * The move of a card ended. Every column hears it; the first one settles
+     * it for the board.
+     */
     settle(event) {
         const { key, applied, places } = event.detail || {};
-        const card = [...this.element.children].find((item) => item.dataset.boardKey === key);
-        const origin = card ? origins.get(card) : null;
-        if (!card || !origin) {
+        const move = pending.get(key);
+        if (!move?.origin) {
             return;
         }
-        origins.delete(card);
+        pending.delete(key);
+        const { card, origin, to } = move;
         card.classList.remove('board-pending');
-        // The origin column may have loaded again since the drop: its list is then another element, drawn with the card still in it.
-        const reloaded = !origin.list.isConnected;
-        const list = reloaded ? document.querySelector(`[data-controller~="board"][data-board-place-value="${CSS.escape(origin.place)}"]`) : origin.list;
-        const stale = reloaded && list ? [...list.children].find((item) => item.dataset.boardKey === key) : null;
+        // A column that loaded again since the drop has its cards drawn anew: the origin then shows
+        // the issue again, as another element, and the place it was dropped on has lost the card.
+        const from = listOf(origin.place);
+        const target = listOf(to);
+        const redrawn = [...(from?.children || [])].find((item) => item !== card && item.dataset.boardKey === key);
         if (!applied) {
-            if (reloaded) {
+            if (redrawn || !from) {
                 card.remove();
             } else {
-                list.insertBefore(card, origin.next?.parentElement === list ? origin.next : null);
+                from.insertBefore(card, origin.next?.parentElement === from ? origin.next : null);
             }
 
             return;
         }
-        stale?.remove();
+        redrawn?.remove();
+        if (!card.isConnected) {
+            target?.prepend(card);
+        }
         card.dataset.boardPlaces = (places || []).join(' ');
         card.classList.toggle('board-locked', 0 === (places || []).length);
         card.classList.toggle('cursor-grab', (places || []).length > 0);
-        if (list) {
-            this.count(list, -1);
+        if (from) {
+            this.count(from, -1);
         }
-        this.count(this.element, 1);
+        if (target) {
+            this.count(target, 1);
+        }
     }
 
     count(list, change) {
