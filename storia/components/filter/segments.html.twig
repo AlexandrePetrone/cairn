@@ -1,0 +1,5 @@
+<twig:Ui:Filter:Segments :label="label">
+    {% for option in options %}
+        <twig:Ui:Filter:Segment :name="name" :value="option.value" :icon="option.icon|default(null)" :checked="option.checked|default(false)">{{ option.label }}</twig:Ui:Filter:Segment>
+    {% endfor %}
+</twig:Ui:Filter:Segments>

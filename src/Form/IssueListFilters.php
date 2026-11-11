@@ -129,13 +129,14 @@ final readonly class IssueListFilters
     }
 
     /**
-     * Whether a filter narrows the list; the sort, the grouping and the
-     * view arrange it without narrowing it.
+     * Whether a filter narrows the list, which "clear" then offers to undo;
+     * the sort, the grouping, the view and showing the finished issues
+     * arrange it without narrowing it.
      */
     public function hasFilters(): bool
     {
         return [] !== $this->places || [] !== $this->projects || [] !== $this->trackers || [] !== $this->assignees || [] !== $this->releases
-            || [] !== $this->criticality || '' !== $this->q || $this->closed;
+            || [] !== $this->criticality || '' !== $this->q;
     }
 
     /**

@@ -1,5 +1,5 @@
-{# The bar of an issue list: its `title` and, at its right, the views of a tracker (list, kanban) as two joined buttons, then one menu per filter the list offers (`dimensions`), then the display menu (grouping, finished issues). Places, never statuses.
-   A GET form whose controls are the parameters of the address, submitted to the `issues` frame on every change by the `filters` controller; it is not redrawn, so the controller also keeps the counts of the menus and the "clear" button up to date. What only the list uses (the place filter, the display menu) hides while the kanban shows (`data-view`). #}
+{# The bar of an issue list: its `title` and, at its right, the views of a tracker (list, kanban) as segments, then one menu per filter the list offers (`dimensions`) and, at the right, whether finished issues show (open, all) and the grouping menu. Places, never statuses.
+   A GET form whose controls are the parameters of the address, submitted to the `issues` frame on every change by the `filters` controller; it is not redrawn, so the controller also keeps the counts of the menus and the "clear" button up to date. What only the list uses (the place filter, open or all, the grouping) hides while the kanban shows (`data-view`). #}
 {# Inside the blocks of nested components `this` is that component: they read these. #}
 {% set filtersScope = scope %}
 {% set filtersChoices = this.choices %}
@@ -12,16 +12,11 @@
         <div class="flex flex-wrap items-center gap-3 pt-3">
             {% if title %}<h1 class="font-semibold text-gray-900 text-base">{{ title }}</h1>{% endif %}
             {% if scope.hasBoard %}
-                <div class="ml-auto inline-flex overflow-hidden rounded-md border border-gray-200" role="radiogroup" aria-label="{{ 'issue.board.views'|trans }}">
-                    {# The list is the view of an address that names none: its radio sends nothing. #}
-                    {% for filtersViewChoice in [{ value: '', icon: 'list', label: 'issue.board.list' }, { value: 'board', icon: 'kanban', label: 'issue.board.title' }] %}
-                        <label class="inline-flex h-8 cursor-pointer items-center gap-1.5 px-3 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 has-[:checked]:bg-gray-900 has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-inset has-[:focus-visible]:ring-indigo-400 {{ loop.first ? '' : 'border-l border-gray-200' }}">
-                            <input type="radio" name="view" value="{{ filtersViewChoice.value }}" class="sr-only" {{ (filtersView == 'board') == (filtersViewChoice.value == 'board') ? 'checked' }}>
-                            {{ ux_icon('lucide:' ~ filtersViewChoice.icon, { class: 'h-4 w-4' }) }}
-                            {{ filtersViewChoice.label|trans }}
-                        </label>
-                    {% endfor %}
-                </div>
+                {# The list is the view of an address that names none: its radio sends nothing. #}
+                <twig:Ui:Filter:Segments :label="'issue.board.views'|trans" class="ml-auto">
+                    <twig:Ui:Filter:Segment name="view" value="" icon="list" :checked="filtersView != 'board'">{{ 'issue.board.list'|trans }}</twig:Ui:Filter:Segment>
+                    <twig:Ui:Filter:Segment name="view" value="board" icon="kanban" :checked="filtersView == 'board'">{{ 'issue.board.title'|trans }}</twig:Ui:Filter:Segment>
+                </twig:Ui:Filter:Segments>
             {% endif %}
         </div>
     {% endif %}
@@ -99,14 +94,16 @@
         <twig:Ui:Filter:Search :value="filters.q" class="w-48 xl:w-60" />
         <button type="button" class="text-xs text-indigo-600 hover:underline" data-filters-target="clear" data-action="filters#clear" {{ filters.hasFilters ? '' : 'hidden' }}>{{ 'filter.clear'|trans }}</button>
         {% set filtersGrouping = filtersChoices.grouping(scope, filters) %}
-        <twig:Ui:Filter:Menu :label="'issue.list.display.label'|trans" :active="filtersGrouping is not null or filters.closed" align="right" class="ml-auto group-data-[view=board]/filters:hidden">
-            <p class="px-2.5 pt-1.5 pb-1 text-[11px] font-medium uppercase tracking-wider text-gray-400">{{ 'issue.list.group.label'|trans }}</p>
+        {# Open issues are the list of an address that says nothing: that radio sends nothing. #}
+        <twig:Ui:Filter:Segments :label="'issue.list.scope.label'|trans" class="ml-auto group-data-[view=board]/filters:hidden">
+            <twig:Ui:Filter:Segment name="closed" value="" :checked="not filters.closed">{{ 'issue.list.scope.open'|trans }}</twig:Ui:Filter:Segment>
+            <twig:Ui:Filter:Segment name="closed" value="1" :checked="filters.closed">{{ 'issue.list.scope.all'|trans }}</twig:Ui:Filter:Segment>
+        </twig:Ui:Filter:Segments>
+        <twig:Ui:Filter:Menu :label="'issue.list.group.label'|trans" :active="filtersGrouping is not null" align="right" class="group-data-[view=board]/filters:hidden">
             <twig:Ui:Filter:Option single name="group" value="" :checked="filtersGrouping is null">{{ 'issue.list.group.none'|trans }}</twig:Ui:Filter:Option>
             {% for filtersGroupingChoice in filtersChoices.groupings(filtersScope) %}
                 <twig:Ui:Filter:Option single name="group" :value="filtersGroupingChoice.value" :checked="filtersGrouping == filtersGroupingChoice">{{ ('issue.list.group.' ~ filtersGroupingChoice.value)|trans }}</twig:Ui:Filter:Option>
             {% endfor %}
-            <div class="my-1 border-t border-gray-100"></div>
-            <twig:Ui:Filter:Option name="closed" value="1" :checked="filters.closed">{{ 'issue.list.display.closed'|trans }}</twig:Ui:Filter:Option>
         </twig:Ui:Filter:Menu>
     </div>
 </form>

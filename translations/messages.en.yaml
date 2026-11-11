@@ -201,9 +201,10 @@ issue:
             assigned: Issues assigned to me
             created: Issues created by me
         count: '{0}No issues|{1}1 issue|]1,Inf[ %count% issues'
-        display:
-            label: Display
-            closed: Finished issues
+        scope:
+            label: Issues shown
+            open: Open
+            all: All
         group:
             label: Group by
             none: No grouping

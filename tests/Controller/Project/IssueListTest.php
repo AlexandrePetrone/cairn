@@ -59,7 +59,10 @@ final class IssueListTest extends WebTestCase
         self::assertSelectorTextContains('tbody', 'Blurry product image on mobile');
         self::assertSelectorTextNotContains('tbody', 'Endless spinner on the cart page');
 
+        self::assertSelectorExists('form#issue-filters input[type="radio"][name="closed"][value=""][checked]', 'open issues unless the address says all');
+
         $this->client->request('GET', '/MD/SPT/issues?closed=1&q=cart');
+        self::assertSelectorExists('form#issue-filters input[type="radio"][name="closed"][value="1"][checked]');
         self::assertSelectorTextContains('tbody', 'Endless spinner on the cart page');
         self::assertSelectorTextNotContains('tbody', 'Typo in the footer');
 

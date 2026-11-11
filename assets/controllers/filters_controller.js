@@ -56,7 +56,7 @@ export default class extends Controller {
         this.pause = setTimeout(() => this.send('replace'), 300);
     }
 
-    /** Unchecks every filter and empties the search; the grouping and the view stay. */
+    /** Unchecks every filter and empties the search; the grouping, the view and open or all stay. */
     clear() {
         this.element.querySelectorAll('input[type="checkbox"]').forEach((box) => {
             box.checked = false;

@@ -1,0 +1,16 @@
+# Composite: rendered by segments.html.twig next to this file.
+variants:
+    default:
+        args:
+            label: Issues shown
+            name: closed
+            options:
+                - { value: '', label: Open, checked: true }
+                - { value: '1', label: All }
+    with_icons:
+        args:
+            label: Views of the category
+            name: view
+            options:
+                - { value: '', label: List, icon: list, checked: true }
+                - { value: board, label: Kanban, icon: kanban }

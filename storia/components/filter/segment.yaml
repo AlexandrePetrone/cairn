@@ -1,0 +1,5 @@
+component: Ui:Filter:Segment
+variants:
+    default: { args: { name: view, value: board }, blocks: { content: Kanban } }
+    checked: { args: { name: view, value: board, checked: true }, blocks: { content: Kanban } }
+    with_icon: { args: { name: view, value: board, icon: kanban, checked: true }, blocks: { content: Kanban } }

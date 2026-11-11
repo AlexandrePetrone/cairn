@@ -201,9 +201,10 @@ issue:
             assigned: Demandes assignées à moi
             created: Demandes créées par moi
         count: '{0}Aucune demande|{1}1 demande|]1,Inf[ %count% demandes'
-        display:
-            label: Affichage
-            closed: Demandes terminées
+        scope:
+            label: Demandes affichées
+            open: Ouvertes
+            all: Toutes
         no_release: Sans version
         group:
             label: Grouper par

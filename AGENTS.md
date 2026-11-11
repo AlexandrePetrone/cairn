@@ -463,7 +463,7 @@ src/
   the list as it comes, and forgets the view).
 - **The kanban is a view of a tracker's list, and loads column by
   column.** The list of a tracker shows as a table or as a kanban
-  (`view=board`, two radios of the filter form shown as joined buttons at the right of the title), never
+  (`view=board`, two radios of the filter form, a `Ui:Filter:Segments` rail at the right of the title), never
   across trackers since a kanban has one workflow; both read the same
   filters, the place filter, the sort and the grouping applying to the
   table only. `Board:Columns` draws one `Board:Column` per place with
