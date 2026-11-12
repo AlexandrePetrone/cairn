@@ -5,3 +5,6 @@ code_repository:
 auth:
     password:
         mismatch: The two passwords differ.
+account:
+    refused:
+        wrong_password: The current password is incorrect.

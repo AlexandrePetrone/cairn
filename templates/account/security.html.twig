@@ -1,0 +1,21 @@
+{% extends 'layout/account.html.twig' %}
+
+{% block page_title %}{{ 'account.nav.security'|trans }}{% endblock %}
+
+{# The password of the signed-in user: `form` asks for the current one, then the new one twice. #}
+{% block content %}
+    {{ form_start(form, { attr: { class: 'rounded-lg border border-line bg-surface p-4 sm:p-5 space-y-4' } }) }}
+        <div>
+            <h2 class="font-semibold text-strong">{{ 'account.security.password_title'|trans }}</h2>
+            <p class="mt-1 text-sm text-muted">{{ 'account.security.intro'|trans }}</p>
+        </div>
+        {{ form_errors(form) }}
+        <div class="sm:max-w-sm">{{ form_row(form.currentPassword) }}</div>
+        <div class="grid sm:grid-cols-2 gap-4">
+            {{ form_row(form.newPassword.first) }}
+            {{ form_row(form.newPassword.second) }}
+        </div>
+        {{ form_errors(form.newPassword) }}
+        <twig:Ui:Button type="submit" variant="primary" size="lg">{{ 'account.security.save'|trans }}</twig:Ui:Button>
+    {{ form_end(form) }}
+{% endblock %}

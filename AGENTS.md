@@ -21,7 +21,7 @@ REST API, and Mercure (`symfony/mercure-bundle`) for the optional real time.
 Decisions already taken:
 
 - Persistence: Doctrine ORM, schema compatible with both MariaDB and
-  PostgreSQL. Nothing is ever physically deleted, with nine exceptions:
+  PostgreSQL. Nothing is ever physically deleted, with ten exceptions:
   a removed attachment (file and row, the journal keeps its name), a
   deleted comment (row and files, the journal keeps its text, author and
   date), a revoked membership (memberships are the current state of
@@ -34,7 +34,8 @@ Decisions already taken:
   credential, not history), and the view someone keeps of an issue list
   (`ListView`: personal, replaced by the next, gone with it), and a
   notification once its mail left (`PendingNotification`: a queue, not
-  history).
+  history), and the picture of an account once replaced or removed (the
+  file; an account keeps one at most).
 - Interface: server-rendered Twig + Turbo + UX Twig/Live Components, Tailwind
   for styling, no JavaScript framework: an issue list is a GET form and
   a Turbo frame, the kanban is Live components with SortableJS in a
@@ -56,7 +57,9 @@ Decisions already taken:
   included) answers the same page whatever the address: unknown,
   deactivated or asked again within five minutes, nothing is sent. `ResetPassword` consumes
   the token, with every other link of the account, and sets the password,
-  which ends the open sessions. The
+  which ends the open sessions. Signed in, someone changes their
+  password on the Security page of their account (`ChangePassword`, see
+  [Account](#account)), confirmed by the current one. The
   single-use tokens are `symfonycasts/reset-password-bundle`'s
   (`Entity/PasswordToken`, hashed verifier), behind `Security/PasswordTokens`,
   the only class that talks to it; the mails are `Notification/AccountMailer`.
@@ -176,14 +179,15 @@ src/
 
   | Zone        | URL                                    | Shell                       | Controllers            | Templates              |
   |-------------|----------------------------------------|-----------------------------|------------------------|------------------------|
-  | application | `/`, `/issues/…`, `/projects`, `/account/…` | header only            | `Controller/` root     | `templates/` root      |
+  | application | `/`, `/issues/…`, `/projects`          | header only                 | `Controller/` root     | `templates/` root      |
+  | account     | `/account/…`                           | header + account navigation (`Layout:AccountNav`) | `Controller/` root | `templates/account/` |
   | project     | `/MD/SPT/…`                            | header + project navigation | `Controller/Project/`  | `templates/project/`   |
   | admin       | `/admin/…`                             | amber header + admin navigation (`Layout:AdminNav`) | `Controller/Admin/`    | `templates/admin/`     |
   | security    | `/login`                               | none                        | `Controller/Security/` | `templates/security/`  |
   | api         | `/api/…`                               | none: JSON                  | none: `Api/`           | none                   |
 
   Each zone has its base template in `templates/layout/<zone>.html.twig`
-  (`project.html.twig`, `app.html.twig`, `admin.html.twig`), which renders the shell and
+  (`project.html.twig`, `app.html.twig`, `account.html.twig`, `admin.html.twig`), which renders the shell and
   exposes the `page_title` and `content` blocks; a page extends it and
   fills them. The root of `Controller/` holds application-level pages
   only, never a controller that found no home. Components are not
@@ -638,10 +642,14 @@ src/
   the recipient by `MarkdownRenderer`, links made absolute, and the
   description of an issue created in the meantime. The subject names
   the issue, or the keys of the first three. There is no thread per
-  issue any more, and no per-user setting yet: one mail per issue for
-  those who want it, a daily digest (the same queue with a longer wait)
-  and a chat channel per project would each be another reader of the
-  queue. One template per mail
+  issue any more. One setting per person, `User::$mailGrouping`
+  (`MailGrouping`, in `Entity/Enum/`, chosen on the Notifications page
+  of the account): a
+  mail per project, the default, or a mail per issue, which only
+  changes what `ProjectMailSender::groups()` puts together: the same
+  queue, the same waits counted per issue, the same mail with one card.
+  A daily digest (the same queue with a longer wait) and a chat channel
+  per project would each be another reader of the queue. One template per mail
   (`templates/email/project_changed.html.twig`, `invitation.html.twig`,
   `password_reset.html.twig`, over `_layout.html.twig`, whose `card`
   block the project mail replaces with its own cards); the account
@@ -839,8 +847,8 @@ src/
   in `Api/` assumes an internal viewer: opening the API to clients
   would be a change of `canUseApi()` alone.
 - **Tokens are managed by their owner** on `/account/tokens`
-  (`Controller/ApiTokenController`, in the user menu of those who may
-  use the API): `CreateApiToken` returns a `NewApiToken`, the token and
+  (`Controller/ApiTokenController`, in the sidebar of the account of
+  those who may use the API): `CreateApiToken` returns a `NewApiToken`, the token and
   the secret that is stored nowhere, carried once to the next page in a
   flash of its own, with a button copying it (the `clipboard`
   controller) and a request to try; `RevokeApiToken` confirms in place.
@@ -856,6 +864,50 @@ src/
   "Authorize". Answers are JSON-LD by default, plain JSON on
   `Accept: application/json`, errors `application/problem+json`; null
   properties are left out.
+
+### Account
+
+- **Everyone has their account, a zone of its own; who they are stays
+  the administration's.** The pages under `/account` share
+  `layout/account.html.twig` and the sidebar `Layout:AccountNav`, one
+  entry and one address per subject, reached from "My account" in the
+  user menu: Profile (`/account`), Notifications, Security
+  (`Controller/AccountController`) and, under Integrations for whoever
+  may use the API, the tokens (`/account/tokens`,
+  `ApiTokenController`); the MCP server will be one more entry there. A
+  new subject is a route, a template extending the layout (`page_title`,
+  `content`, and `page_intro`, `page_actions`, `page_width` when
+  needed) and an item of the sidebar, never a card added to another
+  page. The profile shows the name, the email and the company without
+  a field: only an administrator changes them, in `/admin`.
+  Notifications is one choice, two `Ui:Form:RadioCard`s, sent as an
+  `UpdateUser` carrying `actorId`: with an actor the handler accepts
+  the account of that actor only, and only its `mailGrouping`. Security
+  is `ChangePassword`, which checks the current password (the form does
+  too, `UserPassword`, so the refusal shows under its field) and drops
+  the reset links still out; the new password ends every session of the
+  account (`User::isEqualTo()`), so the controller signs the person in
+  again on the one they asked from (`Security::login()`). An account
+  may try five changes in fifteen minutes (the `password_change`
+  limiter, counted by the controller before the form is read, right
+  password or not): an open session is not a way to guess the current
+  password.
+- **A picture replaces the initials, everywhere.** `ChangeAvatar` takes
+  a PNG, JPEG or WebP image up to 2 MB, or nothing to remove it;
+  `Attachment/AvatarStorage` keeps it under `ATTACHMENTS_DIR/avatars`
+  with a name of its own (`User::$avatar`), so a new picture is a new
+  address, served by `/avatars/{name}` to whoever is signed in and kept
+  by browsers for good. The image is not processed on the server (the
+  PHP image has neither GD nor Imagick): the `avatar` controller cuts it
+  to a 256 px square in the browser before sending it, and a browser
+  that cannot sends the file as chosen, which `object-cover` crops.
+  A person is drawn with `<twig:User:Avatar :user="…" size="…" />`,
+  the one place that turns a `User` into the props of `Ui:Avatar`
+  (name, kind, and the picture as `src`, from `avatar_url(user)`,
+  `Twig/AvatarExtension`; nobody is the unassigned avatar); the colour
+  of the kind stays as a ring around a picture. Only `Ui:BoardCard`,
+  which takes scalars, is given the address itself. Mails and the API
+  keep to names.
 
 ### Administration
 
@@ -1019,7 +1071,7 @@ src/
 - The shell is `Ui:Layout:Shell` (blocks `header`, `sidebar`, `breadcrumb`,
   content) with `Ui:Layout:Sidebar`, `Ui:Layout:Sidebar:Section` and
   `Ui:Layout:Sidebar:Item`: low-level pieces without data. `Layout:Header`,
-  `Layout:ProjectNav` and `Layout:AdminNav`, which display data, are PHP-backed components
+  `Layout:ProjectNav`, `Layout:AccountNav` and `Layout:AdminNav`, which display data, are PHP-backed components
   (`#[AsTwigComponent]` in `src/Twig/Components/Layout/`). Inside a block
   passed to a nested component, `this` is that nested component: read your
   own `this.*` into a variable before opening it.
@@ -1133,7 +1185,7 @@ src/
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`, `dialog`,
   `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`,
   `workflow-diagram`, `sortable`, `list-filter`, `combobox`, `board`,
-  `load-more`, `clipboard`, `filters`, `selection`, `fold`, `list-view`, `live-updates`, `theme`, `panels`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
+  `load-more`, `clipboard`, `filters`, `selection`, `fold`, `list-view`, `live-updates`, `theme`, `panels`, `avatar`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
   (`editor` with TipTap, `workflow-diagram` with Mermaid, `board` with
   SortableJS) so that Vite
   splits its imports into chunks only fetched on a page that uses it; write a new one when a component needs it, not before. No

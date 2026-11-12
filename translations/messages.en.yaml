@@ -268,8 +268,8 @@ filter:
     clear: Clear all
 
 nav:
+    account: My account
     home: Home
-    api_tokens: API tokens
     my_issues: My issues
     projects: Projects
     application: Application
@@ -751,6 +751,54 @@ release:
         not_found: Not found.
         name_taken: 'The project already has a release named %name%.'
 
+account:
+    title: My account
+    nav:
+        profile: Profile
+        notifications: Notifications
+        security: Security
+        integrations: Integrations
+        api: API
+    profile:
+        picture:
+            title: Picture
+            choose: Choose a picture
+            change: Change picture
+            remove: Remove picture
+            help: PNG, JPEG or WebP, 2 MB at most. The picture is cropped to a square and replaces your initials.
+            saved: Picture saved.
+            removed: Picture removed.
+            refused: Choose a PNG, JPEG or WebP image of 2 MB at most.
+        identity:
+            title: Identity
+            name: Name
+            email: Email address
+            company: Company
+            managed: These details are managed by an administrator. Contact them to have them changed.
+    notifications:
+        intro: You get an email when someone else changes an issue you follow.
+        grouping:
+            label: Email grouping
+            project:
+                title: One email per project
+                description: All the changes of a project together in a single email.
+            issue:
+                title: One email per issue
+                description: A separate email for each issue that changed.
+        save: Save
+        saved: Preferences saved.
+    security:
+        password_title: Password
+        intro: After the change, you stay signed in on this device and are signed out of the others.
+        current_password: Current password
+        new_password: New password
+        new_password_help: At least 8 characters.
+        new_password_repeat: Confirm new password
+        save: Change password
+        saved: Password changed.
+        too_many_attempts: Too many attempts. Try again in a few minutes.
+    refused:
+        wrong_password: The current password is incorrect.
 api_token:
     title: API tokens
     intro: A token lets a program call the Cairn API in your name; it sees and does what you may, never more. Give each program its own token, and revoke it when the program no longer needs it.

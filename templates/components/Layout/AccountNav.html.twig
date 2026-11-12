@@ -1,0 +1,16 @@
+{# Account level: the pages of one's own account, then the integrations for whoever may use the API.
+   `this` is read before the nested components, whose blocks see their own `this`. #}
+{% set accountNavRoute = app.current_route ?? '' %}
+{% set accountNavCanUseApi = this.canUseApi %}
+<twig:Ui:Layout:Sidebar :title="'account.title'|trans">
+    <twig:Ui:Layout:Sidebar:Section :label="'account.title'|trans">
+        <twig:Ui:Layout:Sidebar:Item href="{{ path('app_account') }}" icon="user" :active="accountNavRoute == 'app_account'">{{ 'account.nav.profile'|trans }}</twig:Ui:Layout:Sidebar:Item>
+        <twig:Ui:Layout:Sidebar:Item href="{{ path('app_account_notifications') }}" icon="bell" :active="accountNavRoute == 'app_account_notifications'">{{ 'account.nav.notifications'|trans }}</twig:Ui:Layout:Sidebar:Item>
+        <twig:Ui:Layout:Sidebar:Item href="{{ path('app_account_security') }}" icon="lock" :active="accountNavRoute == 'app_account_security'">{{ 'account.nav.security'|trans }}</twig:Ui:Layout:Sidebar:Item>
+    </twig:Ui:Layout:Sidebar:Section>
+    {% if accountNavCanUseApi %}
+        <twig:Ui:Layout:Sidebar:Section :label="'account.nav.integrations'|trans">
+            <twig:Ui:Layout:Sidebar:Item href="{{ path('app_api_tokens') }}" icon="key-round" :active="accountNavRoute starts with 'app_api_token'">{{ 'account.nav.api'|trans }}</twig:Ui:Layout:Sidebar:Item>
+        </twig:Ui:Layout:Sidebar:Section>
+    {% endif %}
+</twig:Ui:Layout:Sidebar>

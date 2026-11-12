@@ -67,6 +67,11 @@ final class UserException extends \DomainException implements TranslatableInterf
         return new self('An account created from a project is external.', 'admin.refused.external_only_from_project');
     }
 
+    public static function wrongPassword(): self
+    {
+        return new self('The current password is not the one typed.', 'account.refused.wrong_password');
+    }
+
     public function trans(TranslatorInterface $translator, ?string $locale = null): string
     {
         return $translator->trans($this->reason, $this->parameters, null, $locale);

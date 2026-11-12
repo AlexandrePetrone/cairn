@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Notification;
 
 use App\Entity\Enum\Criticality;
+use App\Entity\Enum\MailGrouping;
 use App\Entity\Tracker;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
@@ -127,6 +128,30 @@ final class ProjectMailSenderTest extends KernelTestCase
             \sprintf('[Intranet] %s Broken search', $elsewhere->getKey()),
             \sprintf('[Online shop] %s, %s', $first->getKey(), $second->getKey()),
         ], $subjects);
+    }
+
+    public function testWhoeverChoseAMailPerIssueGetsOneForEach(): void
+    {
+        $this->fixtures->manager->groupMails(MailGrouping::Issue);
+        $first = $this->fixtures->createIssue($this->fixtures->client);
+        $this->queue();
+        $this->commands->dispatch(new AddComment((int) $this->fixtures->client->getId(), $first->getKey(), 'It happens every morning.'));
+        $this->queue();
+        $this->clock->sleep(ProjectMailSender::CALM - 60);
+        $second = $this->fixtures->createIssue($this->fixtures->client, title: 'Blurry logo');
+        $this->queue();
+
+        $this->clock->sleep(60);
+        self::assertSame(1, $this->sender->sendDue(), 'the first issue calmed down, the second still waits');
+        $email = $this->emailTo('thomas@agency.test');
+        self::assertEmailHeaderSame($email, 'subject', \sprintf('[Online shop] %s Empty CSV export', $first->getKey()));
+        self::assertEmailHtmlBodyContains($email, 'It happens every morning.', 'what happened to one issue still shares its mail');
+        self::assertEmailHtmlBodyNotContains($email, 'Blurry logo');
+
+        $this->clock->sleep(ProjectMailSender::CALM - 60);
+        self::assertSame(1, $this->sender->sendDue());
+        $subjects = array_map(static fn (Email $email): ?string => $email->getSubject(), $this->emails());
+        self::assertContains(\sprintf('[Online shop] %s Blurry logo', $second->getKey()), $subjects);
     }
 
     public function testAProjectThatNeverCalmsDownLeavesAfterTheLongestWait(): void

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Notification;
 
 use App\Entity\Enum\Criticality;
+use App\Entity\Enum\MailGrouping;
 use App\Entity\PendingNotification;
 use App\Repository\IssueSubscriptionRepository;
 use App\Repository\PendingNotificationRepository;
@@ -15,10 +16,11 @@ use Symfony\Component\Scheduler\Attribute\AsPeriodicTask;
 
 /**
  * Sends what waits in the queue: one mail per person and per project,
- * with everything that happened to the issues they follow there. A mail
- * leaves once nothing new came for that person on that project for a
- * while, or when its oldest change waited long enough; both delays are
- * shorter as soon as a blocking issue is among them. Runs every thirty
+ * with everything that happened to the issues they follow there, or one
+ * mail per issue for those who chose so (MailGrouping, on their account
+ * page). A mail leaves once nothing new came for its group for a while,
+ * or when its oldest change waited long enough; both delays are shorter
+ * as soon as a blocking issue is among them. Runs every thirty
  * seconds through the Scheduler (`messenger:consume scheduler_default`),
  * or by hand with `app:notifications:send`.
  *
@@ -96,7 +98,8 @@ final class ProjectMailSender
     }
 
     /**
-     * What waits, by person and project, oldest first.
+     * What waits, oldest first, by person and project, and by issue too
+     * for whoever gets a mail per issue.
      *
      * @return array<string, non-empty-list<PendingNotification>>
      */
@@ -104,14 +107,18 @@ final class ProjectMailSender
     {
         $groups = [];
         foreach ($this->pending->findWaiting() as $row) {
-            $groups[$row->getRecipient()->getId().':'.$row->getIssue()->getProject()->getId()][] = $row;
+            $key = $row->getRecipient()->getId().':'.$row->getIssue()->getProject()->getId();
+            if (MailGrouping::Issue === $row->getRecipient()->getMailGrouping()) {
+                $key .= ':'.$row->getIssue()->getId();
+            }
+            $groups[$key][] = $row;
         }
 
         return $groups;
     }
 
     /**
-     * Whether the changes waiting for one person on one project leave now.
+     * Whether the changes waiting in one group leave now.
      *
      * @param bool $urgent a blocking issue is among them
      */
@@ -124,7 +131,7 @@ final class ProjectMailSender
     }
 
     /**
-     * @param non-empty-list<PendingNotification> $rows those of one person on one project, oldest first
+     * @param non-empty-list<PendingNotification> $rows those of one group, oldest first
      *
      * @return bool whether a mail left; the rows are gone unless another sender took them first
      */

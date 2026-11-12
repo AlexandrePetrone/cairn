@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Command\User;
 
+use App\Entity\Enum\MailGrouping;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -11,7 +12,10 @@ use Symfony\Component\Validator\Constraints as Assert;
  * an empty `company` clears it. An administrator is always internal; a
  * deactivated account can no longer sign in but keeps its memberships.
  * Nobody sets a password for someone else: the person chooses it from
- * an invitation or a reset link. Handled by UpdateUserHandler.
+ * an invitation or a reset link. Without an actor the administration
+ * asks; with one, the person changes their own account from its pages,
+ * and only how their mails are grouped: who they are (name, email,
+ * company, type) stays the administration's. Handled by UpdateUserHandler.
  */
 #[Assert\Expression(
     'this.admin !== true or this.internal !== false',
@@ -36,6 +40,8 @@ final readonly class UpdateUser
         public ?bool $internal = null,
         public ?bool $admin = null,
         public ?bool $active = null,
+        public ?MailGrouping $mailGrouping = null,
+        public ?int $actorId = null,
     ) {
     }
 }

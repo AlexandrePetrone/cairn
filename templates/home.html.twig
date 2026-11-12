@@ -5,7 +5,7 @@
 {% block content %}
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         <div class="flex items-center gap-3">
-            <twig:Ui:Avatar :name="app.user.fullName" :kind="app.user.internal ? 'internal' : 'external'" size="2xl" />
+            <twig:User:Avatar :user="app.user" size="2xl" />
             <div>
                 <h1 class="text-xl font-semibold text-strong">{{ 'home.greeting'|trans({ '%name%': app.user.firstName }) }}</h1>
                 <div class="text-xs text-muted">{{ 'home.assigned_count'|trans({ '%count%': assigned.total }) }}</div>

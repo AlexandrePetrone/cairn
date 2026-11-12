@@ -42,7 +42,7 @@
                     <twig:Ui:Table:Row :closed="not user.active">
                         <td class="sm:px-4 sm:py-2.5 order-1 basis-full sm:basis-auto">
                             <a href="{{ path('app_admin_user', { id: user.id }) }}" class="flex items-center gap-2.5">
-                                <twig:Ui:Avatar :name="user.fullName" :kind="user.internal ? 'internal' : 'external'" size="lg" />
+                                <twig:User:Avatar :user="user" size="lg" />
                                 <span class="min-w-0 leading-tight">
                                     <span class="block text-strong group-hover:text-brand truncate">
                                         {{ user.fullName }}

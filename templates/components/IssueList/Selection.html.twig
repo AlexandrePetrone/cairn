@@ -62,10 +62,10 @@
                         </td>
                         <td class="sm:px-3 sm:py-2.5 order-5 whitespace-nowrap">
                             <span class="inline-flex items-center gap-1">
-                                <twig:Ui:Avatar :name="issue.assignee ? issue.assignee.fullName : null" :kind="issue.assignee and issue.assignee.internal ? 'internal' : 'external'" size="sm" />
+                                <twig:User:Avatar :user="issue.assignee" size="md" />
                                 {% if report is null and assigneeId is not null and assigneeId != (issue.assignee ? issue.assignee.id : 0) %}
                                     <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-faint" />
-                                    <twig:Ui:Avatar :name="selectionAssignee ? selectionAssignee.fullName : null" :kind="selectionAssignee and selectionAssignee.internal ? 'internal' : 'external'" size="sm" />
+                                    <twig:User:Avatar :user="selectionAssignee" size="md" />
                                 {% endif %}
                             </span>
                         </td>
@@ -150,7 +150,7 @@
                                             {% if assigneeId is null %}
                                                 {{ selectionUnchanged }}
                                             {% else %}
-                                                <twig:Ui:Avatar :name="selectionAssignee ? selectionAssignee.fullName : null" :kind="selectionAssignee and selectionAssignee.internal ? 'internal' : 'external'" size="sm" />
+                                                <twig:User:Avatar :user="selectionAssignee" size="md" />
                                                 <span class="truncate text-body">{{ selectionAssignee ? selectionAssignee.fullName : 'issue.show.nobody'|trans }}</span>
                                             {% endif %}
                                             {{ selectionChevron }}
@@ -169,13 +169,13 @@
                                     <div class="max-h-72 overflow-y-auto">
                                         <twig:Ui:Dropdown:Item data-list-filter-target="item" data-text="{{ 'issue.bulk.unchanged'|trans }}" data-action="live#action dropdown#close" data-live-action-param="change" data-live-property-param="assignee">{{ selectionUnchanged }}</twig:Ui:Dropdown:Item>
                                         <twig:Ui:Dropdown:Item :active="assigneeId is same as(0)" data-list-filter-target="item" data-text="{{ 'issue.show.nobody'|trans }}" data-action="live#action dropdown#close" data-live-action-param="change" data-live-property-param="assignee" data-live-value-param="0">
-                                            <twig:Ui:Avatar size="sm" />
+                                            <twig:Ui:Avatar size="md" />
                                             <span class="truncate text-muted">{{ 'issue.show.nobody'|trans }}</span>
                                             {% if assigneeId is same as(0) %}{{ selectionCheck }}{% endif %}
                                         </twig:Ui:Dropdown:Item>
                                         {% for member in selectionActions.assignees %}
                                             <twig:Ui:Dropdown:Item :active="member.id == assigneeId" data-list-filter-target="item" data-text="{{ member.fullName }}" data-action="live#action dropdown#close" data-live-action-param="change" data-live-property-param="assignee" data-live-value-param="{{ member.id }}">
-                                                <twig:Ui:Avatar :name="member.fullName" :kind="member.internal ? 'internal' : 'external'" size="sm" />
+                                                <twig:User:Avatar :user="member" size="md" />
                                                 <span class="truncate">{{ member.fullName }}</span>
                                                 {% if member.id == assigneeId %}{{ selectionCheck }}{% endif %}
                                             </twig:Ui:Dropdown:Item>

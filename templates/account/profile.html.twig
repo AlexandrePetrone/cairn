@@ -1,0 +1,47 @@
+{% extends 'layout/account.html.twig' %}
+
+{% block page_title %}{{ 'account.nav.profile'|trans }}{% endblock %}
+
+{# The profile of the signed-in `user`: their picture, sent as soon as a file is chosen (the `avatar` controller), and who they are, shown only: the administration changes it. #}
+{% block content %}
+    <section class="rounded-lg border border-line bg-surface p-4 sm:p-5">
+        <h2 class="font-semibold text-strong">{{ 'account.profile.picture.title'|trans }}</h2>
+        <div class="mt-3 flex flex-wrap items-center gap-4">
+            <twig:User:Avatar :user="user" size="3xl" class="h-16 w-16 text-lg" data-test="account-avatar" />
+            <div class="min-w-0 flex-1 space-y-2">
+                <div class="flex flex-wrap items-center gap-2">
+                    <form method="post" action="{{ path('app_account_avatar') }}" enctype="multipart/form-data" data-controller="avatar">
+                        <input type="hidden" name="_token" value="{{ csrf_token('submit') }}" data-controller="csrf-protection">
+                        <label class="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-line-strong bg-surface px-3 text-sm text-body hover:bg-subtle focus-within:ring-2 focus-within:ring-focus">
+                            <twig:ux:icon name="lucide:camera" class="h-4 w-4 text-faint" />
+                            {{ (user.avatar ? 'account.profile.picture.change' : 'account.profile.picture.choose')|trans }}
+                            <input type="file" name="avatar" accept="image/png,image/jpeg,image/webp" class="sr-only" data-avatar-target="input" data-action="change->avatar#send">
+                        </label>
+                    </form>
+                    {% if user.avatar %}
+                        <form method="post" action="{{ path('app_account_avatar') }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('submit') }}" data-controller="csrf-protection">
+                            <twig:Ui:Button type="submit" variant="ghost" icon="trash-2">{{ 'account.profile.picture.remove'|trans }}</twig:Ui:Button>
+                        </form>
+                    {% endif %}
+                </div>
+                <p class="text-xs text-muted">{{ 'account.profile.picture.help'|trans }}</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="rounded-lg border border-line bg-surface p-4 sm:p-5" data-test="account-identity">
+        <h2 class="font-semibold text-strong">{{ 'account.profile.identity.title'|trans }}</h2>
+        <dl class="mt-3 divide-y divide-line-subtle border-t border-line-subtle text-sm">
+            <div class="flex flex-wrap gap-x-4 py-2"><dt class="w-40 text-muted">{{ 'account.profile.identity.name'|trans }}</dt><dd class="text-strong">{{ user.fullName }}</dd></div>
+            <div class="flex flex-wrap gap-x-4 py-2"><dt class="w-40 text-muted">{{ 'account.profile.identity.email'|trans }}</dt><dd class="text-strong">{{ user.email }}</dd></div>
+            {% if user.company %}
+                <div class="flex flex-wrap gap-x-4 py-2"><dt class="w-40 text-muted">{{ 'account.profile.identity.company'|trans }}</dt><dd class="text-strong">{{ user.company }}</dd></div>
+            {% endif %}
+        </dl>
+        <p class="mt-3 flex items-start gap-1.5 text-xs text-muted">
+            <twig:ux:icon name="lucide:info" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-faint" />
+            {{ 'account.profile.identity.managed'|trans }}
+        </p>
+    </section>
+{% endblock %}

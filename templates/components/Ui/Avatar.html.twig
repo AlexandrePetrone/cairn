@@ -1,5 +1,6 @@
-{# Initials on a colour that tells internal (indigo) from external (emerald) and system (orange). No name: "?" for unassigned. #}
-{% props name = null, kind = 'internal', size = 'md' %}
+{# Initials on a colour that tells internal (indigo) from external (emerald) and system (orange). No name: "?" for unassigned.
+   `src` is the picture the person chose (`avatar_url(user)`): it replaces the initials, and the colour of the kind stays as a ring around it. #}
+{% props name = null, kind = 'internal', size = 'md', src = null %}
 {% set avatarClasses = html_cva(
     base: 'inline-flex shrink-0 items-center justify-center rounded-full font-semibold',
     variants: {
@@ -24,4 +25,12 @@
     {% set avatarNameParts = name|trim|split(' ') %}
     {% set avatarInitials = (avatarNameParts[0]|first ~ (avatarNameParts[1] is defined ? avatarNameParts[1]|first : ''))|upper %}
 {% endif %}
-<span class="{{ avatarClasses.apply({ kind: name ? kind : 'unassigned', size: size }, attributes.render('class'))|tailwind_merge }}" title="{{ name ?? 'issue.unassigned'|trans }}" {{ attributes }}>{{ name ? avatarInitials : '?' }}</span>
+{% if name and src %}
+    {% set avatarImageClasses = html_cva(
+        base: 'object-cover ring-1',
+        variants: { kind: { internal: 'ring-brand-solid', external: 'ring-emerald-solid', system: 'ring-orange-solid' } },
+    ) %}
+    <img src="{{ src }}" alt="{{ name }}" title="{{ name }}" loading="lazy" class="{{ (avatarClasses.apply({ size: size }) ~ ' ' ~ avatarImageClasses.apply({ kind: kind }, attributes.render('class')))|tailwind_merge }}" {{ attributes }}>
+{% else %}
+    <span class="{{ avatarClasses.apply({ kind: name ? kind : 'unassigned', size: size }, attributes.render('class'))|tailwind_merge }}" title="{{ name ?? 'issue.unassigned'|trans }}" {{ attributes }}>{{ name ? avatarInitials : '?' }}</span>
+{% endif %}

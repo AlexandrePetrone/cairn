@@ -10,12 +10,14 @@ use App\Message\Command\User\UpdateUser;
 use App\Repository\MembershipRepository;
 use App\Repository\UserRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 /**
  * The rules hold on the account as the command leaves it: the email stays
  * unique, an external user keeps no internal-only role (the change is
  * refused while they hold one, the administrator decides what to grant
- * instead), the last active administrator stays one.
+ * instead), the last active administrator stays one. A person acting on
+ * their own account changes their mail grouping only.
  */
 #[AsMessageHandler(bus: 'command.bus')]
 final class UpdateUserHandler
@@ -30,6 +32,14 @@ final class UpdateUserHandler
     public function __invoke(UpdateUser $command): void
     {
         $user = $this->users->find($command->userId) ?? throw UserException::notFound($command->userId);
+        if (null !== $command->actorId) {
+            $own = $command->actorId === $command->userId
+                && null === $command->email && null === $command->firstName && null === $command->lastName && null === $command->company
+                && null === $command->internal && null === $command->admin && null === $command->active;
+            if (!$own) {
+                throw new AccessDeniedException('Someone changes the mail grouping of their own account only.');
+            }
+        }
 
         $admin = $command->admin ?? ($user->isAdmin() && false !== $command->internal);
         $internal = $admin || ($command->internal ?? $user->isInternal());
@@ -56,6 +66,9 @@ final class UpdateUserHandler
         }
         if (null !== $command->company) {
             $user->changeCompany($command->company);
+        }
+        if (null !== $command->mailGrouping) {
+            $user->groupMails($command->mailGrouping);
         }
         $internal ? $user->makeInternal($admin) : $user->makeExternal();
         $active ? $user->reactivate() : $user->deactivate();

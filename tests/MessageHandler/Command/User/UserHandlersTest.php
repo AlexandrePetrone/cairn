@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\MessageHandler\Command\User;
 
+use App\Entity\Enum\MailGrouping;
 use App\Entity\PasswordToken;
 use App\Entity\User;
+use App\Message\Command\User\ChangePassword;
 use App\Message\Command\User\CreateUser;
 use App\Message\Command\User\InviteUser;
 use App\Message\Command\User\RequestPasswordReset;
@@ -324,5 +326,49 @@ final class UserHandlersTest extends KernelTestCase
 
         $this->commands->dispatch(new UpdateUser((int) $claire->getId(), active: true));
         self::assertTrue($claire->isActive());
+    }
+
+    public function testSomeoneChangesTheMailGroupingOfTheirOwnAccountAndNothingElse(): void
+    {
+        $claire = $this->fixtures->user('claire@client.test');
+        $paul = $this->fixtures->user('paul@client.test');
+        $claireId = (int) $claire->getId();
+
+        $this->commands->dispatch(new UpdateUser($claireId, mailGrouping: MailGrouping::Issue, actorId: $claireId));
+        self::assertSame(MailGrouping::Issue, $claire->getMailGrouping());
+
+        foreach ([
+            'the account of someone else' => new UpdateUser((int) $paul->getId(), mailGrouping: MailGrouping::Issue, actorId: $claireId),
+            'their name' => new UpdateUser($claireId, firstName: 'Clara', actorId: $claireId),
+            'their email' => new UpdateUser($claireId, email: 'clara@client.test', actorId: $claireId),
+            'what they are' => new UpdateUser($claireId, internal: true, actorId: $claireId),
+        ] as $what => $command) {
+            try {
+                $this->commands->dispatch($command);
+                self::fail(\sprintf('Nobody changes %s.', $what));
+            } catch (AccessDeniedException) {
+            }
+        }
+        self::assertSame('Claire', $claire->getFirstName());
+        self::assertSame('claire@client.test', $claire->getEmail());
+        self::assertFalse($claire->isInternal());
+    }
+
+    public function testThePasswordChangesWithTheCurrentOneOnly(): void
+    {
+        $hasher = self::getContainer()->get(UserPasswordHasherInterface::class);
+        $claire = $this->fixtures->user('claire@client.test');
+        $claire->setPassword($hasher->hashPassword($claire, 'the old password'));
+        $claireId = (int) $claire->getId();
+
+        try {
+            $this->commands->dispatch(new ChangePassword($claireId, 'not the password', 'a new password'));
+            self::fail('A wrong current password is refused.');
+        } catch (UserException) {
+        }
+        self::assertTrue($hasher->isPasswordValid($claire, 'the old password'));
+
+        $this->commands->dispatch(new ChangePassword($claireId, 'the old password', 'a new password'));
+        self::assertTrue($hasher->isPasswordValid($claire, 'a new password'));
     }
 }

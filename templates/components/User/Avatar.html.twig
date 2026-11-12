@@ -1,0 +1,1 @@
+<twig:Ui:Avatar :src="avatar_url(user)" :name="user ? user.fullName : null" :kind="user and not user.internal ? 'external' : 'internal'" :size="size" {{ ...attributes.all }} />

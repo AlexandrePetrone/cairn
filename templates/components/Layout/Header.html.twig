@@ -3,7 +3,6 @@
    In the administration (`admin`): an amber rule and badge, a way back to the application, no project.
    `this` is read before the nested components, whose blocks see their own `this`. #}
 {% set headerUser = this.user %}
-{% set headerCanUseApi = this.canUseApi %}
 {% set headerRoute = app.current_route %}
 {% set headerTheme = theme_choice() %}
 {% set headerTabs = [
@@ -20,7 +19,7 @@
     variants: { admin: { true: 'border-b-2 border-amber-solid', false: 'border-b border-header-line' } },
 ) %}
 <header class="{{ headerClasses.apply({ admin: admin }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
-    {% if project or admin %}
+    {% if project or admin or sidebar %}
         <button type="button" data-action="sidebar#open" class="md:hidden -ml-1 p-1.5 rounded-md hover:bg-slate-800" aria-label="{{ 'nav.open'|trans }}">
             <twig:ux:icon name="lucide:menu" class="h-4 w-4" />
         </button>
@@ -97,12 +96,12 @@
     <twig:Ui:Dropdown align="right">
         <twig:block name="trigger">
             <button type="button" data-action="dropdown#toggle" aria-expanded="false" aria-haspopup="menu" class="flex items-center gap-1.5 rounded-full hover:ring-2 hover:ring-slate-600 focus:outline-none focus:ring-2 focus:ring-focus" title="{{ headerUser.fullName }}">
-                <twig:Ui:Avatar :name="headerUser.fullName" :kind="headerUser.internal ? 'internal' : 'external'" size="lg" />
+                <twig:User:Avatar :user="headerUser" size="lg" />
                 <twig:ux:icon name="lucide:chevron-down" class="hidden sm:block h-3.5 w-3.5 text-slate-400" />
             </button>
         </twig:block>
         <div class="flex items-center gap-2.5 px-3 py-2.5 border-b border-line-subtle">
-            <twig:Ui:Avatar :name="headerUser.fullName" :kind="headerUser.internal ? 'internal' : 'external'" size="xl" />
+            <twig:User:Avatar :user="headerUser" size="xl" />
             <div class="min-w-0 leading-tight">
                 <div class="text-sm font-medium text-strong truncate">{{ headerUser.fullName }}</div>
                 <div class="text-xs text-muted truncate">{{ headerUser.email }}</div>
@@ -125,9 +124,7 @@
             {% endfor %}
             <div class="my-1 border-t border-line-subtle md:hidden"></div>
         {% endif %}
-        {% if headerCanUseApi %}
-            <twig:Ui:Dropdown:Item href="{{ path('app_api_tokens') }}" icon="key-round" :active="headerRoute == 'app_api_tokens'">{{ 'nav.api_tokens'|trans }}</twig:Ui:Dropdown:Item>
-        {% endif %}
+        <twig:Ui:Dropdown:Item href="{{ path('app_account') }}" icon="user" :active="headerRoute starts with 'app_account' or headerRoute starts with 'app_api_token'">{{ 'nav.account'|trans }}</twig:Ui:Dropdown:Item>
         <twig:Ui:Dropdown:Item href="{{ path('app_logout') }}" icon="log-out">{{ 'auth.logout'|trans }}</twig:Ui:Dropdown:Item>
     </twig:Ui:Dropdown>
     </div>

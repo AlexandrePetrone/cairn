@@ -45,7 +45,7 @@
                             <twig:Ui:Criticality:Badge :criticality="tableGroupIssue.criticality.value" />
                         {% elseif tableGrouping.value == 'assignee' %}
                             <span class="inline-flex items-center gap-2">
-                                <twig:Ui:Avatar :name="tableGroupIssue.assignee ? tableGroupIssue.assignee.fullName : null" :kind="tableGroupIssue.assignee and tableGroupIssue.assignee.internal ? 'internal' : 'external'" size="xs" />
+                                <twig:User:Avatar :user="tableGroupIssue.assignee" size="sm" />
                                 {{ tableGroupIssue.assignee ? tableGroupIssue.assignee.fullName : 'issue.unassigned'|trans }}
                             </span>
                         {% elseif tableGrouping.value == 'release' %}

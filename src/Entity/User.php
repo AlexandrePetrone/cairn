@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Entity\Enum\MailGrouping;
 use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\EquatableInterface;
@@ -19,7 +20,9 @@ use function Symfony\Component\Clock\now;
  * deactivated account cannot sign in (Security/UserChecker) and loses its
  * open sessions at the next request (isEqualTo). An account is created
  * without a password and gets one from its invitation link; `company`
- * is free text.
+ * is free text. The person chooses their picture (`avatar`, the name of a
+ * file of Attachment/AvatarStorage) and how their notification mails are
+ * grouped.
  */
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'app_user')]
@@ -53,6 +56,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Equatab
 
     #[ORM\Column]
     private bool $active = true;
+
+    #[ORM\Column(length: 48, nullable: true)]
+    private ?string $avatar = null;
+
+    #[ORM\Column(length: 16, enumType: MailGrouping::class, options: ['default' => 'project'])]
+    private MailGrouping $mailGrouping = MailGrouping::Project;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
@@ -181,6 +190,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Equatab
     {
         $company = trim((string) $company);
         $this->company = '' === $company ? null : $company;
+    }
+
+    /**
+     * The file of the picture the person chose, null while they show
+     * their initials.
+     */
+    public function getAvatar(): ?string
+    {
+        return $this->avatar;
+    }
+
+    public function changeAvatar(?string $file): void
+    {
+        $this->avatar = $file;
+    }
+
+    public function getMailGrouping(): MailGrouping
+    {
+        return $this->mailGrouping;
+    }
+
+    public function groupMails(MailGrouping $grouping): void
+    {
+        $this->mailGrouping = $grouping;
     }
 
     public function setPassword(string $hashedPassword): void

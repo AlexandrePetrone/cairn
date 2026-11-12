@@ -1,0 +1,28 @@
+{# Base of the pages of one's own account (`/account/…`): the header, with the burger of the sidebar, and the account navigation.
+   Pages fill `page_title` and `content`; `page_intro` is a sentence under the title, `page_actions` sits at its right, `page_width` widens the column of a page that needs it.
+   The blocks are captured before the shell component, whose own blocks would otherwise hide them. #}
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ block('page_title') }} · {{ 'account.title'|trans }} · Cairn{% endblock %}
+
+{% block body %}
+    {% set layoutPageTitle %}{% block page_title %}{% endblock %}{% endset %}
+    {% set layoutPageIntro %}{% block page_intro %}{% endblock %}{% endset %}
+    {% set layoutPageActions %}{% block page_actions %}{% endblock %}{% endset %}
+    {% set layoutPageWidth %}{% block page_width %}max-w-3xl{% endblock %}{% endset %}
+    {% set layoutPageContent %}{% block content %}{% endblock %}{% endset %}
+    <twig:Ui:Layout:Shell>
+        <twig:block name="header"><twig:Layout:Header sidebar /></twig:block>
+        <twig:block name="sidebar"><twig:Layout:AccountNav /></twig:block>
+        <div class="{{ layoutPageWidth|trim }} mx-auto px-4 sm:px-6 py-5 space-y-5">
+            <div class="flex flex-wrap items-start gap-3">
+                <div class="min-w-0 flex-1">
+                    <h1 class="text-xl font-semibold text-strong">{{ layoutPageTitle }}</h1>
+                    {% if layoutPageIntro|trim is not empty %}<p class="mt-1 max-w-2xl text-sm text-muted">{{ layoutPageIntro }}</p>{% endif %}
+                </div>
+                {{ layoutPageActions }}
+            </div>
+            {{ layoutPageContent }}
+        </div>
+    </twig:Ui:Layout:Shell>
+{% endblock %}

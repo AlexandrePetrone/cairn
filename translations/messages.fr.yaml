@@ -268,8 +268,8 @@ filter:
     clear: Tout effacer
 
 nav:
+    account: Mon compte
     home: Accueil
-    api_tokens: Jetons d'API
     my_issues: Mes demandes
     projects: Projets
     application: Application
@@ -751,6 +751,54 @@ release:
         not_found: Introuvable.
         name_taken: 'Le projet a déjà une version nommée %name%.'
 
+account:
+    title: Mon compte
+    nav:
+        profile: Profil
+        notifications: Notifications
+        security: Sécurité
+        integrations: Intégrations
+        api: API
+    profile:
+        picture:
+            title: Photo
+            choose: Choisir une photo
+            change: Changer de photo
+            remove: Retirer la photo
+            help: PNG, JPEG ou WebP, 2 Mo au plus. La photo est recadrée en carré et remplace vos initiales.
+            saved: Photo enregistrée.
+            removed: Photo retirée.
+            refused: Choisissez une image PNG, JPEG ou WebP de 2 Mo au plus.
+        identity:
+            title: Identité
+            name: Nom
+            email: Adresse e-mail
+            company: Société
+            managed: Ces informations sont gérées par un administrateur. Contactez-le pour les faire modifier.
+    notifications:
+        intro: Vous recevez un e-mail quand quelqu'un d'autre modifie une demande que vous suivez.
+        grouping:
+            label: Regroupement des e-mails
+            project:
+                title: Un e-mail par projet
+                description: Tous les changements d'un projet réunis dans un seul e-mail.
+            issue:
+                title: Un e-mail par demande
+                description: Un e-mail distinct pour chaque demande modifiée.
+        save: Enregistrer
+        saved: Préférences enregistrées.
+    security:
+        password_title: Mot de passe
+        intro: Après le changement, vous restez connecté sur cet appareil et vous êtes déconnecté des autres.
+        current_password: Mot de passe actuel
+        new_password: Nouveau mot de passe
+        new_password_help: 8 caractères minimum.
+        new_password_repeat: Confirmer le nouveau mot de passe
+        save: Changer le mot de passe
+        saved: Mot de passe modifié.
+        too_many_attempts: Trop de tentatives. Réessayez dans quelques minutes.
+    refused:
+        wrong_password: Le mot de passe actuel est incorrect.
 api_token:
     title: Jetons d'API
     intro: Un jeton permet à un programme d'appeler l'API de Cairn en votre nom ; il voit et fait ce que vous pouvez voir et faire, jamais plus. Donnez à chaque programme son propre jeton, et révoquez-le quand il n'en a plus besoin.

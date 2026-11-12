@@ -6,7 +6,7 @@
             {% if subscribersList is not empty %}
                 <twig:Ui:AvatarStack :overflow="max(0, subscribersList|length - 4)" class="ml-1 -space-x-1 [&>*]:h-5 [&>*]:w-5 [&>*]:text-[9px]">
                     {% for subscriber in subscribersList|slice(0, 4) %}
-                        <twig:Ui:Avatar :name="subscriber.fullName" :kind="subscriber.internal ? 'internal' : 'external'" size="sm" />
+                        <twig:User:Avatar :user="subscriber" size="sm" />
                     {% endfor %}
                 </twig:Ui:AvatarStack>
             {% endif %}
@@ -18,7 +18,7 @@
                 <ul class="space-y-1 text-[13px] text-body">
                     {% for subscriber in subscribersList %}
                         <li class="flex items-center gap-2">
-                            <twig:Ui:Avatar :name="subscriber.fullName" :kind="subscriber.internal ? 'internal' : 'external'" size="sm" />
+                            <twig:User:Avatar :user="subscriber" size="sm" />
                             <span class="truncate">{{ subscriber.fullName }}</span>
                         </li>
                     {% endfor %}

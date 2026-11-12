@@ -20,7 +20,7 @@
                 {% for membership in grantsInherited %}
                     {% set grantsUser = membership.user %}
                     <li class="flex items-center gap-3 px-4 py-2">
-                        <twig:Ui:Avatar :name="grantsUser.fullName" :kind="grantsUser.internal ? 'internal' : 'external'" size="lg" />
+                        <twig:User:Avatar :user="grantsUser" size="lg" />
                         <div class="min-w-0 flex-1 leading-tight">
                             <span class="block text-sm text-strong truncate">{{ grantsUser.fullName }}</span>
                             <span class="block text-xs text-muted truncate">{{ grantsUser.email }}{% if grantsUser.company %} · {{ grantsUser.company }}{% endif %} · {{ (grantsUser.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</span>
@@ -55,7 +55,7 @@
                     <div class="flex flex-wrap items-center gap-3">
                         {% if workspace or project %}
                             {% set grantsHeld = grantsInherited[grantsUser.id] ?? null %}
-                            <twig:Ui:Avatar :name="grantsUser.fullName" :kind="grantsUser.internal ? 'internal' : 'external'" size="lg" />
+                            <twig:User:Avatar :user="grantsUser" size="lg" />
                             <div class="min-w-0 flex-1 leading-tight">
                                 <span class="flex items-center gap-2">
                                     {% if grantsAdmin %}
@@ -123,7 +123,7 @@
                 <p class="text-sm text-muted">{{ 'project.access.deactivated'|trans({ '%name%': grantsMatch.fullName }) }}</p>
             {% elseif grantsState == 'existing' %}
                 <div class="flex flex-wrap items-center gap-3">
-                    <twig:Ui:Avatar :name="grantsMatch.fullName" :kind="grantsMatch.internal ? 'internal' : 'external'" size="lg" />
+                    <twig:User:Avatar :user="grantsMatch" size="lg" />
                     <div class="min-w-0 flex-1 leading-tight">
                         <span class="block text-sm text-strong truncate">{{ grantsMatch.fullName }}</span>
                         <span class="block text-xs text-muted truncate">{% if grantsMatch.company %}{{ grantsMatch.company }} · {% endif %}{{ (grantsMatch.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</span>
@@ -170,7 +170,7 @@
                 <twig:Ui:Picker :label="grantsNewUser ? grantsNewUser.fullName : null" :placeholder="'admin.access.choose_user'|trans" :searchPlaceholder="'admin.access.search_user'|trans" :empty="'admin.access.no_match'|trans" class="min-w-0 flex-1 basis-64">
                     {% for candidate in grantsCandidates %}
                         <twig:Ui:Dropdown:Item :active="candidate.id == newUserId" data-list-filter-target="item" data-text="{{ candidate.fullName }} {{ candidate.email }} {{ candidate.company }}" data-action="live#action dropdown#close" data-live-action-param="chooseUser" data-live-user-param="{{ candidate.id }}">
-                            <twig:Ui:Avatar :name="candidate.fullName" :kind="candidate.internal ? 'internal' : 'external'" size="sm" />
+                            <twig:User:Avatar :user="candidate" size="md" />
                             <span class="min-w-0 flex-1 truncate">{{ candidate.fullName }}</span>
                             <span class="text-xs text-faint truncate">{{ candidate.company ?? (candidate.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</span>
                         </twig:Ui:Dropdown:Item>

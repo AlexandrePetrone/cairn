@@ -85,4 +85,13 @@ final class PasswordTokens
 
         return $user;
     }
+
+    /**
+     * Drops every link of the account: its owner changed the password
+     * by themselves, so a link mailed before must not undo it.
+     */
+    public function forget(User $user): void
+    {
+        $this->tokens->removeRequests($user);
+    }
 }
