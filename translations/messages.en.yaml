@@ -930,9 +930,9 @@ migration_policy:
 email:
     issue:
         subject:
-            one: '[%project%] %key% %title%'
-            many: '[%project%] %keys%'
-            more: '{1}[%project%] %keys% and 1 other|]1,Inf[[%project%] %keys% and %count% others'
+            one: '[%workspace% / %project%] %key% %title%'
+            many: '[%workspace% / %project%] %keys%'
+            more: '{1}[%workspace% / %project%] %keys% and 1 other|]1,Inf[[%workspace% / %project%] %keys% and %count% others'
         heading: '{1}1 issue changed|]1,Inf[%count% issues changed'
         commented: commented
         description: Description

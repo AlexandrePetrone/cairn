@@ -82,12 +82,12 @@ final class IssueMailer
     private function subject(Project $project, array $issues): string
     {
         if (1 === \count($issues)) {
-            return $this->translator->trans('email.issue.subject.one', ['%project%' => $project->getName(), '%key%' => $issues[0]->issue->getKey(), '%title%' => $issues[0]->issue->getTitle()]);
+            return $this->translator->trans('email.issue.subject.one', ['%workspace%' => $project->getWorkspace()->getName(), '%project%' => $project->getName(), '%key%' => $issues[0]->issue->getKey(), '%title%' => $issues[0]->issue->getTitle()]);
         }
 
         $keys = array_map(static fn (IssueChanges $card): string => $card->issue->getKey(), $issues);
         $others = \count($keys) - self::SUBJECT_KEYS;
-        $parameters = ['%project%' => $project->getName(), '%keys%' => implode(', ', \array_slice($keys, 0, self::SUBJECT_KEYS))];
+        $parameters = ['%workspace%' => $project->getWorkspace()->getName(), '%project%' => $project->getName(), '%keys%' => implode(', ', \array_slice($keys, 0, self::SUBJECT_KEYS))];
 
         return $others > 0
             ? $this->translator->trans('email.issue.subject.more', $parameters + ['%count%' => $others])

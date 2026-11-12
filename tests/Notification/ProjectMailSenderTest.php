@@ -74,7 +74,7 @@ final class ProjectMailSenderTest extends KernelTestCase
 
         self::assertEmailCount(1, message: 'the author does not receive their own creation');
         $email = $this->emailTo('thomas@agency.test');
-        self::assertEmailHeaderSame($email, 'subject', \sprintf('[Online shop] %s Empty CSV export', $issue->getKey()));
+        self::assertEmailHeaderSame($email, 'subject', \sprintf('[Maison Dupont / Online shop] %s Empty CSV export', $issue->getKey()));
         self::assertEmailHtmlBodyContains($email, 'created the issue');
         self::assertEmailHtmlBodyContains($email, 'The downloaded file is empty.', 'the description comes with the creation');
         self::assertEmailHtmlBodyContains($email, \sprintf('http://localhost/MD/SPT/issues/%d', $issue->getNumber()));
@@ -125,8 +125,8 @@ final class ProjectMailSenderTest extends KernelTestCase
         $subjects = array_map(static fn (Email $email): ?string => $email->getSubject(), $this->emails());
         sort($subjects);
         self::assertSame([
-            \sprintf('[Intranet] %s Broken search', $elsewhere->getKey()),
-            \sprintf('[Online shop] %s, %s', $first->getKey(), $second->getKey()),
+            \sprintf('[Maison Dupont / Intranet] %s Broken search', $elsewhere->getKey()),
+            \sprintf('[Maison Dupont / Online shop] %s, %s', $first->getKey(), $second->getKey()),
         ], $subjects);
     }
 
@@ -144,14 +144,14 @@ final class ProjectMailSenderTest extends KernelTestCase
         $this->clock->sleep(60);
         self::assertSame(1, $this->sender->sendDue(), 'the first issue calmed down, the second still waits');
         $email = $this->emailTo('thomas@agency.test');
-        self::assertEmailHeaderSame($email, 'subject', \sprintf('[Online shop] %s Empty CSV export', $first->getKey()));
+        self::assertEmailHeaderSame($email, 'subject', \sprintf('[Maison Dupont / Online shop] %s Empty CSV export', $first->getKey()));
         self::assertEmailHtmlBodyContains($email, 'It happens every morning.', 'what happened to one issue still shares its mail');
         self::assertEmailHtmlBodyNotContains($email, 'Blurry logo');
 
         $this->clock->sleep(ProjectMailSender::CALM - 60);
         self::assertSame(1, $this->sender->sendDue());
         $subjects = array_map(static fn (Email $email): ?string => $email->getSubject(), $this->emails());
-        self::assertContains(\sprintf('[Online shop] %s Blurry logo', $second->getKey()), $subjects);
+        self::assertContains(\sprintf('[Maison Dupont / Online shop] %s Blurry logo', $second->getKey()), $subjects);
     }
 
     public function testAProjectThatNeverCalmsDownLeavesAfterTheLongestWait(): void

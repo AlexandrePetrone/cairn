@@ -641,6 +641,7 @@ src/
   command's journal lines (`journal_label`) and comment, rendered for
   the recipient by `MarkdownRenderer`, links made absolute, and the
   description of an issue created in the meantime. The subject names
+  the client and the project (`[Maison Dupont / Online shop]`), then
   the issue, or the keys of the first three. There is no thread per
   issue any more. One setting per person, `User::$mailGrouping`
   (`MailGrouping`, in `Entity/Enum/`, chosen on the Notifications page
