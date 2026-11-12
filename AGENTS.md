@@ -21,7 +21,7 @@ REST API.
 Decisions already taken:
 
 - Persistence: Doctrine ORM, schema compatible with both MariaDB and
-  PostgreSQL. Nothing is ever physically deleted, with eight exceptions:
+  PostgreSQL. Nothing is ever physically deleted, with nine exceptions:
   a removed attachment (file and row, the journal keeps its name), a
   deleted comment (row and files, the journal keeps its text, author and
   date), a revoked membership (memberships are the current state of
@@ -32,7 +32,9 @@ Decisions already taken:
   like a membership; the code references it produced stay), and a
   password token once used, replaced by a newer one or long expired (a
   credential, not history), and the view someone keeps of an issue list
-  (`ListView`: personal, replaced by the next, gone with it).
+  (`ListView`: personal, replaced by the next, gone with it), and a
+  notification once its mail left (`PendingNotification`: a queue, not
+  history).
 - Interface: server-rendered Twig + Turbo + UX Twig/Live Components, Tailwind
   for styling, no JavaScript framework: an issue list is a GET form and
   a Turbo frame, the kanban is Live components with SortableJS in a
@@ -135,7 +137,9 @@ src/
   Workflow/          state machines built from the snapshot (WorkflowFactory,
                      WorkflowProvider), HasPlace for the objects they move
   Notification/      who follows an issue (SubscriptionRules), which events
-                     notify (NotificationDispatcher), the mails (IssueMailer,
+                     notify (NotificationDispatcher), what each may read of a
+                     change (ChangeFilter), when the grouped mails leave
+                     (ProjectMailSender), the mails (IssueMailer,
                      AccountMailer)
   Api/               the REST API, self-contained: Resource/ the classes API
                      Platform exposes and their inputs, State/ the providers
@@ -594,24 +598,61 @@ src/
   are the whole list of what notifies: an event it does not listen to
   (`CodeReferenced`, written by the forges) notifies nobody, without
   touching the journal.
-  `NotifyIssueChangeHandler`, on the `async` transport, sends one mail per
-  recipient with what they may see (`AccessControl` at sending time: a
-  private journal line or comment goes to internal users only, nothing
-  visible means no mail), the comment rendered for them by
-  `MarkdownRenderer`, links made absolute. One template per mail
-  (`templates/email/issue_changed.html.twig`, `invitation.html.twig`,
-  `password_reset.html.twig`, over `_layout.html.twig`); the account
+- **A mail tells what happened on a project, once things calmed down.**
+  `NotifyIssueChangeHandler`, on the `async` transport, sends nothing: it
+  queues the change for each recipient who may read something of it
+  (`PendingNotification`: the recipient, the issue, the actor, the ids
+  of the journal lines and of the comment; `Notification/ChangeFilter`
+  reads a change again from its ids and says what one person reads of
+  it: a private journal line or
+  comment goes to internal users only, nothing visible means no row, so
+  that what a client cannot read never delays their mail).
+  `Notification/ProjectMailSender`, a Scheduler task every thirty
+  seconds, groups what waits by person and project and sends a group
+  once nothing new came for it for three minutes, or when its oldest
+  change waited fifteen; one minute and three as soon as a blocking
+  issue is among them (the four constants of the class,
+  `ProjectMailSender::isDue()`). An action followed by a comment, a card
+  moved four times, thirty issues changed from the selection page are
+  one mail. Each group is one transaction that starts by deleting its
+  rows (`PendingNotificationRepository::delete()`): the database lets
+  one sender delete them, so two workers, or a run by hand during a
+  scheduled one, never send a change twice, without a lock. The rows
+  are then read through `ChangeFilter` again (rights move, and an issue
+  the recipient stopped following or an account deactivated since is
+  left out) and the mail message lands in the Doctrine transport in
+  the same transaction; with another transport for the mails, a commit
+  that fails after the mail left would send it again. A mail that
+  cannot be built is logged as an error, its rows keep waiting and the
+  others leave. A row that waited for more than a day
+  (`ProjectMailSender::MAX_AGE`: a worker down, a mail that kept
+  failing) is dropped with a warning in the logs instead of being sent:
+  the issue keeps its history, a mail is only worth sending while it is
+  news. The mail has
+  one format, whether one issue changed or ten
+  (`IssueMailer::send()`, `IssueChanges` and `IssueChange`): the project
+  as a heading, then one card per issue, blocking ones first, with each
+  command's journal lines (`journal_label`) and comment, rendered for
+  the recipient by `MarkdownRenderer`, links made absolute, and the
+  description of an issue created in the meantime. The subject names
+  the issue, or the keys of the first three. There is no thread per
+  issue any more, and no per-user setting yet: one mail per issue for
+  those who want it, a daily digest (the same queue with a longer wait)
+  and a chat channel per project would each be another reader of the
+  queue. One template per mail
+  (`templates/email/project_changed.html.twig`, `invitation.html.twig`,
+  `password_reset.html.twig`, over `_layout.html.twig`, whose `card`
+  block the project mail replaces with its own cards); the account
   mails are sent by their handler, the mail message landing in the
   Doctrine transport inside the command's transaction, so it leaves only
   if the command commits; until the worker sends it, and in `failed`
   after three refusals, the row holds the link in clear, so `failed` is
-  purged, never kept. The mails of an issue form a
-  thread (`Message-ID` of the creation mail, `In-Reply-To` and
-  `References` on the others). Immediate sending only: a digest would
-  store instead of sending, nothing in the model waits for it. A worker
-  must consume `async` in production (`messenger:consume async
-  scheduler_default` in dev); `MAILER_FROM` and `DEFAULT_URI` are set per
-  environment.
+  purged, never kept. A worker must consume `async` and
+  `scheduler_default` in production, as `messenger:consume async
+  scheduler_default` does in dev: without the second, changes queue and
+  no issue mail ever leaves; `app:notifications:send` sends what is due
+  by hand, `--now` everything that waits. `MAILER_FROM` and
+  `DEFAULT_URI` are set per environment.
 
 ### Forges
 
@@ -1162,7 +1203,7 @@ Castor are the only things needed on the host. Commands run inside the
   `castor stop` afterwards; `castor list` shows every task.
 - The services: `php` (FrankenPHP, <http://localhost:8000>), `messenger`
   (`messenger:consume async scheduler_default`: notification mails and
-  daily tasks), `vite` (the Vite dev server with hot reload, port 5173),
+  scheduled tasks), `vite` (the Vite dev server with hot reload, port 5173),
   `storia` (live reload of `/storia`), `database` (PostgreSQL 18) and
   `mailer` (Mailpit, <http://localhost:8025>). `HTTP_PORT`, `VITE_PORT`
   and `MAILPIT_PORT` change the published ports. `compose.yaml` injects
@@ -1188,8 +1229,10 @@ Castor are the only things needed on the host. Commands run inside the
   `CAIRN_LOCALE=fr`). After changing it, run `castor app:config:sync
   --dry-run`, then without `--dry-run`. Keep both example files in step:
   a test checks they define the same ids.
-- Mails land in Mailpit: a comment on a followed issue shows up there once
-  the `messenger` worker has sent it.
+- Mails land in Mailpit: a comment on a followed issue shows up there
+  three minutes later, with whatever else happened on the project in
+  between; `castor console app:notifications:send --now` sends it at
+  once.
 - API: create a token on <http://localhost:8000/account/tokens> (any
   internal user), then `curl -H "Authorization: Bearer cairn_…"
   http://localhost:8000/api/issues?assignee[]=me`; the operations are

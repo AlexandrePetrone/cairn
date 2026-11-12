@@ -27,7 +27,9 @@ use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * Turns the domain events that deserve a mail into NotifyIssueChange
- * messages. The listed events are the whole policy: an event this class
+ * messages, which queue the change for each subscriber; the mails leave
+ * later, grouped (ProjectMailSender). The listed events are the whole
+ * policy: an event this class
  * does not listen to notifies nobody. The events arrive inside the
  * transaction, before anything has an id, so they wait here until
  * Doctrine's postFlush; the messages then leave with
@@ -73,7 +75,7 @@ final class NotificationDispatcher implements ResetInterface
             }
             $entryIds = array_values(array_filter(array_map(static fn (JournalEntry $entry): ?int => $entry->getId(), $event->entries)));
             $this->bus->dispatch(
-                new NotifyIssueChange($issueId, $actorId, $entryIds, $event->comment()?->getId(), $event::class),
+                new NotifyIssueChange($issueId, $actorId, $entryIds, $event->comment()?->getId()),
                 [new DispatchAfterCurrentBusStamp()],
             );
         }

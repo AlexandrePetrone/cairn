@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Notification;
 
-use App\Event\IssuesLinked;
-use App\Event\IssueTransitioned;
 use App\Message\Command\Issue\AddLink;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\Command\Issue\UpdateIssue;
@@ -55,7 +53,6 @@ final class NotificationDispatcherTest extends KernelTestCase
         self::assertSame($this->fixtures->developer->getId(), $messages[0]->actorId);
         self::assertCount(1, $messages[0]->entryIds);
         self::assertNotNull($messages[0]->commentId);
-        self::assertSame(IssueTransitioned::class, $messages[0]->event);
     }
 
     public function testAnUpdateThatChangesNothingNotifiesNobody(): void
@@ -79,7 +76,6 @@ final class NotificationDispatcherTest extends KernelTestCase
         $messages = $this->notifications();
         self::assertCount(2, $messages);
         self::assertSame([$issue->getId(), $other->getId()], [$messages[0]->issueId, $messages[1]->issueId]);
-        self::assertSame([IssuesLinked::class, IssuesLinked::class], [$messages[0]->event, $messages[1]->event]);
     }
 
     /**

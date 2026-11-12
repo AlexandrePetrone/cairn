@@ -1,0 +1,27 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Notification;
+
+use App\Entity\Comment;
+use App\Entity\JournalEntry;
+use App\Entity\User;
+
+/**
+ * What one command did to an issue, as one recipient may read it: the
+ * journal lines it wrote and the comment that came with it.
+ */
+final readonly class IssueChange
+{
+    /**
+     * @param list<JournalEntry> $entries
+     */
+    public function __construct(
+        public User $actor,
+        public \DateTimeImmutable $at,
+        public array $entries,
+        public ?Comment $comment,
+    ) {
+    }
+}

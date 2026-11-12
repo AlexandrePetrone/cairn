@@ -879,11 +879,15 @@ migration_policy:
 
 email:
     issue:
-        subject: '[%key%] %title%'
+        subject:
+            one: '[%project%] %key% %title%'
+            many: '[%project%] %keys%'
+            more: '{1}[%project%] %keys% et 1 autre|]1,Inf[[%project%] %keys% et %count% autres'
+        heading: '{1}1 demande a bougé|]1,Inf[%count% demandes ont bougé'
         commented: a commenté
         description: Description
-        view: Voir la demande
-        footer: 'Vous recevez ce message parce que vous suivez la demande %key%. Pour ne plus la suivre, ouvrez-la et choisissez « Ne plus suivre ».'
+        open: 'Ouvrir %key%'
+        footer: '{1}Vous recevez ce message parce que vous suivez cette demande. Pour ne plus la suivre, ouvrez-la et choisissez « Ne plus suivre ».|]1,Inf[Vous recevez ce message parce que vous suivez ces demandes du projet %project%. Pour ne plus en suivre une, ouvrez-la et choisissez « Ne plus suivre ».'
     invitation:
         subject: Votre compte Cairn
         greeting: 'Bonjour %name%,'

@@ -879,11 +879,15 @@ migration_policy:
 
 email:
     issue:
-        subject: '[%key%] %title%'
+        subject:
+            one: '[%project%] %key% %title%'
+            many: '[%project%] %keys%'
+            more: '{1}[%project%] %keys% and 1 other|]1,Inf[[%project%] %keys% and %count% others'
+        heading: '{1}1 issue changed|]1,Inf[%count% issues changed'
         commented: commented
         description: Description
-        view: View the issue
-        footer: 'You receive this message because you follow the issue %key%. To stop, open it and choose "Unfollow".'
+        open: 'Open %key%'
+        footer: '{1}You receive this message because you follow this issue. To stop, open it and choose "Unfollow".|]1,Inf[You receive this message because you follow these issues of %project%. To stop following one, open it and choose "Unfollow".'
     invitation:
         subject: Your Cairn account
         greeting: 'Hello %name%,'
