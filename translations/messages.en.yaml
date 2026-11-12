@@ -224,23 +224,22 @@ issue:
         select_page: Select the whole page
         clear: Uncheck all
         open: Bulk actions
-        choose: What to do with these issues?
-        nothing_in_common: No action applies to all these issues. Remove those that differ from the selection.
-        no_common_transition: No workflow action is common to all these issues.
-        assign: Assign
-        comment: Comment
-        criticality: Change criticality
-        release: Schedule in a release
-        move: Move
-        move_hint: 'Each issue is put on this step without an action of the workflow: the history keeps the move.'
-        applies_to: '{1}Applies to 1 issue.|]1,Inf[ Applies to the %count% issues.'
+        changes: Changes to apply
+        unchanged: Unchanged
+        follow: Following
+        changes_tracker: changes category
+        remove: 'Remove %key% from the selection'
         comment_label: Comment
         comment_hint: The same message for every issue…
-        comment_each: The comment is posted on each issue.
+        comment_each: A comment, posted on each issue
         confirm: '{1}Apply to 1 issue|]1,Inf[ Apply to the %count% issues'
-        done: '{1}1 issue updated.|]1,Inf[ %count% issues updated.'
-        partly_done: '{1}1 issue updated; refused for %refused%: %reason%|]1,Inf[ %count% issues updated; refused for %refused%: %reason%'
-        all_refused: 'No issue was updated: %reason%'
+        applying: '{1}Applying to 1 issue…|]1,Inf[ Applying to the %count% issues…'
+        nothing_chosen: Choose at least one change to apply.
+        done: '{0}No issue updated|{1}1 issue updated|]1,Inf[ %count% issues updated'
+        changed: 'Changed: %changes%'
+        refused: '%change% refused: %reason%'
+        some_refused: '{1}1 issue was refused a change and stopped there: the reason is on its line.|]1,Inf[ %count% issues were refused a change and stopped there: the reason is on their line.'
+        retry: '{1}Take the refused issue again|]1,Inf[ Take the %count% refused issues again'
     selection:
         title: Bulk actions
         back: Back to the list

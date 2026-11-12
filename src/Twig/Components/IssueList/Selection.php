@@ -6,21 +6,25 @@ namespace App\Twig\Components\IssueList;
 
 use App\Config\Definition\PlaceDefinition;
 use App\Entity\Enum\Criticality;
+use App\Entity\Issue;
+use App\Entity\Release;
 use App\Entity\Tracker;
+use App\Entity\User;
 use App\Message\Command\Issue\AddComment;
-use App\Message\Command\Issue\ApplyTransition;
 use App\Message\Command\Issue\ChangeTracker;
+use App\Message\Command\Issue\FollowIssue;
 use App\Message\Command\Issue\MoveIssue;
+use App\Message\Command\Issue\UnfollowIssue;
 use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
 use App\Message\Query\Issue\ListSelectionActions;
 use App\Message\Query\Issue\SelectionActions;
 use App\Message\QueryBus;
+use App\Security\AccessControl;
+use App\Security\PlaceMove;
 use App\Security\Viewer;
 use App\Twig\Components\DispatchesCommands;
 use App\Workflow\WorkflowProvider;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
@@ -30,14 +34,18 @@ use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
- * The bulk actions of a selection: the issues the viewer still sees among
- * those checked, and the actions valid for all of them
- * (ListSelectionActions). An action is one command per issue, each in its
- * own transaction: a refusal on one issue leaves the others done, and the
- * user is told which. Then back to the list.
+ * The selection page: the issues the viewer still sees among those
+ * checked, and the changes to apply to all of them (ListSelectionActions
+ * says which are offered). Changes add up, each left alone until chosen:
+ * the step, the properties, following, a comment. Applying dispatches the
+ * ordinary commands for each issue, each in its own transaction: the step
+ * (MoveIssue, or ChangeTracker for an issue of another tracker), one
+ * UpdateIssue for the properties, the comment, the subscription. A refusal
+ * stops the issue there and leaves the others done; the page then reports
+ * what each issue got, and the refused ones can be taken again.
  */
 #[AsLiveComponent('IssueList:Selection')]
-final class Selection extends AbstractController
+final class Selection
 {
     use ComponentToolsTrait;
     use DefaultActionTrait;
@@ -47,44 +55,60 @@ final class Selection extends AbstractController
     #[LiveProp]
     public array $issueIds = [];
 
-    /** Where to go back after the action: the list, as the page resolved it. */
+    /** Where to go back: the list, as the page resolved it. */
     #[LiveProp]
     public string $back = '/';
 
-    /** The action being prepared: `transition:<id>`, `assign`, `comment`, `criticality`, `release` or `move`. */
-    #[LiveProp(writable: true)]
-    public ?string $action = null;
+    /** Whether the page is a project's: a list across projects changes no step. */
+    #[LiveProp]
+    public bool $inProject = false;
 
-    /** The comment posted on every issue. */
+    /** The step every issue is taken to, a tracker and a place of its workflow; null leaves it. */
+    #[LiveProp]
+    public ?int $trackerId = null;
+
+    #[LiveProp]
+    public ?string $placeId = null;
+
+    /** Null leaves the assignee, UpdateIssue::NOBODY unassigns. */
+    #[LiveProp]
+    public ?int $assigneeId = null;
+
+    #[LiveProp]
+    public ?string $criticality = null;
+
+    /** Null leaves the release, UpdateIssue::NOBODY takes the issues out of theirs. */
+    #[LiveProp]
+    public ?int $releaseId = null;
+
+    #[LiveProp]
+    public ?bool $private = null;
+
+    #[LiveProp]
+    public ?bool $follow = null;
+
+    /** The comment posted on every issue, when there is one. */
     #[LiveProp(writable: true)]
     public string $comment = '';
 
     #[LiveProp(writable: true)]
     public bool $commentPrivate = false;
 
-    /** The person to assign, null for nobody. */
-    #[LiveProp(writable: true)]
-    public ?int $assigneeId = null;
-
-    #[LiveProp(writable: true)]
-    public string $criticality = Criticality::DEFAULT->value;
-
-    /** The release to schedule the issues in, null for none. */
-    #[LiveProp(writable: true)]
-    public ?int $releaseId = null;
-
-    /** The tracker and the place of a move. */
-    #[LiveProp(writable: true, onUpdated: 'onMoveTrackerChanged')]
-    public ?int $moveTrackerId = null;
-
-    #[LiveProp(writable: true)]
-    public ?string $movePlaceId = null;
+    /**
+     * What applying did, by issue key: the changes that went through and,
+     * when one was refused, which and why.
+     *
+     * @var array<string, array{done: list<string>, refusal: ?string}>|null
+     */
+    #[LiveProp]
+    public ?array $report = null;
 
     private ?SelectionActions $selection = null;
 
     public function __construct(
         private readonly QueryBus $queries,
         private readonly Viewer $viewer,
+        private readonly AccessControl $access,
         private readonly TranslatorInterface $translator,
         private readonly WorkflowProvider $workflows,
     ) {
@@ -96,154 +120,215 @@ final class Selection extends AbstractController
     }
 
     /**
-     * The label of the action being prepared.
+     * The trackers whose places the step menu lists: none outside the
+     * page of a project.
+     *
+     * @return list<Tracker>
      */
-    public function getActionLabel(): ?string
+    public function getTrackers(): array
     {
-        if (null === $this->action) {
-            return null;
-        }
-
-        return $this->getSelection()->transitionFor($this->action)->label ?? $this->translator->trans('issue.bulk.'.$this->action);
-    }
-
-    /** The tracker chosen for a move among those offered, else the first; null when none is. */
-    public function getMoveTracker(): ?Tracker
-    {
-        $offered = $this->getSelection()->moveTrackers;
-
-        return array_find($offered, fn (Tracker $tracker): bool => $tracker->getId() === $this->moveTrackerId) ?? $offered[0] ?? null;
+        return $this->inProject ? $this->getSelection()->moveTrackers : [];
     }
 
     /**
      * @return list<PlaceDefinition>
      */
-    public function getMovePlaces(): array
+    public function placesOf(Tracker $tracker): array
     {
-        $tracker = $this->getMoveTracker();
+        return array_values($this->workflows->definition($tracker->getWorkflowId())->places);
+    }
 
-        return null === $tracker ? [] : array_values($this->workflows->definition($tracker->getWorkflowId())->places);
+    public function getTargetTracker(): ?Tracker
+    {
+        return array_find($this->getTrackers(), fn (Tracker $tracker): bool => $tracker->getId() === $this->trackerId);
+    }
+
+    public function getTargetPlace(): ?PlaceDefinition
+    {
+        $tracker = $this->getTargetTracker();
+
+        return null === $tracker || null === $this->placeId ? null : $this->workflows->definition($tracker->getWorkflowId())->findPlace($this->placeId);
     }
 
     /**
-     * Another tracker, another workflow: the place starts at its
-     * beginning. The browser sends the text value of the tracker select as
-     * updated on every request: the hook only acts when it really changed.
+     * How the issue gets to the step chosen: by changing tracker, by the
+     * action of the viewer that leads there, or outside the workflow.
+     * Null when it does not move.
      */
-    public function onMoveTrackerChanged(?int $previous = null): void
+    public function arrival(Issue $issue): ?string
     {
-        if (null !== $previous && $previous === $this->moveTrackerId) {
-            return;
+        if (null === $this->getTargetPlace()) {
+            return null;
         }
-        $tracker = $this->getMoveTracker();
-        $this->movePlaceId = null === $tracker ? null : $this->workflows->definition($tracker->getWorkflowId())->initial;
+        if ($issue->getTracker()->getId() !== $this->trackerId) {
+            return $this->translator->trans('issue.bulk.changes_tracker');
+        }
+        if ($issue->getPlace() === $this->placeId) {
+            return null;
+        }
+        $move = array_find($this->access->movesFor($this->viewer->get(), $issue), fn (PlaceMove $move): bool => $move->place->id === $this->placeId);
+
+        return $move?->transition->label ?? $this->translator->trans('issue.step.off_workflow');
     }
 
-    #[LiveAction]
-    public function choose(#[LiveArg] string $choice): void
+    public function getAssignee(): ?User
     {
-        if (!$this->getSelection()->offers($choice)) {
-            return;
-        }
-        $this->action = $choice;
-        $this->comment = '';
-        $this->commentPrivate = false;
-        $this->assigneeId = null;
-        $this->criticality = Criticality::DEFAULT->value;
-        $this->releaseId = null;
-        $this->moveTrackerId = $this->getMoveTracker()?->getId();
-        $this->onMoveTrackerChanged();
+        return array_find($this->getSelection()->assignees, fn (User $member): bool => $member->getId() === $this->assigneeId);
     }
 
-    #[LiveAction]
-    public function back(): void
+    public function getRelease(): ?Release
     {
-        $this->action = null;
+        return array_find($this->getSelection()->releases, fn (Release $release): bool => $release->getId() === $this->releaseId);
     }
 
     /**
-     * Applies the action to every issue of the selection, as it stands
-     * now: the browser's choice is checked again against what the
-     * selection offers.
+     * Records the choice made in the menu of a property; no value leaves
+     * the property alone. Only what the selection offers is kept.
      */
     #[LiveAction]
-    public function apply(CommandBus $commands): ?Response
+    public function change(#[LiveArg] string $property, #[LiveArg] ?string $value = null): void
     {
         $selection = $this->getSelection();
-        if (null === $this->action || [] === $selection->issues || !$selection->offers($this->action)) {
-            return null;
+        // An id the selection offers, or UpdateIssue::NOBODY.
+        $among = static fn (array $entities): bool => null === $value || (ctype_digit($value) && (UpdateIssue::NOBODY === (int) $value || array_any($entities, static fn (User|Release $entity): bool => $entity->getId() === (int) $value)));
+        $offered = match ($property) {
+            'assignee' => $selection->canAssign && $among($selection->assignees),
+            'release' => [] !== $selection->releases && $among($selection->releases),
+            'criticality' => $selection->canSetCriticality && (null === $value || null !== Criticality::tryFrom($value)),
+            'visibility' => $selection->canSetPrivate && \in_array($value, [null, 'public', 'private'], true),
+            'follow' => \in_array($value, [null, 'follow', 'unfollow'], true),
+            default => false,
+        };
+        if (!$offered) {
+            return;
         }
 
+        match ($property) {
+            'assignee' => $this->assigneeId = null === $value ? null : (int) $value,
+            'release' => $this->releaseId = null === $value ? null : (int) $value,
+            'criticality' => $this->criticality = $value,
+            'visibility' => $this->private = null === $value ? null : 'private' === $value,
+            'follow' => $this->follow = null === $value ? null : 'follow' === $value,
+        };
+    }
+
+    /**
+     * Records the step chosen: a place of a tracker the selection may move
+     * to. Anything else leaves the step alone.
+     */
+    #[LiveAction]
+    public function move(#[LiveArg] ?int $tracker = null, #[LiveArg] ?string $place = null): void
+    {
+        $target = array_find($this->getTrackers(), static fn (Tracker $offered): bool => $offered->getId() === $tracker);
+        $known = null !== $target && null !== $place && null !== $this->workflows->definition($target->getWorkflowId())->findPlace($place);
+        $this->trackerId = $known ? $tracker : null;
+        $this->placeId = $known ? $place : null;
+    }
+
+    #[LiveAction]
+    public function remove(#[LiveArg] int $id): void
+    {
+        $this->issueIds = array_values(array_diff($this->issueIds, [$id]));
+        $this->selection = null;
+    }
+
+    /**
+     * Applies the changes chosen to every issue of the selection, a
+     * refusal stopping the issue it happens on.
+     */
+    #[LiveAction]
+    public function apply(CommandBus $commands): void
+    {
+        // Applied already: a request sent twice must not comment twice.
+        if (null !== $this->report) {
+            return;
+        }
+
+        $report = [];
+        foreach ($this->getSelection()->issues as $issue) {
+            $done = [];
+            $refusal = null;
+            foreach ($this->changesOf($issue) as $label => $command) {
+                $reason = $this->refusal($commands, $command);
+                if (null !== $reason) {
+                    $refusal = $this->translator->trans('issue.bulk.refused', ['%change%' => $label, '%reason%' => $reason]);
+                    break;
+                }
+                $done[] = $label;
+            }
+            if ([] !== $done || null !== $refusal) {
+                $report[$issue->getKey()] = ['done' => $done, 'refusal' => $refusal];
+            }
+        }
+
+        if ([] === $report) {
+            $this->error = $this->translator->trans('issue.bulk.nothing_chosen');
+
+            return;
+        }
+        $this->report = $report;
+        $this->selection = null;
+    }
+
+    /**
+     * Back to the changes, with the refused issues only.
+     */
+    #[LiveAction]
+    public function retry(): void
+    {
+        $refused = array_filter($this->report ?? [], static fn (array $result): bool => null !== $result['refusal']);
+        $this->issueIds = array_values(array_map(
+            static fn (Issue $issue): int => (int) $issue->getId(),
+            array_filter($this->getSelection()->issues, static fn (Issue $issue): bool => isset($refused[$issue->getKey()])),
+        ));
+        $this->report = null;
+        $this->selection = null;
+    }
+
+    /**
+     * The commands the changes chosen mean for one issue, in the order
+     * they are dispatched, each under the name the report gives it.
+     *
+     * @return iterable<string, object>
+     */
+    private function changesOf(Issue $issue): iterable
+    {
         $actorId = (int) $this->viewer->get()->getId();
-        $comment = '' === trim($this->comment) ? null : $this->comment;
-        $private = $this->commentPrivate && $selection->canCommentPrivately;
+        $key = $issue->getKey();
 
-        $transition = $selection->transitionFor($this->action);
-        if (null !== $transition) {
-            if ($transition->requiresComment && null === $comment) {
-                $this->error = $transition->commentPrompt ?? $this->translator->trans('issue.transition.comment_required');
-
-                return null;
-            }
-            $build = static fn (string $key): object => new ApplyTransition($actorId, $key, $transition->id, $comment, $private);
-        } elseif ('comment' === $this->action) {
-            if (null === $comment) {
-                $this->error = $this->translator->trans('issue.comment.empty');
-
-                return null;
-            }
-            $build = static fn (string $key): object => new AddComment($actorId, $key, $comment, $private);
-        } elseif ('assign' === $this->action) {
-            $assigneeId = $this->assigneeId ?? UpdateIssue::NOBODY;
-            $build = static fn (string $key): object => new UpdateIssue($actorId, $key, assigneeId: $assigneeId);
-        } elseif ('release' === $this->action) {
-            $releaseId = $this->releaseId ?? UpdateIssue::NOBODY;
-            $build = static fn (string $key): object => new UpdateIssue($actorId, $key, releaseId: $releaseId);
-        } elseif ('move' === $this->action) {
-            $tracker = $this->getMoveTracker();
-            $placeId = $this->movePlaceId;
-            if (null === $tracker || null === $placeId) {
-                return null;
-            }
-            // An issue already in the tracker goes to the place within its workflow, the others change tracker.
-            $trackerId = (int) $tracker->getId();
-            $inTracker = [];
-            foreach ($selection->issues as $issue) {
-                $inTracker[$issue->getKey()] = $issue->getTracker()->getId() === $trackerId;
-            }
-            $build = static fn (string $key): object => $inTracker[$key] ? new MoveIssue($actorId, $key, $placeId) : new ChangeTracker($actorId, $key, $trackerId, $placeId);
-        } else {
-            $criticality = Criticality::tryFrom($this->criticality);
-            if (null === $criticality) {
-                return null;
-            }
-            $build = static fn (string $key): object => new UpdateIssue($actorId, $key, criticality: $criticality);
-        }
-
-        $done = 0;
-        $refused = [];
-        $reason = null;
-        foreach ($selection->issues as $issue) {
-            $refusal = $this->refusal($commands, $build($issue->getKey()));
-            if (null === $refusal) {
-                ++$done;
-            } else {
-                $refused[] = $issue->getKey();
-                $reason ??= $refusal;
+        if (null !== $this->trackerId && null !== $this->placeId) {
+            $step = $this->translator->trans('issue.show.place');
+            if ($issue->getTracker()->getId() !== $this->trackerId) {
+                yield $step => new ChangeTracker($actorId, $key, $this->trackerId, $this->placeId);
+            } elseif ($issue->getPlace() !== $this->placeId) {
+                yield $step => new MoveIssue($actorId, $key, $this->placeId);
             }
         }
 
-        if (0 === $done) {
-            $this->error = $this->translator->trans('issue.bulk.all_refused', ['%reason%' => $reason]);
-            $this->selection = null;
-
-            return null;
+        $properties = array_keys(array_filter([
+            'issue.show.assignee' => null !== $this->assigneeId,
+            'issue.show.criticality' => null !== $this->criticality,
+            'issue.show.release' => null !== $this->releaseId,
+            'issue.show.visibility' => null !== $this->private,
+        ]));
+        if ([] !== $properties) {
+            yield implode(', ', array_map($this->translator->trans(...), $properties)) => new UpdateIssue(
+                $actorId,
+                $key,
+                assigneeId: $this->assigneeId,
+                criticality: Criticality::tryFrom($this->criticality ?? ''),
+                private: $this->private,
+                releaseId: $this->releaseId,
+            );
         }
 
-        $this->addFlash('success', [] === $refused
-            ? $this->translator->trans('issue.bulk.done', ['%count%' => $done])
-            : $this->translator->trans('issue.bulk.partly_done', ['%count%' => $done, '%refused%' => implode(', ', $refused), '%reason%' => $reason]));
+        if ('' !== trim($this->comment)) {
+            yield $this->translator->trans('issue.bulk.comment_label') => new AddComment($actorId, $key, $this->comment, $this->commentPrivate && $this->getSelection()->canCommentPrivately);
+        }
 
-        return $this->redirect($this->back);
+        // Last: commenting subscribes its author again.
+        if (null !== $this->follow) {
+            yield $this->translator->trans('issue.bulk.follow') => $this->follow ? new FollowIssue($actorId, $key) : new UnfollowIssue($actorId, $key);
+        }
     }
 }

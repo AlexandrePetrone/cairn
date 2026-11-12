@@ -5,76 +5,38 @@ declare(strict_types=1);
 namespace App\Message\Query\Issue;
 
 use App\Entity\Issue;
+use App\Entity\Project;
 use App\Entity\Release;
 use App\Entity\Tracker;
 use App\Entity\User;
 
 /**
  * The answer to ListSelectionActions: the selected issues the viewer
- * sees, and what they may do to all of them at once. A right counts only
- * when it holds on every project of the selection.
+ * sees, and what they may change on all of them at once. A right counts
+ * only when it holds on every project of the selection.
  */
 final readonly class SelectionActions
 {
     /**
-     * @param list<Issue>               $issues
-     * @param list<SelectionTransition> $transitions  common to every issue
-     * @param list<User>                $assignees    members of every project of the selection
-     * @param list<Release>             $releases     the open releases of the project, when the selection holds one project
-     * @param list<Tracker>             $moveTrackers the trackers every issue may be moved to (its own with `issue.force_place`,
-     *                                                another with `issue.change_tracker`), when the selection holds one project
+     * @param list<Issue>   $issues
+     * @param Project|null  $project      the project of the issues, when the selection holds one
+     * @param list<User>    $assignees    members of every project of the selection
+     * @param list<Release> $releases     the open releases of the project, when the selection holds one project
+     * @param list<Tracker> $moveTrackers the trackers every issue may be moved to (its own with `issue.force_place`,
+     *                                    another with `issue.change_tracker`), when the selection holds one project
      */
     public function __construct(
         public array $issues,
-        public array $transitions = [],
+        public ?Project $project = null,
         public bool $canAssign = false,
         public array $assignees = [],
         public bool $canComment = false,
         public bool $canCommentPrivately = false,
         public bool $canSetCriticality = false,
+        public bool $canSetPrivate = false,
         public array $releases = [],
         public array $moveTrackers = [],
     ) {
-    }
-
-    /**
-     * The transition an action of the selection page names
-     * (`transition:<id>`), when the selection offers it.
-     */
-    public function transitionFor(?string $action): ?SelectionTransition
-    {
-        if (null === $action || !str_starts_with($action, 'transition:')) {
-            return null;
-        }
-        $id = substr($action, \strlen('transition:'));
-
-        return array_find($this->transitions, static fn (SelectionTransition $transition): bool => $transition->id === $id);
-    }
-
-    /**
-     * Whether the action, as the selection page names it, is offered:
-     * `transition:<id>`, `assign`, `comment`, `criticality`, `release` or
-     * `move`.
-     */
-    public function offers(string $action): bool
-    {
-        if (str_starts_with($action, 'transition:')) {
-            return null !== $this->transitionFor($action);
-        }
-
-        return match ($action) {
-            'assign' => $this->canAssign,
-            'comment' => $this->canComment,
-            'criticality' => $this->canSetCriticality,
-            'release' => [] !== $this->releases,
-            'move' => [] !== $this->moveTrackers,
-            default => false,
-        };
-    }
-
-    public function hasAnything(): bool
-    {
-        return [] !== $this->transitions || $this->canAssign || $this->canComment || $this->canSetCriticality || [] !== $this->releases || [] !== $this->moveTrackers;
     }
 
     /**
@@ -83,11 +45,6 @@ final readonly class SelectionActions
      */
     public function isAcrossProjects(): bool
     {
-        $projects = [];
-        foreach ($this->issues as $issue) {
-            $projects[(int) $issue->getProject()->getId()] = true;
-        }
-
-        return \count($projects) > 1;
+        return [] !== $this->issues && null === $this->project;
     }
 }

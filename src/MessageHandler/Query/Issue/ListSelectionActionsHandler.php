@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\Query\Issue;
 
-use App\Config\Definition\TransitionDefinition;
 use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\Tracker;
 use App\Entity\User;
 use App\Message\Query\Issue\ListSelectionActions;
 use App\Message\Query\Issue\SelectionActions;
-use App\Message\Query\Issue\SelectionTransition;
 use App\Message\Query\Project\ListProjectMembers;
 use App\Message\Query\Project\ListTrackers;
 use App\Message\QueryBus;
@@ -27,12 +25,11 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 /**
  * Loads the selected issues the viewer sees (Security/Visibility, an id
  * they may not see is dropped), sorted as the lists sort them, then keeps
- * the actions valid for all of them: the transitions available from each
- * issue's place to the viewer's role on its project, matched by id; the
- * rights that hold on every project; the people who are members of every
- * project, for the assignment; the open releases and the trackers a move
- * may target, when the selection holds the issues of one project, since
- * releases and trackers belong to one.
+ * what may change on all of them: the rights that hold on every project;
+ * the people who are members of every project, for the assignment; the
+ * open releases and the trackers a move may target, when the selection
+ * holds the issues of one project, since releases and trackers belong to
+ * one.
  */
 #[AsMessageHandler(bus: 'query.bus')]
 final class ListSelectionActionsHandler
@@ -65,12 +62,13 @@ final class ListSelectionActionsHandler
 
         return new SelectionActions(
             issues: $issues,
-            transitions: $this->commonTransitions($viewer, $issues),
+            project: $project,
             canAssign: $canAssign,
             assignees: $canAssign ? $this->commonMembers($projects) : [],
             canComment: $canComment,
             canCommentPrivately: $canComment && $everywhere(Permission::CommentSetPrivate),
             canSetCriticality: $everywhere(Permission::IssueSetCriticality),
+            canSetPrivate: $everywhere(Permission::IssueSetPrivate),
             releases: null !== $project && $everywhere(Permission::IssueSetRelease) ? $this->releases->findByProject($project, openOnly: true) : [],
             moveTrackers: null === $project ? [] : $this->moveTrackers($viewer, $project, $issues),
         );
@@ -100,46 +98,6 @@ final class ListSelectionActionsHandler
         $this->visibility->restrictIssues($queryBuilder, $viewer);
 
         return EntityList::of($queryBuilder->getQuery(), Issue::class);
-    }
-
-    /**
-     * @param non-empty-list<Issue> $issues
-     *
-     * @return list<SelectionTransition>
-     */
-    private function commonTransitions(User $viewer, array $issues): array
-    {
-        /** @var array<string, list<TransitionDefinition>>|null $common transition id => its definition for each issue */
-        $common = null;
-        foreach ($issues as $issue) {
-            $available = [];
-            foreach ($this->access->transitionsFor($viewer, $issue) as $transition) {
-                $available[$transition->id] = $transition;
-            }
-
-            if (null === $common) {
-                $common = array_map(static fn (TransitionDefinition $transition): array => [$transition], $available);
-                continue;
-            }
-            $common = array_intersect_key($common, $available);
-            foreach ($common as $id => $definitions) {
-                $common[$id][] = $available[$id];
-            }
-        }
-
-        $transitions = [];
-        foreach ($common as $id => $definitions) {
-            $first = $definitions[0];
-            $transitions[] = new SelectionTransition(
-                id: (string) $id,
-                label: implode(' / ', array_values(array_unique(array_map(static fn (TransitionDefinition $transition): string => $transition->label, $definitions)))),
-                style: $first->style,
-                requiresComment: array_any($definitions, fn (TransitionDefinition $transition): bool => $this->access->commentRequired($viewer, $transition)),
-                commentPrompt: array_find($definitions, static fn (TransitionDefinition $transition): bool => null !== $transition->commentPrompt)?->commentPrompt,
-            );
-        }
-
-        return $transitions;
     }
 
     /**

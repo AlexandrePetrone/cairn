@@ -224,23 +224,22 @@ issue:
         select_page: Sélectionner toute la page
         clear: Tout décocher
         open: Actions groupées
-        choose: Que faire de ces demandes ?
-        nothing_in_common: Aucune action ne s'applique à toutes ces demandes. Retirez celles qui diffèrent de la sélection.
-        no_common_transition: Aucune action de workflow commune à toutes ces demandes.
-        assign: Assigner
-        comment: Commenter
-        criticality: Changer la criticité
-        release: Rattacher à une version
-        move: Déplacer
-        move_hint: 'Chaque demande est placée sur cette étape sans action du workflow : l''historique garde le déplacement.'
-        applies_to: '{1}S''applique à 1 demande.|]1,Inf[ S''applique aux %count% demandes.'
+        changes: Modifications à appliquer
+        unchanged: Inchangé
+        follow: Suivi
+        changes_tracker: change de catégorie
+        remove: 'Retirer %key% de la sélection'
         comment_label: Commentaire
         comment_hint: Le même message pour toutes les demandes…
-        comment_each: Le commentaire est posté sur chacune des demandes.
+        comment_each: Un commentaire, posté sur chacune des demandes
         confirm: '{1}Appliquer à 1 demande|]1,Inf[ Appliquer aux %count% demandes'
-        done: '{1}1 demande mise à jour.|]1,Inf[ %count% demandes mises à jour.'
-        partly_done: '{1}1 demande mise à jour ; refusé pour %refused% : %reason%|]1,Inf[ %count% demandes mises à jour ; refusé pour %refused% : %reason%'
-        all_refused: 'Aucune demande n''a été mise à jour : %reason%'
+        applying: '{1}Application à 1 demande…|]1,Inf[ Application aux %count% demandes…'
+        nothing_chosen: Choisissez au moins une modification à appliquer.
+        done: '{0}Aucune demande mise à jour|{1}1 demande mise à jour|]1,Inf[ %count% demandes mises à jour'
+        changed: 'Modifié : %changes%'
+        refused: '%change% refusé : %reason%'
+        some_refused: '{1}1 demande s''est vu refuser une modification et s''est arrêtée là : la raison est sur sa ligne.|]1,Inf[ %count% demandes se sont vu refuser une modification et se sont arrêtées là : la raison est sur leur ligne.'
+        retry: '{1}Reprendre la demande refusée|]1,Inf[ Reprendre les %count% demandes refusées'
     selection:
         title: Actions groupées
         back: Retour à la liste

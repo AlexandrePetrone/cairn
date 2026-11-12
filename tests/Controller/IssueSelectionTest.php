@@ -35,7 +35,7 @@ final class IssueSelectionTest extends WebTestCase
         self::assertSelectorTextContains('h1', 'Bulk actions');
         self::assertSelectorTextContains('main', 'Endless spinner on the cart page');
         self::assertSelectorTextContains('main', 'Typo in the footer');
-        self::assertSelectorTextContains('main', 'Qualify');
+        self::assertSelectorTextContains('main', 'Changes to apply');
         self::assertSelectorExists('a[href="/MD/SPT/issues?status%5B0%5D=open"]', 'the way back to the list');
     }
 

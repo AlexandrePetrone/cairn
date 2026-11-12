@@ -544,21 +544,35 @@ src/
   template, `issue/selection.html.twig`, which extends the layout of the
   zone (the project's when the controller passes `project`): both
   layouts expose the same blocks. The controller resolves where to come
-  back (`back`: the list, or the zone's default). There `IssueList:Selection` asks
-  `ListSelectionActions` what the selection allows, which is strictly
-  what applies to every issue: the transitions available from each
-  issue's place to the viewer's role on its project, matched by
-  transition id across workflows (a comment is required as soon as one
-  of them requires it), and the rights (`issue.assign`,
-  `comment.create`, `comment.set_private`, `issue.set_criticality`)
-  that hold on every project of the selection; the people offered for
-  assignment are the members of all of them. An issue the viewer no
-  longer sees drops out of the selection. The component checks the
-  action again, then dispatches the ordinary command for each issue
-  (`ApplyTransition`, `AddComment`, `UpdateIssue`), each in its own
-  transaction: there is no bulk command, a refusal on one issue leaves
-  the others done, and the flash says which were refused and why
-  (`DispatchesCommands::refusal()`). A common comment carries no file,
+  back (`back`: the list, or the zone's default). There `IssueList:Selection`
+  lists the issues, each with a cross that takes it out, and beside them
+  the changes to apply, which add up: every property is left alone until
+  chosen in its menu, as in the side panel of an issue. `ListSelectionActions`
+  says what the selection allows, which is strictly what applies to every
+  issue: the rights (`issue.assign`, `issue.set_criticality`,
+  `issue.set_private`, `comment.create`, `comment.set_private`) that hold
+  on every project of the selection, the people offered for assignment
+  being the members of all of them, and, when the selection holds one
+  project, its open releases and the trackers every issue may go to
+  (`SelectionActions::$moveTrackers`). The step is the agency's, and of
+  the page of a project only: its menu lists the places of those
+  trackers, under their tracker, and each line of the list shows how the
+  issue will get there (the action that leads there, outside the
+  workflow, or by changing tracker). No transition is named in bulk: a
+  client answers issue by issue. An issue the viewer no longer sees drops
+  out of the selection. Applying dispatches the ordinary commands for
+  each issue, in this order and each in its own transaction: the step
+  (`MoveIssue` when the issue is already in the tracker chosen,
+  `ChangeTracker` otherwise), one `UpdateIssue` carrying the properties
+  chosen, `AddComment`, then `FollowIssue` or `UnfollowIssue` (last,
+  since commenting subscribes its author). There is no bulk
+  command: a refusal stops its issue where it is and leaves the others
+  done (`DispatchesCommands::refusal()`), and the page then reports, on
+  the line of each issue, what it got and what was refused and why; the
+  refused ones can be taken again with the same changes. The only
+  feedback while the commands run is Live's `data-loading` on `apply`.
+  The common comment is written in the editor, with the suggestions of
+  the project when there is one, and carries no file nor pasted image,
   since a pending file is claimed by one issue only.
 
 ### Notifications

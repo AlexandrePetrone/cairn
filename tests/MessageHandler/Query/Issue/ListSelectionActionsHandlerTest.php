@@ -6,11 +6,8 @@ namespace App\Tests\MessageHandler\Query\Issue;
 
 use App\Entity\Issue;
 use App\Entity\User;
-use App\Message\Command\Issue\ApplyTransition;
-use App\Message\CommandBus;
 use App\Message\Query\Issue\ListSelectionActions;
 use App\Message\Query\Issue\SelectionActions;
-use App\Message\Query\Issue\SelectionTransition;
 use App\Message\QueryBus;
 use App\Tests\Scene\ShopScene;
 use Doctrine\ORM\EntityManagerInterface;
@@ -18,8 +15,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
  * On the shop of the scene, under the example configuration: bugs,
- * evolutions and internal tasks follow three workflows that share some
- * transition ids (`start`, `deliver`, `accept`, `refuse`, `reopen`).
+ * evolutions and internal tasks follow three workflows.
  * Nadia develops on the shop, Thomas manages the workspace, Claire is its
  * client.
  */
@@ -33,63 +29,32 @@ final class ListSelectionActionsHandlerTest extends KernelTestCase
         $this->scene = ShopScene::load(self::getContainer());
     }
 
-    public function testIssuesOfOneWorkflowAtOnePlaceShareTheirActions(): void
+    public function testIssuesOfOneProjectShareWhatTheViewerMayChange(): void
     {
         $actions = $this->actions('nadia.benali@cairn.test', 'MD-SPT-1', 'MD-SPT-2');
 
         self::assertSame(['MD-SPT-1', 'MD-SPT-2'], $this->keys($actions), 'sorted as the lists: blocking first');
-        self::assertSame(['qualify', 'reject'], $this->transitionIds($actions));
+        self::assertSame($this->scene->shop->getId(), $actions->project?->getId());
         self::assertTrue($actions->canAssign);
         self::assertTrue($actions->canComment);
         self::assertTrue($actions->canCommentPrivately);
         self::assertTrue($actions->canSetCriticality);
+        self::assertTrue($actions->canSetPrivate);
         self::assertContains('nadia.benali@cairn.test', $this->emails($actions->assignees));
         self::assertContains('claire.martin@maison-dupont.test', $this->emails($actions->assignees), 'a member through the workspace');
     }
 
-    public function testTheSameTransitionIdMatchesAcrossWorkflows(): void
-    {
-        $this->commands()->dispatch(new ApplyTransition((int) $this->user('nadia.benali@cairn.test')->getId(), 'MD-SPT-10', 'start'));
-
-        $actions = $this->actions('nadia.benali@cairn.test', 'MD-SPT-3', 'MD-SPT-10');
-
-        self::assertSame(['deliver'], $this->transitionIds($actions), 'a bug and a feature in progress are both delivered');
-        self::assertSame('Deliver for testing', $actions->transitions[0]->label, 'one label when the workflows agree');
-        self::assertTrue($actions->offers('transition:deliver'));
-        self::assertFalse($actions->offers('transition:qualify'));
-    }
-
-    public function testNothingIsOfferedThatDoesNotApplyToEveryIssue(): void
-    {
-        $actions = $this->actions('nadia.benali@cairn.test', 'MD-SPT-1', 'MD-SPT-8');
-
-        self::assertSame([], $this->transitionIds($actions), 'a new bug and a feature to estimate have no action in common');
-        self::assertTrue($actions->canAssign, 'what does not depend on the workflow stays');
-        self::assertTrue($actions->hasAnything());
-    }
-
-    public function testAClientGetsTheActionsOfHerRoleOnIssuesSheSees(): void
+    public function testAClientGetsTheRightsOfHerRoleOnIssuesSheSees(): void
     {
         $actions = $this->actions('claire.martin@maison-dupont.test', 'MD-SPT-4', 'MD-SPT-6');
 
         self::assertSame(['MD-SPT-4'], $this->keys($actions), 'the internal task is not hers to see');
-        self::assertSame(['accept', 'refuse'], $this->transitionIds($actions));
-        $refuse = $actions->transitionFor('transition:refuse');
-        self::assertInstanceOf(SelectionTransition::class, $refuse);
-        self::assertTrue($refuse->requiresComment);
         self::assertFalse($actions->canAssign);
         self::assertSame([], $actions->assignees);
         self::assertTrue($actions->canComment);
         self::assertFalse($actions->canCommentPrivately);
         self::assertTrue($actions->canSetCriticality);
-    }
-
-    public function testTheCommentIsRequiredOfTheViewerNotOfTheTransition(): void
-    {
-        $refuse = $this->actions('thomas.girard@cairn.test', 'MD-SPT-4')->transitionFor('transition:refuse');
-
-        self::assertInstanceOf(SelectionTransition::class, $refuse);
-        self::assertFalse($refuse->requiresComment, 'the agency explains itself when it wants to');
+        self::assertFalse($actions->canSetPrivate);
     }
 
     public function testAMoveIsOfferedToTheTrackersValidForEveryIssue(): void
@@ -107,7 +72,7 @@ final class ListSelectionActionsHandlerTest extends KernelTestCase
         $actions = self::getContainer()->get(QueryBus::class)->ask(new ListSelectionActions($this->user('nadia.benali@cairn.test'), [999_999]));
 
         self::assertSame([], $actions->issues);
-        self::assertFalse($actions->hasAnything());
+        self::assertFalse($actions->isAcrossProjects());
     }
 
     public function testARightCountsOnlyWhenItHoldsOnEveryProject(): void
@@ -117,12 +82,11 @@ final class ListSelectionActionsHandlerTest extends KernelTestCase
         $nadia = $this->actions('nadia.benali@cairn.test', 'MD-SPT-1', $intranetBug->getKey());
         self::assertCount(2, $nadia->issues, 'internal users see every project');
         self::assertTrue($nadia->isAcrossProjects());
-        self::assertSame([], $this->transitionIds($nadia), 'she holds no role on the intranet');
-        self::assertFalse($nadia->canAssign);
-        self::assertFalse($nadia->hasAnything());
+        self::assertNull($nadia->project);
+        self::assertFalse($nadia->canAssign, 'she holds no role on the intranet');
+        self::assertFalse($nadia->canSetPrivate);
 
         $thomas = $this->actions('thomas.girard@cairn.test', 'MD-SPT-1', $intranetBug->getKey());
-        self::assertSame(['qualify', 'reject'], $this->transitionIds($thomas));
         self::assertTrue($thomas->canAssign);
         $assignees = $this->emails($thomas->assignees);
         self::assertContains('thomas.girard@cairn.test', $assignees, 'a member of the whole workspace');
@@ -153,17 +117,6 @@ final class ListSelectionActionsHandlerTest extends KernelTestCase
     }
 
     /**
-     * @return list<string>
-     */
-    private function transitionIds(SelectionActions $actions): array
-    {
-        $ids = array_map(static fn (SelectionTransition $transition): string => $transition->id, $actions->transitions);
-        sort($ids);
-
-        return $ids;
-    }
-
-    /**
      * @param list<User> $users
      *
      * @return list<string>
@@ -176,10 +129,5 @@ final class ListSelectionActionsHandlerTest extends KernelTestCase
     private function user(string $email): User
     {
         return $this->scene->user($email);
-    }
-
-    private function commands(): CommandBus
-    {
-        return self::getContainer()->get(CommandBus::class);
     }
 }
