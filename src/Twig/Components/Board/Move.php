@@ -8,6 +8,7 @@ use App\Config\Definition\TransitionDefinition;
 use App\Entity\Issue;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\Command\Issue\MoveIssue;
+use App\Message\Command\Issue\RankIssue;
 use App\Message\CommandBus;
 use App\Repository\IssueRepository;
 use App\Security\AccessControl;
@@ -34,6 +35,10 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * browser is told (`board:moved`): applied, with the places the card may
  * now go to, or not, and the controller puts the card back. No column is
  * read again.
+ * A card is dropped between two others: the move done, RankIssue places
+ * it there for whoever holds `issue.rank`; otherwise it stands on top of
+ * its new column, as every issue that arrives, and the browser is told
+ * (`top`). Dropped within its own column, `rank` only ranks it.
  */
 #[AsLiveComponent('Board:Move')]
 final class Move
@@ -49,6 +54,13 @@ final class Move
     /** The place it was dropped on. */
     #[LiveProp]
     public ?string $place = null;
+
+    /** The cards it was dropped between, kept while the dialog asks. */
+    #[LiveProp]
+    public ?string $above = null;
+
+    #[LiveProp]
+    public ?string $below = null;
 
     #[LiveProp(writable: true)]
     public string $transitionId = '';
@@ -68,8 +80,10 @@ final class Move
     }
 
     #[LiveAction]
-    public function move(CommandBus $commands, #[LiveArg] string $key, #[LiveArg] string $place): void
+    public function move(CommandBus $commands, #[LiveArg] string $key, #[LiveArg] string $place, #[LiveArg] ?string $above = null, #[LiveArg] ?string $below = null): void
     {
+        $this->above = $above;
+        $this->below = $below;
         $issue = $this->visibleIssue($key);
         $moves = null === $issue ? [] : $this->movesTo($issue, $place);
         if (null === $issue || [] === $moves) {
@@ -84,7 +98,7 @@ final class Move
             $done = null === $transition
                 ? $this->translator->trans('issue.move.done', ['%key%' => $issue->getKey(), '%place%' => $moves[0]->place->label])
                 : $this->translator->trans('issue.transition.applied', ['%key%' => $issue->getKey(), '%transition%' => $transition->label]);
-            $this->settled($issue, $this->refusal($commands, new MoveIssue((int) $this->viewer->get()->getId(), $issue->getKey(), $place)), $done);
+            $this->settled($commands, $issue, $this->refusal($commands, new MoveIssue((int) $this->viewer->get()->getId(), $issue->getKey(), $place)), $done);
 
             return;
         }
@@ -95,6 +109,27 @@ final class Move
         $this->comment = '';
         $this->commentPrivate = false;
         $this->error = null;
+    }
+
+    /**
+     * Places a card dropped within its own column between the two it was
+     * dropped between. Nothing is announced: the card is where it was put,
+     * or goes back there.
+     */
+    #[LiveAction]
+    public function rank(CommandBus $commands, #[LiveArg] string $key, #[LiveArg] ?string $above = null, #[LiveArg] ?string $below = null): void
+    {
+        $issue = $this->visibleIssue($key);
+        $refusal = null === $issue
+            ? $this->translator->trans('issue.action.refused')
+            : $this->refusal($commands, new RankIssue((int) $this->viewer->get()->getId(), $issue->getKey(), $above, $below));
+        if (null !== $refusal) {
+            $this->settle($key);
+            $this->dispatchBrowserEvent('toast:show', ['message' => $refusal]);
+
+            return;
+        }
+        $this->settle($key, $issue);
     }
 
     /**
@@ -167,7 +202,7 @@ final class Move
     private function apply(CommandBus $commands, Issue $issue, TransitionDefinition $transition, ?string $comment, bool $private): void
     {
         $refusal = $this->refusal($commands, new ApplyTransition((int) $this->viewer->get()->getId(), $issue->getKey(), $transition->id, $comment, $private));
-        $this->settled($issue, $refusal, $this->translator->trans('issue.transition.applied', ['%key%' => $issue->getKey(), '%transition%' => $transition->label]));
+        $this->settled($commands, $issue, $refusal, $this->translator->trans('issue.transition.applied', ['%key%' => $issue->getKey(), '%transition%' => $transition->label]));
     }
 
     /**
@@ -175,10 +210,10 @@ final class Move
      * the dialog, when it is open, keeps the card where it was dropped and
      * says why, otherwise the card goes back and a toast says why.
      */
-    private function settled(Issue $issue, ?string $refusal, string $done): void
+    private function settled(CommandBus $commands, Issue $issue, ?string $refusal, string $done): void
     {
         if (null === $refusal) {
-            $this->settle($issue->getKey(), $issue);
+            $this->settle($issue->getKey(), $issue, top: !$this->ranked($commands, $issue));
             $this->close();
             $this->announce($done);
 
@@ -197,23 +232,41 @@ final class Move
      * Tells the browser how the move of a card ended: applied, with the
      * places the viewer may now move the issue to from where it stands
      * (and those among them outside the workflow), or not, and the card
-     * goes back to its column.
+     * goes back to its column. `top` says the card was not placed where it
+     * was dropped: it stands on top of its column.
      */
-    private function settle(string $key, ?Issue $moved = null): void
+    private function settle(string $key, ?Issue $moved = null, bool $top = false): void
     {
         $moves = null === $moved ? [] : $this->access->movesFor($this->viewer->get(), $moved);
         $this->dispatchBrowserEvent('board:moved', [
             'key' => $key,
             'applied' => null !== $moved,
+            'top' => $top,
             'places' => PlaceMove::placeIds($moves),
             'forced' => PlaceMove::placeIds($moves, forcedOnly: true),
         ]);
+    }
+
+    /**
+     * Places the issue just moved between the cards it was dropped
+     * between, when the viewer may and there are any; otherwise it stays
+     * on top of its column, where it arrived.
+     */
+    private function ranked(CommandBus $commands, Issue $issue): bool
+    {
+        if ((null === $this->above && null === $this->below) || !$this->access->isGranted($this->viewer->get(), Permission::IssueRank, $issue->getProject())) {
+            return false;
+        }
+
+        return null === $this->refusal($commands, new RankIssue((int) $this->viewer->get()->getId(), $issue->getKey(), $this->above, $this->below));
     }
 
     private function close(): void
     {
         $this->issueKey = null;
         $this->place = null;
+        $this->above = null;
+        $this->below = null;
         $this->transitionId = '';
         $this->comment = '';
         $this->commentPrivate = false;

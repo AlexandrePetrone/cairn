@@ -80,6 +80,11 @@ final class IssueException extends \DomainException
         return new self(\sprintf('The issue is already on "%s".', $placeLabel));
     }
 
+    public static function notInColumn(string $issueKey, string $neighbourKey): self
+    {
+        return new self(\sprintf('Issue "%s" is not in the kanban column of "%s".', $neighbourKey, $issueKey));
+    }
+
     public static function sameTracker(string $trackerName): self
     {
         return new self(\sprintf('The issue is already in tracker "%s".', $trackerName));

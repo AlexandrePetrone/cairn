@@ -105,6 +105,7 @@ final class DefinitionFactory
                 Permission::IssueCreate->value => ['project_manager', 'developer', 'client'],
                 Permission::IssueEdit->value => ['project_manager'],
                 Permission::IssueAssign->value => ['project_manager', 'developer'],
+                Permission::IssueRank->value => ['project_manager', 'developer'],
                 Permission::IssueSetCriticality->value => ['project_manager', 'developer', 'client'],
                 Permission::IssueSetPrivate->value => ['project_manager'],
                 Permission::IssueSetRelease->value => ['project_manager', 'developer'],

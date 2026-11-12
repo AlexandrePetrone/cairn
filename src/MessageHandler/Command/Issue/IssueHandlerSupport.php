@@ -83,8 +83,20 @@ final class IssueHandlerSupport
         $from = $definition->place($issue->getPlace());
         $workflow->apply($issue, $transition->id, ['actor' => $actor]);
         $to = $definition->place($issue->getPlace());
+        $this->arrive($issue);
 
         $this->record(new IssueTransitioned($issue, $actor, [JournalEntry::transitioned($issue, $actor, $transition->label, $from, $to, $written)], $written));
+    }
+
+    /**
+     * The issue just took a place: it stands on top of that kanban column,
+     * a step over the highest rank there. Called wherever an issue enters
+     * a place (creation, transition, forced place, change of tracker).
+     */
+    public function arrive(Issue $issue): void
+    {
+        $top = $this->issues->topRank($issue->getTracker(), $issue->getPlace());
+        $issue->rankAt(null === $top ? 0 : $top + Issue::RANK_STEP);
     }
 
     /**

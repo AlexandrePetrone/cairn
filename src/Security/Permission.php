@@ -18,6 +18,8 @@ enum Permission: string
     /** Put an issue on any place of its workflow without an action; journaled as `moved`. */
     case IssueForcePlace = 'issue.force_place';
     case IssueAssign = 'issue.assign';
+    /** Arrange the cards of a kanban column by hand; the order is everyone's. */
+    case IssueRank = 'issue.rank';
     case IssueSetCriticality = 'issue.set_criticality';
     case IssueSetPrivate = 'issue.set_private';
     /** Link an issue to another one, or remove a link; across projects for internal users only. */

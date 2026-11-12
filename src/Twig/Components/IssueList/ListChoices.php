@@ -9,6 +9,7 @@ use App\Entity\Tracker;
 use App\Entity\User;
 use App\Form\IssueListFilters;
 use App\Message\Query\Issue\IssueGrouping;
+use App\Message\Query\Issue\IssueSort;
 use App\Message\Query\Issue\SearchIssues;
 use App\Message\Query\Project\ListProjectMembers;
 use App\Message\Query\Project\ListTrackers;
@@ -96,6 +97,8 @@ final class ListChoices
             criticality: $scope->offers('criticality') ? $filters->criticality : [],
             release: [] !== $filters->releases && $this->offersReleases($scope) ? $filters->releases : [],
             q: $filters->q,
+            sort: IssueSort::Rank,
+            order: \SortDirection::Descending,
             perPage: $perPage,
         );
     }

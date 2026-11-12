@@ -4,10 +4,11 @@ import { getComponent } from '@symfony/ux-live-component';
 import Sortable from 'sortablejs';
 
 /*
- * The cards of a kanban column, dragged to another column with SortableJS:
+ * The cards of a kanban column, dragged to another column or to another
+ * rank of their own with SortableJS:
  *
  * <section data-board-column> <span data-board-count>3</span>
- *   <ul data-controller="board" data-board-place-value="in_progress">
+ *   <ul data-controller="board" data-board-place-value="in_progress" data-board-rank-value="true">
  *     <li data-board-key="MD-SPT-12" data-board-places="to_test done new" data-board-forced="new">
  *
  * A card goes only to the places its `data-board-places` lists, computed
@@ -23,8 +24,13 @@ import Sortable from 'sortablejs';
  * (`board-pending`): one move is settled at a time. A column that loaded
  * again in the meantime was drawn by the server as it had the issue then,
  * so both ends are looked up by their place and by what they hold now.
- * The order within a column is the server's the next time the column
- * loads.
+ *
+ * The order of a column is kept by the server. Where the viewer may rank
+ * (`data-board-rank-value`), a card is also dragged within its column and
+ * Board:Move is told the two cards it was dropped between, as it is for a
+ * card dropped on another column. A card moved but not ranked (`top` in
+ * `board:moved`: the viewer may not) goes on top of its column, where
+ * every issue arrives.
  */
 
 /** Where the card being dragged came from: its place and the card that followed it. */
@@ -36,14 +42,14 @@ const pending = new Map();
 const listOf = (place) => document.querySelector(`[data-controller~="board"][data-board-place-value="${CSS.escape(place)}"]`);
 
 export default class extends Controller {
-    static values = { place: String };
+    static values = { place: String, rank: Boolean };
 
     connect() {
         this.settle = this.settle.bind(this);
         window.addEventListener('board:moved', this.settle);
         this.sortable = Sortable.create(this.element, {
             group: 'board',
-            sort: false,
+            sort: this.rankValue,
             draggable: 'li[data-board-key]',
             filter: '.board-locked, .board-pending',
             preventOnFilter: false,
@@ -63,12 +69,8 @@ export default class extends Controller {
 
                 return allowed;
             },
-            onAdd: (event) => {
-                const key = event.item.dataset.boardKey;
-                event.item.classList.add('board-pending');
-                pending.set(key, { card: event.item, origin: origins.get(event.item), to: this.placeValue });
-                this.move(key);
-            },
+            onAdd: (event) => this.dropped(event.item, 'move', { place: this.placeValue }),
+            onUpdate: (event) => this.dropped(event.item, 'rank'),
         });
     }
 
@@ -113,13 +115,23 @@ export default class extends Controller {
         }
     }
 
-    async move(key) {
+    /**
+     * A card was dropped in this column, from another one (`move`) or from
+     * another rank (`rank`): it waits there while Board:Move settles it,
+     * told the cards it now stands between.
+     */
+    async dropped(card, action, args = {}) {
+        const key = card.dataset.boardKey;
+        card.classList.add('board-pending');
+        pending.set(key, { card, origin: origins.get(card), to: this.placeValue });
+        const above = card.previousElementSibling?.dataset.boardKey;
+        const below = card.nextElementSibling?.dataset.boardKey;
         const mover = document.querySelector('[data-board-move]');
         if (!mover) {
             return;
         }
         const component = await getComponent(mover);
-        component.action('move', { key, place: this.placeValue });
+        component.action(action, { key, ...args, ...(above ? { above } : {}), ...(below ? { below } : {}) });
     }
 
     /**
@@ -127,7 +139,7 @@ export default class extends Controller {
      * it for the board.
      */
     settle(event) {
-        const { key, applied, places, forced } = event.detail || {};
+        const { key, applied, top, places, forced } = event.detail || {};
         const move = pending.get(key);
         if (!move?.origin) {
             return;
@@ -150,13 +162,17 @@ export default class extends Controller {
             return;
         }
         redrawn?.remove();
-        if (!card.isConnected) {
+        if (!card.isConnected || top) {
             target?.prepend(card);
         }
         card.dataset.boardPlaces = (places || []).join(' ');
         card.dataset.boardForced = (forced || []).join(' ');
-        card.classList.toggle('board-locked', 0 === (places || []).length);
-        card.classList.toggle('cursor-grab', (places || []).length > 0);
+        const locked = 0 === (places || []).length && !this.rankValue;
+        card.classList.toggle('board-locked', locked);
+        card.classList.toggle('cursor-grab', !locked);
+        if (from === target) {
+            return;
+        }
         if (from) {
             this.count(from, -1);
         }

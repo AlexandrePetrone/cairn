@@ -69,11 +69,15 @@ final readonly class ListScope
     }
 
     /**
-     * The column the list is sorted by, when it shows it.
+     * The column the list is sorted by, when it shows it: no table has a
+     * column for the rank, which orders the kanban.
      */
     public function sort(IssueListFilters $filters): ?IssueSort
     {
-        return IssueSort::Project === $filters->sort && !$this->showProject ? null : $filters->sort;
+        return match (true) {
+            IssueSort::Rank === $filters->sort, IssueSort::Project === $filters->sort && !$this->showProject => null,
+            default => $filters->sort,
+        };
     }
 
     /**

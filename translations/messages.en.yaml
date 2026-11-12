@@ -809,6 +809,9 @@ permission:
         force_place:
             label: Move an issue to any step
             help: Put an issue on any step of its workflow without going through an action, to fix a mistake; the history keeps the move.
+        rank:
+            label: Arrange the kanban
+            help: 'Drag the cards of a kanban column into the order wanted; everyone sees the same order.'
         assign:
             label: Assign issues
             help: Choose who handles an issue, among the members of the project.

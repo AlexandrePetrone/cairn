@@ -56,7 +56,7 @@ final class IssueCollectionProvider implements ProviderInterface
             $project = $this->lookup->findProject($filters->getString('project')) ?? throw new BadRequestHttpException('project: no such project.');
             $projectId = (int) $project->getId();
         }
-        $sort = $filters->has('sort') ? (IssueSort::tryFrom($filters->getString('sort')) ?? throw new BadRequestHttpException('sort: unknown column.')) : null;
+        $sort = $filters->has('sort') ? (self::sort($filters->getString('sort')) ?? throw new BadRequestHttpException('sort: unknown column.')) : null;
         $order = match ($filters->getString('order', 'asc')) {
             'asc' => \SortDirection::Ascending,
             'desc' => \SortDirection::Descending,
@@ -101,6 +101,16 @@ final class IssueCollectionProvider implements ProviderInterface
         }
 
         return $values;
+    }
+
+    /**
+     * A column a program may sort by: the rank orders the kanban only.
+     */
+    private static function sort(string $value): ?IssueSort
+    {
+        $sort = IssueSort::tryFrom($value);
+
+        return IssueSort::Rank === $sort ? null : $sort;
     }
 
     /**

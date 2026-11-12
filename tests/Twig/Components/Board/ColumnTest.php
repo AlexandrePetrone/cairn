@@ -45,6 +45,19 @@ final class ColumnTest extends KernelTestCase
         self::assertStringContainsString('board-locked', $render);
     }
 
+    public function testOnlyWhoeverMayRankSortsTheColumn(): void
+    {
+        self::assertStringContainsString('data-board-rank-value="true"', (string) $this->column('new', 'thomas.girard@cairn.test')->render());
+        self::assertStringContainsString('data-board-rank-value="false"', (string) $this->column('new', 'claire.martin@maison-dupont.test')->render());
+    }
+
+    public function testTheLatestArrivalIsOnTop(): void
+    {
+        $this->scene->bug('Just in');
+
+        self::assertMatchesRegularExpression('/^[^$]*?data-board-key="(?!MD-SPT-[12]")/', (string) $this->column('new', 'thomas.girard@cairn.test')->render(), 'before the two issues the scene starts with');
+    }
+
     public function testTheFiltersOfTheAddressApplyAsTheyDoToTheList(): void
     {
         $render = (string) $this->column('new', 'thomas.girard@cairn.test', ['query' => ['criticality' => ['blocking'], 'places' => ['bug:done'], 'group' => 'assignee', 'sort' => 'title']])->render();

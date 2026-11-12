@@ -64,6 +64,8 @@ return new InstanceDefinition(
         // may leave the workflow shown to clients, and the journal says so.
         Permission::IssueForcePlace->value => $internal,
         Permission::IssueAssign->value => $internal,
+        // The order of a kanban column is shared: add a client role to let clients order their backlog.
+        Permission::IssueRank->value => $internal,
         Permission::IssueSetCriticality->value => $internalAndClient,
         Permission::IssueSetPrivate->value => $internal,
         Permission::IssueSetRelease->value => $internal,

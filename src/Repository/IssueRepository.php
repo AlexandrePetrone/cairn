@@ -8,6 +8,7 @@ use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\Tracker;
+use App\Message\Query\Issue\IssueSort;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
@@ -76,8 +77,11 @@ class IssueRepository extends ServiceEntityRepository
     /**
      * Bulk move of the issues sitting on a place, with the status that
      * goes with the target place. `closedAt` is set on issues not yet
-     * closed when given, cleared when null. Touches nothing else: a move
-     * is not an activity on the issues.
+     * closed when given, cleared when null. The kanban columns that took
+     * them are ranked anew, the newcomers among the cards already there by
+     * the rank they had: two columns count their ranks alike, so merged
+     * they would hold equal ones. Touches nothing else: a move is not an
+     * activity on the issues.
      *
      * @return int number of issues moved
      */
@@ -91,7 +95,9 @@ class IssueRepository extends ServiceEntityRepository
         }
         $closing->getQuery()->execute();
 
-        return (int) $this->onPlace($workflowId, $fromPlaceId)
+        $trackerIds = $this->onPlace($workflowId, $fromPlaceId)->select('DISTINCT IDENTITY(i.tracker)')->getQuery()->getSingleColumnResult();
+
+        $moved = (int) $this->onPlace($workflowId, $fromPlaceId)
             ->update()
             ->set('i.place', ':to')
             ->set('i.status', ':status')
@@ -99,6 +105,104 @@ class IssueRepository extends ServiceEntityRepository
             ->setParameter('status', $toStatus)
             ->getQuery()
             ->execute();
+
+        foreach ($trackerIds as $trackerId) {
+            $this->spreadRanks($this->getEntityManager()->getReference(Tracker::class, (int) $trackerId) ?? throw new \LogicException('A tracker that holds issues exists.'), $toPlaceId);
+        }
+
+        return $moved;
+    }
+
+    /**
+     * The highest rank of a kanban column, whoever looks; null when the
+     * column is empty.
+     */
+    public function topRank(Tracker $tracker, string $place): ?int
+    {
+        $rank = $this->inColumn($tracker, $place)->select('MAX(i.boardRank)')->getQuery()->getSingleScalarResult();
+
+        return null === $rank ? null : (int) $rank;
+    }
+
+    /**
+     * The rank of what stands right under an issue in its column, the
+     * issue being placed left aside; null at the bottom.
+     */
+    public function rankBelow(Issue $neighbour, Issue $placed): ?int
+    {
+        $rank = $this->inColumn($neighbour->getTracker(), $neighbour->getPlace())
+            ->select('MAX(i.boardRank)')
+            ->andWhere('i.boardRank < :rank')
+            ->andWhere('i != :placed')
+            ->setParameter('rank', $neighbour->getBoardRank())
+            ->setParameter('placed', $placed)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return null === $rank ? null : (int) $rank;
+    }
+
+    /**
+     * The rank of what stands right over an issue in its column, the
+     * issue being placed left aside; null at the top.
+     */
+    public function rankAbove(Issue $neighbour, Issue $placed): ?int
+    {
+        $rank = $this->inColumn($neighbour->getTracker(), $neighbour->getPlace())
+            ->select('MIN(i.boardRank)')
+            ->andWhere('i.boardRank > :rank')
+            ->andWhere('i != :placed')
+            ->setParameter('rank', $neighbour->getBoardRank())
+            ->setParameter('placed', $placed)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return null === $rank ? null : (int) $rank;
+    }
+
+    /**
+     * Whether another issue of the column stands at the very rank of this
+     * one, the issue being placed left aside: nothing then says which of
+     * them is right under or over it.
+     */
+    public function sharesRank(Issue $neighbour, Issue $placed): bool
+    {
+        return 0 < (int) $this->inColumn($neighbour->getTracker(), $neighbour->getPlace())
+            ->select('COUNT(i.id)')
+            ->andWhere('i.boardRank = :rank')
+            ->andWhere('i NOT IN (:aside)')
+            ->setParameter('rank', $neighbour->getBoardRank())
+            ->setParameter('aside', [$neighbour, $placed])
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /**
+     * Ranks a kanban column anew, a step between each issue, in the order
+     * it shows (IssueOrder): what is done when two issues stand too close
+     * for a third to fit between them, or at the same rank. Entities already loaded keep their
+     * former rank until refreshed.
+     */
+    public function spreadRanks(Tracker $tracker, string $place): void
+    {
+        $ids = IssueOrder::apply($this->inColumn($tracker, $place)->select('i.id'), sort: IssueSort::Rank, order: \SortDirection::Descending)
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        $connection = $this->getEntityManager()->getConnection();
+        $table = $this->getClassMetadata()->getTableName();
+        foreach (array_reverse($ids) as $index => $id) {
+            $connection->update($table, ['board_rank' => $index * Issue::RANK_STEP], ['id' => $id]);
+        }
+    }
+
+    private function inColumn(Tracker $tracker, string $place): QueryBuilder
+    {
+        return $this->createQueryBuilder('i')
+            ->andWhere('i.tracker = :tracker')
+            ->andWhere('i.place = :place')
+            ->setParameter('tracker', $tracker)
+            ->setParameter('place', $place);
     }
 
     private function onPlace(string $workflowId, string $placeId): QueryBuilder

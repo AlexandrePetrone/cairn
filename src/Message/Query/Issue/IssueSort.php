@@ -18,4 +18,6 @@ enum IssueSort: string
     case Criticality = 'criticality';
     case Assignee = 'assignee';
     case Updated = 'updated';
+    /** The order of a kanban column (Issue::$boardRank), descending for the top first; no table offers it. */
+    case Rank = 'rank';
 }

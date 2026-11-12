@@ -35,7 +35,7 @@ final class IssueApiTest extends ApiTestCase
     {
         $secret = $this->tokenFor(self::DEVELOPER)->secret;
 
-        foreach (['project=XX-YY', 'criticality[]=urgent', 'sort=color', 'tracker[]=bug', 'assignee[]=nobody'] as $filter) {
+        foreach (['project=XX-YY', 'criticality[]=urgent', 'sort=color', 'sort=rank', 'tracker[]=bug', 'assignee[]=nobody'] as $filter) {
             $this->api('GET', '/api/issues?'.$filter, $secret);
             // 422 when API Platform refuses the value against the schema of the parameter, 400 when the provider does.
             self::assertContains($this->client->getResponse()->getStatusCode(), [400, 422], $filter);

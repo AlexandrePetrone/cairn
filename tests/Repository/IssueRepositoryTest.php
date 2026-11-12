@@ -77,10 +77,33 @@ final class IssueRepositoryTest extends KernelTestCase
         self::assertSame('2026-03-03 10:00:00', $reloaded->getClosedAt()?->format('Y-m-d H:i:s'), 'closed by the move');
         self::assertSame($a->getUpdatedAt()->format('Y-m-d H:i:s'), $reloaded->getUpdatedAt()->format('Y-m-d H:i:s'), 'a move is not an activity');
 
+        $ranks = $this->entityManager->getRepository(Issue::class)->findBy(['tracker' => $this->fixtures->bugs, 'place' => 'done'], ['boardRank' => 'DESC']);
+        self::assertSame(['B', 'A'], array_map(static fn (Issue $issue): string => $issue->getTitle(), $ranks), 'the column that took them keeps their order');
+
         $this->issues->moveFromPlace('bug', 'done', 'new', PlaceStatus::Open, null);
         $this->entityManager->clear();
         $reopened = $this->entityManager->find(Issue::class, $b->getId());
         self::assertInstanceOf(Issue::class, $reopened);
         self::assertNull($reopened->getClosedAt(), 'reopened by the move');
+    }
+
+    public function testAColumnThatTakesTheIssuesOfARemovedPlaceHoldsNoTwoAtTheSameRank(): void
+    {
+        $commands = self::commandBus();
+        $developer = (int) $this->fixtures->developer->getId();
+        foreach (['A', 'B', 'C', 'D'] as $index => $title) {
+            $issue = $this->fixtures->createIssue($this->fixtures->client, title: $title);
+            if ($index < 2) {
+                $commands->dispatch(new ApplyTransition($developer, $issue->getKey(), 'start'));
+            }
+        }
+
+        // Both columns ranked their two issues 0 and one step.
+        $this->issues->moveFromPlace('bug', 'new', 'in_progress', PlaceStatus::InProgress, null);
+
+        $this->entityManager->clear();
+        $ranks = array_map(static fn (Issue $issue): int => $issue->getBoardRank(), $this->entityManager->getRepository(Issue::class)->findBy(['place' => 'in_progress']));
+        self::assertCount(4, $ranks);
+        self::assertCount(4, array_unique($ranks));
     }
 }

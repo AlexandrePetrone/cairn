@@ -59,6 +59,7 @@ final class ChangeTrackerHandler
         $place = $workflow->place($command->placeId);
 
         $issue->changeTracker($tracker, $place);
+        $this->support->arrive($issue);
         $this->support->record(new IssueMoved($issue, $actor, [JournalEntry::trackerChanged($issue, $actor, $current, $previousPlace, $tracker, $place)]));
 
         return $issue;

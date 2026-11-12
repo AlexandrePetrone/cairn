@@ -79,6 +79,18 @@ final class IssueListTest extends WebTestCase
         self::assertSelectorTextContains('tbody', 'Endless spinner on the cart page');
     }
 
+    public function testTheOrderOfTheKanbanIsNotASortOfTheTable(): void
+    {
+        $this->signInAs('nadia.benali@cairn.test');
+
+        $default = $this->client->request('GET', '/MD/SPT/issues')->filter('tbody tr')->each(static fn ($row): string => $row->text());
+        $ranked = $this->client->request('GET', '/MD/SPT/issues?sort=rank&order=desc')->filter('tbody tr')->each(static fn ($row): string => $row->text());
+
+        self::assertNotSame([], $default);
+        self::assertSame($default, $ranked);
+        self::assertSelectorNotExists('th[aria-sort]');
+    }
+
     public function testUsersSeePlacesNeverStatuses(): void
     {
         $this->signInAs('nadia.benali@cairn.test');

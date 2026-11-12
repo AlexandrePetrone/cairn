@@ -71,6 +71,7 @@ final class CreateIssueHandler
             $issue->makePrivate();
         }
 
+        $this->support->arrive($issue);
         $this->entityManager->persist($issue);
 
         // Files sent while writing the issue were uploaded before it existed.

@@ -53,6 +53,7 @@ final class IssueOrder
                 IssueSort::Criticality => self::by($queryBuilder, 'sortCriticality', self::CRITICALITY_RANK, \SortDirection::Ascending === $order ? \SortDirection::Descending : \SortDirection::Ascending),
                 IssueSort::Assignee => self::byAssignee($queryBuilder, 'sort', $order),
                 IssueSort::Updated => $queryBuilder->addOrderBy('i.updatedAt', $direction),
+                IssueSort::Rank => $queryBuilder->addOrderBy('i.boardRank', $direction),
             };
         }
 

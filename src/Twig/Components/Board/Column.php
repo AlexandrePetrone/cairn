@@ -11,6 +11,7 @@ use App\Form\IssueListFilters;
 use App\Message\QueryBus;
 use App\Repository\Pagination;
 use App\Security\AccessControl;
+use App\Security\Permission;
 use App\Security\PlaceMove;
 use App\Security\Viewer;
 use App\Twig\Components\IssueList\ListChoices;
@@ -27,7 +28,9 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * browser cannot change). Board:Columns renders it lazily, so a column
  * loads when it shows; it then grows by batches, never the whole board at
  * once. The closed places start folded: a narrow rail that counts the
- * issues only, unfolded on demand, where a card can still be dropped. Each
+ * issues only, unfolded on demand, where a card can still be dropped. The
+ * cards come in the order of the column (IssueSort::Rank), which whoever
+ * holds `issue.rank` changes by dragging. Each
  * card says which places the viewer may move it to, and which of them lie
  * outside the workflow (`issue.force_place`); Board:Move moves it
  * and the `board` controller keeps the columns right without asking them
@@ -107,6 +110,14 @@ final class Column
         $moves = $this->access->movesFor($this->viewer->get(), $issue);
 
         return ['places' => PlaceMove::placeIds($moves), 'forced' => PlaceMove::placeIds($moves, forcedOnly: true)];
+    }
+
+    /**
+     * Whether the viewer arranges the cards of a column by hand.
+     */
+    public function canRank(): bool
+    {
+        return $this->access->isGranted($this->viewer->get(), Permission::IssueRank, $this->tracker->getProject());
     }
 
     #[LiveAction]

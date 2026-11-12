@@ -24,8 +24,12 @@ use function Symfony\Component\Clock\now;
 #[ORM\UniqueConstraint(name: 'uniq_issue_project_number', columns: ['project_id', 'number'])]
 #[ORM\Index(name: 'idx_issue_project_status', columns: ['project_id', 'status'])]
 #[ORM\Index(name: 'idx_issue_assignee_status', columns: ['assignee_id', 'status'])]
+#[ORM\Index(name: 'idx_issue_board', columns: ['tracker_id', 'place', 'board_rank'])]
 class Issue implements HasPlace
 {
+    /** The gap left between two issues ranked one after the other. */
+    public const int RANK_STEP = 65_536;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -56,6 +60,10 @@ class Issue implements HasPlace
 
     #[ORM\Column(length: 20, enumType: PlaceStatus::class)]
     private PlaceStatus $status;
+
+    /** Where the issue stands in its kanban column, the highest first; compared within one tracker and one place only. */
+    #[ORM\Column(type: Types::BIGINT, options: ['default' => 0])]
+    private int $boardRank = 0;
 
     #[ORM\Column(length: 20, enumType: Criticality::class)]
     private Criticality $criticality = Criticality::DEFAULT;
@@ -168,6 +176,20 @@ class Issue implements HasPlace
     {
         $this->tracker = $tracker;
         $this->moveTo($place);
+    }
+
+    public function getBoardRank(): int
+    {
+        return $this->boardRank;
+    }
+
+    /**
+     * Places the issue in its kanban column. Not an activity on the issue:
+     * nothing else changes.
+     */
+    public function rankAt(int $rank): void
+    {
+        $this->boardRank = $rank;
     }
 
     public function getCriticality(): Criticality

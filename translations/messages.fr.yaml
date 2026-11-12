@@ -809,6 +809,9 @@ permission:
         force_place:
             label: Déplacer une demande sur n'importe quelle étape
             help: Placer une demande sur une étape de son workflow sans passer par une action, pour corriger une erreur ; l'historique garde le déplacement.
+        rank:
+            label: Ranger le kanban
+            help: 'Glisser les cartes d''une colonne du kanban dans l''ordre voulu ; tout le monde voit le même ordre.'
         assign:
             label: Assigner les demandes
             help: Choisir qui traite une demande, parmi les membres du projet.

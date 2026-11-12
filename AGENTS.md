@@ -295,7 +295,8 @@ src/
   the entries, touches the issue and dispatches the event with the
   EventDispatcher, inside the transaction, so a listener may still write
   (`SubscriptionRules`). One event per command and per issue: linking
-  dispatches one for each end. Nothing has an id when the event fires;
+  dispatches one for each end; `RankIssue`, which arranges the kanban,
+  records nothing. Nothing has an id when the event fires;
   `Notification/NotificationDispatcher` keeps the events it listens to
   until Doctrine's `postFlush`, then dispatches `NotifyIssueChange` (ids
   only) on the default bus with `DispatchAfterCurrentBusStamp`: the
@@ -507,6 +508,32 @@ src/
   it may now go to and the controller updates the card and the counts
   of the two columns without reading them again; refused or cancelled,
   the controller puts the card back.
+- **A column is in the order people give it.** `Issue::$boardRank` is
+  the place of an issue in its column, the highest on top, compared
+  within one tracker and one place only; the board reads it as a sort
+  like another (`IssueSort::Rank`, descending), that no table offers
+  (`ListScope::sort()`) and the API refuses: criticality does not order
+  a column, and the lists know nothing of the rank. An issue that enters
+  a place arrives on top, a step (`Issue::RANK_STEP`) over the highest
+  rank there: `IssueHandlerSupport::arrive()`, called wherever a place is
+  taken (creation, `transition()`, forced place, change of tracker).
+  Whoever holds `issue.rank` (the agency in the example; not
+  internal-only, a client role may order its backlog) drags a card within
+  its column, closed places included, or drops it between two cards of
+  another: the `board` controller sends the two cards it stands between,
+  and `RankIssue` gives it the rank halfway between the one above (else
+  the one below) and what follows it in the whole column, so a filtered
+  column, hidden private issues or a column loaded by batches give one
+  answer. When no rank fits, or the neighbour shares its rank,
+  `IssueRepository::spreadRanks()` ranks the column anew once; the sync
+  does the same to a column that took the issues of a removed place
+  (`moveFromPlace()`), since two columns count their ranks alike. `Board:Move` ranks after the move, two ordinary
+  commands; a card moved by someone who may not rank goes on top (`top`
+  in `board:moved`). Ranking is the one issue command that does not call
+  `record()`: no journal entry, no event, `updatedAt` untouched, since
+  arranging the board is not an activity on the issue. Accepted: two
+  people ranking at once, the last one wins and the other sees it when
+  the column loads again.
 - **Bulk actions go through a selection page.** Rows of `IssueList:Table`
   are checked page by page; the selection bar is a GET form that sends
   the selection page the ids and the filtered list to come back to

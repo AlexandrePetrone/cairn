@@ -56,6 +56,7 @@ final class MoveIssueHandler
         }
 
         $issue->moveTo($to);
+        $this->support->arrive($issue);
         $this->support->record(new IssueMoved($issue, $actor, [JournalEntry::moved($issue, $actor, $from, $to)]));
 
         return $issue;
