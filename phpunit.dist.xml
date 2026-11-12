@@ -20,6 +20,9 @@
         <!-- The Docker stack sets these for the dev server: tests keep their own. -->
         <env name="DEFAULT_URI" value="http://localhost" force="true" />
         <env name="MAILER_DSN" value="null://null" force="true" />
+        <!-- No hub: nothing is published; the tests of src/Realtime/ give themselves one. -->
+        <env name="MERCURE_URL" value="" force="true" />
+        <env name="MERCURE_PUBLIC_URL" value="http://localhost/.well-known/mercure" force="true" />
     </php>
 
     <testsuites>

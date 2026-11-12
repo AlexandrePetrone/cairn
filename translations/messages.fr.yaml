@@ -192,6 +192,8 @@ issue:
             all: Demandes
             assigned: Demandes assignées à moi
             created: Demandes créées par moi
+        changed: La liste a changé.
+        refresh: Actualiser
         count: '{0}Aucune demande|{1}1 demande|]1,Inf[ %count% demandes'
         scope:
             label: Demandes affichées

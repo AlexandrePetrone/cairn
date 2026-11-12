@@ -20,6 +20,21 @@
 
 	{$CADDY_SERVER_EXTRA_DIRECTIVES}
 
+	# The Mercure hub built into FrankenPHP, at /.well-known/mercure: it tells the pages that an
+	# issue changed (src/Realtime/). It trusts the tokens the application signs with
+	# MERCURE_JWT_SECRET as MERCURE_JWT_ISSUER; no anonymous subscriber, no history.
+	mercure {
+		transport local
+		issuer {$MERCURE_JWT_ISSUER:https://localhost} {
+			publisher {
+				jwt "{$MERCURE_JWT_SECRET:!ChangeThisMercureHubJWTSecretKey!}"
+			}
+			subscriber {
+				jwt "{$MERCURE_JWT_SECRET:!ChangeThisMercureHubJWTSecretKey!}"
+			}
+		}
+	}
+
 	# Classic mode: one PHP execution per request, no shared state between requests.
 	php_server {
 		{$FRANKENPHP_SITE_CONFIG}

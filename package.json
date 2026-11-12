@@ -18,6 +18,7 @@
         "@tiptap/pm": "3.32.2",
         "@tiptap/starter-kit": "3.32.2",
         "@tiptap/suggestion": "3.32.2",
+        "event-source-polyfill": "^1.0.31",
         "mermaid": "12.2.0",
         "sortablejs": "^1.15.6"
     },

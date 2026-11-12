@@ -14,6 +14,10 @@ x-php: &php
     DEFAULT_URI: http://localhost:${HTTP_PORT:-8000}
     # Mailpit (the "mailer" service below); its inbox is http://localhost:8025.
     MAILER_DSN: smtp://mailer:1025
+    # Real time: the hub built into FrankenPHP (docker/Caddyfile), reached by the application
+    # inside the stack and by the browser at the address of the site.
+    MERCURE_URL: http://php/.well-known/mercure
+    MERCURE_PUBLIC_URL: http://localhost:${HTTP_PORT:-8000}/.well-known/mercure
     # Read by vite.config.ts: the address the browser reaches the dev server at.
     VITE_PORT: ${VITE_PORT:-5173}
     # See https://xdebug.org/docs/all_settings#mode

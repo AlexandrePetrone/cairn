@@ -14,9 +14,9 @@ Symfony 8.1 on PHP 8.4, installed from `webapp-pack`. Check `composer.json`
 for the exact versions and `symfony.lock` for which recipes ran. Already in
 place: Doctrine ORM + migrations, Messenger (Doctrine transport), Form,
 Validator, Serializer, Security, Twig, Mailer, Notifier, Translation,
-Stimulus, Turbo, Scheduler, Reprise (`symfony/reprise`) for the assets, and
+Stimulus, Turbo, Scheduler, Reprise (`symfony/reprise`) for the assets,
 API Platform (`api-platform/symfony`, without its Doctrine bridge) for the
-REST API.
+REST API, and Mercure (`symfony/mercure-bundle`) for the optional real time.
 
 Decisions already taken:
 
@@ -141,6 +141,8 @@ src/
                      change (ChangeFilter), when the grouped mails leave
                      (ProjectMailSender), the mails (IssueMailer,
                      AccountMailer)
+  Realtime/          the signal that an issue changed, published to a Mercure
+                     hub when there is one (IssueBroadcaster, ProjectTopics)
   Api/               the REST API, self-contained: Resource/ the classes API
                      Platform exposes and their inputs, State/ the providers
                      and processors that ask the buses, Mapper/ what turns
@@ -654,6 +656,54 @@ src/
   by hand, `--now` everything that waits. `MAILER_FROM` and
   `DEFAULT_URI` are set per environment.
 
+### Real time
+
+- **Real time is a signal, and it is optional.** With a Mercure hub
+  (`MERCURE_URL`), the lists and the kanbans of a project follow what
+  others do; without one nothing is published and no page listens
+  (`Realtime/ProjectTopics::enabled()`, the one place that says so).
+  `Realtime/IssueBroadcaster` listens to the domain events as
+  `NotificationDispatcher` does, waits for `postFlush`, and dispatches a
+  Mercure `Update` with `DispatchAfterCurrentBusStamp`, routed to
+  `async`: the worker publishes, so a hub that is slow or down never
+  holds a request. An update carries no content: the id of the issue,
+  its tracker, its place and the place it just left. A page that hears it reads again
+  what it shows through the queries it was drawn with, so `Visibility`,
+  the filters and the rights are written nowhere else; never broadcast
+  HTML or data (no Turbo Stream broadcast): everyone would get the same.
+  Even a signal says something, so a project has two topics, both
+  private: `projects/{id}/internal` hears every change,
+  `projects/{id}` only those an external user may see (the issue is not
+  private, and the change carries something else than a private comment
+  or private journal lines; a transition always counts, since its place
+  shows). An issue that just left their sight (made private, moved to
+  another tracker) is named once more on it, by its id alone. A page
+  is given what it listens to, never more: `realtime_topics(project)`
+  (`Twig/RealtimeExtension`: both topics for an internal user, one for a
+  client, none without a hub) for the address of the hub, built by the
+  bundle's `mercure()` Twig function, and `realtime_token(project)`, a
+  token signed for the hub that allows those topics only, for twelve
+  hours. The controller sends it in an `Authorization` header, which
+  the browser's `EventSource` cannot do, hence `event-source-polyfill`.
+  No cookie: a browser has one for all its tabs, so a tab on another
+  project would take the right away from the first. The hub must refuse
+  anonymous subscribers, or a topic could be heard by its name alone.
+  The `live-updates` controller sits on the `issues` frame of a
+  project's list (`issue/_results.html.twig`): it hears the viewer's
+  own changes too (they may have another tab open), gathers them for a
+  moment and waits for a hidden tab to show. The list of a tracker leaves the changes of
+  the other trackers alone. A kanban redraws the `Board:Column` that
+  holds the card and those of the place the issue left and of the one
+  it is at, never while a card is
+  dragged or being settled; a table reloads its frame (without telling
+  `list-view` to remember), unless rows are checked: it then shows
+  "The list has changed" and waits to be asked. Outside for now: the
+  lists across projects (they would need a topic per person), the page
+  of an issue, and the rank (`RankIssue` records no event). In dev the
+  hub is the one built into FrankenPHP (`docker/Caddyfile`); the tests
+  run without a hub, except those that give themselves one
+  (`IssueBroadcasterTest`, `LiveUpdatesTest`).
+
 ### Forges
 
 - **Code references come from the forges, for the agency only.** A
@@ -1083,7 +1133,7 @@ src/
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`, `dialog`,
   `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`,
   `workflow-diagram`, `sortable`, `list-filter`, `combobox`, `board`,
-  `load-more`, `clipboard`, `filters`, `selection`, `fold`, `list-view`, `theme`, `panels`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
+  `load-more`, `clipboard`, `filters`, `selection`, `fold`, `list-view`, `live-updates`, `theme`, `panels`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
   (`editor` with TipTap, `workflow-diagram` with Mermaid, `board` with
   SortableJS) so that Vite
   splits its imports into chunks only fetched on a page that uses it; write a new one when a component needs it, not before. No
@@ -1201,14 +1251,15 @@ Castor are the only things needed on the host. Commands run inside the
   dependencies, creates the dev and test databases, applies the schema,
   loads the development data and starts the stack. `castor start` and
   `castor stop` afterwards; `castor list` shows every task.
-- The services: `php` (FrankenPHP, <http://localhost:8000>), `messenger`
-  (`messenger:consume async scheduler_default`: notification mails and
-  scheduled tasks), `vite` (the Vite dev server with hot reload, port 5173),
+- The services: `php` (FrankenPHP, <http://localhost:8000>, with its
+  built-in Mercure hub at `/.well-known/mercure`), `messenger`
+  (`messenger:consume async scheduler_default`: notification mails,
+  real-time signals and scheduled tasks), `vite` (the Vite dev server with hot reload, port 5173),
   `storia` (live reload of `/storia`), `database` (PostgreSQL 18) and
   `mailer` (Mailpit, <http://localhost:8025>). `HTTP_PORT`, `VITE_PORT`
   and `MAILPIT_PORT` change the published ports. `compose.yaml` injects
-  `DATABASE_URL`, `MAILER_DSN` and `DEFAULT_URI`; other overrides go in
-  `.env.local`.
+  `DATABASE_URL`, `MAILER_DSN`, `DEFAULT_URI`, `MERCURE_URL` and
+  `MERCURE_PUBLIC_URL`; other overrides go in `.env.local`.
 - Commands in the container: `castor console <command>` (`bin/console`),
   `castor composer …`, `castor npm …`, `castor sh`. The `messenger`
   worker loads the code once: `castor workers:restart` after changing

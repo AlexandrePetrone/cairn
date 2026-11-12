@@ -1,0 +1,14 @@
+# Real time is optional: without MERCURE_URL the hub is never asked anything
+# (Realtime/ProjectTopics::enabled()).
+mercure:
+    hubs:
+        default:
+            url: '%env(default::MERCURE_URL)%'
+            public_url: '%env(MERCURE_PUBLIC_URL)%'
+            jwt:
+                secret: '%env(MERCURE_JWT_SECRET)%'
+                publish: '*'
+                claims:
+                    iss: '%env(MERCURE_JWT_ISSUER)%'
+                    sub: 'cairn'
+                    client_id: 'cairn'

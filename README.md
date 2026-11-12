@@ -69,7 +69,22 @@ ATTACHMENTS_DIR=/var/lib/cairn/attachments
 # Optional: lets project managers install the GitLab webhooks from Cairn
 FORGE_GITLAB_URL=https://gitlab.example
 FORGE_GITLAB_TOKEN=<token with the api scope>
+# Optional: real time, see below
+MERCURE_URL=http://127.0.0.1/.well-known/mercure
+MERCURE_PUBLIC_URL=https://cairn.example/.well-known/mercure
+MERCURE_JWT_SECRET=<random string of 32 characters or more>
+MERCURE_JWT_ISSUER=https://cairn.example
 ```
+
+### Real time (optional)
+
+With a [Mercure](https://mercure.rocks) hub, the issue lists and the kanbans of a project follow what other people change, without reloading. It is off unless `MERCURE_URL` is set: nothing is then published and no page opens a connection.
+
+The hub only carries a signal (an issue of this project changed); each page then reads again what its viewer may see. The worker publishes it, so it must be running. The hub must:
+
+- be reachable by the browsers at `MERCURE_PUBLIC_URL`. FrankenPHP and Caddy have the hub built in (a `mercure` directive, see [`docker/Caddyfile`](docker/Caddyfile)), on the same origin as Cairn; a hub on another origin must allow Cairn's with `cors_origins`;
+- trust the tokens signed with `MERCURE_JWT_SECRET` by the issuer `MERCURE_JWT_ISSUER`, for publishing and for subscribing: each page is given a token for the topics it may listen to;
+- refuse anonymous subscribers (no `anonymous` directive).
 
 ## API
 
@@ -111,8 +126,8 @@ Cairn is then available at <http://localhost:8000>. Every account of the develop
 
 | Service | What it does |
 |---|---|
-| `php` | FrankenPHP serving the application on <http://localhost:8000> |
-| `messenger` | The worker: notification emails and daily tasks |
+| `php` | FrankenPHP serving the application on <http://localhost:8000>, with its built-in Mercure hub for real time |
+| `messenger` | The worker: notification emails, real-time signals and daily tasks |
 | `vite` | The Vite dev server, with hot reload of the CSS and JavaScript (port 5173) |
 | `storia` | Live reload of the component catalogue at <http://localhost:8000/storia> |
 | `database` | PostgreSQL 18 |

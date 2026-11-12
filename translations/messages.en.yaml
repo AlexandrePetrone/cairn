@@ -192,6 +192,8 @@ issue:
             all: Issues
             assigned: Issues assigned to me
             created: Issues created by me
+        changed: The list has changed.
+        refresh: Refresh
         count: '{0}No issues|{1}1 issue|]1,Inf[ %count% issues'
         scope:
             label: Issues shown
