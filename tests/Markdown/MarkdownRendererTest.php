@@ -61,6 +61,17 @@ final class MarkdownRendererTest extends KernelTestCase
         self::assertStringContainsString('href="//cdn.example.test/x"', $html, 'a protocol-relative URL too');
     }
 
+    public function testAnAddressWrittenBareIsALink(): void
+    {
+        $html = $this->renderer->render("See https://docs.example.test/a?b=1#MD-SPT-2. Or www.example.test, or write to help@example.test\n\n`https://code.example.test` [already](https://docs.example.test/b)", $this->user('claire.martin@maison-dupont.test'));
+
+        self::assertStringContainsString('<a rel="noopener noreferrer" target="_blank" href="https://docs.example.test/a?b=1#MD-SPT-2">https://docs.example.test/a?b=1#MD-SPT-2</a>.', $html, 'the final dot is not of the address, and a reference inside it is left alone');
+        self::assertStringContainsString('href="http://www.example.test">www.example.test</a>,', $html);
+        self::assertStringContainsString('<a href="mailto:help@example.test">help@example.test</a>', $html);
+        self::assertStringContainsString('<code>https://code.example.test</code>', $html, 'code stays text');
+        self::assertStringContainsString('href="https://docs.example.test/b">already</a>', $html, 'a link written as one is not linked twice');
+    }
+
     public function testReferencesInCodeStayText(): void
     {
         $html = $this->renderer->render("Type `#MD-SPT-2` or:\n\n```\n#MD-SPT-2 @[Tom](user:1)\n```", $this->user('nadia.benali@cairn.test'));

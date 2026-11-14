@@ -10,6 +10,7 @@ use App\Repository\IssueRepository;
 use App\Repository\UserRepository;
 use App\Security\AccessControl;
 use League\CommonMark\Environment\Environment;
+use League\CommonMark\Extension\Autolink\AutolinkExtension;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\Extension\CommonMark\Node\Inline\Image;
 use League\CommonMark\Extension\CommonMark\Node\Inline\Link;
@@ -25,7 +26,8 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * Turns the markdown written in descriptions and comments into HTML for one
- * reader. Raw HTML is escaped, unsafe links dropped, links to other sites
+ * reader. Raw HTML is escaped, unsafe links dropped, an address written
+ * bare (`https://…`, `www.…`, an email) becomes a link, links to other sites
  * open in a new tab without a referrer, and only attachments are shown as
  * images: a remote image would log who reads the text. The two references
  * are parsed into nodes, then resolved in one query each: `#MD-SPT-12`
@@ -56,6 +58,7 @@ final class MarkdownRenderer
         ]);
         $environment->addExtension(new CommonMarkCoreExtension());
         $environment->addExtension(new StrikethroughExtension());
+        $environment->addExtension(new AutolinkExtension());
         $environment->addExtension(new ExternalLinkExtension());
         $environment->addInlineParser(new IssueReferenceParser());
         $environment->addInlineParser(new MentionParser());
