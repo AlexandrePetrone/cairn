@@ -54,6 +54,44 @@
     </section>
 
     <section class="space-y-2">
+        <h3 class="font-semibold text-strong">{{ 'admin.configuration.workflow.fields'|trans }}</h3>
+        {% if workflow.fields is empty %}
+            <p class="text-sm text-muted">{{ 'admin.configuration.workflow.no_field'|trans }}</p>
+        {% else %}
+            <div class="overflow-x-auto rounded-lg border border-line bg-surface">
+                <table class="w-full text-sm">
+                    <thead class="bg-subtle text-[11px] uppercase tracking-wider text-muted">
+                        <tr>
+                            <th class="px-4 py-2 text-left font-medium">{{ 'admin.configuration.fields.field'|trans }}</th>
+                            <th class="px-4 py-2 text-left font-medium">{{ 'admin.configuration.fields.type'|trans }}</th>
+                            <th class="px-4 py-2 text-left font-medium">{{ 'admin.configuration.fields.filling'|trans }}</th>
+                            <th class="px-4 py-2 text-left font-medium">{{ 'admin.configuration.fields.visibility'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-line-subtle">
+                        {% for fieldUsage in workflow.fields %}
+                            {% set usageField = definition.fields[fieldUsage.field] %}
+                            <tr>
+                                <td class="px-4 py-2 text-strong">{{ usageField.label }}</td>
+                                <td class="px-4 py-2 text-muted">
+                                    {{ ('field_type.' ~ usageField.type.value)|trans }}
+                                    {% if usageField.options is not empty %}<span class="block text-xs text-muted">{{ usageField.options|join(' · ') }}</span>{% endif %}
+                                </td>
+                                <td class="px-4 py-2">
+                                    {% if fieldUsage.required %}<twig:Ui:Badge tone="amber" size="sm">{{ 'admin.configuration.fields.required'|trans }}</twig:Ui:Badge>{% else %}<span class="text-xs text-muted">{{ 'admin.configuration.fields.optional'|trans }}</span>{% endif %}
+                                </td>
+                                <td class="px-4 py-2">
+                                    {% if usageField.internalOnly %}<twig:Ui:Badge size="sm" icon="lock">{{ 'admin.configuration.fields.internal_only'|trans }}</twig:Ui:Badge>{% else %}<span class="text-xs text-muted">{{ 'admin.configuration.fields.everyone'|trans }}</span>{% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </section>
+
+    <section class="space-y-2">
         <h3 class="font-semibold text-strong">{{ 'admin.configuration.workflow.usage'|trans }}</h3>
         {% if usage.trackers is empty %}
             <p class="text-sm text-muted">{{ 'admin.configuration.workflow.unused'|trans }}</p>

@@ -58,26 +58,21 @@ final class ConfigurationTest extends WebTestCase
     {
         $this->signInAsAdmin();
 
-        $crawler = $this->client->request('GET', '/admin/configuration/workflows');
-        self::assertSelectorExists('#bug [data-controller="workflow-diagram"]');
-        self::assertStringContainsString('to_test -.->|"Refuse 💬"| in_progress', $crawler->filter('#bug [data-workflow-diagram-target="source"]')->text(), 'the graph, drawn by the browser');
+        $this->client->request('GET', '/admin/configuration/workflows');
         self::assertSelectorTextContains('#bug', 'Bug');
         self::assertSelectorTextContains('#bug', '1 tracker');
-        self::assertSelectorTextContains('#bug', 'Environment');
-        self::assertSelectorTextContains('#bug', 'Required');
-        self::assertSelectorTextContains('#bug', 'Explain what is wrong', 'the comment prompt of Refuse');
+        self::assertSelectorExists('#bug a[href="/admin/configuration/workflows/bug"]');
+        self::assertSelectorNotExists('[data-controller="workflow-diagram"]', 'the list only leads to the workflows');
 
-        $accept = $crawler->filter('#bug tbody tr')->reduce(static fn ($row): bool => str_starts_with(trim($row->text()), 'Accept'));
-        self::assertCount(1, $accept);
-        self::assertStringContainsString('To test', $accept->text());
-        // Project manager, Developer, Client, Client (read-only), Administrator
-        self::assertSame([true, false, true, false, true], $accept->filter('td')->slice(3)->each(static fn ($cell): bool => $cell->filter('svg')->count() > 0));
-
-        $this->client->request('GET', '/admin/configuration/workflows/bug');
+        $crawler = $this->client->request('GET', '/admin/configuration/workflows/bug');
         self::assertResponseIsSuccessful();
+        self::assertStringContainsString('to_test -.->|"Refuse 💬"| in_progress', $crawler->filter('[data-workflow-diagram-target="source"]')->text(), 'the graph, drawn by the browser');
         self::assertSelectorTextContains('main', 'A new issue starts on "New".');
         self::assertSelectorTextContains('main', 'Comment required');
-        self::assertSelectorTextContains('main table', 'Online shop');
+        self::assertSelectorTextContains('main', 'Explain what is wrong', 'the comment prompt of Refuse');
+        self::assertSelectorTextContains('main', 'Environment');
+        self::assertSelectorTextContains('main', 'Required');
+        self::assertSelectorTextContains('main', 'Online shop');
 
         $this->client->request('GET', '/admin/configuration/workflows/nonsense');
         self::assertResponseStatusCodeSame(404);

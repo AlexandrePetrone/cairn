@@ -538,13 +538,9 @@ admin:
             intro: The rights the configuration gives each role. Workflow actions have their own roles, detailed below.
             permission: Right
         workflows:
-            intro: Each tracker picks a workflow when it is created, for good. For each one, its places (the columns of the kanban), the fields it asks for and the actions moving an issue from one place to another, with the roles that may trigger them. An administrator may trigger them all.
-            graph: Places and moves
-            details: Detailed places and usage →
-            actions: Actions and who may trigger them
-            action: Action
-            from: From
-            to: To
+            intro: Each tracker picks a workflow when it is created, for good. Open one to read its places (the columns of the kanban), the actions moving an issue from one place to another with the roles that may trigger them, and the fields it asks for. An administrator may trigger every action.
+            place_count: '{1}1 place|]1,Inf[ %count% places'
+            action_count: '{0}no action|{1}1 action|]1,Inf[ %count% actions'
             tracker_count: '{0}no tracker|{1}1 tracker|]1,Inf[ %count% trackers'
         workflow:
             initial: 'A new issue starts on "%place%".'

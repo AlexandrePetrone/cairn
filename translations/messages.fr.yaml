@@ -538,13 +538,9 @@ admin:
             intro: Les droits que la configuration donne à chaque rôle. Les actions des workflows ont leurs propres rôles, détaillés plus bas.
             permission: Droit
         workflows:
-            intro: Chaque catégorie choisit un workflow à sa création et le garde. Pour chacun, ses étapes (les colonnes du kanban), les champs qu'il demande et les actions qui font passer d'une étape à l'autre, avec les rôles qui peuvent les déclencher. Un administrateur peut toutes les déclencher.
-            graph: Étapes et passages
-            details: Étapes détaillées et utilisation →
-            actions: Actions et qui peut les déclencher
-            action: Action
-            from: Depuis
-            to: Vers
+            intro: Chaque catégorie choisit un workflow à sa création et le garde. Ouvrez-en un pour lire ses étapes (les colonnes du kanban), les actions qui font passer d'une étape à l'autre avec les rôles qui peuvent les déclencher, et les champs qu'il demande. Un administrateur peut déclencher toutes les actions.
+            place_count: '{1}1 étape|]1,Inf[ %count% étapes'
+            action_count: '{0}aucune action|{1}1 action|]1,Inf[ %count% actions'
             tracker_count: '{0}aucune catégorie|{1}1 catégorie|]1,Inf[ %count% catégories'
         workflow:
             initial: 'Une nouvelle demande commence à l''étape « %place% ».'
