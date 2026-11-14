@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Project;
 
 use App\Entity\Project;
-use App\Form\IssueSelectionRequest;
+use App\Form\Issue\IssueSelectionRequest;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;

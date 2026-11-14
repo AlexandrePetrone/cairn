@@ -7,7 +7,7 @@ namespace App\Twig\Components\Issue;
 use App\Config\ConfigRegistry;
 use App\Config\FieldValue;
 use App\Entity\Issue;
-use App\Form\IssueFieldsType;
+use App\Form\Issue\IssueFieldsType;
 use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
 use App\Security\AccessControl;

@@ -6,10 +6,10 @@ namespace App\Controller;
 
 use App\Attachment\AvatarStorage;
 use App\Entity\User;
-use App\Form\MailSettingsData;
-use App\Form\MailSettingsType;
-use App\Form\PasswordChangeData;
-use App\Form\PasswordChangeType;
+use App\Form\User\MailSettingsData;
+use App\Form\User\MailSettingsType;
+use App\Form\User\PasswordChangeData;
+use App\Form\User\PasswordChangeType;
 use App\Message\Command\User\ChangeAvatar;
 use App\Message\Command\User\ChangePassword;
 use App\Message\Command\User\UpdateUser;

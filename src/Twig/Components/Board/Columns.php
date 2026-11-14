@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Twig\Components\Board;
 
 use App\Config\Definition\PlaceDefinition;
-use App\Form\IssueListFilters;
+use App\Form\Issue\IssueListFilters;
 use App\Twig\Components\IssueList\ListScope;
 use App\Workflow\WorkflowProvider;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;

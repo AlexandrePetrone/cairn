@@ -6,9 +6,9 @@ namespace App\Controller\Admin;
 
 use App\Controller\Project\CurrentProject;
 use App\Entity\Project;
-use App\Form\ProjectData;
-use App\Form\ProjectFilters;
-use App\Form\ProjectType;
+use App\Form\Project\ProjectData;
+use App\Form\Project\ProjectFilters;
+use App\Form\Project\ProjectType;
 use App\Message\Command\Project\CreateProject;
 use App\Message\Command\Project\UpdateProject;
 use App\Message\CommandBus;

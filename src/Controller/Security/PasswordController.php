@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Controller\Security;
 
-use App\Form\PasswordRequestData;
-use App\Form\PasswordRequestType;
-use App\Form\PasswordSetData;
-use App\Form\PasswordSetType;
+use App\Form\User\PasswordRequestData;
+use App\Form\User\PasswordRequestType;
+use App\Form\User\PasswordSetData;
+use App\Form\User\PasswordSetType;
 use App\Message\Command\User\RequestPasswordReset;
 use App\Message\Command\User\ResetPassword;
 use App\Message\CommandBus;

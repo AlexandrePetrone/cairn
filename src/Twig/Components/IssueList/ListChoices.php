@@ -7,7 +7,7 @@ namespace App\Twig\Components\IssueList;
 use App\Entity\Release;
 use App\Entity\Tracker;
 use App\Entity\User;
-use App\Form\IssueListFilters;
+use App\Form\Issue\IssueListFilters;
 use App\Message\Query\Issue\IssueGrouping;
 use App\Message\Query\Issue\IssueSort;
 use App\Message\Query\Issue\SearchIssues;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Entity\User;
-use App\Form\UserData;
+use App\Form\User\UserData;
 use App\Message\Command\User\CreateUser;
 use App\Message\CommandBus;
 use App\MessageHandler\Command\User\UserException;

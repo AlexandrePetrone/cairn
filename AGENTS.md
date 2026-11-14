@@ -132,7 +132,9 @@ src/
   Controller/        one folder per zone of the application (Project/, Admin/,
                      Security/), application-level pages at the root; the
                      webhook endpoint is the Webhook component's controller
-  Form/              form types and their data objects
+  Form/              one folder per domain, as in Message/: form types,
+                     their data objects and what reads a query string
+                     (IssueListFilters); reusable field types in Type/
   Security/          voters, AccessControl and its SQL twin Visibility,
                      authenticators, PasswordTokens (invitation and reset links)
   Twig/Components/   PHP-backed Twig components, when a component needs logic
@@ -177,7 +179,8 @@ src/
   `PlaceStatus` in `Entity/Enum/` because they are persisted, `FieldType` and
   `MigrationPolicy` in `Config/`, forge payloads in `Forge/Event/`, the
   generic `Pagination<T>` in `Repository/` because repositories and query
-  handlers both return it, form data objects in `Form/`. When an enum
+  handlers both return it, form data objects next to their form type in
+  `Form/<Domain>/`. When an enum
   has two owners, persistence wins and `Config/` imports from `Entity/Enum/`.
 - **Controllers and templates are grouped by zone.** A zone is a part of
   the application with its own URL prefix and its own shell:
@@ -245,7 +248,7 @@ src/
   `GrantMembership` / `RevokeMembership`). Don't split an `UpdateX` per
   property or per form: a page edits a resource with one form.
 - **Forms feed commands.** A form binds to a mutable data object in
-  `Form/` (`IssueData`) that carries the input constraints; the controller
+  `Form/<Domain>/` (`Form/Issue/IssueData`) that carries the input constraints; the controller
   turns a valid submission into the readonly command and dispatches it.
   The command keeps its own constraints as the guard of the bus. A
   submitted, invalid form is rendered with status 422, which Turbo needs.
@@ -443,7 +446,7 @@ src/
   for its arrangement.** `SearchIssues` serves every list. The route
   fixes a `ListScope` (`Twig/Components/IssueList/`: project, tracker,
   assignee, author, the filters offered as `dimensions`, the bare path
-  of the list) that the browser cannot change; `Form/IssueListFilters`
+  of the list) that the browser cannot change; `Form/Issue/IssueListFilters`
   reads the query string (filter values, `sort`, `order`, `group`,
   `page`, `view`) and keeps what it understands: a value the list does
   not know is ignored, never an error. `IssueList/ListChoices` gives
@@ -556,7 +559,7 @@ src/
   are checked page by page; the selection bar is a GET form that sends
   the selection page the ids and the filtered list to come back to
   (`from`, kept only when it is a path of this site,
-  `Form/IssueSelectionRequest`). The
+  `Form/Issue/IssueSelectionRequest`). The
   page has a route per zone, `/MD/SPT/issues/selection` for the lists of
   a project and `/issues/selection` for those across projects, and one
   template, `issue/selection.html.twig`, which extends the layout of the
@@ -861,7 +864,7 @@ src/
   the secret that is stored nowhere, carried once to the next page in a
   flash of its own, with a button copying it (the `clipboard`
   controller) and a request to try; `RevokeApiToken` confirms in place.
-  The form offers lifetimes (`Form/ApiTokenData::LIFETIMES`, 90 days by
+  The form offers lifetimes (`Form/ApiToken/ApiTokenData::LIFETIMES`, 90 days by
   default) rather than a date; revoked and expired tokens stay listed
   apart.
 - **The documentation is a page of the application.** `/api/docs`

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Twig\Components\IssueList;
 
-use App\Form\IssueListFilters;
+use App\Form\Issue\IssueListFilters;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 
 /**

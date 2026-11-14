@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\User;
-use App\Form\UserData;
-use App\Form\UserFilters;
-use App\Form\UserType;
+use App\Form\User\UserData;
+use App\Form\User\UserFilters;
+use App\Form\User\UserType;
 use App\Message\Command\User\CreateUser;
 use App\Message\Command\User\InviteUser;
 use App\Message\Command\User\UpdateUser;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\User;
-use App\Form\IssueListFilters;
+use App\Form\Issue\IssueListFilters;
 use App\Message\Command\User\RememberListView;
 use App\Message\CommandBus;
 use App\Repository\ListViewRepository;

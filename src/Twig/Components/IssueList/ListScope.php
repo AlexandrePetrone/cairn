@@ -6,7 +6,7 @@ namespace App\Twig\Components\IssueList;
 
 use App\Entity\Project;
 use App\Entity\Tracker;
-use App\Form\IssueListFilters;
+use App\Form\Issue\IssueListFilters;
 use App\Message\Query\Issue\IssueSort;
 
 /**

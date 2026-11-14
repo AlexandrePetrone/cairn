@@ -6,8 +6,8 @@ namespace App\Controller;
 
 use App\Entity\ApiToken;
 use App\Entity\User;
-use App\Form\ApiTokenData;
-use App\Form\ApiTokenType;
+use App\Form\ApiToken\ApiTokenData;
+use App\Form\ApiToken\ApiTokenType;
 use App\Message\Command\ApiToken\CreateApiToken;
 use App\Message\Command\ApiToken\NewApiToken;
 use App\Message\Command\ApiToken\RevokeApiToken;

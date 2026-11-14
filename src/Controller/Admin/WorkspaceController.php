@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\Workspace;
-use App\Form\WorkspaceData;
-use App\Form\WorkspaceType;
+use App\Form\Workspace\WorkspaceData;
+use App\Form\Workspace\WorkspaceType;
 use App\Message\Command\Workspace\CreateWorkspace;
 use App\Message\Command\Workspace\UpdateWorkspace;
 use App\Message\CommandBus;

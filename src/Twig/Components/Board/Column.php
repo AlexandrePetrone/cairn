@@ -7,7 +7,7 @@ namespace App\Twig\Components\Board;
 use App\Config\Definition\PlaceDefinition;
 use App\Entity\Issue;
 use App\Entity\Tracker;
-use App\Form\IssueListFilters;
+use App\Form\Issue\IssueListFilters;
 use App\Message\QueryBus;
 use App\Repository\Pagination;
 use App\Security\AccessControl;
