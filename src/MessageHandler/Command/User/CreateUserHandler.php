@@ -54,6 +54,9 @@ final class CreateUserHandler
         if (null !== $command->plainPassword) {
             $user->setPassword($this->passwordHasher->hashPassword($user, $command->plainPassword));
         }
+        if (!$command->active) {
+            $user->deactivate();
+        }
 
         $this->entityManager->persist($user);
 

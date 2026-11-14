@@ -25,6 +25,7 @@ use function Symfony\Component\Clock\now;
 #[ORM\Index(name: 'idx_issue_project_status', columns: ['project_id', 'status'])]
 #[ORM\Index(name: 'idx_issue_assignee_status', columns: ['assignee_id', 'status'])]
 #[ORM\Index(name: 'idx_issue_board', columns: ['tracker_id', 'place', 'board_rank'])]
+#[ORM\Index(name: 'idx_issue_imported_ref', columns: ['imported_ref'])]
 class Issue implements HasPlace
 {
     /** The gap left between two issues ranked one after the other. */
@@ -94,6 +95,10 @@ class Issue implements HasPlace
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $closedAt = null;
 
+    /** What named the issue in the tracker it was imported from: searched, shown as "formerly #4812". */
+    #[ORM\Column(length: 60, nullable: true)]
+    private ?string $importedRef = null;
+
     /**
      * @param PlaceDefinition $place where the issue starts, the initial place of the tracker's workflow
      */
@@ -111,9 +116,52 @@ class Issue implements HasPlace
         $this->moveTo($place);
     }
 
+    /**
+     * An issue brought from another tracker as it stood there: its place,
+     * its properties and its dates, from its creation to its last change.
+     *
+     * @param array<string, mixed> $fieldValues
+     */
+    public static function imported(
+        Project $project,
+        Tracker $tracker,
+        PlaceDefinition $place,
+        int $number,
+        User $author,
+        string $title,
+        string $description,
+        Criticality $criticality,
+        ?User $assignee,
+        ?Release $release,
+        bool $private,
+        array $fieldValues,
+        string $importedRef,
+        \DateTimeImmutable $createdAt,
+        \DateTimeImmutable $updatedAt,
+        ?\DateTimeImmutable $closedAt,
+    ): self {
+        $issue = new self($project, $tracker, $place, $number, $author, $title, $description);
+        $issue->criticality = $criticality;
+        $issue->assignee = $assignee;
+        $issue->release = $release;
+        $issue->private = $private;
+        $issue->fieldValues = $fieldValues;
+        $issue->importedRef = $importedRef;
+        $issue->createdAt = $createdAt;
+        $issue->updatedAt = max($createdAt, $updatedAt);
+        $issue->closedAt = PlaceStatus::Closed === $place->status ? ($closedAt ?? $issue->updatedAt) : null;
+
+        return $issue;
+    }
+
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getImportedRef(): ?string
+    {
+        return $this->importedRef;
     }
 
     public function getProject(): Project

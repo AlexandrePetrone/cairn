@@ -1,0 +1,5 @@
+component: Ui:ProgressBar
+variants:
+    default: { args: { value: 120, max: 400, label: Importing the issues } }
+    indeterminate: { args: { label: Starting } }
+    done: { args: { value: 400, max: 400, tone: emerald } }

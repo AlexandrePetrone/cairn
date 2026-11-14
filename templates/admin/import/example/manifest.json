@@ -1,0 +1,177 @@
+{
+    "format": 1,
+    "source": {
+        "name": "Redmine",
+        "exportedAt": "2024-06-01T08:00:00+00:00"
+    },
+    "roles": [
+        {
+            "id": "manager",
+            "label": "Manager"
+        },
+        {
+            "id": "reporter",
+            "label": "Reporter"
+        }
+    ],
+    "people": [
+        {
+            "id": "101",
+            "email": "alice@agency.example",
+            "firstName": "Alice",
+            "lastName": "Martin",
+            "company": "Agency",
+            "role": "manager"
+        },
+        {
+            "id": "102",
+            "email": "bob@client.example",
+            "firstName": "Bob",
+            "lastName": "Client",
+            "company": "Client Ltd",
+            "role": "reporter"
+        },
+        {
+            "id": "103",
+            "email": "carol@client.example",
+            "firstName": "Carol",
+            "lastName": "Former",
+            "company": "Client Ltd",
+            "role": null
+        }
+    ],
+    "workflows": [
+        {
+            "id": "bugs",
+            "label": "Bugs",
+            "statuses": [
+                {
+                    "id": "new",
+                    "label": "New",
+                    "closed": false
+                },
+                {
+                    "id": "in_progress",
+                    "label": "In progress",
+                    "closed": false
+                },
+                {
+                    "id": "closed",
+                    "label": "Closed",
+                    "closed": true
+                }
+            ]
+        },
+        {
+            "id": "features",
+            "label": "Features",
+            "statuses": [
+                {
+                    "id": "new",
+                    "label": "New",
+                    "closed": false
+                },
+                {
+                    "id": "shipped",
+                    "label": "Shipped",
+                    "closed": true
+                }
+            ]
+        }
+    ],
+    "trackers": [
+        {
+            "id": "bug",
+            "label": "Bug",
+            "workflow": "bugs"
+        },
+        {
+            "id": "feature",
+            "label": "Feature",
+            "workflow": "features"
+        },
+        {
+            "id": "support",
+            "label": "Support",
+            "workflow": "bugs"
+        }
+    ],
+    "priorities": [
+        {
+            "id": "low",
+            "label": "Low"
+        },
+        {
+            "id": "normal",
+            "label": "Normal"
+        },
+        {
+            "id": "high",
+            "label": "High"
+        },
+        {
+            "id": "urgent",
+            "label": "Urgent"
+        }
+    ],
+    "fields": [
+        {
+            "id": "environment",
+            "label": "Environment",
+            "type": "list",
+            "options": [
+                "prod",
+                "preprod"
+            ]
+        },
+        {
+            "id": "browser",
+            "label": "Browser",
+            "type": "text"
+        },
+        {
+            "id": "due_date",
+            "label": "Due date",
+            "type": "date"
+        },
+        {
+            "id": "module",
+            "label": "Module",
+            "type": "list",
+            "options": [
+                "Checkout",
+                "Catalogue"
+            ]
+        }
+    ],
+    "linkTypes": [
+        {
+            "id": "relates",
+            "label": "Related to"
+        },
+        {
+            "id": "blocks",
+            "label": "Blocks"
+        }
+    ],
+    "versions": [
+        {
+            "id": "v1",
+            "label": "1.0",
+            "description": "First delivery",
+            "dueOn": "2024-02-15",
+            "delivered": true,
+            "createdAt": "2024-01-02T08:00:00+00:00",
+            "deliveredAt": "2024-02-16T17:30:00+00:00"
+        },
+        {
+            "id": "v2",
+            "label": "1.1",
+            "description": "",
+            "dueOn": null,
+            "delivered": false,
+            "createdAt": "2024-02-16T17:31:00+00:00",
+            "deliveredAt": null
+        }
+    ]
+}

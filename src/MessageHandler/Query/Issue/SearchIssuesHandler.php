@@ -155,18 +155,21 @@ final class SearchIssuesHandler
             $queryBuilder->andWhere($queryBuilder->expr()->orX(...$conditions));
         }
 
+        // Besides the title and the key, what named an imported issue in its former tracker, with or without its #.
         $text = trim((string) $query->q);
         if (ctype_digit($text)) {
             // A number starts the issue numbers it prefixes: 12 finds 12, 120…
             $queryBuilder
-                ->andWhere('LOWER(i.title) LIKE :text OR i.key LIKE :number')
+                ->andWhere('LOWER(i.title) LIKE :text OR i.key LIKE :number OR i.importedRef = :ref')
                 ->setParameter('text', '%'.$text.'%')
-                ->setParameter('number', '%-'.$text.'%');
+                ->setParameter('number', '%-'.$text.'%')
+                ->setParameter('ref', $text);
         } elseif ('' !== $text) {
             $queryBuilder
-                ->andWhere("LOWER(i.title) LIKE :text ESCAPE '!' OR i.key = :key")
+                ->andWhere("LOWER(i.title) LIKE :text ESCAPE '!' OR i.key = :key OR i.importedRef = :ref")
                 ->setParameter('text', SearchText::containing($text))
-                ->setParameter('key', mb_strtoupper($text));
+                ->setParameter('key', mb_strtoupper($text))
+                ->setParameter('ref', ltrim($text, '#'));
         }
 
         return $queryBuilder;

@@ -57,6 +57,7 @@ issue:
         path: Parcours
         moved_step: Déplacée sans action
         created_by: 'créée par %name% le %date%'
+        formerly: 'anciennement %ref%'
         no_description: Aucune description.
         activity: Activité
         tracker: Catégorie
@@ -111,6 +112,7 @@ issue:
         merge_request_merged: 'a relevé la fusion de la merge request !%number% « %title% » dans %repository%'
         merge_request_closed: 'a relevé la fermeture de la merge request !%number% « %title% » dans %repository%'
         merge_request_reopened: 'a relevé la réouverture de la merge request !%number% « %title% » dans %repository%'
+        imported: 'a importé la demande depuis %source% (%ref%)'
     code:
         title: Code
         commits_count: '{1} 1 commit|]1,Inf[ %count% commits'
@@ -302,6 +304,8 @@ pagination:
 form:
     optional: facultatif
     choose: Choisir…
+    search: Rechercher…
+    no_match: Aucun résultat.
 
 auth:
     login:
@@ -406,6 +410,7 @@ admin:
         projects: Projets
         workspaces: Espaces
         users: Utilisateurs
+        imports: Imports
         configuration: Configuration
     filter:
         state: État
@@ -583,6 +588,185 @@ admin:
             show_changes: '{1}Voir le changement|]1,Inf[ Voir les %count% changements'
             hide_changes: Masquer les changements
             no_changes: 'Aucun changement de définition : le snapshot a été réécrit au format de cette version.'
+    import:
+        intro: Reprendre dans un projet les demandes, commentaires et fichiers d'une archive d'export.
+        new: Nouvel import
+        new_intro: Cairn lit d'abord l'archive et dit ce qu'elle contient ; vous choisissez ensuite comment la reprendre, puis vous lancez l'import.
+        empty: Aucun import pour l'instant.
+        created_by: 'créé par %name% le %date%'
+        upload: Envoyer un zip
+        upload_help: '%limit% au plus. Une archive plus lourde se dépose sur le serveur.'
+        waiting: Ou une archive déposée sur le serveur
+        waiting_help: Les zips déposés dans le dossier des imports du serveur. Une archive importée passe dans son dossier d'archive et n'est plus proposée.
+        project: Projet cible
+        project_help: Le projet existe déjà. Les demandes importées prennent ses numéros suivants ; ce qui les nommait avant reste visible et cherchable.
+        analyse: Analyser l'archive
+        analyse_help: Rien n'est écrit dans Cairn avant que vous lanciez l'import.
+        save_and_continue: Enregistrer et continuer
+        launch: Lancer l'import
+        resume: Reprendre
+        abandon: Abandonner l'import
+        resume_help: L'import s'est arrêté. Il reprend là où il s'est arrêté, sans rien écrire deux fois.
+        stale: L'import n'avance plus depuis un moment ; le worker s'est peut-être arrêté. Vérifiez qu'il tourne, puis reprenez.
+        stopped: L'import s'est arrêté
+        started: L'import est lancé.
+        resumed: L'import reprend.
+        abandoned: Import abandonné.
+        failure: 'Erreur inattendue : %reason%'
+        issue_count: '{0}aucune demande|{1}1 demande|]1,Inf[ %count% demandes'
+        format:
+            link: Format de l'archive
+            title: Format de l'archive d'import
+            intro: Une archive d'import est un zip écrit par un script d'export, un par outil à quitter. Voici ce que Cairn y attend, avec un exemple pour démarrer.
+            layout: Structure et règles
+            copy: Copier
+            copied: Copié
+            manifest_help: Ce que l'archive déclare. Les demandes s'y réfèrent par identifiant.
+            issues_help: Une demande par ligne, chaque ligne étant un objet JSON. Les trois demandes de l'exemple.
+            one_issue: Une demande, indentée
+            one_issue_help: La première ligne de issues.ndjson, indentée pour être lue. Dans le fichier, elle tient sur une seule ligne.
+            rule:
+                manifest: 'manifest.json déclare les personnes, les rôles, les workflows et leurs statuts, les trackers, les priorités, les champs, les types de lien et les versions. « format » vaut 1.'
+                issues: 'issues.ndjson contient une demande par ligne, avec ses commentaires, ses fichiers et ses liens. Obligatoires : id, tracker, status, title, author, createdAt.'
+                files: 'Les fichiers sont dans files/, nommés par leur identifiant. Une demande ou un commentaire liste les siens avec « path » (files/501), le vrai « name », un « author » et « createdAt ».'
+                ids: 'Un identifiant est un code court de la source : lettres, chiffres, _ - et :, 60 caractères au plus, unique dans sa liste.'
+                dates: 'Les dates et heures sont en ISO 8601 avec leur décalage (2024-03-01T09:00:00+00:00) ; une échéance est un jour (2024-03-15).'
+                people: 'Chaque personne a une adresse e-mail : c''est par elle que Cairn retrouve un compte existant. Son « role » est facultatif.'
+                tokens: 'Dans une description ou un commentaire, {{issue:ID}} devient la clé de la demande, {{user:ID}} une mention, {{file:ID}} l''adresse du fichier (une image : ![]({{file:501}})). Le texte lui-même est du Markdown.'
+                strict: 'Le « type » d''un champ est text, number, date, list, boolean ou link. Tout ce qu''une demande nomme doit être déclaré dans le manifeste : un seul manque refuse l''archive, en indiquant l''endroit.'
+        column:
+            archive: Archive
+            target: Vers
+            status: État
+            created: Créé
+        status:
+            analysing: Analyse en cours
+            configuring: À configurer
+            running: Import en cours
+            completed: Terminé
+            failed: Arrêté
+            abandoned: Abandonné
+        step:
+            content: Contenu
+            mapping: Correspondances
+            accounts: Comptes
+            summary: Récapitulatif
+        count:
+            issues: Demandes
+            comments: Commentaires
+            files: Fichiers
+            people: Personnes
+            versions: Versions
+            accounts: Comptes
+            access: Accès
+        content:
+            title: Ce que l'on importe
+            closed: Demandes fermées
+            closed_help: Sans elles, seules les demandes encore ouvertes sont importées.
+            files: Fichiers
+            files_help: Les fichiers des demandes et des commentaires, quelle que soit leur taille.
+            versions: Versions
+            versions_help: Chaque version utilisée devient une version du projet.
+            declares: Ce que l'archive déclare
+            valid: L'archive est complète et respecte le format.
+            workflows: Workflows
+            next: Vous faites correspondre tout cela à la configuration de Cairn à l'étape suivante.
+        mapping:
+            intro: À gauche, ce que l'archive déclare ; à droite, ce que cela devient dans Cairn. Les choix sont devinés d'après les noms.
+            trackers: Catégories
+            trackers_help: Une catégorie à créer prend le workflow choisi, pour de bon.
+            tracker_name: Nom de la catégorie à créer
+            steps: Étapes
+            steps_help: L'étape à laquelle mène chaque statut, pour chaque workflow que suivent les demandes importées. Une demande y arrive directement, sans passer par les actions du workflow.
+            none: L'archive n'en déclare aucun.
+            no_step: Aucune catégorie n'est importée.
+            places: '%source% : statuts vers les étapes de « %workflow% »'
+            closed: fermé
+            fields: Champs
+            fields_help: Un champ de Cairn de type compatible, une ligne en fin de description, ou rien. Une valeur que le champ ne peut pas prendre va dans la description.
+            priorities: Priorités
+            links: Types de lien
+            links_help: Les liens vers des demandes que l'import ne prend pas sont laissés de côté.
+            roles: Rôles
+        choice:
+            skip: Non importé
+            tracker: 'Catégorie « %tracker% »'
+            new_tracker: 'Nouvelle catégorie, workflow « %workflow% »'
+            field: 'Champ « %field% »'
+            append: En fin de description
+            no_role: Aucun rôle
+        accounts:
+            title: '{1}La personne de l''archive|]1,Inf[ Les %count% personnes de l''archive'
+            intro: 'Une personne dont l''e-mail est déjà un compte de Cairn y est liée. Pour les autres, l''import crée un compte : inactif pour garder l''historique d''une personne partie, actif pour quelqu''un à inviter ensuite. Un compte inactif garde son rôle sans pouvoir se connecter.'
+            deactivated: Créer un compte inactif
+            active: Créer un compte actif
+            account: Compte
+            linked: Liée à son compte
+            settled: 'Déjà %role% sur le projet'
+            wrote: '%issues% demandes · %comments% commentaires'
+            assigned: '{1}1 demande ouverte assignée|]1,Inf[ %count% demandes ouvertes assignées'
+            assigned_help: Une personne laissée sans rôle perd les demandes ouvertes qui lui sont assignées. Un compte inactif qui a un rôle les garde.
+        summary:
+            title: Ce que l'import va écrire
+            intro: 'Dans le projet %project%.'
+            unassigned: '{1}1 demande ouverte arrivera sans responsable|]1,Inf[ %count% demandes ouvertes arriveront sans responsable'
+            unassigned_help: 'Leur responsable n''a aucun rôle sur le projet : %people%. Donnez-lui un rôle pour garder l''assignation :'
+            silent: L'import n'envoie aucun mail et ne notifie personne. Demandes et commentaires gardent leurs dates et leurs auteurs.
+        progress:
+            analysing: Analyse de l'archive
+            running: Import en cours
+            last_batch: 'dernière étape à %date%'
+            leave: 'Vous pouvez quitter cette page : le travail continue.'
+        phase:
+            read: Lecture du manifeste
+            scan: Lecture des demandes
+            numbers: Réservation des numéros
+            accounts: Comptes
+            access: Accès
+            structure: Catégories et versions
+            issues: Demandes, commentaires et fichiers
+            links: Liens
+            finish: Rangement de l'archive
+        report:
+            title: Bilan
+            finished: 'terminé le %date%'
+            open_project: Ouvrir le projet
+            archived: L'archive a été déplacée dans le dossier d'archive des imports. Elle ne peut plus être importée.
+            to_invite: '{1}1 compte actif attend son invitation|]1,Inf[ %count% comptes actifs attendent leur invitation'
+            left_out: '{1}1 point à vérifier|]1,Inf[ %count% points à vérifier'
+        kind:
+            user: Compte
+            membership: Accès
+            tracker: Catégorie
+            release: Version
+            issue: Demande
+        problem:
+            tracker: 'Sa catégorie « %name% » n''a pas été créée.'
+            account: 'Le compte de %name% n''a pas été créé.'
+            duplicate: 'Une autre demande de l''archive porte l''identifiant %id% : seule la première est importée.'
+            hidden_field: 'Le workflow « %workflow% » n''utilise pas le champ « %field% » : ses valeurs sont gardées mais ne s''affichent nulle part sur ces demandes.'
+            version_date: 'Sa date « %date% » est illisible : la date du jour l''a remplacée.'
+            place: 'Son statut « %status% » n''a plus d''étape dans le workflow « %workflow% ».'
+        note:
+            assignee: '%name% était assigné, mais n''a aucun rôle sur le projet.'
+        archive:
+            unreadable: '%name% ne s''ouvre pas comme un zip.'
+            missing: '%file% manque dans l''archive.'
+            format: 'L''archive est au format %version% ; Cairn lit le format %expected%.'
+            manifest: 'manifest.json est invalide : %where%.'
+            issue: 'issues.ndjson, demande %id% : %where% manque ou est invalide.'
+            file: 'issues.ndjson, demande %id% : le fichier %path% n''est pas dans l''archive.'
+            shared_email: 'manifest.json : deux personnes ont l''e-mail %email%.'
+            unreadable_issue: 'issues.ndjson : une ligne n''est pas du JSON, ou sa demande n''a pas d''identifiant.'
+            unreadable_issue_after: 'issues.ndjson : la ligne qui suit la demande %previous% n''est pas du JSON, ou sa demande n''a pas d''identifiant.'
+        refused:
+            unknown_archive: 'Aucune archive %file% n''attend sur le serveur.'
+            read_only: 'Le projet %project% est en lecture seule.'
+            busy: 'Un autre import de %what% n''est pas terminé : menez-le à son terme ou abandonnez-le d''abord.'
+            wrong_state: L'import n'est pas dans un état qui le permet.
+            nothing: Aucune demande ne serait importée.
+            invalid_choice: '« %value% » n''est pas un choix possible pour %what%.'
+            number_taken: 'Une demande porte déjà la clé %key%.'
     refused:
         not_found: Introuvable.
         workspace_key_taken: 'Un espace utilise déjà le code %key%.'

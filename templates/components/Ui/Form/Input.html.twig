@@ -1,4 +1,4 @@
-{# Text-like input. `invalid` turns the border red. `readonly` renders the grey monospace field of frozen values. `model` becomes its `data-model` in a live component. #}
+{# Text-like input. `invalid` turns the border red. `readonly` renders the grey monospace field of frozen values. `model` becomes its `data-model` in a live component. With `type` file, the field is the browser's button, drawn as a secondary button, beside the name of the chosen file. #}
 {% props type = 'text', readonly = false, invalid = false, model = null %}
 {% set inputClasses = html_cva(
     base: 'mt-1 w-full h-9 rounded-md border border-line-strong bg-surface text-sm',
@@ -8,9 +8,10 @@
             false: 'px-3 focus:border-focus focus:outline-none focus:ring-2 focus:ring-brand-line disabled:cursor-not-allowed disabled:bg-subtle disabled:text-muted',
         },
         invalid: { true: 'border-red-solid focus:border-red-solid focus:ring-red-line' },
+        file: { true: 'h-auto rounded-none border-0 bg-transparent p-0 text-muted focus:ring-0 file:mr-3 file:h-9 file:cursor-pointer file:rounded-md file:border file:border-solid file:border-line-strong file:bg-surface file:px-3 file:text-sm file:font-medium file:text-body hover:file:bg-subtle' },
     },
 ) %}
-{% set inputClass = inputClasses.apply({ readonly: readonly, invalid: invalid }, attributes.render('class'))|tailwind_merge %}
+{% set inputClass = inputClasses.apply({ readonly: readonly, invalid: invalid, file: type == 'file' }, attributes.render('class'))|tailwind_merge %}
 {% if readonly %}
     <div class="{{ inputClass }}" {{ attributes }}>{% block content %}{% endblock %}</div>
 {% else %}

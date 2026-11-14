@@ -1,5 +1,9 @@
 admin:
     key_invalid: 2 à 5 lettres majuscules.
+    import:
+        tracker_name_required: Nommez la catégorie à créer.
+        zip_expected: Envoyez une archive zip.
+        archive_required: Envoyez un zip, ou choisissez une archive déposée sur le serveur.
 code_repository:
     path_invalid: "Un chemin de dépôt s'écrit groupe/projet."
 auth:

@@ -32,6 +32,11 @@
             {{ journalLabel }}
             <span class="text-faint">· {{ entry.at|date('d/m/Y H:i') }}</span>
         </div>
+        {% if entry.type.value == 'imported' and entry.data.notes is defined and entry.data.notes is not empty %}
+            <ul class="mt-1 list-disc pl-5 text-xs text-muted">
+                {% for note in entry.data.notes %}<li>{{ note }}</li>{% endfor %}
+            </ul>
+        {% endif %}
         {% if journalVersions %}
             <twig:Ui:Disclosure :closedLabel="'issue.event.versions'|trans" :openLabel="'issue.event.hide_versions'|trans" class="mt-1">
                 <div class="grid gap-3 text-sm sm:grid-cols-2">

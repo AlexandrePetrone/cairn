@@ -89,6 +89,18 @@ class Attachment
     }
 
     /**
+     * The row for a file brought from another tracker, at its date. It is
+     * pending until attached to its issue or comment, as an upload is.
+     */
+    public static function imported(Project $project, User $uploadedBy, string $filename, string $mediaType, int $size, \DateTimeImmutable $createdAt): self
+    {
+        $attachment = new self($project, null, $uploadedBy, $filename, $mediaType, $size);
+        $attachment->createdAt = $createdAt;
+
+        return $attachment;
+    }
+
+    /**
      * A name safe in a URL, keeping the one the browser gave (a pasted
      * screenshot comes as `image.png`, an export keeps its `.log`), with
      * the guessed extension when the given one is missing or unusable.

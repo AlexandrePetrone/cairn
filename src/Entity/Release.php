@@ -57,6 +57,15 @@ class Release
         $this->createdAt = now();
     }
 
+    /** A release brought from another tracker, created at its date. */
+    public static function imported(Project $project, string $name, \DateTimeImmutable $createdAt): self
+    {
+        $release = new self($project, $name);
+        $release->createdAt = $createdAt;
+
+        return $release;
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -107,10 +116,13 @@ class Release
         return ReleaseStatus::Open === $this->status;
     }
 
-    public function deliver(): void
+    /**
+     * @param \DateTimeImmutable|null $at when it was delivered, now if not said (an imported release keeps its date)
+     */
+    public function deliver(?\DateTimeImmutable $at = null): void
     {
         $this->status = ReleaseStatus::Delivered;
-        $this->deliveredAt = now();
+        $this->deliveredAt = $at ?? now();
     }
 
     public function abandon(): void

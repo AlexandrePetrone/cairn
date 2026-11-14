@@ -30,6 +30,8 @@ enum JournalEntryType: string
     case MergeRequestMerged = 'merge_request_merged';
     case MergeRequestClosed = 'merge_request_closed';
     case MergeRequestReopened = 'merge_request_reopened';
+    /** The issue was brought from another tracker: where it came from, and what was not kept. */
+    case Imported = 'imported';
 
     /** Written by a forge, without an author: shown as a card in the thread. */
     public function isCode(): bool

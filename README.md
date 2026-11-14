@@ -8,6 +8,7 @@ Cairn is an issue tracker for a web agency and its clients. One instance holds e
 - **Releases, links, files, mentions**: Markdown descriptions and comments with issue references and mentions, attachments, links between issues, optional releases per project.
 - **Notifications by email**: whoever follows an issue receives what they may see of each change, threaded per issue.
 - **GitLab integration**: commits and merge requests mentioning an issue key show on the issue (GitHub to come).
+- **Import from another tracker**: an export archive (a zip in a documented format, written by a script of your own for Redmine, Jira…) is brought into a project from the administration, with its issues, comments and files, their dates and authors. You match its trackers, statuses, fields and roles with yours, choose which accounts to create, and follow the import; nobody is notified.
 - **REST API**: the people of the agency connect their scripts with personal tokens; a program reads and does what its user may.
 
 The interface ships in English and French; an instance runs in one language (`CAIRN_LOCALE`).
@@ -69,6 +70,8 @@ ATTACHMENTS_DIR=/var/lib/cairn/attachments
 # Optional: lets project managers install the GitLab webhooks from Cairn
 FORGE_GITLAB_URL=https://gitlab.example
 FORGE_GITLAB_TOKEN=<token with the api scope>
+# Where the archives to import wait (Administration > Imports)
+IMPORTS_DIR=/var/lib/cairn/imports
 # Optional: real time, see below
 MERCURE_URL=http://127.0.0.1/.well-known/mercure
 MERCURE_PUBLIC_URL=https://cairn.example/.well-known/mercure

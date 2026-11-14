@@ -57,6 +57,7 @@ issue:
         path: Path
         moved_step: Moved without an action
         created_by: 'created by %name% on %date%'
+        formerly: 'formerly %ref%'
         no_description: No description.
         activity: Activity
         tracker: Category
@@ -111,6 +112,7 @@ issue:
         merge_request_merged: 'noted that the merge request !%number% “%title%” in %repository% was merged'
         merge_request_closed: 'noted that the merge request !%number% “%title%” in %repository% was closed'
         merge_request_reopened: 'noted that the merge request !%number% “%title%” in %repository% was reopened'
+        imported: 'imported the issue from %source% (%ref%)'
     code:
         title: Code
         commits_count: '{1} 1 commit|]1,Inf[ %count% commits'
@@ -302,6 +304,8 @@ pagination:
 form:
     optional: optional
     choose: Choose…
+    search: Search…
+    no_match: Nothing matches.
 
 auth:
     login:
@@ -406,6 +410,7 @@ admin:
         projects: Projects
         workspaces: Workspaces
         users: Users
+        imports: Imports
         configuration: Configuration
     filter:
         state: State
@@ -583,6 +588,185 @@ admin:
             show_changes: '{1}Show the change|]1,Inf[ Show the %count% changes'
             hide_changes: Hide the changes
             no_changes: 'No change in the definition: the snapshot was rewritten in the format of this version.'
+    import:
+        intro: Bring the issues, comments and files of an export archive into a project.
+        new: New import
+        new_intro: Cairn first reads the archive and says what it holds; you then choose how to bring it in, and launch the import.
+        empty: No import yet.
+        created_by: 'created by %name% on %date%'
+        upload: Send a zip
+        upload_help: '%limit% at most. A larger archive is dropped on the server.'
+        waiting: Or an archive waiting on the server
+        waiting_help: Zips dropped in the imports directory of the server. An imported archive moves to its archive folder and is offered no more.
+        project: Target project
+        project_help: The project exists already. Imported issues take its next numbers; what named them before stays visible and searchable.
+        analyse: Analyse the archive
+        analyse_help: Nothing is written in Cairn before you launch the import.
+        save_and_continue: Save and continue
+        launch: Launch the import
+        resume: Resume
+        abandon: Abandon the import
+        resume_help: The import stopped. It resumes where it stopped, without writing anything twice.
+        stale: The import has not moved for a while; the worker may have stopped. Check that it runs, then resume.
+        stopped: The import stopped
+        started: The import is running.
+        resumed: The import resumes.
+        abandoned: Import abandoned.
+        failure: 'Unexpected error: %reason%'
+        issue_count: '{0}no issue|{1}1 issue|]1,Inf[ %count% issues'
+        format:
+            link: Format of the archive
+            title: Format of the import archive
+            intro: An import archive is a zip written by an export script, one per tool to leave. Here is what Cairn expects in it, with an example to start from.
+            layout: Layout and rules
+            copy: Copy
+            copied: Copied
+            manifest_help: What the archive declares. The issues refer to all of it by id.
+            issues_help: One issue per line, each line a JSON object. The three issues of the example.
+            one_issue: An issue, indented
+            one_issue_help: The first line of issues.ndjson, indented to be read. In the file it stays on one line.
+            rule:
+                manifest: 'manifest.json declares the people, the roles, the workflows with their statuses, the trackers, the priorities, the fields, the link types and the versions. "format" is 1.'
+                issues: 'issues.ndjson holds one issue per line, with its comments, its files and its links. Required: id, tracker, status, title, author, createdAt.'
+                files: 'The files are in files/, named by their id. An issue or a comment lists its own with "path" (files/501), the real "name", an "author" and "createdAt".'
+                ids: 'An id is a short code of the source: letters, digits, _ - and :, 60 characters at most, unique in its list.'
+                dates: 'Dates and times are ISO 8601 with their offset (2024-03-01T09:00:00+00:00); a due date is a day (2024-03-15).'
+                people: 'Every person has an email address: it is how Cairn finds an account already there. Their "role" is optional.'
+                tokens: 'In a description or a comment, {{issue:ID}} becomes the key of the issue, {{user:ID}} a mention, {{file:ID}} the address of the file (an image: ![]({{file:501}})). The text itself is Markdown.'
+                strict: 'A field "type" is text, number, date, list, boolean or link. Anything an issue names must be declared in the manifest: one thing missing refuses the archive, with its place.'
+        column:
+            archive: Archive
+            target: Into
+            status: State
+            created: Created
+        status:
+            analysing: Analysing
+            configuring: To configure
+            running: Importing
+            completed: Completed
+            failed: Stopped
+            abandoned: Abandoned
+        step:
+            content: Content
+            mapping: Correspondences
+            accounts: Accounts
+            summary: Summary
+        count:
+            issues: Issues
+            comments: Comments
+            files: Files
+            people: People
+            versions: Versions
+            accounts: Accounts
+            access: Access
+        content:
+            title: What to import
+            closed: Closed issues
+            closed_help: Without them, only the issues still open are imported.
+            files: Files
+            files_help: The files of the issues and comments, whatever their size.
+            versions: Versions
+            versions_help: Each version in use becomes a release of the project.
+            declares: What the archive declares
+            valid: The archive is complete and follows the format.
+            workflows: Workflows
+            next: You match all of it with the configuration of Cairn at the next step.
+        mapping:
+            intro: On the left, what the archive declares; on the right, what it becomes in Cairn. The choices are guessed from the names.
+            trackers: Trackers
+            trackers_help: A tracker to create takes the chosen workflow, for good.
+            tracker_name: Name of the tracker to create
+            steps: Steps
+            steps_help: The step each status leads to, for each workflow the imported issues go through. An issue lands on it directly, without going through the actions of the workflow.
+            none: The archive declares none.
+            no_step: No tracker is imported.
+            places: '%source%: statuses to the steps of "%workflow%"'
+            closed: closed
+            fields: Fields
+            fields_help: A field of Cairn of a fitting type, a line at the end of the description, or nothing. A value the field cannot take goes to the description.
+            priorities: Priorities
+            links: Link types
+            links_help: Links to issues the import does not take are left out.
+            roles: Roles
+        choice:
+            skip: Not imported
+            tracker: 'Tracker "%tracker%"'
+            new_tracker: 'New tracker, workflow "%workflow%"'
+            field: 'Field "%field%"'
+            append: At the end of the description
+            no_role: No role
+        accounts:
+            title: '{1}The person of the archive|]1,Inf[ The %count% people of the archive'
+            intro: 'Someone whose email is already an account of Cairn is linked to it. For the others the import creates an account: deactivated to keep the history of someone who left, active for someone to invite afterwards. A deactivated account holds its role without being able to sign in.'
+            deactivated: Create a deactivated account
+            active: Create an active account
+            account: Account
+            linked: Linked to their account
+            settled: 'Already %role% on the project'
+            wrote: '%issues% issues · %comments% comments'
+            assigned: '{1}1 open issue assigned|]1,Inf[ %count% open issues assigned'
+            assigned_help: Someone left without a role loses the open issues assigned to them. A deactivated account with a role keeps them.
+        summary:
+            title: What the import will write
+            intro: 'In the project %project%.'
+            unassigned: '{1}1 open issue will arrive assigned to nobody|]1,Inf[ %count% open issues will arrive assigned to nobody'
+            unassigned_help: 'Their assignee has no role on the project: %people%. Give them a role to keep the issues assigned:'
+            silent: The import sends no mail and notifies nobody. Issues and comments keep their dates and authors.
+        progress:
+            analysing: Analysing the archive
+            running: Importing
+            last_batch: 'last step at %date%'
+            leave: 'You may leave this page: the work goes on.'
+        phase:
+            read: Reading the manifest
+            scan: Reading the issues
+            numbers: Reserving the numbers
+            accounts: Accounts
+            access: Access
+            structure: Trackers and releases
+            issues: Issues, comments and files
+            links: Links
+            finish: Putting the archive away
+        report:
+            title: Report
+            finished: 'ended on %date%'
+            open_project: Open the project
+            archived: The archive moved to the archive folder of the imports directory. It cannot be imported again.
+            to_invite: '{1}1 active account waits for its invitation|]1,Inf[ %count% active accounts wait for their invitation'
+            left_out: '{1}1 point to check|]1,Inf[ %count% points to check'
+        kind:
+            user: Account
+            membership: Access
+            tracker: Tracker
+            release: Release
+            issue: Issue
+        problem:
+            tracker: 'Its tracker "%name%" was not created.'
+            account: 'The account of %name% was not created.'
+            duplicate: 'Another issue of the archive has the id %id%: only the first one is imported.'
+            hidden_field: 'The workflow "%workflow%" does not use the field "%field%": its values are kept but shown nowhere on these issues.'
+            version_date: 'Its date "%date%" cannot be read: today''s date took its place.'
+            place: 'Its status "%status%" has no step in the workflow "%workflow%" any more.'
+        note:
+            assignee: '%name% was assigned, but has no role on the project.'
+        archive:
+            unreadable: '%name% cannot be opened as a zip.'
+            missing: '%file% is missing from the archive.'
+            format: 'The archive is in format %version%; Cairn reads format %expected%.'
+            manifest: 'manifest.json is invalid: %where%.'
+            issue: 'issues.ndjson, issue %id%: %where% is missing or invalid.'
+            file: 'issues.ndjson, issue %id%: the file %path% is not in the archive.'
+            shared_email: 'manifest.json: two people share the email %email%.'
+            unreadable_issue: 'issues.ndjson: a line is not JSON, or its issue has no id.'
+            unreadable_issue_after: 'issues.ndjson: the line after the issue %previous% is not JSON, or its issue has no id.'
+        refused:
+            unknown_archive: 'No archive %file% waits on the server.'
+            read_only: 'The project %project% is read-only.'
+            busy: 'Another import of %what% is not over: complete or abandon it first.'
+            wrong_state: The import is not in a state for that.
+            nothing: No issue would be imported.
+            invalid_choice: '"%value%" is not a possible choice for %what%.'
+            number_taken: 'An issue already has the key %key%.'
     refused:
         not_found: Not found.
         workspace_key_taken: 'A workspace already uses the key %key%.'

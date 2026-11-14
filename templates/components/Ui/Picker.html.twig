@@ -1,4 +1,4 @@
-{# A choice among many: a field-like button shows what is chosen (`label`, or `placeholder` when nothing is) and opens a list narrowed by a search field. Put `Ui:Dropdown:Item`s in the content, each with `data-list-filter-target="item"` and a `data-text`, its action picking (a live action, then `dropdown#close`); group them in `Ui:Picker:Group`s when they are. Structure only: the picker holds no data. `invalid` turns the border red. #}
+{# A choice among many: a field-like button shows what is chosen (`label`, or `placeholder` when nothing is) and opens a list narrowed by a search field. Put `Ui:Dropdown:Item`s in the content, each with `data-list-filter-target="item"` and a `data-text`, its action picking (a live action, then `dropdown#close`); group them in `Ui:Picker:Group`s when they are. Structure only: the picker holds no data. In a plain form the `picker` controller around it writes the choice (PickerType). `invalid` turns the border red. #}
 {% props label = null, placeholder = '', searchPlaceholder = '', empty = '', width = 'full', invalid = false %}
 {% set pickerClasses = html_cva(base: 'block') %}
 {% set pickerTriggerClasses = html_cva(
@@ -18,7 +18,7 @@
 <twig:Ui:Dropdown :width="width" class="{{ pickerClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ ...attributes.without('class') }}>
     <twig:block name="trigger">
         <button type="button" data-action="dropdown#toggle" aria-expanded="false" aria-haspopup="listbox" class="{{ pickerTriggerClass }}">
-            <span class="min-w-0 flex-1 truncate">{{ pickerLabel ?? pickerPlaceholder }}</span>
+            <span class="min-w-0 flex-1 truncate" data-picker-target="label">{{ pickerLabel ?? pickerPlaceholder }}</span>
             <twig:ux:icon name="lucide:chevrons-up-down" class="h-3.5 w-3.5 shrink-0 text-faint" />
         </button>
     </twig:block>

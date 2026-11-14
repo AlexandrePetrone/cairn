@@ -108,6 +108,7 @@ columns are what the English and the French catalogues show.
 | `JournalEntry`   | History           | Historique       | Immutable journal, keeps the labels of the time.                 |
 | `Attachment`     | File              | Fichier          |                                                                  |
 | `ConfigSnapshot` | —                 | —                | Applied configuration definition, stored in database.            |
+| `Import`         | Import            | Import           | An export archive of another tracker brought into a project, once. |
 
 ## Architecture
 
@@ -154,6 +155,10 @@ src/
                      locator, IssueKeyParser, the neutral remote events in
                      Event/, CodeReferenceConsumer; one folder per forge
                      (GitLab/: request parser, API client)
+  Import/            the imports of an export archive: ImportArchive and
+                     ImportManifest (the format), ImportAnalyser,
+                     ImportMapping, ImportRunner, ImportIssueBuilder, the
+                     ImportsDirectory
   Markdown/          rendering of the text users write, references resolved
   Attachment/        where attachment files live (AttachmentStorage)
   Command/           console commands (app:config:sync, digest, …)
@@ -313,7 +318,10 @@ src/
   message leaves after the command's transaction committed, and is
   dropped with it when the command fails. If that deferred dispatch
   itself fails, `CommandBus` logs it and still returns the handler's
-  result, since the change is committed.
+  result, since the change is committed. One command is the exception:
+  `ImportIssue` writes an imported issue without `record()`, which would
+  date it of today and notify; it dispatches no event, writes its
+  journal line itself and subscribes through `SubscriptionRules::subscribe()`.
 
 ### Authorization and visibility
 
@@ -954,6 +962,82 @@ src/
   fields and actions by role,
   fields and links, sync history. It changes only through the instance
   file and `app:config:sync`.
+- **An import brings an archive in, once, silently, and knows no other
+  tracker.** Under `/admin/imports` (`Controller/Admin/ImportController`).
+  An archive is a zip in Cairn's own format, written by an export script
+  that lives outside this repository, one per tool to leave:
+  `manifest.json` declares, by ids of the source, the people (an email
+  each), roles, workflows with their statuses, trackers, priorities,
+  fields, link types and versions; `issues.ndjson` holds one issue per
+  line with its comments, files and links; `files/` holds the files.
+  Texts carry the tokens `{{issue:ID}}`, `{{user:ID}}` and `{{file:ID}}`.
+  `Import/ImportManifest` and `ArchiveIssue` read it strictly, and
+  `/admin/imports/format` shows it with the example of
+  `templates/admin/import/example/`, which `ImportArchiveTest` checks
+  is valid: change the three together. The tests import their own
+  archive, `tests/Import/Fixture/`, a copy that changes with them. A zip
+  is sent from the administration within PHP's upload limit, or dropped
+  in `IMPORTS_DIR` (`Import/ImportsDirectory`); an imported one moves to
+  its `archive/`, and `work/<id>/` holds what an import extracted. An
+  `Import` goes to an existing project, one unfinished import per
+  project and per archive. It is analysed (`ImportAnalyser`: every issue
+  checked against the manifest and counted), then configured in steps,
+  one route each (content, mapping, accounts, summary), which feed
+  `ConfigureImport` in the shapes of `ImportMapping`, guessed from the
+  names first; `ImportMappingChecker` refuses only what the run could
+  not make up for (a tracker sent nowhere known, a status in use
+  without a place, no issue left): closed issues,
+  files and versions or not; each tracker to a tracker of the project,
+  to one to create on a workflow, or nowhere; each status to a place of
+  that workflow; each field to a field of a fitting type, to the end of
+  the description, or nowhere; priorities and link types to Cairn's.
+  The mapping page is the live component `Import:Mapping`: the statuses
+  to place follow the trackers chosen above them, redrawn at each
+  change, and nothing is kept until it is saved. A role is chosen per
+  person, on the accounts page only, offered at first as the role of
+  Cairn that has the label of theirs in the archive
+  (`ImportMapping::guessedRole()`). A person whose
+  email is an account is linked to it; for the
+  others the import creates an external account without a password,
+  deactivated by default or active (to invite afterwards from its
+  page). Everyone gets the role chosen for them on the project,
+  deactivated accounts included: they cannot sign in, and reactivating
+  one gives its access back; an access already there is never changed.
+  So an import is made without a word to the client, its accounts
+  activated once the project is ready: a deactivated account keeps the
+  open issues assigned to it, and only someone left without a role
+  loses them, which the accounts page (the open issues assigned to each
+  person, `ImportAnalysis::openAssigned()`) and the summary say before
+  the run.
+  Then it runs (`ImportRunner`): the numbers of every imported issue
+  reserved in one block (`Project::reserveIssueNumbers()`, so a key is
+  known before its issue is written), accounts, access, trackers and
+  releases, the issues in the order of the archive, their links, then
+  the archive is put away. Each issue is one `ImportIssue`, built by
+  `ImportIssueBuilder`: its dates
+  and authors of then, its place without the workflow and on top of its
+  column, its comments, files and subscriptions, what named it before
+  on `Issue::$importedRef` (searched by `SearchIssues`, shown in the
+  header) and a private `imported` journal line. Nothing notifies. The
+  work goes in batches of about twenty seconds: `AdvanceImport` on
+  `async` runs one and sends the next, acting only with
+  the `runToken` of the last start, so a message of an earlier start or
+  delivered twice does nothing; a failure fails the import with its
+  reason instead of being thrown, and `StartImport` resumes it where it
+  stopped: every item leaves an `ImportRecord` (done, or refused with
+  the reason), and an item recorded is never written again. What the
+  report must say beside an item that was written is a record too,
+  under an id of its own that no archive can use (`1001#twice`: a
+  second issue with that id, left out; `bug#environment`: a field its
+  workflow does not use, kept but shown nowhere; `v1#dueOn`: a date of
+  a version that cannot be read, replaced by today's). Only the
+  versions of the issues taken become releases, and a refusal of the
+  analysis names the issue by its id, never by a line. The
+  analyser and the runner write their own bookkeeping, as the
+  configuration sync does; what lands in the project goes through
+  commands, and the unit of work is cleared after each item. The page
+  of an import follows it with `Import:Progress` (`data-poll`); there is
+  no way to stop a run, only to abandon an import that is not running.
 
 ## Frontend
 
@@ -1065,7 +1149,8 @@ src/
   `form:` view in `storia/components/formTypes/` (named after the rendering:
   `choice_radio`, `choice_checkboxes`), which Storia renders as `default`,
   `disabled` and `error`. Types the framework lacks live in `src/Form/Type/`
-  with their own block prefix (`ToggleType` → `toggle_row`, `toggle_widget`).
+  with their own block prefix (`ToggleType` → `toggle_row`, `toggle_widget`;
+  `PickerType`, a choice searched in a list, → `picker_widget`).
 - Form controls style their disabled state: `disabled:` utilities on the
   field itself, `has-[:disabled]:` on the label that wraps a checkbox or a
   radio.
@@ -1186,7 +1271,7 @@ src/
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`, `dialog`,
   `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`,
   `workflow-diagram`, `sortable`, `list-filter`, `combobox`, `board`,
-  `load-more`, `clipboard`, `filters`, `selection`, `fold`, `list-view`, `live-updates`, `theme`, `panels`, `avatar`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
+  `load-more`, `clipboard`, `picker`, `filters`, `selection`, `fold`, `list-view`, `live-updates`, `theme`, `panels`, `avatar`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
   (`editor` with TipTap, `workflow-diagram` with Mermaid, `board` with
   SortableJS) so that Vite
   splits its imports into chunks only fetched on a page that uses it; write a new one when a component needs it, not before. No
@@ -1349,6 +1434,10 @@ Castor are the only things needed on the host. Commands run inside the
   `tests/Forge/Fixture/` to `/webhook/gitlab` with `X-Gitlab-Event` and
   `X-Gitlab-Token` set to the repository's secret; the `messenger`
   worker records it.
+- Imports: zip `templates/admin/import/example/` with two files `files/501` and
+  `files/502` to get an archive to try, drop it in `var/imports_dev/`
+  (`IMPORTS_DIR`) and follow Administration > Imports; the `messenger`
+  worker analyses and runs it.
 - When something fails, read `var/log/dev.log` and the web profiler
   (`/_profiler`) before changing code.
 - Prefer `castor console make:*` with every argument passed up front and

@@ -1,0 +1,37 @@
+{% extends 'admin/import/base.html.twig' %}
+
+{% block import_content %}
+    {% set contentTotals = analysis.totals %}
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <twig:Ui:StatTile :label="'admin.import.count.issues'|trans" :value="contentTotals.issues" />
+        <twig:Ui:StatTile :label="'admin.import.count.comments'|trans" :value="contentTotals.comments" />
+        <twig:Ui:StatTile :label="'admin.import.count.files'|trans" :value="contentTotals.files" />
+        <twig:Ui:StatTile :label="'admin.import.count.people'|trans" :value="manifest.people|length" />
+        <twig:Ui:StatTile :label="'admin.import.count.versions'|trans" :value="manifest.versions|length" />
+    </div>
+
+    <div class="grid gap-4 lg:grid-cols-2">
+        {{ form_start(form, { attr: { class: 'rounded-lg border border-line bg-surface p-4 space-y-4' } }) }}
+            <h2 class="font-semibold text-strong">{{ 'admin.import.content.title'|trans }}</h2>
+            {{ form_errors(form) }}
+            {{ form_row(form.closed) }}
+            {{ form_row(form.files) }}
+            {{ form_row(form.versions) }}
+            <twig:Ui:Button type="submit" variant="primary" size="lg">{{ 'admin.import.save_and_continue'|trans }}</twig:Ui:Button>
+        {{ form_end(form) }}
+
+        <section class="rounded-lg border border-line bg-surface p-4 space-y-3">
+            <h2 class="font-semibold text-strong">{{ 'admin.import.content.declares'|trans }}</h2>
+            <p class="flex items-center gap-2 text-sm text-emerald"><twig:ux:icon name="lucide:check" class="h-4 w-4" />{{ 'admin.import.content.valid'|trans }}</p>
+            <dl class="space-y-2 text-sm">
+                <div><dt class="text-xs text-muted">{{ 'admin.import.mapping.trackers'|trans }}</dt><dd class="text-body">{% for id, tracker in manifest.trackers %}{{ tracker.label }} ({{ analysis.issuesOf(id) }}){{ not loop.last ? ', ' }}{% endfor %}</dd></div>
+                <div><dt class="text-xs text-muted">{{ 'admin.import.content.workflows'|trans }}</dt><dd class="text-body">{{ manifest.workflows|map(workflow => workflow.label)|join(', ') }}</dd></div>
+                {% if manifest.fields is not empty %}<div><dt class="text-xs text-muted">{{ 'admin.import.mapping.fields'|trans }}</dt><dd class="text-body">{{ manifest.fields|map(field => field.label)|join(', ') }}</dd></div>{% endif %}
+                {% if manifest.roles is not empty %}<div><dt class="text-xs text-muted">{{ 'admin.import.mapping.roles'|trans }}</dt><dd class="text-body">{{ manifest.roles|join(', ') }}</dd></div>{% endif %}
+            </dl>
+            <p class="text-xs text-muted">{{ 'admin.import.content.next'|trans }}</p>
+        </section>
+    </div>
+
+    {{ include('admin/import/_abandon.html.twig') }}
+{% endblock %}

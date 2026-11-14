@@ -1,0 +1,3 @@
+{# The state of an import as a badge: `import`. #}
+{% set importStatusTone = { analysing: 'blue', configuring: 'amber', running: 'indigo', completed: 'emerald', failed: 'red', abandoned: 'gray' }[import.status.value] %}
+<twig:Ui:Badge :tone="importStatusTone">{{ ('admin.import.status.' ~ import.status.value)|trans }}</twig:Ui:Badge>

@@ -1,0 +1,6 @@
+{# The correspondences of an import: a live component, since the statuses to place follow the trackers chosen. #}
+{% extends 'admin/import/base.html.twig' %}
+
+{% block import_content %}
+    <twig:Import:Mapping :import="import" />
+{% endblock %}

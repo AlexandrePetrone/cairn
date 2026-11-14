@@ -1,0 +1,38 @@
+{% extends 'layout/admin.html.twig' %}
+
+{% block page_title %}{{ 'admin.nav.imports'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 space-y-4">
+        <div class="flex flex-wrap items-center gap-3">
+            <div>
+                <h1 class="text-xl font-semibold text-strong">{{ 'admin.nav.imports'|trans }}</h1>
+                <p class="text-xs text-muted">{{ 'admin.import.intro'|trans }} <a href="{{ path('app_admin_import_format') }}" class="text-brand hover:underline">{{ 'admin.import.format.link'|trans }}</a></p>
+            </div>
+            <twig:Ui:Button variant="primary" icon="plus" href="{{ path('app_admin_import_new') }}" class="ml-auto">{{ 'admin.import.new'|trans }}</twig:Ui:Button>
+        </div>
+
+        {% if imports is empty %}
+            <twig:Ui:EmptyState :title="'admin.import.empty'|trans" bordered />
+        {% else %}
+            <twig:Ui:Table>
+                <twig:block name="head">
+                    <th class="px-4 py-2 text-left font-medium">{{ 'admin.import.column.archive'|trans }}</th>
+                    <th class="px-3 py-2 text-left font-medium">{{ 'admin.import.column.target'|trans }}</th>
+                    <th class="px-3 py-2 text-left font-medium w-36">{{ 'admin.import.column.status'|trans }}</th>
+                    <th class="px-4 py-2 text-left font-medium w-56">{{ 'admin.import.column.created'|trans }}</th>
+                </twig:block>
+                {% for import in imports %}
+                    <twig:Ui:Table:Row :closed="import.status.finished">
+                        <td class="sm:px-4 sm:py-2.5 order-1 basis-full sm:basis-auto">
+                            <a href="{{ path('app_admin_import', { id: import.id }) }}" class="font-mono text-xs text-strong hover:text-amber">{{ import.file }}</a>
+                        </td>
+                        <td class="sm:px-3 sm:py-2.5 order-2 text-sm text-body"><twig:Ui:Chip>{{ import.project.issuePrefix }}</twig:Ui:Chip> {{ import.project.name }}</td>
+                        <td class="sm:px-3 sm:py-2.5 order-3">{{ include('admin/import/_status.html.twig') }}</td>
+                        <td class="sm:px-4 sm:py-2.5 order-4 ml-auto sm:ml-0 text-xs text-muted">{{ import.createdAt|date('d/m/Y H:i') }} · {{ import.createdBy.fullName }}</td>
+                    </twig:Ui:Table:Row>
+                {% endfor %}
+            </twig:Ui:Table>
+        {% endif %}
+    </div>
+{% endblock %}

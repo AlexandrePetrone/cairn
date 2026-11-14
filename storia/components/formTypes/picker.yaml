@@ -1,0 +1,8 @@
+form: App\Form\Type\PickerType
+options:
+    label: Project
+    placeholder: Choose a project…
+    help: The project the issues go to.
+    choices:
+        Maison Dupont: { 'MD-SPT · Online shop': '1', 'MD-INT · Intranet': '2' }
+        Vallier Group: { 'GV-PRT · Portal': '3' }

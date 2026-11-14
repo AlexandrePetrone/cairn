@@ -8,6 +8,7 @@
             <span>{{ issue.tracker.name }}</span>
             <span class="text-ghost">·</span>
             <span>{{ 'issue.show.created_by'|trans({ '%name%': issue.author.fullName, '%date%': issue.createdAt|date('d/m/Y') }) }}</span>
+            {% if issue.importedRef %}<span class="text-ghost">·</span><span>{{ 'issue.show.formerly'|trans({ '%ref%': issue.importedRef }) }}</span>{% endif %}
             {% if issue.private %}<twig:Ui:Badge tone="amber" size="sm" icon="lock">{{ 'issue.private'|trans }}</twig:Ui:Badge>{% endif %}
         </div>
         {% if editingTitle %}

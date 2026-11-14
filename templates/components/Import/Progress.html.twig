@@ -1,0 +1,29 @@
+{# The progress of an import in progress, asked again every two seconds: its phases, the one it is on with how far it went. The page is drawn again when the import is no longer in progress (Progress::refresh()). #}
+{% set progressPhases = this.phases %}
+{% set progressIndex = this.index %}
+{% set progressBar = this.bar %}
+<section {{ attributes }} {% if import.status.inProgress %}data-poll="delay(2000)|refresh"{% endif %} class="rounded-lg border border-line bg-surface p-4 space-y-4">
+    <div class="flex flex-wrap items-center gap-2">
+        <h2 class="font-semibold text-strong">{{ (import.analysed ? 'admin.import.progress.running' : 'admin.import.progress.analysing')|trans }}</h2>
+        <span class="text-xs text-muted">{{ 'admin.import.progress.last_batch'|trans({ '%date%': import.updatedAt|date('H:i:s') }) }}</span>
+    </div>
+    <ol class="space-y-2">
+        {% for phase in progressPhases %}
+            {% set progressState = loop.index0 < progressIndex ? 'done' : (loop.index0 == progressIndex ? 'current' : 'next') %}
+            <li class="grid gap-2 sm:grid-cols-[14rem_1fr_7rem] sm:items-center">
+                <span class="flex items-center gap-1.5 text-sm {{ progressState == 'current' ? 'font-medium text-strong' : (progressState == 'done' ? 'text-emerald' : 'text-muted') }}">
+                    {% if progressState == 'done' %}<twig:ux:icon name="lucide:check" class="h-3.5 w-3.5" />{% endif %}
+                    {{ ('admin.import.phase.' ~ phase)|trans }}
+                </span>
+                {% if progressState == 'current' %}
+                    <twig:Ui:ProgressBar :value="progressBar.value" :max="progressBar.max" :label="('admin.import.phase.' ~ phase)|trans" />
+                    <span class="text-xs tabular-nums text-muted">{% if import.done %}{{ import.done }}{% if progressBar.counted %} / {{ import.total }}{% endif %}{% endif %}</span>
+                {% else %}
+                    <twig:Ui:ProgressBar :value="progressState == 'done' ? 1 : 0" :max="1" tone="emerald" size="sm" />
+                    <span></span>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ol>
+    <p class="text-xs text-muted">{{ 'admin.import.progress.leave'|trans }}</p>
+</section>

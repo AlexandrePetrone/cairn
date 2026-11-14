@@ -1,0 +1,93 @@
+{# The correspondences of an import, redrawn at each change: the Steps zone follows the trackers chosen above it. On the left what the archive declares, on the right what it becomes in Cairn.
+   `this` is read before the nested components, whose blocks see their own `this`. #}
+{% set mappingManifest = this.manifest %}
+{% set mappingAnalysis = this.analysis %}
+{% set mappingRowClasses = 'grid gap-2 px-4 py-2.5 sm:grid-cols-[1fr_18rem] sm:items-center' %}
+<div {{ attributes }} class="space-y-4">
+    <p class="text-sm text-muted">{{ 'admin.import.mapping.intro'|trans }}</p>
+    {{ form_start(form, { attr: form.vars.attr|merge({ class: 'space-y-4', 'data-action': 'live#action:prevent', 'data-live-action-param': 'save' }) }) }}
+        {{ form_errors(form) }}
+        {% if error %}<twig:Ui:Callout tone="danger" size="sm" role="alert">{{ error }}</twig:Ui:Callout>{% endif %}
+
+        {# One zone per subject, one under the other: trackers, steps, fields, priorities, link types. #}
+        <section class="rounded-lg border border-line bg-surface">
+            <header class="border-b border-line-subtle px-4 py-3">
+                <h2 class="font-semibold text-strong">{{ 'admin.import.mapping.trackers'|trans }}</h2>
+                <p class="text-xs text-muted">{{ 'admin.import.mapping.trackers_help'|trans }}</p>
+            </header>
+            <ul class="divide-y divide-line-subtle">
+                {% for id, row in form.trackers %}
+                    <li class="grid gap-2 px-4 py-2.5 sm:grid-cols-[1fr_18rem_14rem] sm:items-center">
+                        <div class="text-sm"><span class="font-medium text-strong">{{ mappingManifest.trackers[id].label }}</span> <span class="text-xs text-muted">· {{ 'admin.import.issue_count'|trans({ '%count%': mappingAnalysis.issuesOf(id) }) }} · {{ mappingManifest.workflows[mappingManifest.trackers[id].workflow].label }}</span></div>
+                        {{ form_widget(row.target, { attr: { 'aria-label': mappingManifest.trackers[id].label } }) }}
+                        {# The name is for a tracker to create only; hidden, it stays in the values of the component. #}
+                        {% if row.target.vars.value starts with 'new:' %}
+                            <div>
+                                {{ form_widget(row.name, { attr: { 'aria-label': 'admin.import.mapping.tracker_name'|trans, placeholder: 'admin.import.mapping.tracker_name'|trans } }) }}
+                                {{ form_errors(row.name) }}
+                            </div>
+                        {% else %}
+                            {% do row.name.setRendered %}
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        <section class="rounded-lg border border-line bg-surface">
+            <header class="border-b border-line-subtle px-4 py-3">
+                <h2 class="font-semibold text-strong">{{ 'admin.import.mapping.steps'|trans }}</h2>
+                <p class="text-xs text-muted">{{ 'admin.import.mapping.steps_help'|trans }}</p>
+            </header>
+            <div class="grid gap-4 p-4 lg:grid-cols-2 items-start" data-loading="addClass(opacity-60)">
+                {% for workflowId, workflowForm in form.places %}
+                    {% for source, statuses in workflowForm %}
+                        <div class="rounded-md border border-line-subtle">
+                            <h3 class="border-b border-line-subtle bg-subtle px-3 py-2 text-sm font-medium text-strong">{{ 'admin.import.mapping.places'|trans({ '%source%': mappingManifest.workflows[source].label, '%workflow%': this.workflowLabel(workflowId) }) }}</h3>
+                            <ul class="divide-y divide-line-subtle">
+                                {% for statusId, place in statuses %}
+                                    {% set mappingStatus = mappingManifest.workflows[source].statuses[statusId] %}
+                                    <li class="grid gap-2 px-3 py-2 sm:grid-cols-[1fr_14rem] sm:items-center">
+                                        <span class="flex items-center gap-2 text-sm text-body">{{ mappingStatus.label }}{% if mappingStatus.closed %}<twig:Ui:Badge size="sm">{{ 'admin.import.mapping.closed'|trans }}</twig:Ui:Badge>{% endif %}</span>
+                                        {{ form_widget(place, { attr: { 'aria-label': mappingStatus.label } }) }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-sm text-muted">{{ 'admin.import.mapping.no_step'|trans }}</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        {% for part in [
+            { form: form.fields, title: 'admin.import.mapping.fields', help: 'admin.import.mapping.fields_help', labels: mappingManifest.fields|map(field => field.label), counts: mappingAnalysis.fields },
+            { form: form.priorities, title: 'admin.import.mapping.priorities', help: null, labels: mappingManifest.priorities, counts: null },
+            { form: form.links, title: 'admin.import.mapping.links', help: 'admin.import.mapping.links_help', labels: mappingManifest.linkTypes, counts: mappingAnalysis.links },
+        ] %}
+            {# A zone stays when the archive declares nothing for it, and says so. #}
+            <section class="rounded-lg border border-line bg-surface">
+                <header class="border-b border-line-subtle px-4 py-3">
+                    <h2 class="font-semibold text-strong">{{ part.title|trans }}</h2>
+                    {% if part.help %}<p class="text-xs text-muted">{{ part.help|trans }}</p>{% endif %}
+                </header>
+                {% if part.form is not empty %}
+                    <ul class="divide-y divide-line-subtle">
+                        {% for id, field in part.form %}
+                            <li class="{{ mappingRowClasses }}">
+                                <span class="text-sm text-body">{{ part.labels[id] }}{% if part.counts is not null %} <span class="text-xs text-muted">· {{ part.counts[id] ?? 0 }}</span>{% endif %}</span>
+                                {{ form_widget(field, { attr: { 'aria-label': part.labels[id] } }) }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    {% do part.form.setRendered %}
+                    <p class="px-4 py-3 text-sm text-muted">{{ 'admin.import.mapping.none'|trans }}</p>
+                {% endif %}
+            </section>
+        {% endfor %}
+
+        <twig:Ui:Button type="submit" variant="primary" size="lg">{{ 'admin.import.save_and_continue'|trans }}</twig:Ui:Button>
+    {{ form_end(form) }}
+</div>

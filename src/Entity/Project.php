@@ -114,6 +114,22 @@ class Project
         return ++$this->issueCounter;
     }
 
+    /**
+     * Hands out a block of numbers at once, for issues written later (an
+     * import), and returns the first one. Callers lock the project row
+     * first, as for one number.
+     */
+    public function reserveIssueNumbers(int $count): int
+    {
+        if ($count < 1) {
+            throw new \InvalidArgumentException('At least one number is reserved.');
+        }
+        $first = $this->issueCounter + 1;
+        $this->issueCounter += $count;
+
+        return $first;
+    }
+
     public function isArchived(): bool
     {
         return $this->archived;

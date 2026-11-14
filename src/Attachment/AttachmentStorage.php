@@ -7,7 +7,7 @@ namespace App\Attachment;
 use App\Entity\Attachment;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Uid\Uuid;
 
@@ -24,7 +24,10 @@ final class AttachmentStorage
     ) {
     }
 
-    public function store(UploadedFile $file, Attachment $attachment): void
+    /**
+     * Moves the file in: one a user sent, or one an import took out of its archive.
+     */
+    public function store(File $file, Attachment $attachment): void
     {
         $file->move($this->directory, $this->name($attachment));
     }

@@ -1,0 +1,31 @@
+{% extends 'admin/import/base.html.twig' %}
+
+{% block import_content %}
+    <section class="rounded-lg border border-line bg-surface p-4 space-y-4">
+        <div>
+            <h2 class="font-semibold text-strong">{{ 'admin.import.summary.title'|trans }}</h2>
+            <p class="text-xs text-muted">{{ 'admin.import.summary.intro'|trans({ '%project%': import.project.issuePrefix ~ ' · ' ~ import.project.name }) }}</p>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <twig:Ui:StatTile :label="'admin.import.count.issues'|trans" :value="totals.issues" />
+            <twig:Ui:StatTile :label="'admin.import.count.comments'|trans" :value="totals.comments" />
+            <twig:Ui:StatTile :label="'admin.import.count.files'|trans" :value="totals.files" />
+            <twig:Ui:StatTile :label="'admin.import.count.versions'|trans" :value="versions" />
+        </div>
+        {% if unassigned %}
+            <twig:Ui:Callout tone="amber" size="sm" role="note">
+                <p class="font-medium">{{ 'admin.import.summary.unassigned'|trans({ '%count%': unassigned|reduce((sum, issues) => sum + issues, 0) }) }}</p>
+                <p>{{ 'admin.import.summary.unassigned_help'|trans({ '%people%': unassigned|map((issues, name) => name ~ ' (' ~ issues ~ ')')|join(', ') }) }} <a class="underline" href="{{ path('app_admin_import_accounts', { id: import.id }) }}">{{ 'admin.import.step.accounts'|trans }}</a></p>
+            </twig:Ui:Callout>
+        {% endif %}
+        <p class="text-sm text-muted">{{ 'admin.import.summary.silent'|trans }}</p>
+    </section>
+
+    <div class="flex flex-wrap items-center gap-2">
+        <form method="post" action="{{ path('app_admin_import_start', { id: import.id }) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('submit') }}" data-controller="csrf-protection">
+            <twig:Ui:Button type="submit" variant="primary" size="lg">{{ 'admin.import.launch'|trans }}</twig:Ui:Button>
+        </form>
+        <div class="ml-auto">{{ include('admin/import/_abandon.html.twig') }}</div>
+    </div>
+{% endblock %}

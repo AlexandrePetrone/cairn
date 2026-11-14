@@ -1,0 +1,5 @@
+{# Gives the import up: its archive and its project are free again. #}
+<form method="post" action="{{ path('app_admin_import_abandon', { id: import.id }) }}" class="flex justify-end">
+    <input type="hidden" name="_token" value="{{ csrf_token('submit') }}" data-controller="csrf-protection">
+    <twig:Ui:Button type="submit" variant="ghost">{{ 'admin.import.abandon'|trans }}</twig:Ui:Button>
+</form>

@@ -51,6 +51,15 @@ class Comment
         $this->createdAt = now();
     }
 
+    /** A comment brought from another tracker, at its date. */
+    public static function imported(Issue $issue, User $author, string $body, bool $private, \DateTimeImmutable $createdAt): self
+    {
+        $comment = new self($issue, $author, $body, $private);
+        $comment->createdAt = $createdAt;
+
+        return $comment;
+    }
+
     public function getId(): ?int
     {
         return $this->id;

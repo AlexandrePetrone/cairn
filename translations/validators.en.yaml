@@ -1,5 +1,9 @@
 admin:
     key_invalid: 2 to 5 uppercase letters.
+    import:
+        tracker_name_required: Name the tracker to create.
+        zip_expected: Send a zip archive.
+        archive_required: Send a zip, or choose an archive waiting on the server.
 code_repository:
     path_invalid: "A repository path is written group/project."
 auth:

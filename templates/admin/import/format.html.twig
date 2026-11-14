@@ -1,0 +1,51 @@
+{# The archive format, for whoever writes an export script: the layout, the rules, and the example of `example/`, which ImportArchiveTest checks is valid. #}
+{% extends 'layout/admin.html.twig' %}
+
+{% block page_title %}{{ 'admin.import.format.title'|trans }}{% endblock %}
+
+{% block breadcrumb %}
+    <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-ghost shrink-0" />
+    <a href="{{ path('app_admin_imports') }}" class="hover:text-strong">{{ 'admin.nav.imports'|trans }}</a>
+{% endblock %}
+
+{% block content %}
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 py-5 space-y-5">
+        <div>
+            <h1 class="text-xl font-semibold text-strong">{{ 'admin.import.format.title'|trans }}</h1>
+            <p class="mt-1 text-sm text-muted">{{ 'admin.import.format.intro'|trans }}</p>
+        </div>
+
+        <section class="rounded-lg border border-line bg-surface p-4 space-y-3">
+            <h2 class="font-semibold text-strong">{{ 'admin.import.format.layout'|trans }}</h2>
+            <pre class="overflow-x-auto rounded-md bg-slate-900 px-3 py-2 font-mono text-xs text-slate-100">archive.zip
+├── manifest.json
+├── issues.ndjson
+└── files/
+    ├── 501
+    └── 502</pre>
+            <ul class="list-disc space-y-1 pl-5 text-sm text-body">
+                {% for rule in ['manifest', 'issues', 'files', 'ids', 'dates', 'people', 'tokens', 'strict'] %}
+                    <li>{{ ('admin.import.format.rule.' ~ rule)|trans }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        {% for example in [
+            { title: 'manifest.json', text: manifest, help: 'admin.import.format.manifest_help' },
+            { title: 'issues.ndjson', text: issues, help: 'admin.import.format.issues_help' },
+            { title: 'admin.import.format.one_issue'|trans, text: issue, help: 'admin.import.format.one_issue_help' },
+        ] %}
+            <section class="rounded-lg border border-line bg-surface p-4 space-y-2" data-controller="clipboard">
+                <div class="flex flex-wrap items-center gap-2">
+                    <h2 class="font-mono text-sm font-semibold text-strong">{{ example.title }}</h2>
+                    <twig:Ui:Button size="sm" icon="copy" class="ml-auto" data-action="clipboard#copy">
+                        <span data-clipboard-target="idle">{{ 'admin.import.format.copy'|trans }}</span>
+                        <span data-clipboard-target="done" hidden>{{ 'admin.import.format.copied'|trans }}</span>
+                    </twig:Ui:Button>
+                </div>
+                <p class="text-xs text-muted">{{ example.help|trans }}</p>
+                <pre class="max-h-96 overflow-auto rounded-md bg-slate-900 px-3 py-2 font-mono text-xs text-slate-100" data-clipboard-target="source">{{ example.text }}</pre>
+            </section>
+        {% endfor %}
+    </div>
+{% endblock %}

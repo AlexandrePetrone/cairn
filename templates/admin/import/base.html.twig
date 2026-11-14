@@ -1,0 +1,35 @@
+{# Base of the pages of an import: its archive, its project, its state, and while it is configured the tabs of its steps (one route each). Pages fill `import_content`. #}
+{% extends 'layout/admin.html.twig' %}
+
+{% block page_title %}{{ import.file }}{% endblock %}
+
+{% block breadcrumb %}
+    <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-ghost shrink-0" />
+    <a href="{{ path('app_admin_imports') }}" class="hover:text-strong">{{ 'admin.nav.imports'|trans }}</a>
+{% endblock %}
+
+{% block content %}
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 space-y-4">
+        <div class="min-w-0">
+            <p class="font-mono text-xs text-muted">{{ import.file }}</p>
+            <h1 class="flex flex-wrap items-center gap-2 text-xl font-semibold text-strong">
+                {{ import.manifest.source ?? '' }}
+                <twig:ux:icon name="lucide:chevron-right" class="h-4 w-4 text-faint" />
+                <twig:Ui:Chip>{{ import.project.issuePrefix }}</twig:Ui:Chip>
+                <span>{{ import.project.name }}</span>
+                {{ include('admin/import/_status.html.twig') }}
+            </h1>
+            <p class="mt-1 text-xs text-muted">{{ 'admin.import.created_by'|trans({ '%name%': import.createdBy.fullName, '%date%': import.createdAt|date('d/m/Y H:i') }) }}</p>
+        </div>
+        {% if import.status.value == 'configuring' %}
+            <nav class="flex flex-wrap items-center gap-1 border-b border-line">
+                {% for step in ['content', 'mapping', 'accounts', 'summary'] %}
+                    {# The block of the tab does not see `loop`. #}
+                    {% set importStepNumber = loop.index %}
+                    <twig:Ui:Tab href="{{ path('app_admin_import_' ~ step, { id: import.id }) }}" :active="app.current_route == 'app_admin_import_' ~ step">{{ importStepNumber }}. {{ ('admin.import.step.' ~ step)|trans }}</twig:Ui:Tab>
+                {% endfor %}
+            </nav>
+        {% endif %}
+        {% block import_content %}{% endblock %}
+    </div>
+{% endblock %}

@@ -12,8 +12,9 @@ use Symfony\Component\Validator\Constraints as Assert;
  * first administrator of an instance. Without an actor the
  * administration or the console creates it; with one, a manager creates
  * it from the Access page of their project (`project.manage_members`),
- * and such an account is always external. Handled by CreateUserHandler,
- * which returns the User.
+ * and such an account is always external. An import creates the accounts
+ * of people who left as deactivated: they keep their history and cannot
+ * sign in. Handled by CreateUserHandler, which returns the User.
  */
 #[Assert\Expression(
     'this.actorId === null or this.projectId !== null',
@@ -41,6 +42,7 @@ final readonly class CreateUser
         public ?string $plainPassword = null,
         public ?int $actorId = null,
         public ?int $projectId = null,
+        public bool $active = true,
     ) {
     }
 }

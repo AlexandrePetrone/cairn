@@ -1,0 +1,42 @@
+{# One row per person of the archive: linked to the account of the same email, or an account to create, deactivated or active; and their role on the project. #}
+{% extends 'admin/import/base.html.twig' %}
+
+{% block import_content %}
+    {{ form_start(form, { attr: { class: 'space-y-4' } }) }}
+        {{ form_errors(form) }}
+        <section class="rounded-lg border border-line bg-surface">
+            <header class="border-b border-line-subtle px-4 py-3">
+                <h2 class="font-semibold text-strong">{{ 'admin.import.accounts.title'|trans({ '%count%': manifest.people|length }) }}</h2>
+                <p class="text-xs text-muted">{{ 'admin.import.accounts.intro'|trans }}</p>
+                <p class="text-xs text-muted">{{ 'admin.import.accounts.assigned_help'|trans }}</p>
+            </header>
+            <ul class="divide-y divide-line-subtle">
+                {% for id, row in form.people %}
+                    {% set accountsPerson = manifest.people[id] %}
+                    {% set accountsWrote = analysis.people[id] ?? { issues: 0, comments: 0 } %}
+                    <li class="grid gap-2 px-4 py-2.5 lg:grid-cols-[1fr_12rem_15rem_13rem] lg:items-center">
+                        <div class="min-w-0 leading-tight">
+                            <p class="text-sm font-medium text-strong truncate">{{ accountsPerson.firstName }} {{ accountsPerson.lastName }}{% if accountsPerson.role %} <twig:Ui:Badge size="sm">{{ manifest.roles[accountsPerson.role] }}</twig:Ui:Badge>{% endif %}</p>
+                            <p class="text-xs text-muted truncate">{{ accountsPerson.email }}</p>
+                        </div>
+                        <p class="text-xs text-muted">
+                            {{ 'admin.import.accounts.wrote'|trans({ '%issues%': accountsWrote.issues, '%comments%': accountsWrote.comments }) }}
+                            {% if assigned[id] ?? 0 %}<span class="block font-medium text-body">{{ 'admin.import.accounts.assigned'|trans({ '%count%': assigned[id] }) }}</span>{% endif %}
+                        </p>
+                        {% if row.active is defined %}
+                            {{ form_widget(row.active, { attr: { 'aria-label': 'admin.import.accounts.account'|trans } }) }}
+                        {% else %}
+                            <span><twig:Ui:Badge tone="indigo">{{ 'admin.import.accounts.linked'|trans }}</twig:Ui:Badge></span>
+                        {% endif %}
+                        {% if row.role is defined %}
+                            {{ form_widget(row.role, { attr: { 'aria-label': 'admin.access.role'|trans } }) }}
+                        {% else %}
+                            <span class="text-xs text-muted">{{ 'admin.import.accounts.settled'|trans({ '%role%': settled[id] ?? '' }) }}</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+        <twig:Ui:Button type="submit" variant="primary" size="lg">{{ 'admin.import.save_and_continue'|trans }}</twig:Ui:Button>
+    {{ form_end(form) }}
+{% endblock %}

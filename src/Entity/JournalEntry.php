@@ -249,6 +249,19 @@ class JournalEntry
         ], true);
     }
 
+    /**
+     * The issue was imported: from which tracker, under which name there,
+     * and what the import could not keep (`notes`, in the language of the
+     * instance). No author: the import acted. Private: the old tracker is
+     * the agency's.
+     *
+     * @param list<string> $notes
+     */
+    public static function imported(Issue $issue, string $source, string $ref, array $notes): self
+    {
+        return new self($issue, null, JournalEntryType::Imported, ['source' => $source, 'ref' => $ref, 'notes' => $notes], true);
+    }
+
     private static function scalar(mixed $value): ?string
     {
         return match (true) {
