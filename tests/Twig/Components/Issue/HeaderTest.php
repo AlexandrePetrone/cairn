@@ -53,8 +53,8 @@ final class HeaderTest extends KernelTestCase
         $header = $component->component();
         self::assertInstanceOf(Header::class, $header);
 
-        self::assertSame(['New', 'Qualified', 'In progress', 'To test'], array_column($header->getPath(), 'label'));
-        self::assertSame([false, false, false, false], array_column($header->getPath(), 'moved'));
+        self::assertSame(['New', 'In progress', 'To test'], array_column($header->getPath(), 'label'));
+        self::assertSame([false, false, false], array_column($header->getPath(), 'moved'));
         $render = (string) $component->render();
         self::assertStringContainsString('aria-label="Path"', $render);
         self::assertStringNotContainsString('Moved without an action', $render);
@@ -64,7 +64,7 @@ final class HeaderTest extends KernelTestCase
 
         $header = $component->component();
         self::assertInstanceOf(Header::class, $header);
-        self::assertSame(['label' => 'Qualified', 'moved' => true], $header->getPath()[4]);
+        self::assertSame(['label' => 'Qualified', 'moved' => true], $header->getPath()[3]);
         self::assertStringContainsString('Moved without an action', (string) $component->render());
     }
 

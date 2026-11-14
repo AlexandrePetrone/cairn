@@ -15,8 +15,8 @@ use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
 
 /**
- * MD-SPT-4 is a bug: environment (required), url, browser, reproducible,
- * and estimate for internal users only.
+ * MD-SPT-4 is a bug: environment (required), url, steps, browser, and
+ * estimate for internal users only.
  */
 final class FieldsTest extends KernelTestCase
 {

@@ -52,8 +52,8 @@ final class IssueApiTest extends ApiTestCase
         self::assertSame('http://localhost/MD/SPT/issues/1', $issue['url']);
         self::assertFalse($issue['closed']);
         self::assertContains('environment', array_column($issue['fields'], 'id'));
-        self::assertSame(['qualify', 'reject'], array_column($issue['transitions'], 'id'));
-        self::assertSame(['@type' => 'PlaceRef', 'id' => 'qualified', 'label' => 'Qualified'], $issue['transitions'][0]['to']);
+        self::assertSame(['ask_info', 'qualify', 'reject', 'start'], array_column($issue['transitions'], 'id'));
+        self::assertSame(['@type' => 'PlaceRef', 'id' => 'qualified', 'label' => 'Qualified'], $issue['transitions'][1]['to']);
     }
 
     public function testWhatDoesNotExistIsNotFound(): void

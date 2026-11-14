@@ -38,7 +38,7 @@ final class MoveTest extends KernelTestCase
         $render = $mover->render();
 
         self::assertSame('qualified', $this->reloaded('MD-SPT-1')->getPlace());
-        self::assertSame(['key' => 'MD-SPT-1', 'applied' => true, 'top' => true, 'places' => ['new', 'in_progress', 'to_test', 'done', 'rejected'], 'forced' => ['new', 'to_test', 'done']], $mover->getDispatchedBrowserEvent($render, 'board:moved')['payload'] ?? null, 'the card learns where it may go from its new place, and how');
+        self::assertSame(['key' => 'MD-SPT-1', 'applied' => true, 'top' => true, 'places' => ['new', 'needs_info', 'in_progress', 'blocked', 'to_test', 'to_release', 'done', 'rejected'], 'forced' => ['new', 'needs_info', 'blocked', 'to_test', 'to_release', 'done']], $mover->getDispatchedBrowserEvent($render, 'board:moved')['payload'] ?? null, 'the card learns where it may go from its new place, and how');
         self::assertSame(JournalEntryType::Transitioned, self::getContainer()->get(EntityManagerInterface::class)->getRepository(JournalEntry::class)->findOneBy(['issue' => $this->reloaded('MD-SPT-1')], ['id' => 'DESC'])?->getType(), 'the action, not a forced move');
         self::assertNotNull($mover->getEmittedEvent($render, 'issue:changed'));
     }
@@ -119,8 +119,8 @@ final class MoveTest extends KernelTestCase
         $mover->call('move', ['key' => 'MD-SPT-1', 'place' => 'qualified']);
         self::assertSame('new', $this->reloaded('MD-SPT-1')->getPlace(), 'qualifying is for the agency');
 
-        $mover->call('move', ['key' => 'MD-SPT-4', 'place' => 'done']);
-        self::assertSame('done', $this->reloaded('MD-SPT-4')->getPlace());
+        $mover->call('move', ['key' => 'MD-SPT-4', 'place' => 'to_release']);
+        self::assertSame('to_release', $this->reloaded('MD-SPT-4')->getPlace());
     }
 
     public function testACardDroppedBetweenTwoOthersIsPlacedThereByWhoeverMayRank(): void
@@ -140,11 +140,11 @@ final class MoveTest extends KernelTestCase
     {
         $mover = $this->mover('claire.martin@maison-dupont.test');
 
-        $mover->call('move', ['key' => 'MD-SPT-4', 'place' => 'done', 'above' => 'MD-SPT-5']);
+        $mover->call('move', ['key' => 'MD-SPT-5', 'place' => 'in_progress', 'above' => 'MD-SPT-3']);
         $render = $mover->render();
 
         self::assertTrue($mover->getDispatchedBrowserEvent($render, 'board:moved')['payload']['top'] ?? null);
-        self::assertSame(['MD-SPT-4', 'MD-SPT-5'], $this->column('done'));
+        self::assertSame(['MD-SPT-5', 'MD-SPT-3'], $this->column('in_progress'));
     }
 
     public function testACardIsRankedWithinItsColumn(): void

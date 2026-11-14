@@ -114,15 +114,15 @@ final class PropertiesTest extends KernelTestCase
     public function testTheStepIsAMenuForTheAgencyOnly(): void
     {
         $manager = (string) $this->properties('thomas.girard@cairn.test')->render();
-        self::assertStringContainsString('data-live-action-param="transition" data-live-id-param="accept"', $manager, 'an action leads to "Closed"');
+        self::assertStringContainsString('data-live-action-param="transition" data-live-id-param="accept"', $manager, 'an action leads to "To release"');
         self::assertStringContainsString('data-live-action-param="transition" data-live-id-param="refuse"', $manager);
         self::assertStringContainsString('data-live-action-param="move" data-live-place-param="qualified">', $manager, 'no action leads there: outside the workflow');
-        self::assertStringNotContainsString('data-live-action-param="move" data-live-place-param="done">', $manager, 'the workflow first');
+        self::assertStringNotContainsString('data-live-action-param="move" data-live-place-param="to_release">', $manager, 'the workflow first');
         self::assertStringNotContainsString('data-live-place-param="to_test">', $manager, 'the current place is not a move');
 
         $developer = (string) $this->properties('nadia.benali@cairn.test')->render();
         self::assertStringNotContainsString('data-live-action-param="transition"', $developer, 'no action of hers from "To test"');
-        self::assertStringContainsString('data-live-action-param="move" data-live-place-param="done">', $developer, 'accepting is not hers: outside the workflow');
+        self::assertStringContainsString('data-live-action-param="move" data-live-place-param="to_release">', $developer, 'accepting is not hers: outside the workflow');
         self::assertStringContainsString('Change category…', $developer);
         self::assertStringContainsString(\sprintf('data-live-place-param="to_estimate" data-live-tracker-param="%d"', $this->scene->evolutions->getId()), $developer);
         self::assertStringContainsString('Internal task', $developer, 'private, but Nadia is internal');

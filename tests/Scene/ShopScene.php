@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace App\Tests\Scene;
 
 use App\Config\ConfigLoader;
+use App\Config\Definition\FieldDefinition;
+use App\Config\Definition\FieldUsage;
+use App\Config\Definition\InstanceDefinition;
+use App\Config\Definition\WorkflowDefinition;
+use App\Config\FieldType;
 use App\Config\Sync\ConfigSynchronizer;
 use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
@@ -77,11 +82,42 @@ final class ShopScene
         $this->workflows = $container->get(WorkflowProvider::class);
 
         $synchronizer = $container->get(ConfigSynchronizer::class);
-        $synchronizer->apply($synchronizer->plan((new ConfigLoader(\dirname(__DIR__, 2).'/config/instance.example.php'))->load()), 'tests');
+        $synchronizer->apply($synchronizer->plan(self::configuration()), 'tests');
 
         $this->people();
         $this->places();
         $this->issues();
+    }
+
+    /**
+     * The example configuration, with the two cases it does not show: a
+     * field for internal users only (`estimate`, on bugs) and a workflow
+     * without fields (tasks).
+     */
+    private static function configuration(): InstanceDefinition
+    {
+        $example = (new ConfigLoader(\dirname(__DIR__, 2).'/config/instance.example.php'))->load();
+        $fields = [
+            'bug' => [...array_values($example->workflows['bug']->fields), new FieldUsage('estimate')],
+            'task' => [],
+        ];
+
+        return new InstanceDefinition(
+            migrationPolicy: $example->migrationPolicy,
+            roles: array_values($example->roles),
+            permissions: $example->permissions,
+            fields: [...array_values($example->fields), new FieldDefinition(id: 'estimate', label: 'Estimate (days)', type: FieldType::Number, internalOnly: true)],
+            links: array_values($example->links),
+            workflows: array_map(static fn (WorkflowDefinition $workflow) => new WorkflowDefinition(
+                id: $workflow->id,
+                label: $workflow->label,
+                initial: $workflow->initial,
+                places: array_values($workflow->places),
+                transitions: array_values($workflow->transitions),
+                fields: $fields[$workflow->id] ?? array_values($workflow->fields),
+                fallbackPlace: $workflow->fallbackPlace,
+            ), array_values($example->workflows)),
+        );
     }
 
     public function user(string $email): User

@@ -27,17 +27,17 @@ final class PlaceCatalogTest extends KernelTestCase
 
     public function testThePlacesOfAWorkflowComeInItsOrder(): void
     {
-        self::assertSame(['bug:new', 'bug:qualified', 'bug:in_progress', 'bug:to_test', 'bug:done', 'bug:rejected'], self::keys($this->catalog->choices(['bug'])));
+        self::assertSame(['bug:new', 'bug:needs_info', 'bug:qualified', 'bug:in_progress', 'bug:blocked', 'bug:to_test', 'bug:to_release', 'bug:done', 'bug:rejected'], self::keys($this->catalog->choices(['bug'])));
     }
 
     public function testTheWorkflowsOfAListKeepTheirPlacesApart(): void
     {
         $choices = $this->catalog->choices(['task', 'bug']);
 
-        self::assertSame(['bug:new', 'bug:qualified', 'bug:in_progress', 'bug:to_test', 'bug:done', 'bug:rejected', 'task:todo', 'task:doing', 'task:done'], self::keys($choices), 'workflow by workflow, in the order of the instance file');
-        self::assertSame('In progress', $choices[2]->label);
-        self::assertSame('Bug', $choices[2]->workflowLabel);
-        self::assertSame('In progress', $choices[7]->label, 'the same label, another place');
+        self::assertSame(['bug:new', 'bug:needs_info', 'bug:qualified', 'bug:in_progress', 'bug:blocked', 'bug:to_test', 'bug:to_release', 'bug:done', 'bug:rejected', 'task:todo', 'task:doing', 'task:blocked', 'task:to_test', 'task:to_release', 'task:done', 'task:cancelled'], self::keys($choices), 'workflow by workflow, in the order of the instance file');
+        self::assertSame('In progress', $choices[3]->label);
+        self::assertSame('Bug', $choices[3]->workflowLabel);
+        self::assertSame('In progress', $choices[10]->label, 'the same label, another place');
     }
 
     public function testEveryPlaceOfTheInstanceHasARank(): void

@@ -471,8 +471,9 @@ final class AppStory extends Story
     public static function fieldsFor(WorkflowDefinition $workflow, int $index): array
     {
         $values = [
-            'environment' => ['prod', 'preprod', 'staging'][$index % 3],
+            'environment' => ['prod', 'preprod'][$index % 2],
             'url' => 'https://www.example.test/'.['panier', 'compte', 'catalogue', 'commande'][$index % 4],
+            'steps' => '1. I open the page. 2. I click on the button. 3. Nothing happens.',
             'browser' => ['Chrome 130 on macOS', 'Safari on iPhone', 'Firefox on Windows'][($index + 1) % 3],
             'goal' => 'Save time for the teams who handle orders every day.',
             'due_date' => '2026-12-15',

@@ -79,7 +79,7 @@ final class ActivityTest extends KernelTestCase
         $render = $component->render();
 
         self::assertSame(200, $component->response()->getStatusCode(), 'no redirect');
-        self::assertSame('done', $this->reloaded()->getPlace());
+        self::assertSame('to_release', $this->reloaded()->getPlace());
         self::assertStringContainsString('Draft in progress', (string) $render, 'the comment box is another matter');
         self::assertNull($component->getDispatchedBrowserEvent($render, 'editor:reset'));
         self::assertNotNull($component->getEmittedEvent($render, 'issue:changed'));

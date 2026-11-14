@@ -143,7 +143,7 @@ final class IssueListTest extends WebTestCase
         self::assertSelectorTextContains('[role="search"]', 'Internal task', 'the places of a list mixing workflows come under their workflow');
 
         $crawler = $this->client->request('GET', '/MD/SPT/issues/tracker/'.$this->scene->bugs->getId());
-        self::assertSame(['bug:new', 'bug:qualified', 'bug:in_progress', 'bug:to_test', 'bug:done', 'bug:rejected'], $crawler->filter('input[name="places[]"]')->extract(['value']), 'the bug workflow, in its order');
+        self::assertSame(['bug:new', 'bug:needs_info', 'bug:qualified', 'bug:in_progress', 'bug:blocked', 'bug:to_test', 'bug:to_release', 'bug:done', 'bug:rejected'], $crawler->filter('input[name="places[]"]')->extract(['value']), 'the bug workflow, in its order');
 
         $this->client->request('GET', '/MD/SPT/issues?places[]=evolution:to_estimate&places[]=unknown:place');
         self::assertSelectorTextContains('tbody', 'Monthly accounting export in FEC format');
@@ -232,7 +232,7 @@ final class IssueListTest extends WebTestCase
         self::assertSelectorExists('input[name="criticality[]"][value="blocking"][checked]');
         self::assertSelectorNotExists('turbo-frame#issues table');
         $columns = $crawler->filter('turbo-frame#issues [data-live-name-value="Board:Column"][loading="lazy"]');
-        self::assertCount(6, $columns, 'one per place of the bug workflow, none rendered yet');
+        self::assertCount(9, $columns, 'one per place of the bug workflow, none rendered yet');
         self::assertCount(1, $crawler->filter('turbo-frame#issues [data-live-name-value="Board:Move"]'));
         $props = (string) $columns->first()->attr('data-live-props-value');
         self::assertStringContainsString('"criticality":["blocking"]', $props, 'an unknown value is dropped');

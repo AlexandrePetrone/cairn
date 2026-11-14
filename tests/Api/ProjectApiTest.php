@@ -48,7 +48,7 @@ final class ProjectApiTest extends ApiTestCase
         self::assertSame(['@type' => 'TrackerPlace', 'id' => 'new', 'key' => 'bug:new', 'label' => 'New', 'initial' => true, 'closed' => false], $bug['places'][0]);
         $fields = array_column($bug['fields'], null, 'id');
         self::assertTrue($fields['environment']['required']);
-        self::assertSame(['prod', 'preprod', 'staging'], array_keys($fields['environment']['options']));
+        self::assertSame(['prod', 'preprod'], array_keys($fields['environment']['options']));
         self::assertTrue($fields['estimate']['internalOnly']);
 
         $this->api('GET', '/api/projects/XX-YY/trackers', $this->tokenFor(self::DEVELOPER)->secret);
