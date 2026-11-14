@@ -40,10 +40,10 @@ final class MermaidDiagramTest extends TestCase
 
     public function testEachPlaceIsANodeColouredByItsStatus(): void
     {
-        self::assertStringStartsWith("flowchart LR\n", $this->source);
+        self::assertStringStartsWith("flowchart TB\n", $this->source);
         self::assertStringContainsString('start(( )):::start --> new', $this->source);
-        self::assertStringContainsString('new(["New"]):::open', $this->source);
-        self::assertStringContainsString('to_test(["To test"]):::waiting', $this->source);
+        self::assertStringContainsString('new("New"):::open', $this->source);
+        self::assertStringContainsString('to_test("To test"):::waiting', $this->source);
         self::assertStringContainsString('classDef closed ', $this->source);
         self::assertStringContainsString('fill:var(--color-blue-soft)', $this->source);
         self::assertDoesNotMatchRegularExpression('/#[0-9a-f]{6}/i', $this->source, 'Colours are roles, so that the drawing follows the theme.');
@@ -51,7 +51,7 @@ final class MermaidDiagramTest extends TestCase
 
     public function testLabelsAreEscaped(): void
     {
-        self::assertStringContainsString('in_progress(["In #quot;progress#quot; #35;1"]):::in_progress', $this->source);
+        self::assertStringContainsString('in_progress("In #quot;progress#quot; #35;1"):::in_progress', $this->source);
     }
 
     public function testForwardArrowsAreSolidAndReturnsDotted(): void

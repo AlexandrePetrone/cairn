@@ -8,8 +8,8 @@ use App\Config\Definition\WorkflowDefinition;
 use App\Entity\Enum\PlaceStatus;
 
 /**
- * Describes a workflow as a Mermaid flowchart, drawn by the browser: a
- * rounded node per place coloured by its status, a start mark on the
+ * Describes a workflow as a Mermaid flowchart, drawn by the browser from
+ * top to bottom: a box per place coloured by its status, a start mark on the
  * initial place, an arrow per source of each transition. A transition
  * going back in the kanban order is dotted, so that the main path stands
  * out from the returns. Place ids are configuration ids, valid as Mermaid
@@ -32,10 +32,10 @@ final class MermaidDiagram
     public function render(WorkflowDefinition $workflow): string
     {
         $order = array_flip($workflow->placeIds());
-        $lines = ['flowchart LR', '  start(( )):::start --> '.$workflow->initial];
+        $lines = ['flowchart TB', '  start(( )):::start --> '.$workflow->initial];
 
         foreach ($workflow->places as $place) {
-            $lines[] = \sprintf('  %s(["%s"]):::%s', $place->id, self::escape($place->label), $place->status->value);
+            $lines[] = \sprintf('  %s("%s"):::%s', $place->id, self::escape($place->label), $place->status->value);
         }
         foreach ($workflow->transitions as $transition) {
             $label = self::escape($transition->label.($transition->requiresComment ? ' 💬' : ''));

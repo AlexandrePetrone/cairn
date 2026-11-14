@@ -40,7 +40,11 @@ export default class extends Controller {
             theme: 'base',
             securityLevel: 'strict',
             fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
-            flowchart: { curve: 'basis', htmlLabels: false },
+            flowchart: { htmlLabels: false },
+            // Mermaid lays flowcharts out with ELK, which draws the arrows at right
+            // angles and ignores `flowchart.curve`. Linear segments keep the drawing
+            // narrow and the labels of the actions apart.
+            elk: { nodePlacementStrategy: 'LINEAR_SEGMENTS', straightenEdges: true },
             themeVariables: {
                 lineColor: this.color('faint'),
                 edgeLabelBackground: this.color('surface'),

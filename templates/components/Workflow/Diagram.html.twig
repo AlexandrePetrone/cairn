@@ -1,7 +1,7 @@
 {# The graph of a workflow: the Mermaid source, drawn by the `workflow-diagram` controller, and the legend of colours and dotted arrows. The source only shows when drawing fails; the table of actions next to the diagram tells the same without JavaScript. #}
 <div {{ attributes.defaults({ class: 'space-y-2' }) }}>
     <div class="overflow-x-auto rounded-md border border-line bg-surface p-3" data-controller="workflow-diagram">
-        <div data-workflow-diagram-target="canvas" class="min-w-max min-h-24"></div>
+        <div data-workflow-diagram-target="canvas" class="flex min-w-max min-h-24 justify-center"></div>
         <pre data-workflow-diagram-target="source" class="text-xs text-muted whitespace-pre" hidden>{{ this.source }}</pre>
     </div>
     <p class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
