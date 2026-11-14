@@ -6,13 +6,15 @@ namespace App\Config;
 
 use App\Config\Definition\InstanceDefinition;
 use App\Repository\ConfigSnapshotRepository;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * Runtime access to the applied configuration: the latest snapshot, decoded
- * once per process. No shared cache on purpose, so that a sync run anywhere
- * is visible to every process at its next request.
+ * once per request, and per message for a worker, which resets its services
+ * between two messages: no shared cache on purpose, so that a sync run
+ * anywhere is visible to every process at its next request or message.
  */
-final class ConfigRegistry
+final class ConfigRegistry implements ResetInterface
 {
     private ?InstanceDefinition $definition = null;
 
