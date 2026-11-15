@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Repository\MembershipRepository;
 use App\Repository\UserRepository;
 use App\Tests\Scene\ShopScene;
+use App\Twig\Components\Membership\Grants;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Bundle\FrameworkBundle\Test\MailerAssertionsTrait;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
@@ -98,7 +99,7 @@ final class GrantsTest extends KernelTestCase
         self::assertStringContainsString('Paul Roussel', $render, 'inherited from Maison Dupont');
         self::assertStringContainsString('Nadia Benali', $render, 'held on the shop');
 
-        $render = (string) $component->set('email', 'Paul.Roussel@maison-dupont.test')->render();
+        $render = (string) $component->set('adding', true)->set('email', 'Paul.Roussel@maison-dupont.test')->render();
         $offered = explode('data-model="newRole"', $render)[1];
         self::assertStringContainsString('<option value="client"', $offered);
         self::assertStringNotContainsString('<option value="client_readonly"', $offered, 'what he inherits widens nothing');
@@ -112,7 +113,7 @@ final class GrantsTest extends KernelTestCase
 
     public function testOnAProjectTheAddressTypedSaysWhatItLeadsTo(): void
     {
-        $component = $this->onProject('thomas.girard@cairn.test');
+        $component = $this->onProject('thomas.girard@cairn.test')->set('adding', true);
 
         $render = (string) $component->set('email', 'nadia.benali@cairn.test')->render();
         self::assertStringContainsString('already holds a role on this project', $render);
@@ -129,7 +130,12 @@ final class GrantsTest extends KernelTestCase
         $component->set('newRole', 'client')->call('grant');
         self::assertSame('client', self::getContainer()->get(MembershipRepository::class)->findOneBy(['user' => $this->user('sophie.bernard@travelia.test'), 'project' => $this->scene->shop])?->getRole());
 
-        self::assertStringNotContainsString('data-model="newRole"', (string) $component->render(), 'the form is emptied');
+        $render = (string) $component->render();
+        self::assertStringNotContainsString('role="dialog"', $render, 'the dialog closes once the access is given');
+        self::assertStringContainsString('Sophie Bernard', $render, 'and the list shows her');
+
+        $render = (string) $component->set('adding', true)->render();
+        self::assertStringNotContainsString('data-model="newRole"', $render, 'the dialog opens again emptied');
 
         $render = (string) $component->set('email', 'paul@')->render();
         self::assertStringNotContainsString('data-model="firstName"', $render, 'what CreateUser would refuse is no new account');
@@ -138,7 +144,7 @@ final class GrantsTest extends KernelTestCase
 
     public function testOnAProjectAnUnknownAddressGetsAnExternalAccountARoleAndAnInvitation(): void
     {
-        $component = $this->onProject('thomas.girard@cairn.test');
+        $component = $this->onProject('thomas.girard@cairn.test')->set('adding', true);
 
         $render = (string) $component->set('email', 'remi.colin@natura.test')->render();
         self::assertStringContainsString('an external account will be created', $render);
@@ -171,16 +177,43 @@ final class GrantsTest extends KernelTestCase
 
     public function testOnAProjectAnInvitationNeedsANameAndTheRight(): void
     {
-        $component = $this->onProject('thomas.girard@cairn.test');
-        $component->set('email', 'remi.colin@natura.test')->set('newRole', 'client')->call('invite');
+        $component = $this->onProject('thomas.girard@cairn.test')->set('adding', true);
+        $component->set('email', 'remi@natura.test')->set('newRole', 'client')->call('invite');
         self::assertStringContainsString('first name and a last name', (string) $component->render());
-        self::assertNull(self::getContainer()->get(UserRepository::class)->findOneBy(['email' => 'remi.colin@natura.test']));
+        self::assertNull(self::getContainer()->get(UserRepository::class)->findOneBy(['email' => 'remi@natura.test']));
 
-        $component = $this->onProject('nadia.benali@cairn.test');
+        $component = $this->onProject('nadia.benali@cairn.test')->set('adding', true);
         $component->set('email', 'remi.colin@natura.test')->set('firstName', 'Rémi')->set('lastName', 'Colin')->set('newRole', 'client')->call('invite');
         self::assertStringContainsString('role="alert"', (string) $component->render());
         self::assertNull(self::getContainer()->get(UserRepository::class)->findOneBy(['email' => 'remi.colin@natura.test']), 'a developer creates nothing');
         self::assertEmailCount(0);
+    }
+
+    public function testOnAProjectTheDialogAddingSomeoneOpensAndClosesEmptied(): void
+    {
+        $component = $this->onProject('thomas.girard@cairn.test');
+        self::assertStringNotContainsString('role="dialog"', (string) $component->render(), 'closed until asked');
+
+        $lea = self::getContainer()->get(MembershipRepository::class)->findOneBy(['user' => $this->user('lea.fontaine@cairn.test'), 'project' => $this->scene->shop]);
+        self::assertNotNull($lea);
+        $component->set('roles.'.$lea->getId(), 'nobody')->call('changeRole', ['membership' => $lea->getId()]);
+        self::assertStringContainsString('role="alert"', (string) $component->render(), 'a refusal on a row');
+        self::assertStringNotContainsString('role="alert"', (string) $component->call('open')->render(), 'says nothing in the dialog');
+        $component->call('close');
+
+        $render = (string) $component->call('open')->set('email', 'jean-marc.du-pont@natura.test')->render();
+        self::assertStringContainsString('role="dialog"', $render);
+        self::assertStringContainsString('value="Jean-Marc"', $render, 'the first name read from the address');
+        self::assertStringContainsString('value="Du-Pont"', $render, 'and the last name');
+
+        $render = (string) $component->set('email', 'contact@natura.test')->render();
+        self::assertStringNotContainsString('value="Jean-Marc"', $render, 'an address without a name guesses none');
+
+        $render = (string) $component->call('close')->render();
+        self::assertStringNotContainsString('role="dialog"', $render);
+        $grants = $component->component();
+        self::assertInstanceOf(Grants::class, $grants);
+        self::assertSame('', $grants->email, 'what it held is forgotten');
     }
 
     public function testOnAProjectTheViewerActsWithTheirOwnRights(): void

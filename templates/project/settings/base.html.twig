@@ -1,15 +1,24 @@
-{# Base of the configuration pages of a project, one per item of the navigation's Configuration section: the title of the subject (`settings_title`), then the page (`settings_content`). #}
+{# Base of the configuration pages of a project, one per item of the navigation's Configuration section: the band of the page (`Ui:PageHeader`) with the title of the subject (`settings_title`), its count, its sentence (`settings_intro`), its main action at the right (`settings_actions`) and its tabs (`settings_tabs`), then the page (`settings_content`).
+   The blocks are captured before the component, whose own blocks would otherwise hide them. #}
 {% extends 'layout/project.html.twig' %}
+
+{% block page_section %}{{ 'nav.project.configuration.title'|trans }}{% endblock %}
 
 {% block page_title %}{{ block('settings_title') }}{% endblock %}
 
 {% block content %}
     {% set settingsRoute = { workspaceKey: project.workspace.key, projectKey: project.key } %}
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 space-y-4">
-        <div>
-            <h1 class="text-xl font-semibold text-strong">{% block settings_title %}{{ 'project.settings.title'|trans }}{% endblock %}</h1>
-            <p class="text-xs text-muted">{{ 'project.settings.subtitle'|trans({ '%project%': project.name, '%workspace%': project.workspace.name }) }}</p>
-        </div>
+    {% set settingsTitle %}{% block settings_title %}{% endblock %}{% endset %}
+    {% set settingsCount %}{% block settings_count %}{% endblock %}{% endset %}
+    {% set settingsIntro %}{% block settings_intro %}{% endblock %}{% endset %}
+    {% set settingsActions %}{% block settings_actions %}{% endblock %}{% endset %}
+    {% set settingsTabs %}{% block settings_tabs %}{% endblock %}{% endset %}
+    <twig:Ui:PageHeader :title="settingsTitle" :count="settingsCount|trim is empty ? null : settingsCount|trim">
+        <twig:block name="actions">{{ settingsActions }}</twig:block>
+        <twig:block name="description">{{ settingsIntro }}</twig:block>
+        <twig:block name="tabs">{{ settingsTabs }}</twig:block>
+    </twig:Ui:PageHeader>
+    <div class="px-4 sm:px-6 py-5 space-y-4">
         {% block settings_content %}{% endblock %}
     </div>
 {% endblock %}

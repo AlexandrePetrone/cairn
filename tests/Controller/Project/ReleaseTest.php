@@ -52,9 +52,11 @@ final class ReleaseTest extends WebTestCase
         self::assertSelectorTextContains('main', '2.5.0');
         self::assertSelectorTextContains('main', '2 issues');
         self::assertSelectorTextContains('main', '50 %');
-        self::assertSelectorNotExists('form[name="release"]');
+        self::assertSelectorNotExists('a[href="/MD/SPT/releases/new"]');
 
-        $this->client->request('POST', '/MD/SPT/releases', ['release' => ['name' => '2.6.0']]);
+        $this->client->request('GET', '/MD/SPT/releases/new');
+        self::assertResponseStatusCodeSame(403);
+        $this->client->request('POST', '/MD/SPT/releases/new', ['release' => ['name' => '2.6.0']]);
         self::assertResponseStatusCodeSame(403);
     }
 
@@ -63,9 +65,14 @@ final class ReleaseTest extends WebTestCase
         $this->signInAs('thomas.girard@cairn.test');
         $this->client->request('GET', '/MD/SPT/releases');
         self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('[role="dialog"]');
+        $this->client->clickLink('New release');
+        self::assertRouteSame('app_project_release_new');
+        self::assertSelectorExists('turbo-frame#modal form[action="/MD/SPT/releases/new"]', 'loaded over the list, the form is still sent to the dialog');
 
         $this->client->submitForm('Create the release', ['release[name]' => ' '], 'POST');
         self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('[role="dialog"]', 'the dialog stays open on the refusal');
 
         $this->client->submitForm('Create the release', ['release[name]' => '2.5.0', 'release[plannedOn]' => '2026-11-20', 'release[description]' => 'Checkout.']);
         self::assertResponseRedirects('/MD/SPT/releases');
@@ -73,6 +80,8 @@ final class ReleaseTest extends WebTestCase
         self::assertSame('2026-11-20', $release->getPlannedOn()?->format('Y-m-d'));
 
         $this->client->followRedirect();
+        self::assertSelectorNotExists('[role="dialog"]');
+        $this->client->clickLink('New release');
         $this->client->submitForm('Create the release', ['release[name]' => '2.5.0']);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('form[name="release"]', 'already has a release named 2.5.0');
@@ -95,6 +104,48 @@ final class ReleaseTest extends WebTestCase
         self::assertSame(ReleaseStatus::Delivered, $this->release('2.5.1')->getStatus());
         $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'Delivered and abandoned');
+    }
+
+    public function testTheManagerAbandonsAReleaseFromItsDialog(): void
+    {
+        $release = $this->scene->release();
+        $this->signInAs('thomas.girard@cairn.test');
+
+        $this->client->request('GET', '/MD/SPT/releases');
+        $this->client->clickLink('Edit');
+        self::assertRouteSame('app_project_release_edit');
+        self::assertSelectorTextContains('[role="dialog"]', $release->getName());
+        self::assertSelectorExists(\sprintf('turbo-frame#modal form[name="release"][action="/MD/SPT/releases/%d"]', $release->getId()));
+
+        $this->client->submitForm('Abandon the release');
+        self::assertResponseRedirects('/MD/SPT/releases');
+        self::assertSame(ReleaseStatus::Abandoned, $this->release($release->getName())->getStatus());
+    }
+
+    public function testTheDialogOfAReleaseIsAnsweredAloneToItsFrame(): void
+    {
+        $this->signInAs('thomas.girard@cairn.test');
+        $frame = ['HTTP_TURBO_FRAME' => 'modal'];
+
+        $this->client->request('GET', '/MD/SPT/releases/new', [], [], $frame);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('turbo-frame#modal form[name="release"]');
+        self::assertSelectorNotExists('nav', 'nothing of the page behind the dialog');
+
+        $this->client->submitForm('Create the release', ['release[name]' => ' '], 'POST', $frame);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('turbo-frame#modal [role="dialog"]', 'refused, the dialog alone is drawn again');
+        self::assertSelectorNotExists('nav');
+
+        $this->client->submitForm('Create the release', ['release[name]' => '2.5.0'], 'POST', $frame);
+        self::assertResponseRedirects('/MD/SPT/releases');
+        $this->client->request('GET', '/MD/SPT/releases', [], [], $frame);
+        self::assertSelectorNotExists('turbo-frame#modal *', 'the frame is answered empty, which closes the dialog');
+        self::assertSelectorNotExists('nav');
+
+        $this->client->request('GET', '/MD/SPT/releases');
+        self::assertSelectorTextContains('body', '2.5.0', 'the visit that follows shows the release');
+        self::assertSelectorTextContains('body', 'Release 2.5.0 created.', 'and the flash the frame left unread');
     }
 
     public function testADeveloperNeitherEditsNorDelivers(): void

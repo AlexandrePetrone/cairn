@@ -1,13 +1,10 @@
 {% extends 'project/settings/base.html.twig' %}
 
-{# The editor of one automation rule, a new one without `rule`: the live component does the writing. #}
-{% block settings_title %}{{ (rule ? 'automation.edit_title' : 'automation.new_title')|trans }}{% endblock %}
+{# The editor of one automation rule, a new one without `rule`: the live component does the writing. The breadcrumb leads back to the rules. #}
+{% block page_section %}{{ 'nav.project.configuration.title'|trans }} <twig:ux:icon name="lucide:chevron-right" class="mx-0.5 inline h-3 w-3 text-ghost" /> <a href="{{ path('app_project_settings_automations', { workspaceKey: project.workspace.key, projectKey: project.key }) }}" class="hover:text-strong">{{ 'automation.title'|trans }}</a>{% endblock %}
+
+{% block settings_title %}{{ rule ? rule.name : 'automation.new_title'|trans }}{% endblock %}
 
 {% block settings_content %}
-    <p class="text-xs text-muted">
-        <a href="{{ path('app_project_settings_automations', settingsRoute) }}" class="text-brand hover:underline">{{ 'automation.title'|trans }}</a>
-        <twig:ux:icon name="lucide:chevron-right" class="inline h-3 w-3 text-ghost" />
-        {{ rule ? rule.name : 'automation.new_title'|trans }}
-    </p>
     <twig:Automation:RuleForm :project="project" :rule="rule" />
 {% endblock %}

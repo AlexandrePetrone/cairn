@@ -52,18 +52,26 @@ final class SettingsTest extends WebTestCase
     {
         $this->signInAs('thomas.girard@cairn.test');
         $this->client->request('GET', '/MD/SPT/settings');
-        self::assertResponseIsSuccessful();
+        self::assertResponseRedirects(null, null, 'the page of the first tracker, the others beside it');
+        $this->client->followRedirect();
+        self::assertRouteSame('app_project_settings_tracker');
         self::assertSelectorTextContains('main', 'Internal task');
+        self::assertSelectorNotExists('[role="dialog"]');
+        self::assertSelectorExists('turbo-frame#modal', 'where the dialog loads over the page');
 
-        $this->client->submitForm('Create the tracker', ['tracker[name]' => ''], 'POST');
+        $this->client->clickLink('New tracker');
+        self::assertRouteSame('app_project_settings_tracker_new');
+        self::assertSelectorExists('turbo-frame#modal form[name="new_tracker"][action="/MD/SPT/settings/trackers/new"] [role="dialog"]', 'loaded over the page, the form is still sent to the dialog, under a name of its own');
+
+        $this->client->submitForm('Create the tracker', ['new_tracker[name]' => ''], 'POST');
         self::assertResponseStatusCodeSame(422);
-        $this->client->submitForm('Create the tracker', ['tracker[name]' => '   ', 'tracker[workflowId]' => 'task'], 'POST');
+        $this->client->submitForm('Create the tracker', ['new_tracker[name]' => '   ', 'new_tracker[workflowId]' => 'task'], 'POST');
         self::assertResponseStatusCodeSame(422, 'a blank name is refused by the form, not by the bus');
 
         $this->client->submitForm('Create the tracker', [
-            'tracker[name]' => 'Support',
-            'tracker[description]' => 'A question about the site.',
-            'tracker[workflowId]' => 'task',
+            'new_tracker[name]' => 'Support',
+            'new_tracker[description]' => 'A question about the site.',
+            'new_tracker[workflowId]' => 'task',
         ]);
 
         $support = self::getContainer()->get(TrackerRepository::class)->findOneBy(['name' => 'Support']);
@@ -71,6 +79,27 @@ final class SettingsTest extends WebTestCase
         self::assertSame('task', $support->getWorkflowId());
         self::assertSame(3, $support->getPosition());
         self::assertResponseRedirects(\sprintf('/MD/SPT/settings/trackers/%d', $support->getId()));
+    }
+
+    public function testTheDialogCreatingATrackerIsAnsweredAloneToItsFrame(): void
+    {
+        $this->signInAs('thomas.girard@cairn.test');
+        $frame = ['HTTP_TURBO_FRAME' => 'modal'];
+
+        $this->client->request('GET', '/MD/SPT/settings/trackers/new', [], [], $frame);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('turbo-frame#modal form[name="new_tracker"]');
+        self::assertSelectorNotExists('nav', 'nothing of the page behind the dialog');
+
+        $this->client->submitForm('Create the tracker', ['new_tracker[name]' => ''], 'POST', $frame);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('turbo-frame#modal [role="dialog"]', 'refused, the dialog alone is drawn again');
+        self::assertSelectorNotExists('nav');
+
+        $this->client->request('GET', \sprintf('/MD/SPT/settings/trackers/%d', $this->scene->evolutions->getId()), [], [], $frame);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('turbo-frame#modal *', 'where a creation leads, the frame is answered empty');
+        self::assertSelectorNotExists('nav');
     }
 
     public function testTheManagerDeactivatesATrackerWhoseWorkflowIsShown(): void
@@ -130,6 +159,11 @@ final class SettingsTest extends WebTestCase
         self::assertStringContainsString('Claire Martin', $sections->eq(0)->text(), 'inherited from Maison Dupont');
         self::assertStringContainsString('Nadia Benali', $sections->eq(1)->text(), 'held on the shop');
         self::assertStringNotContainsString('Claire Martin', $sections->eq(1)->filter('ul')->text());
+        self::assertSelectorNotExists('[role="dialog"]');
+
+        $this->client->clickLink('Add someone');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[role="dialog"]', 'Add someone to Online shop');
     }
 
     private function signInAs(string $email): void

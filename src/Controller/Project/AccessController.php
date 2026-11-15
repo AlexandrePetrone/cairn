@@ -6,6 +6,7 @@ namespace App\Controller\Project;
 
 use App\Entity\Project;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -24,8 +25,9 @@ final class AccessController extends AbstractController
         methods: ['GET'],
     )]
     #[IsGranted('project.manage_members', subject: 'project')]
-    public function __invoke(#[CurrentProject] Project $project): Response
+    public function __invoke(#[CurrentProject] Project $project, Request $request): Response
     {
-        return $this->render('project/access.html.twig', ['project' => $project]);
+        // `?add=1` opens the page with the dialog adding someone
+        return $this->render('project/access.html.twig', ['project' => $project, 'adding' => $request->query->getBoolean('add')]);
     }
 }

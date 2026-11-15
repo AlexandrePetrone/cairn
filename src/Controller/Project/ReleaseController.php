@@ -19,6 +19,7 @@ use App\MessageHandler\Command\Release\ReleaseException;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,13 +33,16 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The releases of a project: everyone who sees the project reads them,
  * with their progress; `release.manage` creates, changes, delivers and
- * abandons them. Issues are scheduled in a release from their own page or
+ * abandons them, in a dialog that has an address of its own and renders
+ * the list with it open. Issues are scheduled in a release from their own page or
  * the selection page.
  */
 #[Route('/{workspaceKey}/{projectKey}/releases', requirements: ['workspaceKey' => '[A-Z]{2,5}', 'projectKey' => '[A-Z]{2,5}'])]
 #[IsGranted('view', subject: 'project')]
 final class ReleaseController extends AbstractController
 {
+    use OpensDialog;
+
     public function __construct(
         private readonly CommandBus $commands,
         private readonly QueryBus $queries,
@@ -46,36 +50,42 @@ final class ReleaseController extends AbstractController
     ) {
     }
 
-    #[Route('', name: 'app_project_releases', methods: ['GET', 'POST'])]
+    #[Route('', name: 'app_project_releases', methods: ['GET'])]
     public function list(#[CurrentProject] Project $project, #[CurrentUser] User $viewer, Request $request): Response
     {
-        $form = null;
-        if ($this->isGranted('release.manage', $project)) {
-            $data = new ReleaseData();
-            $form = $this->createForm(ReleaseType::class, $data);
-            $form->handleRequest($request);
-            if ($form->isSubmitted() && $form->isValid()) {
-                try {
-                    $release = $this->commands->dispatch(new CreateRelease((int) $viewer->getId(), (int) $project->getId(), (string) $data->name, $data->plannedOn, $data->description));
-                    \assert($release instanceof Release);
-                    $this->addFlash('success', $this->translator->trans('release.created', ['%name%' => $release->getName()]));
-
-                    return $this->redirectToRoute('app_project_releases', self::route($project));
-                } catch (ReleaseException $e) {
-                    $form->addError(new FormError($e->trans($this->translator)));
-                }
-            }
-        } elseif ($request->isMethod('POST')) {
-            throw $this->createAccessDeniedException();
-        }
-
-        return $this->render('project/releases.html.twig', [
-            'project' => $project,
-            'summaries' => $this->queries->ask(new ListReleases($viewer, $project)),
-            'form' => $form,
-        ], new Response(null, $form?->isSubmitted() ? 422 : 200));
+        return $this->renderList($request, $project, $viewer, null, null);
     }
 
+    /**
+     * The releases with the dialog creating one.
+     */
+    #[Route('/new', name: 'app_project_release_new', methods: ['GET', 'POST'])]
+    #[IsGranted('release.manage', subject: 'project')]
+    public function new(#[CurrentProject] Project $project, #[CurrentUser] User $actor, Request $request): Response
+    {
+        $data = new ReleaseData();
+        // sent to the address of the dialog, not to the page it is loaded over
+        $form = $this->createForm(ReleaseType::class, $data, ['action' => $request->getRequestUri()]);
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            try {
+                $release = $this->commands->dispatch(new CreateRelease((int) $actor->getId(), (int) $project->getId(), (string) $data->name, $data->plannedOn, $data->description));
+                \assert($release instanceof Release);
+                $this->addFlash('success', $this->translator->trans('release.created', ['%name%' => $release->getName()]));
+
+                return $this->redirectToRoute('app_project_releases', self::route($project));
+            } catch (ReleaseException $e) {
+                $form->addError(new FormError($e->trans($this->translator)));
+            }
+        }
+
+        return $this->renderList($request, $project, $actor, $form, null);
+    }
+
+    /**
+     * The releases with the dialog changing one: its name, date and
+     * description, and abandoning it while it is open.
+     */
     #[Route('/{release}', name: 'app_project_release_edit', requirements: ['release' => '\d+'], methods: ['GET', 'POST'])]
     #[IsGranted('release.manage', subject: 'project')]
     public function edit(#[CurrentProject] Project $project, #[MapEntity(id: 'release')] Release $release, #[CurrentUser] User $actor, Request $request): Response
@@ -85,7 +95,8 @@ final class ReleaseController extends AbstractController
         $data->name = $release->getName();
         $data->plannedOn = $release->getPlannedOn();
         $data->description = $release->getDescription();
-        $form = $this->createForm(ReleaseType::class, $data);
+        // sent to the address of the dialog, not to the page it is loaded over
+        $form = $this->createForm(ReleaseType::class, $data, ['action' => $request->getRequestUri()]);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             try {
@@ -105,11 +116,7 @@ final class ReleaseController extends AbstractController
             }
         }
 
-        return $this->render('project/release_edit.html.twig', [
-            'project' => $project,
-            'release' => $release,
-            'form' => $form,
-        ], new Response(null, $form->isSubmitted() ? 422 : 200));
+        return $this->renderList($request, $project, $actor, $form, $release);
     }
 
     /**
@@ -126,6 +133,21 @@ final class ReleaseController extends AbstractController
         $this->addFlash('success', $this->translator->trans('release.status_changed.'.$status->value, ['%name%' => $release->getName()]));
 
         return $this->redirectToRoute('app_project_releases', self::route($project));
+    }
+
+    /**
+     * @param FormInterface<ReleaseData>|null $form    the dialog, when it is open
+     * @param Release|null                    $release the release it changes, none when it creates one
+     */
+    private function renderList(Request $request, Project $project, User $viewer, ?FormInterface $form, ?Release $release): Response
+    {
+        return $this->renderWithDialog($request, 'project/releases.html.twig', [
+            'project' => $project,
+            'form' => $form,
+            'dialogRelease' => $release,
+        ], fn (): array => [
+            'summaries' => $this->queries->ask(new ListReleases($viewer, $project)),
+        ], $form);
     }
 
     private function assertOfProject(Release $release, Project $project): void

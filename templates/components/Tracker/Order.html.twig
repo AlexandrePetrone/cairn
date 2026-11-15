@@ -4,7 +4,7 @@
 {% set orderTrackers = this.trackers %}
 {% set orderWorkflows = this.workflowLabels %}
 <div {{ attributes }} data-loading="addClass(opacity-60)">
-    <twig:Ui:Panel :title="'project.settings.trackers'|trans" :count="orderTrackers|length" :href="path('app_project_settings', orderRoute)" :hrefLabel="'project.settings.tracker.new'|trans">
+    <twig:Ui:Panel :title="'project.settings.trackers'|trans" :count="orderTrackers|length">
         <twig:block name="content">
             {% if error %}
                 <twig:Ui:Callout tone="danger" size="sm" role="alert" class="m-3">{{ error }}</twig:Ui:Callout>

@@ -453,7 +453,9 @@ src/
   no Release property on the issue, no filter nor grouping in its lists,
   and the Releases page (`/MD/SPT/releases`, `Project/ReleaseController`)
   is in its navigation only for whoever may create the first
-  (`release.manage`). Clients read the releases, their progress counted
+  (`release.manage`). A release is created (`/releases/new`) and changed
+  (`/releases/{id}`, where an open one is also abandoned) in a dialog
+  over the list. Clients read the releases, their progress counted
   over the issues they see (`ListReleases`, through `Visibility`).
 
 ### Issue lists, kanban and bulk actions
@@ -1082,15 +1084,22 @@ src/
   (`/MD/SPT/settings/automations`) and Repositories, the access
   guarded by `project.manage_members`, the rest by `project.configure`.
   A new subject is a route, a page extending
-  `project/settings/base.html.twig` (`settings_title`, `settings_content`)
-  and an item of that section, never a tab. They
+  `project/settings/base.html.twig` and an item of that section, never a
+  tab: the page fills `settings_title` and `settings_content`, and when
+  it needs them `settings_count`, `settings_intro`, `settings_actions`
+  (its main action, at the right of the title) and `settings_tabs`, all
+  drawn by `Ui:PageHeader`. They
   reuse the administration's commands with an optional `actorId`: null
   is the administration, a set actor is checked by
   `MessageHandler/Command/ProjectActor` (one call per handler), may
   act on that project only (never on a workspace membership) and never
   archives, since an archived project grants nobody the right to bring
   it back. On the Access page someone is added by email
-  (`Membership:Grants` in project mode): an existing account gets a
+  (`Membership:Grants` in project mode, in a dialog its `adding` opens:
+  the button of the page header calls `open`, and `?add=1` opens the
+  page with it; an
+  address shaped `first.last@…` fills in the name of a new account,
+  which the person adding only checks): an existing account gets a
   role, an unknown address gets an account, the role and an invitation,
   three ordinary commands in a row (`CreateUser` with `actorId` and
   `projectId`, which refuses an internal or administrator account,
@@ -1407,6 +1416,48 @@ src/
   backdrop, the cross and Escape; the `dialog` controller focuses the
   first field). A `Ui:Dropdown:Item` without `href` is a
   button, for a live action in a menu.
+- **A page of a project opens with the same band, its main action at the
+  right.** `Ui:PageHeader` draws the title of the page, its count, a
+  sentence under it, the actions at its right and the tabs on its bottom
+  edge, like the bar of an issue list: the Releases page and every page
+  of the configuration (`project/settings/base.html.twig`) use it, so
+  "New release", "New tracker", "Add someone", "New rule" and "Link a
+  repository" stand in the same place. The bar of an issue list
+  (`IssueList:Filters`) opens with it too, borderless, its views as the
+  actions. The page of the trackers is the page of the first one, the
+  others listed beside it (`/settings` redirects there).
+- **Creating: a dialog to name, a page to compose.** A creation opens a
+  dialog when its form fits the screen without scrolling (four fields or
+  so), has a fixed shape (no rows added or removed, no preview) and is
+  filled without reading anything else: a release, a tracker, a
+  repository, someone on a project. Otherwise it is a page: an automation
+  rule. What was created in a dialog is changed in the same dialog; when
+  the thing has a page of its own (a tracker), the creation leads to it.
+  A dialog of a page rendered by a controller has its own address (`/new`,
+  `/{id}`), which renders the page with it open, and loads over the page
+  as it is through the `modal` Turbo frame every page of a project has
+  (the `modal` block of `layout/project.html.twig`, empty unless a page
+  fills it with `project/_form_dialog.html.twig`): the links that open a
+  dialog carry `data-turbo-frame="modal"`, and the address does not
+  move. A request made for the frame is answered with that block alone
+  (`Controller/Project/OpensDialog::renderWithDialog()`: what only the
+  whole page reads is a closure it does not call), so the block reads
+  nothing the rest of the page sets. The form names its address as its
+  action (the `action` option: an empty one would send it to the page
+  behind) and, on a page that may hold another form of the same type,
+  has a name of its own (`new_tracker`). It is sent within the frame:
+  refused, the dialog alone is drawn again (422); accepted, the page it
+  redirects to answers the frame its empty self, flash unread, and the
+  `modal-frame` controller visits that page, which shows it up to date
+  with its flash. Every page a dialog redirects to must answer the frame
+  that way. Closing (`closeHref`: the backdrop, the cross, Cancel,
+  Escape) empties the frame without a request (`dialog#dismiss`), or
+  follows the link when the page was opened at the address of the
+  dialog. A live component opens its own dialog from its state; a link
+  outside it calls its action through the `live-trigger` controller, its
+  address (`?add=1`, which the page passes to the component, then
+  dropped from the address bar) opening the page with the dialog
+  (`Membership:Grants`).
 - **Choosing among many is a `Ui:Picker`, typing with suggestions a
   `Ui:Form:Combobox`.** `Ui:Picker` is a field-like button that opens a
   `Ui:Dropdown` with a search field narrowing the `Ui:Dropdown:Item`s
@@ -1421,7 +1472,7 @@ src/
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`, `dialog`,
   `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`,
   `workflow-diagram`, `sortable`, `list-filter`, `combobox`, `board`,
-  `load-more`, `clipboard`, `picker`, `filters`, `selection`, `fold`, `list-view`, `live-updates`, `theme`, `panels`, `avatar`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
+  `load-more`, `clipboard`, `picker`, `filters`, `selection`, `fold`, `list-view`, `live-updates`, `theme`, `panels`, `avatar`, `live-trigger`, `modal-frame`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
   (`editor` with TipTap, `workflow-diagram` with Mermaid, `board` with
   SortableJS) so that Vite
   splits its imports into chunks only fetched on a page that uses it; write a new one when a component needs it, not before. No

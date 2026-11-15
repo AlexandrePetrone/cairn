@@ -1,0 +1,6 @@
+# Composite: rendered by pageHeader.html.twig next to this file. The band at the top of a page of a project.
+variants:
+    default: { args: { title: Releases, count: '', description: 'A release groups the issues of one delivery.', action: '', tabs: [] } }
+    with_count: { args: { title: Releases, count: '3', description: 'A release groups the issues of one delivery.', action: '', tabs: [] } }
+    with_action: { args: { title: Releases, count: '', description: 'A release groups the issues of one delivery.', action: New release, tabs: [] } }
+    with_tabs: { args: { title: Releases, count: '', description: 'A release groups the issues of one delivery.', action: '', tabs: [{ label: Open, count: 3, active: true }, { label: Delivered, count: 8, active: false }] } }

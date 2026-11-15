@@ -27,9 +27,12 @@ use App\Message\CommandBus;
 use App\MessageHandler\Command\Forge\CodeRepositoryException;
 use App\MessageHandler\Command\Tracker\TrackerException;
 use App\Repository\CodeRepositoryRepository;
+use App\Repository\TrackerRepository;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
+use Symfony\Component\Form\FormFactoryInterface;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -40,15 +43,18 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The configuration of a project, for its manager: its trackers (the list
- * with the form of a new one, or the settings of one), its general
- * settings and the repositories of the forges linked to it. Archiving
- * stays in the administration.
+ * The configuration of a project, for its manager: its trackers (the list,
+ * the dialog creating one, the settings of one), its general settings and
+ * the repositories of the forges linked to it (the list, the dialog
+ * linking one). A dialog has an address of its own, which renders the
+ * list with it open. Archiving stays in the administration.
  */
 #[Route('/{workspaceKey}/{projectKey}/settings', requirements: ['workspaceKey' => '[A-Z]{2,5}', 'projectKey' => '[A-Z]{2,5}'])]
 #[IsGranted('project.configure', subject: 'project')]
 final class SettingsController extends AbstractController
 {
+    use OpensDialog;
+
     public function __construct(
         private readonly CommandBus $commands,
         private readonly ConfigRegistry $config,
@@ -56,11 +62,32 @@ final class SettingsController extends AbstractController
     ) {
     }
 
-    #[Route('', name: 'app_project_settings', methods: ['GET', 'POST'])]
-    public function trackers(#[CurrentProject] Project $project, #[CurrentUser] User $actor, Request $request): Response
+    /**
+     * The trackers of the project: the page of the first one, where the
+     * others are listed beside it; the bare list while there is none.
+     */
+    #[Route('', name: 'app_project_settings', methods: ['GET'])]
+    public function trackers(#[CurrentProject] Project $project, Request $request, TrackerRepository $trackers): Response
+    {
+        $first = $trackers->findByProject($project, includeInactive: true)[0] ?? null;
+        if (null !== $first) {
+            return $this->redirectToRoute('app_project_settings_tracker', self::route($project) + ['tracker' => $first->getId()]);
+        }
+
+        return $this->renderWithDialog($request, 'project/settings/trackers.html.twig', ['project' => $project, 'form' => null], static fn (): array => []);
+    }
+
+    /**
+     * The list of the trackers with the dialog creating one; the new
+     * tracker is then shown on its own page.
+     */
+    #[Route('/trackers/new', name: 'app_project_settings_tracker_new', methods: ['GET', 'POST'])]
+    public function newTracker(#[CurrentProject] Project $project, #[CurrentUser] User $actor, Request $request, FormFactoryInterface $forms): Response
     {
         $data = new TrackerData();
-        $form = $this->createForm(TrackerType::class, $data, ['creation' => true, 'workflows' => $this->config->definition()->workflowLabels()]);
+        // sent to the address of the dialog, not to the page it is loaded over; under a name of its own, since
+        // that page may be the one of a tracker, whose form would otherwise share the ids of its fields
+        $form = $forms->createNamed('new_tracker', TrackerType::class, $data, ['action' => $request->getRequestUri(), 'creation' => true, 'workflows' => $this->config->definition()->workflowLabels()]);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             try {
@@ -74,7 +101,7 @@ final class SettingsController extends AbstractController
             }
         }
 
-        return $this->render('project/settings/trackers.html.twig', ['project' => $project, 'form' => $form], new Response(null, $form->isSubmitted() ? 422 : 200));
+        return $this->renderWithDialog($request, 'project/settings/trackers.html.twig', ['project' => $project, 'form' => $form], static fn (): array => [], $form);
     }
 
     #[Route('/trackers/{tracker}', name: 'app_project_settings_tracker', requirements: ['tracker' => '\d+'], methods: ['GET', 'POST'])]
@@ -82,6 +109,10 @@ final class SettingsController extends AbstractController
     {
         if ($tracker->getProject()->getId() !== $project->getId()) {
             throw new NotFoundHttpException();
+        }
+        if (self::forDialog($request)) {
+            // where the dialog creating a tracker leads: the frame is answered its empty self
+            return $this->renderWithDialog($request, 'project/settings/tracker.html.twig', ['project' => $project], static fn (): array => []);
         }
         $data = new TrackerData();
         $data->name = $tracker->getName();
@@ -128,14 +159,24 @@ final class SettingsController extends AbstractController
     /**
      * The repositories linked to the project, each installed on its forge
      * or waiting to be, by the API or by hand with the URL and the secret
-     * shown; and the form linking one more, installed at once when the
-     * instance token allows it.
+     * shown.
      */
-    #[Route('/repositories', name: 'app_project_settings_repositories', methods: ['GET', 'POST'])]
-    public function repositories(#[CurrentProject] Project $project, #[CurrentUser] User $actor, Request $request, CodeRepositoryRepository $repositories, ForgeApiLocator $apis): Response
+    #[Route('/repositories', name: 'app_project_settings_repositories', methods: ['GET'])]
+    public function repositories(#[CurrentProject] Project $project, Request $request, CodeRepositoryRepository $repositories, ForgeApiLocator $apis): Response
+    {
+        return $this->renderRepositories($request, $project, $repositories, $apis, null);
+    }
+
+    /**
+     * The list of the repositories with the dialog linking one more,
+     * installed at once when the instance token allows it.
+     */
+    #[Route('/repositories/new', name: 'app_project_settings_repository_new', methods: ['GET', 'POST'])]
+    public function newRepository(#[CurrentProject] Project $project, #[CurrentUser] User $actor, Request $request, CodeRepositoryRepository $repositories, ForgeApiLocator $apis): Response
     {
         $data = new CodeRepositoryData();
-        $form = $this->createForm(CodeRepositoryType::class, $data);
+        // sent to the address of the dialog, not to the page it is loaded over
+        $form = $this->createForm(CodeRepositoryType::class, $data, ['action' => $request->getRequestUri()]);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             $forge = $data->forge ?? Forge::GitLab;
@@ -154,15 +195,8 @@ final class SettingsController extends AbstractController
                 $form->addError(new FormError($e->trans($this->translator)));
             }
         }
-        $api = $apis->for(Forge::GitLab);
 
-        return $this->render('project/settings/repositories.html.twig', [
-            'project' => $project,
-            'repositories' => $repositories->findByProject($project),
-            'canInstall' => $api->isConfigured(),
-            'webhookUrl' => $api->deliveryUrl(),
-            'form' => $form,
-        ], new Response(null, $form->isSubmitted() ? 422 : 200));
+        return $this->renderRepositories($request, $project, $repositories, $apis, $form);
     }
 
     #[Route('/repositories/{repository}/{action}', name: 'app_project_settings_repository', requirements: ['repository' => '\d+', 'action' => 'install|uninstall|secret|unlink'], methods: ['POST'])]
@@ -188,6 +222,23 @@ final class SettingsController extends AbstractController
         }
 
         return $this->redirectToRoute('app_project_settings_repositories', self::route($project));
+    }
+
+    /**
+     * @param FormInterface<CodeRepositoryData>|null $form the dialog linking a repository, when it is open
+     */
+    private function renderRepositories(Request $request, Project $project, CodeRepositoryRepository $repositories, ForgeApiLocator $apis, ?FormInterface $form): Response
+    {
+        $api = $apis->for(Forge::GitLab);
+
+        return $this->renderWithDialog($request, 'project/settings/repositories.html.twig', [
+            'project' => $project,
+            'canInstall' => $api->isConfigured(),
+            'form' => $form,
+        ], static fn (): array => [
+            'repositories' => $repositories->findByProject($project),
+            'webhookUrl' => $api->deliveryUrl(),
+        ], $form);
     }
 
     /**

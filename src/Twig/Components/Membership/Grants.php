@@ -41,7 +41,8 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * searchable list. On a project, the viewer acts and the roles inherited
  * from the workspace are shown read-only, a direct role only widening
  * them; someone is added by email: an existing account gets a role, an
- * unknown address gets an external account, the role and an invitation.
+ * unknown address gets an external account, the role and an invitation,
+ * in a dialog the page opens (`adding`, from `?add=1` or its button).
  * A member who has not chosen their password yet can be invited again.
  * Each row can be made the referent of its role (SetReferent): on a
  * project the referents inherited from the workspace only show.
@@ -85,6 +86,10 @@ final class Grants
     #[LiveProp(writable: true)]
     public string $newRole = '';
 
+    /** On a project: whether the dialog adding someone is open; the page opens it when its address says `?add=1`. */
+    #[LiveProp(writable: true)]
+    public bool $adding = false;
+
     /** On a project: the address of who gets the new role. */
     #[LiveProp(writable: true, onUpdated: 'onEmailChanged')]
     public string $email = '';
@@ -126,8 +131,9 @@ final class Grants
     ) {
     }
 
-    public function mount(?Workspace $workspace = null, ?User $user = null, ?Project $project = null): void
+    public function mount(?Workspace $workspace = null, ?User $user = null, ?Project $project = null, bool $adding = false): void
     {
+        $this->adding = $adding && null !== $project;
         if (1 !== \count(array_filter([$workspace, $user, $project]))) {
             throw new \LogicException('Membership:Grants lists the memberships of a workspace, of a user or of a project.');
         }
@@ -141,10 +147,27 @@ final class Grants
     {
         $this->loadedMatch = null;
         $this->newRole = '';
-        $this->firstName = '';
-        $this->lastName = '';
+        [$this->firstName, $this->lastName] = self::guessName($this->email);
         $this->company = '';
         $this->error = null;
+    }
+
+    /**
+     * The first and last name an address of the shape `first.last@…` gives,
+     * for an account to create: the person adding only checks them.
+     *
+     * @return array{string, string}
+     */
+    private static function guessName(string $email): array
+    {
+        $local = strstr(trim($email), '@', true);
+        $parts = false === $local ? [] : explode('.', $local);
+        if (2 !== \count($parts) || '' === $parts[0] || '' === $parts[1] || 1 === preg_match('/\d/', $local)) {
+            return ['', ''];
+        }
+        $word = static fn (string $part): string => implode('-', array_map(static fn (string $piece): string => mb_convert_case($piece, \MB_CASE_TITLE), explode('-', $part)));
+
+        return [$word($parts[0]), $word($parts[1])];
     }
 
     /**
@@ -363,6 +386,7 @@ final class Grants
         }
 
         $this->reset();
+        $this->adding = false;
         $this->done('admin.access.granted');
     }
 
@@ -396,7 +420,30 @@ final class Grants
         }
 
         $this->reset();
+        $this->adding = false;
         $this->done('project.access.invited');
+    }
+
+    /**
+     * On a project: opens the dialog adding someone.
+     */
+    #[LiveAction]
+    public function open(): void
+    {
+        // what a row was refused has nothing to say in the dialog
+        $this->error = null;
+        $this->adding = true;
+    }
+
+    /**
+     * On a project: closes the dialog adding someone, forgetting what it held.
+     */
+    #[LiveAction]
+    public function close(): void
+    {
+        $this->reset();
+        $this->error = null;
+        $this->adding = false;
     }
 
     /**

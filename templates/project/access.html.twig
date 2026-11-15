@@ -1,9 +1,14 @@
 {% extends 'project/settings/base.html.twig' %}
 
-{# Who holds a role on the project, and the referent of each role: a page of the Configuration section like the others, in the same frame. #}
+{# Who holds a role on the project, and the referent of each role: a page of the Configuration section like the others, in the same frame. Adding someone opens the dialog of `Membership:Grants`: the button calls its `open` action (`live-trigger`), and its link, `?add=1`, opens the page with the dialog. #}
 {% block settings_title %}{{ 'project.access.title'|trans }}{% endblock %}
 
+{% block settings_intro %}{{ 'project.access.intro'|trans({ '%workspace%': project.workspace.name }) }}{% endblock %}
+
+{% block settings_actions %}
+    <twig:Ui:Button variant="primary" icon="user-plus" href="{{ path('app_project_access', settingsRoute|merge({ add: 1 })) }}" data-controller="live-trigger" data-live-trigger-component-value="Membership:Grants" data-live-trigger-action-value="open" data-action="live-trigger#call">{{ 'project.access.add'|trans }}</twig:Ui:Button>
+{% endblock %}
+
 {% block settings_content %}
-    <p class="max-w-3xl text-sm text-muted">{{ 'project.access.intro'|trans({ '%workspace%': project.workspace.name }) }}</p>
-    <twig:Membership:Grants :project="project" />
+    <div class="max-w-4xl"><twig:Membership:Grants :project="project" :adding="adding" /></div>
 {% endblock %}

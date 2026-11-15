@@ -26,7 +26,7 @@
         <twig:Ui:Layout:Sidebar:Section :label="'nav.project.configuration.title'|trans">
             {% if navConfigures %}
                 <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_settings_general', route) }}" icon="settings" :active="navRoute == 'app_project_settings_general'">{{ 'nav.project.configuration.general'|trans }}</twig:Ui:Layout:Sidebar:Item>
-                <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_settings', route) }}" icon="kanban" :active="navRoute in ['app_project_settings', 'app_project_settings_tracker']">{{ 'nav.project.configuration.trackers'|trans }}</twig:Ui:Layout:Sidebar:Item>
+                <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_settings', route) }}" icon="kanban" :active="navRoute in ['app_project_settings', 'app_project_settings_tracker', 'app_project_settings_tracker_new']">{{ 'nav.project.configuration.trackers'|trans }}</twig:Ui:Layout:Sidebar:Item>
             {% endif %}
             {% if navManagesMembers %}
                 <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_access', route) }}" icon="users" :active="navRoute == 'app_project_access'">{{ 'nav.project.configuration.access'|trans }}</twig:Ui:Layout:Sidebar:Item>

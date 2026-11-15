@@ -9,16 +9,19 @@
     data-turbo-frame="issues" data-view="{{ filtersView }}"
     data-controller="filters" data-action="change->filters#submit input->filters#search" {{ attributes }}>
     {% if title or scope.hasBoard %}
-        <div class="flex flex-wrap items-center gap-3 pt-3">
-            {% if title %}<h1 class="font-semibold text-strong text-base">{{ title }}</h1>{% endif %}
-            {% if scope.hasBoard %}
-                {# The list is the view of an address that names none: its radio sends nothing. #}
-                <twig:Ui:Filter:Segments :label="'issue.board.views'|trans" class="ml-auto">
-                    <twig:Ui:Filter:Segment name="view" value="" icon="list" :checked="filtersView != 'board'">{{ 'issue.board.list'|trans }}</twig:Ui:Filter:Segment>
-                    <twig:Ui:Filter:Segment name="view" value="board" icon="kanban" :checked="filtersView == 'board'">{{ 'issue.board.title'|trans }}</twig:Ui:Filter:Segment>
-                </twig:Ui:Filter:Segments>
-            {% endif %}
-        </div>
+        {% set filtersHasBoard = scope.hasBoard %}
+        {# The band of the page, as on every page of a project: here inside the bar, which draws the ground and the border. #}
+        <twig:Ui:PageHeader :title="title" class="border-b-0 bg-transparent px-0 sm:px-0 pb-0">
+            <twig:block name="actions">
+                {% if filtersHasBoard %}
+                    {# The list is the view of an address that names none: its radio sends nothing. #}
+                    <twig:Ui:Filter:Segments :label="'issue.board.views'|trans">
+                        <twig:Ui:Filter:Segment name="view" value="" icon="list" :checked="filtersView != 'board'">{{ 'issue.board.list'|trans }}</twig:Ui:Filter:Segment>
+                        <twig:Ui:Filter:Segment name="view" value="board" icon="kanban" :checked="filtersView == 'board'">{{ 'issue.board.title'|trans }}</twig:Ui:Filter:Segment>
+                    </twig:Ui:Filter:Segments>
+                {% endif %}
+            </twig:block>
+        </twig:Ui:PageHeader>
     {% endif %}
     <div role="search" class="flex flex-wrap items-center gap-2 py-3">
         {% if scope.offers('place') %}

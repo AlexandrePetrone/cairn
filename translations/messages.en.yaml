@@ -800,8 +800,6 @@ project:
         archived: 'This project is archived: it is read-only, nothing in it can be changed.'
         workspace_archived: 'The workspace %workspace% is archived: this project is read-only, nothing in it can be changed.'
     settings:
-        title: Configuration
-        subtitle: 'Project %project% · workspace %workspace%'
         trackers: Trackers
         save: Save
         saved: Changes saved.
@@ -810,7 +808,6 @@ project:
         description_help: Shown to client users on the project pages.
         key_fixed: 'The key %key% is part of the issue identifiers: it does not change. Archiving the project is done in the administration.'
         tracker:
-            new: Add
             new_title: New tracker
             create: Create the tracker
             created: 'Tracker "%name%" created.'
@@ -871,6 +868,10 @@ project:
             unknown_workflow: 'The workflow "%workflow%" does not exist in the configuration.'
     access:
         title: Access
+        add: Add someone
+        add_title: 'Add someone to %project%'
+        grant_submit: Give access
+        invite_hint: An invitation will be sent by email.
         intro: 'Roles held on the workspace %workspace% apply to all of its projects. A role granted here applies to this project only and may only widen the inherited one.'
         inherited: 'Inherited from the workspace %workspace%'
         edit_in_workspace: Edit in the workspace →

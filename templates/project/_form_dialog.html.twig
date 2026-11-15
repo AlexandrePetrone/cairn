@@ -1,0 +1,23 @@
+{# The `modal` Turbo frame of a page of a project and, when the address asks for it (`/releases/new`), its dialog: the Symfony `form` in a `Ui:Dialog`, sent by a button saying `submitLabel`. A page fills the `modal` block of its layout with it.
+   A link aimed at the frame (`data-turbo-frame="modal"`) loads the dialog over the page as it is; closing it empties the frame, back to `closeHref` when the page was opened at the address of the dialog. The form names its own address as its action (the controller's `action` option: without it, it would be sent to the page it is loaded over) and is sent within the frame: refused, the frame alone is drawn again (422) and the page behind stays as it was; accepted, the `modal-frame` controller visits the page the answer redirects to, which shows it up to date with its flash.
+   Every row shows in its order, unless the caller rendered them in `fields`; `after` sits under them, `before` holds what the dialog needs beside its form (another form a button names), `size` widens the dialog. #}
+<turbo-frame id="modal" data-controller="modal-frame" data-action="turbo:submit-end->modal-frame#submitted">
+    {% if form %}
+        {{ before ?? '' }}
+        {{ form_start(form) }}
+            <twig:Ui:Dialog :title="title" :closeHref="closeHref" :size="size ?? 'md'">
+                <twig:block name="content">
+                    <div class="space-y-4">
+                        {{ form_errors(form) }}
+                        {{ fields ?? form_rest(form) }}
+                    </div>
+                    {{ after ?? '' }}
+                </twig:block>
+                <twig:block name="footer">
+                    <twig:Ui:Button type="submit" variant="primary">{{ submitLabel }}</twig:Ui:Button>
+                    <twig:Ui:Button variant="ghost" :href="closeHref" data-turbo-frame="_top" data-action="dialog#dismiss">{{ 'admin.cancel'|trans }}</twig:Ui:Button>
+                </twig:block>
+            </twig:Ui:Dialog>
+        {{ form_end(form) }}
+    {% endif %}
+</turbo-frame>

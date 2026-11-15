@@ -1,5 +1,5 @@
 {# Base of every page of a project (`/MD/SPT/…`): the shell with the header and the project navigation, a breadcrumb ending with the page title, then a banner when the project is read-only (archived, or its workspace).
-   Pages extend it with `project` in their context and fill `page_title` and `content`. The blocks are captured before the shell component, whose own blocks would otherwise hide them. #}
+   Pages extend it with `project` in their context and fill `page_title` and `content`; `page_section` names, in the breadcrumb, the part of the project a page belongs to (Configuration). `modal` is the `modal` Turbo frame every page has, empty unless the page fills it with its dialog (`project/_form_dialog.html.twig`): a request made for the frame is answered with this block alone (`Controller/Project/OpensDialog`), so it reads nothing the rest of the page sets. The blocks are captured before the shell component, whose own blocks would otherwise hide them. #}
 {% extends 'base.html.twig' %}
 
 {% block title %}{{ block('page_title') }} · {{ project.name }} · Cairn{% endblock %}
@@ -7,7 +7,9 @@
 {% block body %}
     {% set layoutRoute = { workspaceKey: project.workspace.key, projectKey: project.key } %}
     {% set layoutPageTitle %}{% block page_title %}{% endblock %}{% endset %}
+    {% set layoutPageSection %}{% block page_section %}{% endblock %}{% endset %}
     {% set layoutPageContent %}{% block content %}{% endblock %}{% endset %}
+    {% set layoutModal %}{% block modal %}{{ include('project/_form_dialog.html.twig', { form: null }) }}{% endblock %}{% endset %}
     <twig:Ui:Layout:Shell>
         <twig:block name="header"><twig:Layout:Header :project="project" /></twig:block>
         <twig:block name="sidebar"><twig:Layout:ProjectNav :project="project" /></twig:block>
@@ -17,6 +19,10 @@
                 <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-ghost shrink-0" />
                 <a href="{{ path('app_project_issues', layoutRoute) }}" class="hover:text-strong">{{ project.name }}</a>
                 <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-ghost shrink-0" />
+                {% if layoutPageSection|trim is not empty %}
+                    <span>{{ layoutPageSection }}</span>
+                    <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-ghost shrink-0" />
+                {% endif %}
                 <span class="text-strong font-medium truncate">{{ layoutPageTitle }}</span>
             </nav>
         </twig:block>
@@ -27,5 +33,6 @@
             </div>
         {% endif %}
         {{ layoutPageContent }}
+        {{ layoutModal }}
     </twig:Ui:Layout:Shell>
 {% endblock %}

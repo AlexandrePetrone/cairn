@@ -1,0 +1,21 @@
+{# The band at the top of a page of a project, under the breadcrumb: the `title` with its `count`, the `actions` at its right (the main one always there), a sentence under it (`description`), then the `tabs` of the page on its bottom edge (`Ui:Tab`s). The bar of an issue list opens with it too, borderless, above its filters. #}
+{% props title = null, count = null %}
+{% set pageHeaderDescription %}{% block description %}{% endblock %}{% endset %}
+{% set pageHeaderTabs %}{% block tabs %}{% endblock %}{% endset %}
+{% set pageHeaderClasses = html_cva(
+    base: 'border-b border-line bg-surface px-4 sm:px-6 pt-3',
+    variants: { tabs: { true: 'pb-0', false: 'pb-3' } },
+) %}
+<div class="{{ pageHeaderClasses.apply({ tabs: pageHeaderTabs|trim is not empty }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-2 min-h-8">
+        {% if title %}<h1 class="font-semibold text-strong text-base">{{ title }}</h1>{% endif %}
+        {% if count is not null %}<span class="text-xs text-faint">{{ count }}</span>{% endif %}
+        <div class="ml-auto flex flex-wrap items-center gap-2">{% block actions %}{% endblock %}</div>
+    </div>
+    {% if pageHeaderDescription|trim is not empty %}
+        <p class="mt-1 max-w-3xl text-sm text-muted">{{ pageHeaderDescription }}</p>
+    {% endif %}
+    {% if pageHeaderTabs|trim is not empty %}
+        <nav class="mt-2 flex items-center gap-1">{{ pageHeaderTabs }}</nav>
+    {% endif %}
+</div>

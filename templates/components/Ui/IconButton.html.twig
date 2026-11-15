@@ -1,5 +1,5 @@
-{# A button that is only an icon, for discreet actions: `label` is its tooltip and accessible name. `danger` turns red on hover. #}
-{% props icon, label, tone = 'default', size = 'md' %}
+{# A button that is only an icon, for discreet actions: `label` is its tooltip and accessible name. `danger` turns red on hover. Renders <a> with `href`, <button> otherwise. #}
+{% props icon, label, tone = 'default', size = 'md', href = null %}
 {% set iconButtonClasses = html_cva(
     base: 'inline-flex shrink-0 items-center justify-center rounded-md text-faint transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-line disabled:pointer-events-none disabled:opacity-40',
     variants: {
@@ -7,4 +7,5 @@
         size: { sm: 'h-6 w-6', md: 'h-7 w-7' },
     },
 ) %}
-<button type="button" title="{{ label }}" aria-label="{{ label }}" class="{{ iconButtonClasses.apply({ tone: tone, size: size }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>{{ ux_icon('lucide:' ~ icon, { class: size == 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4' }) }}</button>
+{% set iconButtonTag = href ? 'a' : 'button' %}
+<{{ iconButtonTag }} {% if href %}href="{{ href }}"{% else %}type="button"{% endif %} title="{{ label }}" aria-label="{{ label }}" class="{{ iconButtonClasses.apply({ tone: tone, size: size }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>{{ ux_icon('lucide:' ~ icon, { class: size == 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4' }) }}</{{ iconButtonTag }}>

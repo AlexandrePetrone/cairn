@@ -3,9 +3,16 @@
 {# What the automation rules of the project did, the latest first: the rule under the name it had, the issue, what triggered it, and how it ended with what each action did. Filtered by rule and by result with a GET form. #}
 {% block settings_title %}{{ 'automation.title'|trans }}{% endblock %}
 
+{% block settings_intro %}{{ 'automation.intro'|trans }}{% endblock %}
+
+{% block settings_actions %}
+    <twig:Ui:Button variant="primary" icon="plus" href="{{ path('app_project_settings_automation_new', settingsRoute) }}">{{ 'automation.new'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block settings_tabs %}{{ include('project/settings/_automation_tabs.html.twig') }}{% endblock %}
+
 {% block settings_content %}
     {% set runsSelectClasses = 'h-8 rounded-md border border-line-strong bg-surface py-0 pl-2 pr-8 text-sm text-body focus:border-focus focus:outline-none focus:ring-0' %}
-    {{ include('project/settings/_automation_tabs.html.twig') }}
 
     <form method="get" class="flex flex-wrap items-center gap-2" data-controller="autosubmit">
         <select name="rule" aria-label="{{ 'automation.run.rule'|trans }}" class="{{ runsSelectClasses }}" data-action="change->autosubmit#submit">

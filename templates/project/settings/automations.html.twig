@@ -3,12 +3,17 @@
 {# The automation rules of the project, those that react to an event then those that wait for time: each with its switch, what it says in one sentence, where it applies and when it last ran. A role the rules aim at without a referent is said first. #}
 {% block settings_title %}{{ 'automation.title'|trans }}{% endblock %}
 
+{% block settings_count %}{{ rules|length }}{% endblock %}
+
+{% block settings_intro %}{{ 'automation.intro'|trans }}{% endblock %}
+
+{% block settings_actions %}
+    <twig:Ui:Button variant="primary" icon="plus" href="{{ path('app_project_settings_automation_new', settingsRoute) }}">{{ 'automation.new'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block settings_tabs %}{{ include('project/settings/_automation_tabs.html.twig') }}{% endblock %}
+
 {% block settings_content %}
-    {{ include('project/settings/_automation_tabs.html.twig') }}
-    <div class="flex flex-wrap items-start gap-3">
-        <p class="min-w-0 flex-1 basis-80 max-w-3xl text-sm text-muted">{{ 'automation.intro'|trans }}</p>
-        <twig:Ui:Button variant="primary" icon="plus" href="{{ path('app_project_settings_automation_new', settingsRoute) }}">{{ 'automation.new'|trans }}</twig:Ui:Button>
-    </div>
 
     {% for role, missing in missingReferents %}
         <twig:Ui:Callout tone="amber" size="sm" role="status" class="flex flex-wrap items-center gap-x-3 gap-y-1">

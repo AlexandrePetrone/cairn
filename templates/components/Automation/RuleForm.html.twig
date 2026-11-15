@@ -2,32 +2,38 @@
    `this` is read before the nested components, whose blocks see their own `this`. #}
 {% set ruleFormSentence = this.sentence %}
 {% set ruleFormTimed = this.timed %}
-{% set ruleFormRowClasses = 'flex flex-wrap items-start gap-2' %}
-{% set ruleFormPillClasses = 'inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-semibold uppercase tracking-wide' %}
+{# One rhythm for every row: controls 2rem high, the type of a step in a column of its own width, its values beside it. #}
+{% set ruleFormRowClasses = 'flex flex-wrap items-center gap-2' %}
+{% set ruleFormStepClasses = 'flex flex-wrap gap-x-4 gap-y-2 px-4 py-3.5' %}
+{% set ruleFormLabelClasses = 'w-28 shrink-0 space-y-1' %}
+{% set ruleFormTypeClasses = 'w-full sm:w-72' %}
+{% set ruleFormValueClasses = 'w-full sm:w-72' %}
+{% set ruleFormControl = 'mt-0 h-8 py-0' %}
+{% set ruleFormPillClasses = 'my-1 inline-flex h-6 items-center gap-1.5 rounded-md px-2 text-xs font-semibold uppercase tracking-wide' %}
 {% set ruleFormAddClasses = 'inline-flex h-8 items-center gap-1.5 self-start rounded-md border border-dashed border-line-strong bg-surface px-2.5 text-sm text-body hover:bg-subtle' %}
-<div {{ attributes }} class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]" data-loading="addClass(opacity-60)">
+<div {{ attributes }} class="grid max-w-6xl items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]" data-loading="addClass(opacity-60)">
     {{ form_start(form, { attr: form.vars.attr|merge({ class: 'space-y-4', 'data-action': 'live#action:prevent', 'data-live-action-param': 'save' }) }) }}
         {{ form_errors(form) }}
         {% if error %}<twig:Ui:Callout tone="danger" size="sm" role="alert">{{ error }}</twig:Ui:Callout>{% endif %}
 
-        <section class="grid gap-4 rounded-lg border border-line bg-surface p-4 sm:grid-cols-[2fr_1fr]">
+        <section class="grid gap-x-4 gap-y-3 rounded-lg border border-line bg-surface p-4 sm:grid-cols-[minmax(0,1fr)_15rem]">
             {{ form_row(form.name) }}
             {{ form_row(form.tracker) }}
         </section>
 
         <section class="divide-y divide-line-subtle rounded-lg border border-line bg-surface">
-            <div class="flex flex-wrap gap-4 p-4">
-                <div class="w-20 shrink-0">
+            <div class="{{ ruleFormStepClasses }}">
+                <div class="{{ ruleFormLabelClasses }}">
                     <span class="{{ ruleFormPillClasses }} bg-brand-soft text-brand"><twig:ux:icon name="{{ ruleFormTimed ? 'lucide:clock' : 'lucide:zap' }}" class="h-3 w-3" />{{ 'automation.form.when'|trans }}</span>
                 </div>
                 <div class="min-w-0 flex-1 basis-72 space-y-1.5">
                     <div class="{{ ruleFormRowClasses }}">
-                        <div class="min-w-0 flex-1 basis-56">{{ form_widget(form.trigger.type, { attr: { class: 'mt-0', 'aria-label': 'automation.form.when'|trans } }) }}</div>
+                        <div class="{{ ruleFormTypeClasses }}">{{ form_widget(form.trigger.type, { attr: { class: ruleFormControl, 'aria-label': 'automation.form.when'|trans } }) }}</div>
                         {% for field in form.trigger.params %}
                             {% if 'integer' in field.vars.block_prefixes %}
-                                <div class="flex items-center gap-2 text-sm text-body">{{ form_widget(field, { attr: field.vars.attr|merge({ class: 'mt-0 w-20' }) }) }} {{ 'automation.form.days'|trans }}</div>
+                                <div class="flex items-center gap-2 text-sm text-body">{{ form_widget(field, { attr: field.vars.attr|merge({ class: ruleFormControl ~ ' w-20' }) }) }} {{ 'automation.form.days'|trans }}</div>
                             {% else %}
-                                <div class="min-w-0 flex-1 basis-56">{{ form_widget(field, { attr: field.vars.attr|merge({ class: 'mt-0' }) }) }}</div>
+                                <div class="{{ ruleFormValueClasses }}">{{ form_widget(field, { attr: field.vars.attr|merge({ class: ruleFormControl }) }) }}</div>
                             {% endif %}
                             {{ form_errors(field) }}
                         {% endfor %}
@@ -36,22 +42,22 @@
                 </div>
             </div>
 
-            <div class="flex flex-wrap gap-4 p-4">
-                <div class="w-20 shrink-0 space-y-1">
+            <div class="{{ ruleFormStepClasses }}">
+                <div class="{{ ruleFormLabelClasses }}">
                     <span class="{{ ruleFormPillClasses }} bg-amber-soft text-amber"><twig:ux:icon name="lucide:filter" class="h-3 w-3" />{{ 'automation.form.if'|trans }}</span>
-                    <p class="text-xs text-muted">{{ 'automation.form.if_help'|trans }}</p>
+                    <p class="text-xs leading-snug text-muted">{{ 'automation.form.if_help'|trans }}</p>
                 </div>
-                <div class="flex min-w-0 flex-1 basis-72 flex-col gap-2">
+                <div class="flex min-w-0 flex-1 basis-72 flex-col gap-2.5">
                     {% for index, row in form.conditions %}
                         <div class="space-y-1.5">
                             <div class="{{ ruleFormRowClasses }}">
-                                <div class="min-w-0 flex-1 basis-48">{{ form_widget(row.type, { attr: { class: 'mt-0', 'aria-label': 'automation.form.if'|trans } }) }}</div>
+                                <div class="{{ ruleFormTypeClasses }}">{{ form_widget(row.type, { attr: { class: ruleFormControl, 'aria-label': 'automation.form.if'|trans } }) }}</div>
                                 {% for field in row.params %}
                                     {% if not field.vars.expanded|default(false) %}
-                                        <div class="min-w-0 flex-1 basis-48">{{ form_widget(field, { attr: field.vars.attr|merge({ class: 'mt-0' }) }) }}{{ form_errors(field) }}</div>
+                                        <div class="{{ ruleFormValueClasses }}">{{ form_widget(field, { attr: field.vars.attr|merge({ class: ruleFormControl }) }) }}{{ form_errors(field) }}</div>
                                     {% endif %}
                                 {% endfor %}
-                                <twig:Ui:IconButton icon="x" :label="'automation.form.remove'|trans" class="mt-1" data-action="live#action" data-live-action-param="removeCondition" data-live-index-param="{{ index }}" />
+                                <twig:Ui:IconButton icon="x" :label="'automation.form.remove'|trans" class="ml-auto" data-action="live#action" data-live-action-param="removeCondition" data-live-index-param="{{ index }}" />
                             </div>
                             {# Several values: one box each under the row, any of them holds; places come grouped under their workflow, other values in one row. #}
                             {% for field in row.params %}
@@ -80,28 +86,28 @@
                             {% endfor %}
                         </div>
                     {% else %}
-                        <p class="text-sm text-muted">{{ 'automation.form.no_condition'|trans }}</p>
+                        <p class="flex min-h-8 items-center text-sm text-muted">{{ 'automation.form.no_condition'|trans }}</p>
                     {% endfor %}
                     <button type="button" class="{{ ruleFormAddClasses }}" data-action="live#action" data-live-action-param="addCondition"><twig:ux:icon name="lucide:plus" class="h-3.5 w-3.5" />{{ 'automation.form.add_condition'|trans }}</button>
                 </div>
             </div>
 
-            <div class="flex flex-wrap gap-4 p-4">
-                <div class="w-20 shrink-0 space-y-1">
+            <div class="{{ ruleFormStepClasses }}">
+                <div class="{{ ruleFormLabelClasses }}">
                     <span class="{{ ruleFormPillClasses }} bg-emerald-soft text-emerald"><twig:ux:icon name="lucide:play" class="h-3 w-3" />{{ 'automation.form.then'|trans }}</span>
-                    <p class="text-xs text-muted">{{ 'automation.form.then_help'|trans }}</p>
+                    <p class="text-xs leading-snug text-muted">{{ 'automation.form.then_help'|trans }}</p>
                 </div>
-                <div class="flex min-w-0 flex-1 basis-72 flex-col gap-2">
+                <div class="flex min-w-0 flex-1 basis-72 flex-col gap-2.5">
                     {% for index, row in form.actions %}
                         <div class="space-y-1.5">
                             <div class="{{ ruleFormRowClasses }}">
-                                <div class="min-w-0 flex-1 basis-48">{{ form_widget(row.type, { attr: { class: 'mt-0', 'aria-label': 'automation.form.then'|trans } }) }}</div>
+                                <div class="{{ ruleFormTypeClasses }}">{{ form_widget(row.type, { attr: { class: ruleFormControl, 'aria-label': 'automation.form.then'|trans } }) }}</div>
                                 {% for field in row.params %}
                                     {% if 'textarea' not in field.vars.block_prefixes %}
-                                        <div class="min-w-0 flex-1 basis-48 {{ 'checkbox' in field.vars.block_prefixes ? 'pt-2' }}">{{ form_widget(field, { attr: field.vars.attr|merge({ class: 'mt-0' }) }) }}{{ form_errors(field) }}</div>
+                                        <div class="{{ 'checkbox' in field.vars.block_prefixes ? 'min-w-0 flex-1 basis-48 px-1' : ruleFormValueClasses }}">{{ form_widget(field, { attr: field.vars.attr|merge({ class: ruleFormControl }) }) }}{{ form_errors(field) }}</div>
                                     {% endif %}
                                 {% endfor %}
-                                <twig:Ui:IconButton icon="x" :label="'automation.form.remove'|trans" class="mt-1" data-action="live#action" data-live-action-param="removeAction" data-live-index-param="{{ index }}" />
+                                <twig:Ui:IconButton icon="x" :label="'automation.form.remove'|trans" class="ml-auto" data-action="live#action" data-live-action-param="removeAction" data-live-index-param="{{ index }}" />
                             </div>
                             {% for field in row.params %}
                                 {% if 'textarea' in field.vars.block_prefixes %}
@@ -124,10 +130,10 @@
         </section>
 
         <div class="flex flex-wrap items-center gap-2">
-            <twig:Ui:Button type="submit" variant="primary" size="lg" data-loading="addAttribute(disabled)">{{ 'automation.form.save'|trans }}</twig:Ui:Button>
-            <twig:Ui:Button variant="secondary" size="lg" href="{{ path('app_project_settings_automations', { workspaceKey: project.workspace.key, projectKey: project.key }) }}">{{ 'automation.form.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" variant="primary" data-loading="addAttribute(disabled)">{{ 'automation.form.save'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button variant="secondary" href="{{ path('app_project_settings_automations', { workspaceKey: project.workspace.key, projectKey: project.key }) }}">{{ 'automation.form.cancel'|trans }}</twig:Ui:Button>
             {% if rule and not deleting %}
-                <twig:Ui:Button variant="danger" size="lg" class="ml-auto" data-action="live#action" data-live-action-param="confirmDelete">{{ 'automation.delete'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button variant="danger" class="ml-auto" data-action="live#action" data-live-action-param="confirmDelete">{{ 'automation.delete'|trans }}</twig:Ui:Button>
             {% endif %}
         </div>
         {% if rule and deleting %}
@@ -141,7 +147,7 @@
         {% endif %}
     {{ form_end(form, { render_rest: false }) }}
 
-    <aside class="space-y-4">
+    <aside class="space-y-4 lg:sticky lg:top-4">
         <section class="space-y-2 rounded-lg border border-brand-line bg-brand-soft p-4">
             <h2 class="text-xs font-semibold uppercase tracking-wider text-brand">{{ 'automation.form.in_plain'|trans }}</h2>
             <p class="text-sm text-strong">{{ ruleFormSentence }}</p>

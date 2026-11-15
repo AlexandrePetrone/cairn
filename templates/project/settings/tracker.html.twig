@@ -1,6 +1,11 @@
 {% extends 'project/settings/base.html.twig' %}
 
+{# The page of one tracker: the trackers in their order beside it, its settings, and its workflow drawn, which it keeps. The dialog creating another loads in the `modal` frame of the layout. #}
 {% block settings_title %}{{ 'nav.project.configuration.trackers'|trans }}{% endblock %}
+
+{% block settings_actions %}
+    <twig:Ui:Button variant="primary" icon="plus" href="{{ path('app_project_settings_tracker_new', settingsRoute) }}" data-turbo-frame="modal">{{ 'project.settings.tracker.new_title'|trans }}</twig:Ui:Button>
+{% endblock %}
 
 {% block settings_content %}
     <div class="grid gap-4 lg:grid-cols-[20rem_1fr] items-start">
@@ -13,7 +18,7 @@
                 {{ form_row(form.description) }}
                 {{ form_row(form.private) }}
                 {{ form_row(form.active) }}
-                <twig:Ui:Button type="submit" variant="primary" size="lg">{{ 'project.settings.save'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button type="submit" variant="primary">{{ 'project.settings.save'|trans }}</twig:Ui:Button>
             {{ form_end(form) }}
             <section class="rounded-lg border border-line bg-surface p-4 space-y-3">
                 <div>

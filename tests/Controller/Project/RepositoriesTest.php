@@ -67,6 +67,9 @@ final class RepositoriesTest extends WebTestCase
         $this->gitlab('glpat-test', new MockResponse('{"id": 42}', ['http_code' => 201]));
         $this->signInAs('thomas.girard@cairn.test');
         $this->client->request('GET', '/MD/SPT/settings/repositories');
+        $this->client->clickLink('Link a repository');
+        self::assertRouteSame('app_project_settings_repository_new');
+        self::assertSelectorExists('turbo-frame#modal form[action="/MD/SPT/settings/repositories/new"]', 'loaded over the list, the form is still sent to the dialog');
 
         $this->client->submitForm('Link', ['code_repository[path]' => 'Maison-Dupont/Shop']);
 
@@ -86,8 +89,8 @@ final class RepositoriesTest extends WebTestCase
     {
         $this->gitlab('');
         $this->signInAs('thomas.girard@cairn.test');
-        $this->client->request('GET', '/MD/SPT/settings/repositories');
-        self::assertSelectorTextContains('main', 'No instance token');
+        $this->client->request('GET', '/MD/SPT/settings/repositories/new');
+        self::assertSelectorTextContains('[role="dialog"]', 'No instance token');
 
         $this->client->submitForm('Link', ['code_repository[path]' => ' /maison-dupont/shop/ ']);
         self::assertResponseRedirects('/MD/SPT/settings/repositories');
@@ -102,6 +105,7 @@ final class RepositoriesTest extends WebTestCase
         self::assertSelectorTextContains('main', $linked[0]->getSecret());
         self::assertSelectorNotExists('button:contains("Install the webhook")', 'no button without a token');
 
+        $this->client->request('GET', '/MD/SPT/settings/repositories/new');
         $this->client->submitForm('Link', ['code_repository[path]' => 'maison-dupont/shop']);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('form[name="code_repository"]', 'already linked');
@@ -111,7 +115,7 @@ final class RepositoriesTest extends WebTestCase
     {
         $this->gitlab('glpat-test', new MockResponse('{"id": 42}', ['http_code' => 201]), new MockResponse('{"id": 42}'), new MockResponse('', ['http_code' => 204]), new MockResponse('{"message": "403 Forbidden"}', ['http_code' => 403]), new MockResponse('{"id": 43}', ['http_code' => 201]), new MockResponse('', ['http_code' => 204]));
         $this->signInAs('thomas.girard@cairn.test');
-        $this->client->request('GET', '/MD/SPT/settings/repositories');
+        $this->client->request('GET', '/MD/SPT/settings/repositories/new');
         $this->client->submitForm('Link', ['code_repository[path]' => 'maison-dupont/shop']);
         $repository = $this->linked()[0];
         $secret = $repository->getSecret();

@@ -1,0 +1,5 @@
+<twig:Ui:PageHeader :title="title" :count="count ?: null">
+    <twig:block name="actions">{% if action %}<twig:Ui:Button variant="primary" icon="plus">{{ action }}</twig:Ui:Button>{% endif %}</twig:block>
+    <twig:block name="description">{{ description }}</twig:block>
+    <twig:block name="tabs">{% for tab in tabs %}<twig:Ui:Tab :active="tab.active" :count="tab.count">{{ tab.label }}</twig:Ui:Tab>{% endfor %}</twig:block>
+</twig:Ui:PageHeader>

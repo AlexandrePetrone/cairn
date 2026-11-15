@@ -1,9 +1,18 @@
-{# A modal rendered by a live component while something waits for a choice: the backdrop, the close button and Escape (the `dialog` controller) call `closeAction` (a live action name); the first field gets the focus. `description` sits under the title, `content` is the body, `footer` the row of buttons. #}
-{% props title, closeAction = null %}
-{% set dialogPanelClasses = html_cva(base: 'fixed left-1/2 top-24 z-50 w-full max-w-md -translate-x-1/2 rounded-lg border border-line bg-overlay p-4 shadow-2xl space-y-3') %}
+{# A modal, opened while something waits for a choice. Rendered by a live component while its state says so: the backdrop, the close button and Escape (the `dialog` controller) call `closeAction` (a live action name). Or rendered by a page whose address opens it (`/releases/new`), usually loaded into the `modal` Turbo frame of the page behind: `closeHref` is then the address of the page without it; the backdrop, the close button and Escape empty the frame (`dialog#dismiss`), or follow the link when the page was opened at the address of the dialog. The first field gets the focus. `description` sits under the title, `content` is the body, `footer` the row of buttons; `size` widens it for a longer form. #}
+{% props title, closeAction = null, closeHref = null, size = 'md' %}
+{# The panel sits in a layer that scrolls when the dialog is taller than the screen; the layer lets the clicks through to the backdrop, and the panel clips nothing, so a list a field opens may reach past its edge. #}
+{% set dialogPanelClasses = html_cva(
+    base: 'pointer-events-auto mx-auto w-full rounded-lg border border-line bg-overlay p-4 shadow-2xl space-y-3',
+    variants: { size: { md: 'max-w-md', lg: 'max-w-xl' } },
+) %}
 <div data-controller="dialog" data-action="keydown.esc@document->dialog#close" {{ attributes.without('class') }}>
-    <div class="fixed inset-0 z-40 bg-black/20" {% if closeAction %}data-action="click->live#action" data-live-action-param="{{ closeAction }}"{% endif %}></div>
-    <div class="{{ dialogPanelClasses.apply({}, attributes.render('class'))|tailwind_merge }}" role="dialog" aria-modal="true" aria-label="{{ title }}">
+    {% if closeHref %}
+        <a href="{{ closeHref }}" class="fixed inset-0 z-40 bg-black/20" tabindex="-1" aria-hidden="true" data-turbo-frame="_top" data-action="dialog#dismiss"></a>
+    {% else %}
+        <div class="fixed inset-0 z-40 bg-black/20" {% if closeAction %}data-action="click->live#action" data-live-action-param="{{ closeAction }}"{% endif %}></div>
+    {% endif %}
+    <div class="pointer-events-none fixed inset-0 z-50 overflow-y-auto px-4 pb-8 pt-24">
+    <div class="{{ dialogPanelClasses.apply({ size: size }, attributes.render('class'))|tailwind_merge }}" role="dialog" aria-modal="true" aria-label="{{ title }}">
         <div class="flex items-start gap-2">
             <div class="min-w-0 flex-1">
                 <h2 class="font-semibold text-strong">{{ title }}</h2>
@@ -11,7 +20,9 @@
                     <div class="mt-0.5 text-xs text-muted">{% block description %}{% endblock %}</div>
                 {% endif %}
             </div>
-            {% if closeAction %}
+            {% if closeHref %}
+                <twig:Ui:IconButton icon="x" :label="'action.close'|trans" href="{{ closeHref }}" class="-mr-1 -mt-1" data-dialog-target="close" data-turbo-frame="_top" data-action="dialog#dismiss" />
+            {% elseif closeAction %}
                 <twig:Ui:IconButton icon="x" :label="'action.close'|trans" class="-mr-1 -mt-1" data-dialog-target="close" data-action="live#action" data-live-action-param="{{ closeAction }}" />
             {% endif %}
         </div>
@@ -19,5 +30,6 @@
         {% if block('footer') is not empty %}
             <div class="flex items-center gap-2 border-t border-line-subtle pt-3">{% block footer %}{% endblock %}</div>
         {% endif %}
+    </div>
     </div>
 </div>
