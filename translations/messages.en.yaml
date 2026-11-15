@@ -482,12 +482,30 @@ admin:
         revoke: Revoke access
         revoke_confirm: Revoke this access?
         revoked: Access revoked.
-        referent: Referent
-        referent_designate: Make referent of this role
-        referent_withdraw: No longer referent of this role
         referent_designated: Referent designated.
         referent_withdrawn: This role has no referent here any more.
-        referent_deactivated: 'This account is deactivated: it answers for nothing until it is reactivated.'
+        referents:
+            title: Referents
+            help_project: 'the person each role answers through on this project; the one designated here replaces the one of the workspace'
+            help_workspace: 'the person each role answers through on the projects of the workspace, except those that designate their own'
+            nobody: Nobody
+            from_project: Designated on this project
+            from_workspace: Inherited from the workspace
+            none: 'No referent: what the automations aim at them is skipped.'
+            none_workspace_only: 'No referent. This role is held on the workspace only: its referent is designated there.'
+            workspace: Answers on the projects of the workspace that designate none of their own.
+            replaces: 'Replaces %name%, the workspace referent, on this project only.'
+            inherited: 'Workspace referent: holds here as long as the project designates none of its own.'
+            inherited_only: 'Workspace referent. Nobody holds this role on the project itself to replace them.'
+            inherited_idle: '%name%, the workspace referent, does not answer here (account deactivated, or another role on this project).'
+            own_idle: '%name% is designated here but does not answer (account deactivated, or another role since).'
+            own_idle_fallback: '%name% is designated here but does not answer (account deactivated, or another role since): the workspace referent takes over.'
+            designate: Designate
+            change: Change
+            choose: 'Choose the "%role%" referent'
+            use_workspace: 'The one of the workspace: %name%'
+            use_nobody: No referent of its own
+            designate_in_workspace: Designate in the workspace →
         search_user: Search a person…
         search_target: Search a workspace or a project…
         no_match: Nothing matches.

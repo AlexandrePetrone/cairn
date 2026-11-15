@@ -482,12 +482,30 @@ admin:
         revoke: Retirer l'accès
         revoke_confirm: Retirer cet accès ?
         revoked: Accès retiré.
-        referent: Référent
-        referent_designate: Désigner référent de ce rôle
-        referent_withdraw: Ne plus être référent de ce rôle
         referent_designated: Référent désigné.
         referent_withdrawn: Ce rôle n'a plus de référent ici.
-        referent_deactivated: "Ce compte est désactivé : il ne répond de rien tant qu'il n'est pas réactivé."
+        referents:
+            title: Référents
+            help_project: "la personne par qui chaque rôle répond sur ce projet ; celle désignée ici remplace celle de l'espace"
+            help_workspace: "la personne par qui chaque rôle répond sur les projets de l'espace, sauf ceux qui désignent la leur"
+            nobody: Personne
+            from_project: Désigné sur ce projet
+            from_workspace: Hérité de l'espace
+            none: "Aucun référent : ce que les automatisations lui adressent est sauté."
+            none_workspace_only: "Aucun référent. Ce rôle n'est détenu que sur l'espace : son référent s'y désigne."
+            workspace: "Répond sur les projets de l'espace qui ne désignent pas le leur."
+            replaces: "Remplace %name%, référent de l'espace, sur ce projet seulement."
+            inherited: "Référent de l'espace : vaut ici tant que le projet ne désigne pas le sien."
+            inherited_only: "Référent de l'espace. Personne ne détient ce rôle directement sur le projet pour le remplacer."
+            inherited_idle: "%name%, référent de l'espace, ne répond pas ici (compte désactivé, ou autre rôle sur ce projet)."
+            own_idle: "%name% est désigné ici mais ne répond pas (compte désactivé, ou autre rôle depuis)."
+            own_idle_fallback: "%name% est désigné ici mais ne répond pas (compte désactivé, ou autre rôle depuis) : le référent de l'espace reprend."
+            designate: Désigner
+            change: Changer
+            choose: 'Choisir le référent « %role% »'
+            use_workspace: "Celui de l'espace : %name%"
+            use_nobody: Aucun référent propre au projet
+            designate_in_workspace: "Désigner dans l'espace →"
         search_user: Rechercher une personne…
         search_target: Rechercher un espace ou un projet…
         no_match: Rien ne correspond.

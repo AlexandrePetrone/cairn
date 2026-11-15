@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Security;
 
+use App\Entity\Membership;
 use App\Entity\Project;
 use App\Entity\User;
 use App\Repository\MembershipRepository;
@@ -15,7 +16,8 @@ use App\Repository\MembershipRepository;
  * automation rules) then does nothing. A mark only holds while the
  * account is active and the role is still the one the person has on the
  * project: a referent given a broader role there is no longer the
- * referent of the first.
+ * referent of the first. The project replaces its workspace, and the
+ * workspace answers again when the mark of the project no longer holds.
  */
 final class Referents
 {
@@ -39,12 +41,7 @@ final class Referents
      */
     public function marked(Project $project): array
     {
-        $marked = [];
-        foreach ($this->memberships->findReferentsApplyingTo($project) as $membership) {
-            $marked[$membership->getRole()] ??= $membership->getUser();
-        }
-
-        return $marked;
+        return array_filter(array_map(static fn (RoleReferent $referent): ?User => $referent->marked(), $this->resolve($project)));
     }
 
     /**
@@ -52,14 +49,32 @@ final class Referents
      */
     public function all(Project $project): array
     {
-        $referents = [];
+        return array_filter(array_map(static fn (RoleReferent $referent): ?User => $referent->user(), $this->resolve($project)));
+    }
+
+    /**
+     * The roles someone is marked for on the project or on its workspace,
+     * each with both marks and which one answers: what the Access page of
+     * a project shows.
+     *
+     * @return array<string, RoleReferent> by role id
+     */
+    public function resolve(Project $project): array
+    {
+        $marks = [];
         foreach ($this->memberships->findReferentsApplyingTo($project) as $membership) {
-            $user = $membership->getUser();
-            $role = $membership->getRole();
-            if (isset($referents[$role]) || !$user->isActive() || $this->access->roleOn($user, $project) !== $role) {
-                continue;
-            }
-            $referents[$role] = $user;
+            $marks[$membership->getRole()][null !== $membership->getProject() ? 'own' : 'inherited'] ??= $membership;
+        }
+
+        $holds = fn (?Membership $membership): bool => null !== $membership
+            && $membership->getUser()->isActive()
+            && $this->access->roleOn($membership->getUser(), $project) === $membership->getRole();
+
+        $referents = [];
+        foreach ($marks as $role => $mark) {
+            $own = $mark['own'] ?? null;
+            $inherited = $mark['inherited'] ?? null;
+            $referents[$role] = new RoleReferent($own, $holds($own), $inherited, $holds($inherited));
         }
 
         return $referents;

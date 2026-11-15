@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Tests\Twig\Components\Membership;
 
 use App\Entity\User;
+use App\Message\Command\Membership\GrantMembership;
+use App\Message\Command\Membership\SetReferent;
+use App\Message\CommandBus;
 use App\Repository\MembershipRepository;
 use App\Repository\UserRepository;
 use App\Tests\Scene\ShopScene;
@@ -237,7 +240,9 @@ final class GrantsTest extends KernelTestCase
         self::assertNotNull($nadia);
         self::assertNotNull($lea);
         $component = $this->onProject('thomas.girard@cairn.test');
-        self::assertStringNotContainsString('>Referent<', (string) $component->render(), 'nobody is a referent by default');
+        $developers = static fn (string $render): string => explode('</li>', explode('data-role="developer"', $render)[1])[0];
+        self::assertStringContainsString('Nobody', $developers((string) $component->render()), 'nobody is a referent by default');
+        self::assertStringNotContainsString('title="Make referent', (string) $component->render(), 'the rows of the lists designate nobody');
 
         // each call is a request of its own: the memberships are read again after it
         $isReferent = static fn (int $id): bool => (bool) self::getContainer()->get(MembershipRepository::class)->find($id)?->isReferent();
@@ -245,7 +250,7 @@ final class GrantsTest extends KernelTestCase
 
         $component->call('setReferent', ['membership' => $nadiaId, 'referent' => 1]);
         self::assertTrue($isReferent($nadiaId));
-        self::assertSame(1, substr_count((string) $component->render(), 'Referent</span>'));
+        self::assertStringContainsString('Designated on this project', $developers((string) $component->render()));
 
         $component->call('setReferent', ['membership' => $leaId, 'referent' => 1]);
         self::assertFalse($isReferent($nadiaId), 'one referent per role');
@@ -253,6 +258,59 @@ final class GrantsTest extends KernelTestCase
 
         $component->call('setReferent', ['membership' => $leaId, 'referent' => 0]);
         self::assertFalse($isReferent($leaId));
+    }
+
+    public function testAProjectShowsWhoAnswersForEachRoleAndWhatItReplaces(): void
+    {
+        $memberships = self::getContainer()->get(MembershipRepository::class);
+        $commands = self::getContainer()->get(CommandBus::class);
+        $marc = $this->user('marc.petit@cairn.test');
+        $nadia = $memberships->findOneBy(['user' => $this->user('nadia.benali@cairn.test'), 'project' => $this->scene->shop]);
+        self::assertNotNull($nadia);
+        $commands->dispatch(new GrantMembership((int) $marc->getId(), $this->scene->dupont->getId(), null, 'developer'));
+        $inherited = $memberships->findOneBy(['user' => $marc, 'workspace' => $this->scene->dupont]);
+        self::assertNotNull($inherited);
+        $commands->dispatch(new SetReferent((int) $inherited->getId(), true));
+
+        $component = $this->onProject('thomas.girard@cairn.test');
+        $developers = static fn (string $render): string => explode('</li>', explode('data-role="developer"', $render)[1])[0];
+
+        $row = $developers((string) $component->render());
+        self::assertStringContainsString('Marc Petit', $row);
+        self::assertStringContainsString('Inherited from the workspace', $row);
+
+        $row = $developers((string) $component->call('setReferent', ['membership' => (int) $nadia->getId(), 'referent' => 1])->render());
+        self::assertStringContainsString('Designated on this project', $row);
+        self::assertStringContainsString('Replaces Marc Petit, the workspace referent', $row);
+
+        $row = $developers((string) $component->call('setReferent', ['membership' => (int) $nadia->getId(), 'referent' => 0])->render());
+        self::assertStringContainsString('Inherited from the workspace', $row, 'back to the referent of the workspace');
+        self::assertStringNotContainsString('Replaces', $row);
+    }
+
+    public function testOnAWorkspaceTheAdministrationDesignatesTheReferentInTheSameCard(): void
+    {
+        $thomas = self::getContainer()->get(MembershipRepository::class)->findOneBy(['user' => $this->user('thomas.girard@cairn.test'), 'workspace' => $this->scene->dupont]);
+        self::assertNotNull($thomas);
+        $component = $this->onWorkspace();
+        $managers = static fn (string $render): string => explode('</li>', explode('data-role="project_manager"', $render)[1])[0];
+        self::assertStringContainsString('No referent', $managers((string) $component->render()));
+
+        $row = $managers((string) $component->call('setReferent', ['membership' => (int) $thomas->getId(), 'referent' => 1])->render());
+        self::assertStringContainsString('Answers on the projects of the workspace', $row);
+        self::assertTrue((bool) self::getContainer()->get(MembershipRepository::class)->find((int) $thomas->getId())?->isReferent());
+    }
+
+    public function testADirectRoleTheWorkspaceOutgrewIsNotOfferedAsReferent(): void
+    {
+        $nadia = $this->user('nadia.benali@cairn.test');
+        $developers = static fn (string $render): string => explode('</li>', explode('data-role="developer"', $render)[1])[0];
+        self::assertStringContainsString('Nadia Benali', $developers((string) $this->onProject('thomas.girard@cairn.test')->render()));
+
+        // she develops on the shop, then manages the whole workspace: on the shop she is a manager now
+        self::getContainer()->get(CommandBus::class)->dispatch(new GrantMembership((int) $nadia->getId(), $this->scene->dupont->getId(), null, 'project_manager'));
+
+        self::assertStringNotContainsString('Nadia Benali', $developers((string) $this->onProject('thomas.girard@cairn.test')->render()));
     }
 
     private function onProject(string $viewer): TestLiveComponent

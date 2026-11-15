@@ -20,6 +20,8 @@ use App\Message\Query\Workspace\ListWorkspaces;
 use App\Message\QueryBus;
 use App\Repository\MembershipRepository;
 use App\Repository\UserRepository;
+use App\Security\Referents;
+use App\Security\RoleReferent;
 use App\Security\Viewer;
 use App\Twig\Components\DispatchesCommands;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -44,8 +46,11 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * unknown address gets an external account, the role and an invitation,
  * in a dialog the page opens (`adding`, from `?add=1` or its button).
  * A member who has not chosen their password yet can be invited again.
- * Each row can be made the referent of its role (SetReferent): on a
- * project the referents inherited from the workspace only show.
+ * The referents are managed in one place, a card over the list of a
+ * project or a workspace (`referentRows`, SetReferent): who answers for
+ * each role, chosen in a menu; on a project, the referent it designates
+ * among its direct members replaces the one of the workspace. The rows
+ * of the lists say nothing of it.
  */
 #[AsLiveComponent('Membership:Grants')]
 final class Grants
@@ -128,6 +133,7 @@ final class Grants
         private readonly TranslatorInterface $translator,
         private readonly Viewer $viewer,
         private readonly ValidatorInterface $validator,
+        private readonly Referents $referents,
     ) {
     }
 
@@ -186,6 +192,110 @@ final class Grants
     public function getInherited(): array
     {
         return $this->loadedInherited ??= $this->loadInherited();
+    }
+
+    /**
+     * The referents, managed here and nowhere else: one row per role
+     * someone holds on the project or the workspace (or is marked for),
+     * in the order of the configuration, with who answers for it, why,
+     * and the members who may be designated. On a project the referent
+     * it designates among its direct members replaces the one of the
+     * workspace, which `fallback` names; for a user, no row.
+     *
+     * @return list<array{role: string, label: string, user: User|null, origin: string|null, note: string, name: string, warning: bool, candidates: list<Membership>, own: Membership|null, fallback: User|null}> `origin`: `from_project` or `from_workspace` on a project; `note`: a key of `admin.access.referents`, `name` its person; `own`: the membership marked here
+     */
+    public function getReferentRows(): array
+    {
+        if (null === $this->project && null === $this->workspace) {
+            return [];
+        }
+        $held = [];
+        foreach ($this->getMemberships() as $membership) {
+            $held[$membership->getRole()][] = $membership;
+        }
+        $inheritedRoles = array_map(static fn (Membership $membership): string => $membership->getRole(), $this->getInherited());
+        $resolved = null !== $this->project ? $this->referents->resolve($this->project) : [];
+
+        $rows = [];
+        foreach ($this->config->definition()->roles as $role) {
+            $members = $held[$role->id] ?? [];
+            if ([] === $members && !\in_array($role->id, $inheritedRoles, true) && !isset($resolved[$role->id])) {
+                continue;
+            }
+            // a direct role the workspace has since outgrown is not the one its holder has on the project: they could not answer for it
+            $candidates = array_values(array_filter($members, fn (Membership $membership): bool => $membership->getUser()->isActive() && !$this->outgrown($membership)));
+            $rows[] = ['role' => $role->id, 'label' => $role->label, 'candidates' => $candidates]
+                + (null !== $this->project ? self::projectReferent($resolved[$role->id] ?? null, [] !== $members, [] !== $candidates) : self::workspaceReferent($members));
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Whether the role of a direct membership is no longer wider than the
+     * one its holder inherits from the workspace, granted since.
+     */
+    private function outgrown(Membership $membership): bool
+    {
+        $inherited = ($this->getInherited()[(int) $membership->getUser()->getId()] ?? null)?->getRole();
+        $definition = $this->config->definition();
+
+        return null !== $inherited && $definition->hasRole($inherited) && $definition->roleRank($membership->getRole()) >= $definition->roleRank($inherited);
+    }
+
+    /**
+     * @return array{user: User|null, origin: string|null, note: string, name: string, warning: bool, own: Membership|null, fallback: User|null}
+     */
+    private static function projectReferent(?RoleReferent $referent, bool $held, bool $replaceable): array
+    {
+        $user = $referent?->user();
+        $own = $referent?->own;
+        [$note, $named] = match (true) {
+            null === $referent => [$held ? 'none' : 'none_workspace_only', null],
+            null !== $referent->replaced() => ['replaces', $referent->replaced()->getUser()],
+            null !== $own && !$referent->ownHolds => [null !== $user ? 'own_idle_fallback' : 'own_idle', $own->getUser()],
+            null !== $user => [$replaceable ? 'inherited' : 'inherited_only', null],
+            default => ['inherited_idle', $referent->inherited?->getUser()],
+        };
+
+        return [
+            'user' => $user,
+            'origin' => match (true) {
+                null === $user => null,
+                $referent->isInherited() => 'from_workspace',
+                default => 'from_project',
+            },
+            'note' => $note,
+            'name' => (string) $named?->getFullName(),
+            'warning' => \in_array($note, ['own_idle', 'own_idle_fallback', 'inherited_idle'], true),
+            'own' => $own,
+            'fallback' => $referent?->inheritedHolds ? $referent->inherited?->getUser() : null,
+        ];
+    }
+
+    /**
+     * @param list<Membership> $members those who hold the role on the workspace
+     *
+     * @return array{user: User|null, origin: string|null, note: string, name: string, warning: bool, own: Membership|null, fallback: User|null}
+     */
+    private static function workspaceReferent(array $members): array
+    {
+        $own = array_find($members, static fn (Membership $membership): bool => $membership->isReferent());
+        $answers = $own?->getUser()->isActive() ?? false;
+
+        return [
+            'user' => $answers ? $own?->getUser() : null,
+            'origin' => null,
+            'note' => match (true) {
+                null === $own => 'none',
+                $answers => 'workspace',
+                default => 'own_idle',
+            },
+            'name' => (string) $own?->getUser()->getFullName(),
+            'warning' => null !== $own && !$answers,
+            'own' => $own,
+            'fallback' => null,
+        ];
     }
 
     /**

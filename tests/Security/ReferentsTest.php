@@ -89,6 +89,33 @@ final class ReferentsTest extends KernelTestCase
         self::assertSame(['client' => $paul], $this->referents->all($this->fixtures->shop));
     }
 
+    public function testAProjectSaysWhichMarkAnswersAndWhichItReplaces(): void
+    {
+        $claire = $this->fixtures->user('claire@client.test');
+        $paul = $this->fixtures->user('paul@client.test');
+        $inherited = $this->fixtures->grantOnWorkspace($claire, $this->fixtures->workspace, 'client');
+        $direct = $this->fixtures->grantOnProject($paul, $this->fixtures->shop, 'client');
+        $this->commands->dispatch(new SetReferent((int) $inherited->getId(), true));
+
+        $client = $this->referents->resolve($this->fixtures->shop)['client'];
+        self::assertTrue($client->isInherited());
+        self::assertSame($inherited, $client->membership());
+        self::assertNull($client->replaced());
+
+        $this->commands->dispatch(new SetReferent((int) $direct->getId(), true));
+        $client = $this->referents->resolve($this->fixtures->shop)['client'];
+        self::assertFalse($client->isInherited());
+        self::assertSame($direct, $client->membership());
+        self::assertSame($inherited, $client->replaced());
+
+        $paul->deactivate();
+        $this->entityManager->flush();
+        $client = $this->referents->resolve($this->fixtures->shop)['client'];
+        self::assertSame($claire, $client->user(), 'the workspace answers again behind a project referent who cannot');
+        self::assertSame($paul, $client->marked());
+        self::assertFalse($client->ownHolds);
+    }
+
     public function testAMarkDoesNotOutliveTheRoleNorTheAccount(): void
     {
         $nadia = $this->fixtures->user('nadia@agency.test', internal: true);

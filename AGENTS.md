@@ -782,9 +782,17 @@ src/
   one by default, a project membership answers for that project, a
   workspace membership for every project of the workspace that names
   none of its own (`Security/Referents`), and changing the role takes
-  the mark away. A project manager designates on the Access page among
-  the direct members; only the administration marks a workspace
-  membership. Two holders of a role on a workspace cannot each be the
+  the mark away. The referent a project designates replaces the one of
+  its workspace there, and the workspace answers again when that mark no
+  longer holds (`Security/RoleReferent`, from `Referents::resolve()`: both
+  marks of a role and which one answers). Referents are managed in one
+  place: the card that opens `Membership:Grants` on a project and on a
+  workspace (`Grants::getReferentRows()`), one row per role: who answers,
+  on a project designated there or inherited and whom they replace, and
+  a menu to designate among the members who hold the role there (the
+  direct members, on a project) or to go back to nobody, or to the
+  workspace's. The rows of the lists carry neither badge nor button for
+  it. Only the administration marks a workspace membership. Two holders of a role on a workspace cannot each be the
   referent of one project: give them their access per project. This is
   what a project template needs: its rules will be copied as they are.
 - **Where a rule is written is a context.** `RuleChecker`, the form and

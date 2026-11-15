@@ -1,10 +1,74 @@
-{# The memberships of a workspace or a project (one row per person) or of a user (one row per workspace or project). The role of a row is a select bound to `roles`, applied on change; removing a row asks for a confirmation in place; a member still waiting for their password can be invited again. The administration adds with a form closing the list, picking a person, or a workspace or a project, in a searchable list; on a project, someone is added by email in a dialog (`adding`). On a project, the roles inherited from the workspace come first, read-only. #}
+{# The memberships of a workspace or a project (one row per person) or of a user (one row per workspace or project). The role of a row is a select bound to `roles`, applied on change; removing a row asks for a confirmation in place; a member still waiting for their password can be invited again. The administration adds with a form closing the list, picking a person, or a workspace or a project, in a searchable list; on a project, someone is added by email in a dialog (`adding`). On a workspace and on a project, a card says first who answers for each role and is the one place where a referent is designated (on a project: its own, or else the one of the workspace); on a project come then the roles inherited from the workspace, read-only. #}
 {% set grantsSelectClasses = 'h-8 rounded-md border border-line-strong bg-surface py-0 pl-2 pr-8 text-sm text-body focus:border-focus focus:outline-none focus:ring-0' %}
 {% set grantsMemberships = this.memberships %}
 {% set grantsInherited = this.inherited %}
 {% set grantsAdmin = is_granted('ROLE_ADMIN') %}
 {# Only the lists fade while the component reloads: the dialog is drawn inside it and would flash with them. #}
 <div {{ attributes }} class="space-y-4">
+{% set grantsReferentRows = this.referentRows %}
+{% if grantsReferentRows is not empty %}
+    {# The referents, managed here only: who each role answers through. On a project, its own referent replaces the one of the workspace. #}
+    <section class="rounded-lg border border-line bg-surface" data-loading="addClass(opacity-60)">
+        <header class="flex flex-wrap items-baseline gap-2 px-4 py-3 border-b border-line-subtle rounded-t-lg">
+            <h2 class="font-semibold text-strong">{{ 'admin.access.referents.title'|trans }}</h2>
+            <span class="text-xs text-muted">{{ (project ? 'admin.access.referents.help_project' : 'admin.access.referents.help_workspace')|trans }}</span>
+        </header>
+        <ul class="divide-y divide-line-subtle">
+            {% for row in grantsReferentRows %}
+                {% set grantsBack = row.fallback ? 'admin.access.referents.use_workspace'|trans({ '%name%': row.fallback.fullName }) : (project ? 'admin.access.referents.use_nobody' : 'admin.access.referents.nobody')|trans %}
+                <li class="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5" data-role="{{ row.role }}">
+                    <span class="w-36 shrink-0 text-sm text-muted">{{ row.label }}</span>
+                    <div class="min-w-0 flex-1 basis-64 flex items-center gap-2.5">
+                        <twig:User:Avatar :user="row.user" size="lg" />
+                        <div class="min-w-0 leading-tight">
+                            <span class="flex flex-wrap items-center gap-2">
+                                <span class="text-sm truncate {{ row.user ? 'text-strong' : 'text-faint' }}">{{ row.user ? row.user.fullName : 'admin.access.referents.nobody'|trans }}</span>
+                                {% if row.origin %}
+                                    <twig:Ui:Badge :tone="row.origin == 'from_project' ? 'indigo' : 'gray'" :icon="row.origin == 'from_project' ? 'user-check' : 'corner-down-right'" size="sm">{{ ('admin.access.referents.' ~ row.origin)|trans }}</twig:Ui:Badge>
+                                {% endif %}
+                            </span>
+                            <span class="block text-xs {{ row.warning ? 'text-amber' : 'text-muted' }}">{{ ('admin.access.referents.' ~ row.note)|trans({ '%name%': row.name }) }}</span>
+                        </div>
+                    </div>
+                    {% if row.candidates is not empty or row.own %}
+                        <twig:Ui:Dropdown align="right" width="lg" class="shrink-0">
+                            <twig:block name="trigger">
+                                <twig:Ui:Button size="sm" aria-expanded="false" aria-haspopup="menu" aria-label="{{ 'admin.access.referents.choose'|trans({ '%role%': row.label }) }}" data-action="dropdown#toggle">
+                                    {{ (row.own ? 'admin.access.referents.change' : 'admin.access.referents.designate')|trans }}
+                                    <twig:ux:icon name="lucide:chevron-down" class="h-3.5 w-3.5 text-faint" />
+                                </twig:Ui:Button>
+                            </twig:block>
+                            <twig:block name="content">
+                                {% for candidate in row.candidates %}
+                                    <twig:Ui:Dropdown:Item :active="candidate.referent" data-action="live#action dropdown#close" data-live-action-param="setReferent" data-live-membership-param="{{ candidate.id }}" data-live-referent-param="1">
+                                        <twig:User:Avatar :user="candidate.user" size="md" />
+                                        <span class="min-w-0 flex-1 truncate">{{ candidate.user.fullName }}</span>
+                                        {% if candidate.referent %}<twig:ux:icon name="lucide:check" class="h-4 w-4 shrink-0 text-brand" />{% endif %}
+                                    </twig:Ui:Dropdown:Item>
+                                {% endfor %}
+                                {# Back to nobody here: on a project, to what its workspace says. #}
+                                <div class="{{ row.candidates ? 'mt-1 border-t border-line-subtle pt-1' }}">
+                                    {% if row.own %}
+                                        <twig:Ui:Dropdown:Item :icon="project ? 'corner-down-right' : 'user-x'" data-action="live#action dropdown#close" data-live-action-param="setReferent" data-live-membership-param="{{ row.own.id }}" data-live-referent-param="0">
+                                            <span class="min-w-0 flex-1 truncate">{{ grantsBack }}</span>
+                                        </twig:Ui:Dropdown:Item>
+                                    {% else %}
+                                        <twig:Ui:Dropdown:Item active :icon="project ? 'corner-down-right' : 'user-x'" data-action="dropdown#close">
+                                            <span class="min-w-0 flex-1 truncate">{{ grantsBack }}</span>
+                                            <twig:ux:icon name="lucide:check" class="h-4 w-4 shrink-0 text-brand" />
+                                        </twig:Ui:Dropdown:Item>
+                                    {% endif %}
+                                </div>
+                            </twig:block>
+                        </twig:Ui:Dropdown>
+                    {% elseif project and grantsAdmin %}
+                        <a href="{{ path('app_admin_workspace_access', { key: project.workspace.key }) }}" class="shrink-0 text-xs text-brand hover:underline">{{ 'admin.access.referents.designate_in_workspace'|trans }}</a>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </section>
+{% endif %}
 {% if project %}
     <section class="rounded-lg border border-line bg-surface" data-loading="addClass(opacity-60)">
         <header class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-line-subtle bg-subtle/60 rounded-t-lg">
@@ -27,7 +91,6 @@
                             <span class="block text-xs text-muted truncate">{{ grantsUser.email }}{% if grantsUser.company %} · {{ grantsUser.company }}{% endif %} · {{ (grantsUser.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</span>
                         </div>
                         {% set grantsRoleLabel = this.roleLabel(membership.role) %}
-                        {% if membership.referent %}<twig:Ui:Badge :tone="grantsUser.active ? 'indigo' : 'amber'" icon="user-check" title="{{ grantsUser.active ? '' : 'admin.access.referent_deactivated'|trans }}">{{ 'admin.access.referent'|trans }}</twig:Ui:Badge>{% endif %}
                         <twig:Ui:Badge>{{ grantsRoleLabel }}</twig:Ui:Badge>
                     </li>
                 {% endfor %}
@@ -80,7 +143,6 @@
                                 {% endif %}
                             </div>
                         {% endif %}
-                        {% if membership.referent %}<twig:Ui:Badge :tone="grantsUser.active ? 'indigo' : 'amber'" icon="user-check" title="{{ grantsUser.active ? '' : 'admin.access.referent_deactivated'|trans }}">{{ 'admin.access.referent'|trans }}</twig:Ui:Badge>{% endif %}
                         {% set grantsRowRoles = this.rolesFor(grantsUser) %}
                         <select data-model="norender|roles.{{ membership.id }}" data-action="change->live#action" data-live-action-param="changeRole" data-live-membership-param="{{ membership.id }}" aria-label="{{ 'admin.access.role'|trans }}" class="{{ grantsSelectClasses }}">
                             {% for roleId, roleLabel in grantsRowRoles %}
@@ -90,9 +152,8 @@
                                 <option value="{{ membership.role }}" selected disabled>{{ this.roleLabel(membership.role) }}</option>
                             {% endif %}
                         </select>
-                        {# A fixed width: a row with one more button (an invitation to send again) must not push its role aside. #}
-                        <span class="hover-actions flex w-24 shrink-0 items-center justify-end gap-1">
-                            <twig:Ui:IconButton icon="user-check" :label="(membership.referent ? 'admin.access.referent_withdraw' : 'admin.access.referent_designate')|trans" data-action="live#action" data-live-action-param="setReferent" data-live-membership-param="{{ membership.id }}" data-live-referent-param="{{ membership.referent ? 0 : 1 }}" />
+                        {# A fixed width, for two buttons: a row with an invitation to send again must not push its role aside. #}
+                        <span class="hover-actions flex w-15 shrink-0 items-center justify-end gap-1">
                             {% if grantsPending %}
                                 <twig:Ui:IconButton icon="send" :label="'project.access.resend'|trans" data-action="live#action" data-live-action-param="resend" data-live-user-param="{{ grantsUser.id }}" />
                             {% endif %}

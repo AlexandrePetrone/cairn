@@ -148,7 +148,7 @@ final class SettingsTest extends WebTestCase
         self::assertSelectorTextContains('textarea', 'The public site and the back office.');
     }
 
-    public function testTheAccessPageShowsTheInheritedRolesThenTheDirectOnes(): void
+    public function testTheAccessPageShowsTheReferentsTheInheritedRolesThenTheDirectOnes(): void
     {
         $this->signInAs('thomas.girard@cairn.test');
 
@@ -156,9 +156,10 @@ final class SettingsTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $sections = $this->client->getCrawler()->filter('main section');
-        self::assertStringContainsString('Claire Martin', $sections->eq(0)->text(), 'inherited from Maison Dupont');
-        self::assertStringContainsString('Nadia Benali', $sections->eq(1)->text(), 'held on the shop');
-        self::assertStringNotContainsString('Claire Martin', $sections->eq(1)->filter('ul')->text());
+        self::assertStringContainsString('Referents', $sections->eq(0)->text(), 'who answers for each role comes first');
+        self::assertStringContainsString('Claire Martin', $sections->eq(1)->text(), 'inherited from Maison Dupont');
+        self::assertStringContainsString('Nadia Benali', $sections->eq(2)->text(), 'held on the shop');
+        self::assertStringNotContainsString('Claire Martin', $sections->eq(2)->filter('ul')->text());
         self::assertSelectorNotExists('[role="dialog"]');
 
         $this->client->clickLink('Add someone');
