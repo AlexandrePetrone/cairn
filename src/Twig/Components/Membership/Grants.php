@@ -11,6 +11,7 @@ use App\Entity\User;
 use App\Entity\Workspace;
 use App\Message\Command\Membership\GrantMembership;
 use App\Message\Command\Membership\RevokeMembership;
+use App\Message\Command\Membership\SetReferent;
 use App\Message\Command\User\CreateUser;
 use App\Message\Command\User\InviteUser;
 use App\Message\CommandBus;
@@ -42,6 +43,8 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * them; someone is added by email: an existing account gets a role, an
  * unknown address gets an external account, the role and an invitation.
  * A member who has not chosen their password yet can be invited again.
+ * Each row can be made the referent of its role (SetReferent): on a
+ * project the referents inherited from the workspace only show.
  */
 #[AsLiveComponent('Membership:Grants')]
 final class Grants
@@ -430,6 +433,18 @@ final class Grants
         }
 
         $this->done('admin.access.changed');
+    }
+
+    /**
+     * Makes the member of a row the referent of their role, or no longer.
+     */
+    #[LiveAction]
+    public function setReferent(CommandBus $commands, #[LiveArg] int $membership, #[LiveArg] int $referent): void
+    {
+        $this->error = null;
+        if ($this->tryCommand($commands, new SetReferent($membership, 1 === $referent, $this->actorId()))) {
+            $this->done(1 === $referent ? 'admin.access.referent_designated' : 'admin.access.referent_withdrawn');
+        }
     }
 
     #[LiveAction]

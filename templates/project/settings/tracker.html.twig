@@ -1,5 +1,7 @@
 {% extends 'project/settings/base.html.twig' %}
 
+{% block settings_title %}{{ 'nav.project.configuration.trackers'|trans }}{% endblock %}
+
 {% block settings_content %}
     <div class="grid gap-4 lg:grid-cols-[20rem_1fr] items-start">
         <twig:Tracker:Order :project="project" :current="tracker.id" />

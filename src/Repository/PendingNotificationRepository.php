@@ -32,7 +32,7 @@ class PendingNotificationRepository extends ServiceEntityRepository
             ->join('n.issue', 'i')
             ->join('i.project', 'p')
             ->join('n.recipient', 'r')
-            ->join('n.actor', 'a')
+            ->leftJoin('n.actor', 'a')
             ->orderBy('n.id', 'ASC')
             ->getQuery();
 

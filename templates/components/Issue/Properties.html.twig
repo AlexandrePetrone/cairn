@@ -240,7 +240,7 @@
                 {% endif %}
             {% endif %}
 
-            {# Visibility is an agency matter: external users only ever see what is visible to them. #}
+            {# Visibility is for internal users to set: external users only ever see what is visible to them. #}
             {% if app.user.internal %}
                 {% set propertiesVisibility %}
                     <span class="leading-tight {{ issue.private ? 'font-medium text-amber' : 'text-body' }}">{{ (issue.private ? 'issue.show.hidden_externals' : 'issue.show.visible_externals')|trans }}</span>

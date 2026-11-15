@@ -37,17 +37,20 @@
                     {% set change = row.change %}
                     {% set comment = change.comment %}
                     {# Someone who did several things in a row is named once. #}
-                    {% set sameActor = not loop.first and card.changes[loop.index0 - 1].change.actor.id == change.actor.id %}
+                    {% set sameActor = not loop.first and card.changes[loop.index0 - 1].change.authorKey == change.authorKey %}
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:{{ loop.first ? '0' : (sameActor ? '4px' : '14px') }} 0 0;">
                         <tr>
                             <td width="38" valign="top">
-                                {% if not sameActor %}
+                                {% if not sameActor and change.actor %}
                                     <span style="display:inline-block;width:28px;height:28px;line-height:28px;border-radius:50%;text-align:center;font-size:11px;font-weight:700;background:{{ change.actor.internal ? '#eef2ff' : '#d1fae5' }};color:{{ change.actor.internal ? '#4f46e5' : '#047857' }};">{{ (change.actor.firstName|first ~ change.actor.lastName|first)|upper }}</span>
+                                {% elseif not sameActor %}
+                                    {# An automation rule acted: a bolt where the initials would be. #}
+                                    <span style="display:inline-block;width:28px;height:28px;line-height:28px;border-radius:8px;text-align:center;font-size:14px;background:#f3f4f6;color:#667080;">&#9889;&#xFE0E;</span>
                                 {% endif %}
                             </td>
                             <td valign="top" style="font-size:14px;color:#374151;">
                                 {% if not sameActor %}
-                                    <span style="font-weight:600;color:#111827;">{{ change.actor.fullName }}</span>
+                                    <span style="font-weight:600;color:#111827;">{{ change.by }}</span>{% if not change.actor %}<span style="font-size:12px;color:#667080;">&nbsp;· {{ 'automation.signature'|trans }}</span>{% endif %}
                                     <span style="font-size:12px;color:#9ca3af;">&nbsp;{{ change.at|date('H:i') }}</span>
                                 {% endif %}
                                 {% for entry in change.entries %}

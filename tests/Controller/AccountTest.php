@@ -53,7 +53,7 @@ final class AccountTest extends WebTestCase
         self::assertSelectorExists('header a[href="/account"]', 'The user menu leads to the account.');
         self::assertSelectorExists('aside a[href="/account/notifications"]');
         self::assertSelectorExists('aside a[href="/account/security"]');
-        self::assertSelectorNotExists('aside a[href="/account/tokens"]', 'The API is for the agency.');
+        self::assertSelectorNotExists('aside a[href="/account/tokens"]', 'The API is for internal users.');
         self::assertSelectorTextContains('[data-test="account-identity"]', 'Claire Martin');
         self::assertSelectorTextContains('[data-test="account-identity"]', 'claire.martin@maison-dupont.test');
         self::assertSelectorTextContains('[data-test="account-identity"]', 'managed by an administrator');

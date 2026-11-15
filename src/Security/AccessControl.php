@@ -68,7 +68,7 @@ final class AccessControl implements ResetInterface
 
     /**
      * The API is opened by the account, not by a role on a project: it is
-     * for the people of the agency. What a token then reads and does is
+     * for internal users. What a token then reads and does is
      * decided by the same rules as in the pages.
      */
     public function canUseApi(User $user): bool
@@ -142,7 +142,7 @@ final class AccessControl implements ResetInterface
             return false;
         }
         $project = $comment->getIssue()->getProject();
-        $own = $comment->getAuthor()->getId() === $user->getId() && $this->isGranted($user, Permission::CommentCreate, $project);
+        $own = $comment->getAuthor()?->getId() === $user->getId() && $this->isGranted($user, Permission::CommentCreate, $project);
 
         return $own || $this->isGranted($user, Permission::CommentEdit, $project);
     }
@@ -180,7 +180,7 @@ final class AccessControl implements ResetInterface
 
     /**
      * Whether the comment a transition asks for is required of this user:
-     * external users must explain themselves, the agency never has to (and
+     * external users must explain themselves, internal users never have to (and
      * may leave the workflow altogether with MoveIssue).
      */
     public function commentRequired(User $user, TransitionDefinition $transition): bool

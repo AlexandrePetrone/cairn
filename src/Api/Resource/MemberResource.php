@@ -33,7 +33,7 @@ final readonly class MemberResource
         public int $id,
         public string $name,
         public bool $internal,
-        /** For the agency only. */
+        /** For internal users only. */
         public ?string $email = null,
         public ?string $company = null,
     ) {

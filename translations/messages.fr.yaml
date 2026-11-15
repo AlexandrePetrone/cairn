@@ -282,9 +282,13 @@ nav:
         issues: Demandes
         trackers: Catégories
         releases: Versions
-        manage: Projet
-        access: Accès
-        settings: Configuration
+        configuration:
+            title: Configuration
+            general: Général
+            trackers: Catégories
+            access: Accès
+            automations: Automatisations
+            repositories: Dépôts
     issues:
         all: Toutes
         assigned: Assignées à moi
@@ -478,6 +482,12 @@ admin:
         revoke: Retirer l'accès
         revoke_confirm: Retirer cet accès ?
         revoked: Accès retiré.
+        referent: Référent
+        referent_designate: Désigner référent de ce rôle
+        referent_withdraw: Ne plus être référent de ce rôle
+        referent_designated: Référent désigné.
+        referent_withdrawn: Ce rôle n'a plus de référent ici.
+        referent_deactivated: "Ce compte est désactivé : il ne répond de rien tant qu'il n'est pas réactivé."
         search_user: Rechercher une personne…
         search_target: Rechercher un espace ou un projet…
         no_match: Rien ne correspond.
@@ -792,10 +802,6 @@ project:
     settings:
         title: Configuration
         subtitle: 'Projet %project% · espace %workspace%'
-        tab:
-            trackers: Catégories
-            general: Général
-            repositories: Dépôts
         trackers: Catégories
         save: Enregistrer
         saved: Modifications enregistrées.
@@ -820,13 +826,13 @@ project:
             description_help: Affichée sur la carte de choix à la création d'une demande.
             workflow: Workflow
             workflow_help: Il ne change plus une fois la catégorie créée.
-            workflow_fixed: "Choisi à la création de la catégorie, il ne change plus. Ses étapes, ses champs et ses actions sont définis par l'agence dans la configuration."
+            workflow_fixed: "Choisi à la création de la catégorie, il ne change plus. Ses étapes, ses champs et ses actions sont définis dans la configuration de l'instance."
             private: Réservée aux internes
             private_help: Les externes ne voient pas ses demandes et n'en créent pas.
             active: Accepte de nouvelles demandes
             active_help: Une catégorie désactivée garde ses demandes mais disparaît du formulaire de création et du menu.
         repository:
-            intro: "Les commits et les merge requests des dépôts liés qui citent une demande du projet (%prefix%-12) apparaissent sur sa fiche, pour l'agence seulement."
+            intro: "Les commits et les merge requests des dépôts liés qui citent une demande du projet (%prefix%-12) apparaissent sur sa fiche, pour les utilisateurs internes seulement."
             new: Lier un dépôt
             forge: Forge
             path: Chemin du dépôt
@@ -834,7 +840,7 @@ project:
             path_placeholder: groupe/projet
             link: Lier
             link_help: "Aucun jeton d'instance n'est configuré : le webhook sera à installer à la main, avec l'adresse et le secret affichés."
-            link_help_api: "Le webhook est installé sur la forge dès que le dépôt est lié, avec le jeton de l'agence."
+            link_help_api: "Le webhook est installé sur la forge dès que le dépôt est lié, avec le jeton de l'instance."
             installed: 'Webhook installé le %date%'
             not_installed: Webhook à installer
             empty: Aucun dépôt lié
@@ -1069,10 +1075,10 @@ permission:
     project:
         configure:
             label: Configurer le projet
-            help: Changer son nom et sa description, créer, ordonner et désactiver ses catégories.
+            help: Changer son nom et sa description, créer, ordonner et désactiver ses catégories, lier ses dépôts de code et écrire ses règles d'automatisation.
         manage_members:
             label: Gérer les accès du projet
-            help: Accorder, changer et retirer les rôles détenus sur le projet lui-même. Les rôles d'espace restent à l'administration.
+            help: Accorder, changer et retirer les rôles détenus sur le projet lui-même, et y désigner le référent de chaque rôle. Les rôles d'espace restent à l'administration.
     release:
         manage:
             label: Gérer les versions
@@ -1084,7 +1090,7 @@ code_repository:
         forge_unavailable: Cette forge n'est pas encore prise en charge.
         already_linked: 'Le dépôt %path% est déjà lié à ce projet.'
         api_not_configured: "Aucun jeton d'instance pour cette forge : installez le webhook à la main."
-        forge_refused: "La forge a refusé l'appel : vérifiez le chemin du dépôt et les droits du jeton de l'agence."
+        forge_refused: "La forge a refusé l'appel : vérifiez le chemin du dépôt et les droits du jeton de l'instance."
 forge:
     gitlab: GitLab
     github: GitHub
@@ -1106,6 +1112,209 @@ migration_policy:
     fallback:
         label: Repli
         help: les demandes posées sur une étape qui disparaît vont à l'étape de repli de leur workflow.
+
+automation:
+    signature: automatisation
+    title: Automatisations
+    intro: 'Des règles qui agissent seules sur les demandes de ce projet : quand il se passe quelque chose, ou quand il ne se passe plus rien.'
+    new: Nouvelle règle
+    new_title: Nouvelle règle
+    edit_title: Modifier la règle
+    tab:
+        rules: Règles
+        runs: Exécutions
+    group:
+        event: Quand il se passe quelque chose
+        timed: Quand il ne se passe plus rien
+    empty: Ce projet n'a pas encore de règle.
+    empty_hint: "Une première, par exemple : quand une demande est créée sans assigné, l'assigner au référent chef de projet."
+    all_trackers: Toutes les catégories
+    last_run: Dernière exécution
+    never: Jamais exécutée
+    active: Active
+    inactive: Inactive
+    activated: Règle activée.
+    deactivated: Règle désactivée.
+    delete: Supprimer la règle
+    delete_confirm: "Supprimer cette règle ? Ce qu'elle a fait reste dans l'historique."
+    saved: Règle enregistrée.
+    created: Règle créée.
+    deleted: Règle supprimée.
+    referent:
+        none: "Ce projet n'a pas de référent %role% : ce qu'une règle lui destine est sauté tant qu'il n'est pas désigné."
+        deactivated: "Le référent %role%, %name%, a un compte désactivé : ce qu'une règle lui destine est sauté tant que le compte n'est pas réactivé ou qu'un autre référent n'est pas désigné."
+        other_role: "%name% a été désigné référent %role% mais porte aujourd'hui un autre rôle sur ce projet : ce qu'une règle lui destine est sauté tant qu'un référent n'est pas désigné."
+    designate: Désigner un référent
+    form:
+        name: Nom
+        name_help: "Les externes le lisent aussi : ce nom signe ce que fait la règle, dans l'historique des demandes et dans les mails."
+        tracker: S'applique à
+        when: Quand
+        if: Si
+        if_help: toutes doivent être vraies
+        no_condition: "Aucune condition : la règle agit à chaque fois."
+        then: Alors
+        then_help: exécutées dans l'ordre
+        add_condition: Ajouter une condition
+        add_action: Ajouter une action
+        remove: Retirer
+        save: Enregistrer
+        cancel: Annuler
+        choose: Choisir…
+        any_place: n'importe quelle étape
+        any_of: "Cochez une ou plusieurs valeurs : la condition est vraie si l'une d'elles correspond."
+        needs_tracker: Limitez la règle à une catégorie pour choisir ici.
+        in_plain: En clair
+        how: Comment elle agit
+        how_author: "Sans auteur : l'historique de la demande nomme la règle."
+        how_rights: Elle n'est soumise ni aux droits ni au workflow.
+        how_chain: "Ce qu'elle change peut déclencher d'autres règles, trois de suite au plus."
+        event_help: "La règle agit aussitôt, dans le même geste que ce qui l'a déclenchée."
+        timed_help: "Compté depuis la dernière action d'une personne : ce que font les règles ne remet pas le compteur à zéro. La règle agit une fois, puis attend que quelqu'un intervienne."
+        days: jours
+        referent_today: "Aujourd'hui : %name%."
+        referent_missing: "Personne aujourd'hui : l'action est sautée tant qu'un référent n'est pas désigné."
+        referent_unavailable: "%name% est désigné mais ne répond pas aujourd'hui (compte désactivé, ou autre rôle depuis) : l'action est sautée."
+        private: Commentaire privé (utilisateurs internes seulement)
+        body: Texte du commentaire
+        body_help: Signé du nom de la règle, envoyé aux abonnés comme un commentaire.
+    trigger_group:
+        event: Sur un événement
+        timed: Sur le temps
+    trigger:
+        issue_created: Une demande est créée
+        comment_added: Un commentaire est ajouté
+        transition_applied: Une action du workflow est appliquée
+        place_changed: La demande change d'étape
+        criticality_changed: La criticité de la demande change
+        inactive_for: Aucune activité depuis
+    condition:
+        actor: La personne qui a agi
+        assignee: La demande est assignée
+        place: La demande est à l'étape
+        criticality: La criticité est
+        code: Commits et merge requests liés
+    action:
+        assign: Assigner à
+        move: Déplacer vers l'étape
+        set_criticality: Passer la criticité à
+        subscribe: Abonner à la demande
+        comment: Ajouter un commentaire
+        make_private: Rendre la demande privée
+    option:
+        actor:
+            internal: est un utilisateur interne
+            external: est un utilisateur externe
+        assignee:
+            internal: à un utilisateur interne
+            external: à un utilisateur externe
+            nobody: à personne
+            external_or_nobody: à un utilisateur externe ou à personne
+        code:
+            none: aucun
+            some: au moins un
+    target:
+        group:
+            referents: Référents du projet
+            issue: Selon la demande
+            people: Un membre du projet
+        referent: 'Le référent %role%'
+        author: L'auteur de la demande
+        last_internal: Le dernier utilisateur interne intervenu
+        nobody: Personne (retirer l'assignation)
+    sentence:
+        when:
+            issue_created: Quand une demande est créée
+            comment_added: Quand un commentaire est ajouté
+            transition_applied: "Quand l'action « %transition% » est appliquée"
+            place_changed: "Quand la demande arrive à l'étape « %place% »"
+            place_changed_any: "Quand la demande change d'étape"
+            criticality_changed: Quand la criticité de la demande change
+            inactive_for: '{1}Après un jour sans activité|]1,Inf[Après %count% jours sans activité'
+        if:
+            actor:
+                internal: la personne qui a agi est un utilisateur interne
+                external: la personne qui a agi est un utilisateur externe
+            assignee:
+                internal: elle est assignée à un utilisateur interne
+                external: elle est assignée à un utilisateur externe
+                nobody: "elle n'est assignée à personne"
+                external_or_nobody: elle est assignée à un utilisateur externe ou à personne
+            place: "elle est à l'étape %places%"
+            criticality: 'sa criticité est %criticality%'
+            code:
+                none: "aucun commit ni merge request n'y est lié"
+                some: au moins un commit ou une merge request y est lié
+        then:
+            assign: "l'assigner à %target%"
+            unassign: "retirer l'assignation"
+            move: 'la déplacer vers « %place% »'
+            set_criticality: 'passer sa criticité à %criticality%'
+            subscribe: 'abonner %target% à la demande'
+            comment: ajouter un commentaire
+            comment_private: ajouter un commentaire privé
+            make_private: la rendre privée
+        target:
+            referent: 'le référent %role%'
+            author: son auteur
+            last_internal: le dernier utilisateur interne intervenu
+            nobody: personne
+        join:
+            if: ', si '
+            and: ' et '
+            or: ' ou '
+            then: ' : '
+            next: ', puis '
+            nothing: rien
+    run:
+        when: Quand
+        rule: Règle
+        issue: Demande
+        cause: Déclenchée par
+        result: Résultat
+        all_rules: Toutes les règles
+        all_outcomes: Tous les résultats
+        count: '{0}Aucune exécution|{1}1 exécution|]1,Inf[ %count% exécutions'
+        empty: Aucune exécution pour l'instant.
+        deleted_rule: règle supprimée depuis
+        footer: "Une exécution garde le nom qu'avait la règle quand elle a joué. La demande, elle, garde la ligne dans son historique."
+        cause_of:
+            issue_created: "%name% l'a créée"
+            comment_added: '%name% a commenté'
+            transition_applied: '%name% a appliqué une action'
+            place_changed: "%name% l'a déplacée"
+            criticality_changed: '%name% a changé la criticité'
+            inactive_for: aucune activité
+            rule: une autre règle
+        outcome:
+            applied: Appliquée
+            partial: Appliquée en partie
+            skipped: Sautée
+            stopped: 'Arrêtée : trois règles de suite'
+        step:
+            unchanged: rien à changer
+            skipped: 'sauté : %reason%'
+        reason:
+            no_referent: 'aucun référent %value%'
+            no_internal: aucun interne n'est intervenu
+            unknown_user: "cette personne n'existe plus"
+            deactivated: 'le compte de %value% est désactivé'
+            not_a_member: "%value% n'a pas de rôle sur le projet"
+            unknown_place: "l'étape « %value% » n'existe plus"
+            unknown_criticality: "la criticité « %value% » n'existe pas"
+            cannot_see: '%value% ne peut pas voir la demande'
+            empty_comment: le commentaire est vide
+            error: une erreur imprévue, journalisée
+    refused:
+        not_found: "Cette règle n'existe plus."
+        malformed: "La règle n'est pas écrite comme une règle."
+        unknown_type: "« %type% » n'est ni un déclencheur, ni une condition, ni une action que Cairn connaît."
+        no_action: Une règle a besoin d'au moins une action.
+        too_many_steps: 'Une règle porte au plus %max% conditions et %max% actions.'
+        needs_tracker: "Une ligne nomme une étape ou une action d'un workflow : limitez la règle à une catégorie."
+        unknown_tracker: "Cette catégorie n'est pas une de celles du projet."
+        invalid_value: "Une valeur de la règle n'est pas de celles qu'elle peut prendre ici (%step%, %parameter%)."
+        nobody_acts: "Une règle qui attend le temps ne peut pas demander qui l'a fait : personne."
 
 email:
     issue:

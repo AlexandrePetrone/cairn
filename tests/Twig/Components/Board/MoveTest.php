@@ -90,7 +90,7 @@ final class MoveTest extends KernelTestCase
         self::assertStringNotContainsString('role="dialog"', (string) $mover->render());
     }
 
-    public function testTheAgencyDropsWithoutTheCommentAskedOfClients(): void
+    public function testAnInternalUserDropsWithoutTheCommentAskedOfClients(): void
     {
         $mover = $this->mover('thomas.girard@cairn.test');
 
@@ -117,7 +117,7 @@ final class MoveTest extends KernelTestCase
         $mover = $this->mover('claire.martin@maison-dupont.test');
 
         $mover->call('move', ['key' => 'MD-SPT-1', 'place' => 'qualified']);
-        self::assertSame('new', $this->reloaded('MD-SPT-1')->getPlace(), 'qualifying is for the agency');
+        self::assertSame('new', $this->reloaded('MD-SPT-1')->getPlace(), 'qualifying is for internal users');
 
         $mover->call('move', ['key' => 'MD-SPT-4', 'place' => 'to_release']);
         self::assertSame('to_release', $this->reloaded('MD-SPT-4')->getPlace());
@@ -175,7 +175,7 @@ final class MoveTest extends KernelTestCase
     }
 
     /**
-     * The keys of a column of the bug kanban, as an agency member reads it.
+     * The keys of a column of the bug kanban, as an internal user reads it.
      *
      * @return list<string>
      */

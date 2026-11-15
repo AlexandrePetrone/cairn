@@ -28,7 +28,12 @@
     {% else %}
         <span class="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-line-strong ring-2 ring-line-subtle"></span>
         <div class="text-xs text-muted">
-            <span class="font-medium text-body">{{ entry.author ? entry.author.fullName : 'issue.show.system'|trans }}</span>
+            {% if entry.rule %}
+                <span class="font-medium text-body"><twig:ux:icon name="lucide:zap" class="inline h-3 w-3 align-[-1px] text-faint" /> {{ entry.rule }}</span>
+                <span class="text-faint">({{ 'automation.signature'|trans }})</span>
+            {% else %}
+                <span class="font-medium text-body">{{ entry.author ? entry.author.fullName : 'issue.show.system'|trans }}</span>
+            {% endif %}
             {{ journalLabel }}
             <span class="text-faint">· {{ entry.at|date('d/m/Y H:i') }}</span>
         </div>

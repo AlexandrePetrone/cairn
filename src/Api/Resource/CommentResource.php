@@ -21,7 +21,7 @@ use App\Api\State\DeleteCommentProcessor;
 use App\Api\State\EditCommentProcessor;
 
 /**
- * A comment of an issue. The private ones are for the agency.
+ * A comment of an issue. The private ones are for internal users.
  */
 #[ApiResource(
     shortName: 'Comment',
@@ -55,13 +55,15 @@ final readonly class CommentResource
         public int $id,
         /** Key of the issue. */
         public string $issue,
-        public UserRef $author,
+        /** Left out when an automation rule wrote the comment: `signature` then names the rule. */
+        public ?UserRef $author,
         /** Markdown. */
         public string $body,
         public bool $private,
         public \DateTimeImmutable $createdAt,
         public ?\DateTimeImmutable $editedAt,
         public array $attachments = [],
+        public ?string $signature = null,
     ) {
     }
 }

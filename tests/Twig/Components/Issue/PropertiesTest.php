@@ -111,7 +111,7 @@ final class PropertiesTest extends KernelTestCase
         self::assertNotSame('sophie.bernard@travelia.test', $this->reloaded()->getAssignee()?->getEmail());
     }
 
-    public function testTheStepIsAMenuForTheAgencyOnly(): void
+    public function testTheStepIsAMenuForInternalUsersOnly(): void
     {
         $manager = (string) $this->properties('thomas.girard@cairn.test')->render();
         self::assertStringContainsString('data-live-action-param="transition" data-live-id-param="accept"', $manager, 'an action leads to "To release"');
@@ -140,7 +140,7 @@ final class PropertiesTest extends KernelTestCase
         $component->call('transition', ['id' => 'refuse']);
         $render = $component->render();
 
-        self::assertSame('in_progress', $this->reloaded()->getPlace(), 'the agency is not held to the comment');
+        self::assertSame('in_progress', $this->reloaded()->getPlace(), 'an internal user is not held to the comment');
         self::assertSame(JournalEntryType::Transitioned, $this->lastEntry()?->getType());
         self::assertNotNull($component->getEmittedEvent($render, 'issue:changed'));
         self::assertSame(['message' => 'MD-SPT-4: "Refuse" applied.'], $component->getDispatchedBrowserEvent($render, 'toast:show')['payload'] ?? null);

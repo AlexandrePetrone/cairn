@@ -23,7 +23,7 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 /**
  * The order of a kanban column: an issue arrives on top, and whoever holds
- * `issue.rank` (the agency, in the test configuration) places it by hand.
+ * `issue.rank` (the internal roles, in the test configuration) places it by hand.
  */
 final class RankIssueHandlerTest extends KernelTestCase
 {

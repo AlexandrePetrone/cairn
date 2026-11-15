@@ -8,8 +8,8 @@ use App\Entity\Enum\Forge;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
- * What Cairn asks a forge through its API, with the instance-level token
- * of the agency: installing and removing the webhook of a linked
+ * What Cairn asks a forge through its API, with the token of the
+ * instance: installing and removing the webhook of a linked
  * repository. One implementation per forge, found by ForgeApiLocator.
  * Every call throws ForgeApiException when the forge refuses or is
  * unreachable.

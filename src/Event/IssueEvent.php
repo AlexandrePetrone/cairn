@@ -20,13 +20,15 @@ use App\Entity\User;
 abstract readonly class IssueEvent
 {
     /**
-     * @param User|null          $actor   who acted; null when a forge did (CodeReferenced)
+     * @param User|null          $actor   who acted; null when a forge did (CodeReferenced) or an automation rule
      * @param list<JournalEntry> $entries the lines the command wrote on this issue
+     * @param string|null        $rule    the name of the automation rule that acted, when one did
      */
     public function __construct(
         public Issue $issue,
         public ?User $actor,
         public array $entries,
+        public ?string $rule = null,
     ) {
     }
 

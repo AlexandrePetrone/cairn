@@ -187,7 +187,7 @@ final class ProjectMailSender
             [$entries, $comment] = $visible;
             $at = ($entries[0] ?? null)?->getAt() ?? $comment?->getCreatedAt() ?? $row->getCreatedAt();
             $issues[$issueId] = $issue;
-            $changes[$issueId][] = new IssueChange($row->getActor(), $at, $entries, $comment);
+            $changes[$issueId][] = new IssueChange($row->getActor(), $at, $entries, $comment, $row->getRule());
         }
 
         $cards = [];

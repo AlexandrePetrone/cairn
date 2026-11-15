@@ -1,5 +1,7 @@
 {% extends 'project/settings/base.html.twig' %}
 
+{% block settings_title %}{{ 'nav.project.configuration.general'|trans }}{% endblock %}
+
 {% block settings_content %}
     {{ form_start(form, { attr: { class: 'max-w-2xl rounded-lg border border-line bg-surface p-4 space-y-4' } }) }}
         {{ form_errors(form) }}

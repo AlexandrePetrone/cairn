@@ -1,0 +1,218 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Automation;
+
+use App\Automation\Definition\ActionType;
+use App\Automation\Definition\RuleDefinition;
+use App\Automation\Definition\RuleStep;
+use App\Config\ConfigRegistry;
+use App\Entity\Comment;
+use App\Entity\Enum\Criticality;
+use App\Entity\Issue;
+use App\Entity\JournalEntry;
+use App\Entity\User;
+use App\Event\CommentAdded;
+use App\Event\IssueMoved;
+use App\Event\IssueUpdated;
+use App\MessageHandler\Command\Issue\IssueHandlerSupport;
+use App\Notification\SubscriptionRules;
+use App\Security\AccessControl;
+use Doctrine\DBAL\Exception as DatabaseException;
+use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+
+/**
+ * Does what the actions of a rule say to one issue. A rule is written by
+ * whoever configures the project: it acts without an author and without
+ * the rights nor the workflow of anyone (it puts the issue on a place
+ * whether an action leads there or not), but through the same doors as
+ * a command: the intent methods of the issue, a journal entry signed with
+ * the name of the rule, and IssueHandlerSupport::record() with the usual
+ * event and no actor, so the assignee is subscribed, the mails leave and
+ * another rule may follow. One event per action that changed something.
+ *
+ * A rule must not fail what someone did: what cannot be done (nobody
+ * behind a target, a place that left the workflow) is skipped and
+ * reported, and so is an action that throws, logged as an error. Only an
+ * error of the database goes up: the transaction it broke cannot go on.
+ */
+final class RuleExecutor
+{
+    public function __construct(
+        private readonly IssueHandlerSupport $support,
+        private readonly Targets $targets,
+        private readonly SubscriptionRules $subscriptions,
+        private readonly AccessControl $access,
+        private readonly ConfigRegistry $config,
+        private readonly EntityManagerInterface $entityManager,
+        private readonly LoggerInterface $logger,
+    ) {
+    }
+
+    /**
+     * @return list<StepResult> one per action, in order
+     */
+    public function apply(string $rule, RuleDefinition $definition, Issue $issue): array
+    {
+        $results = [];
+        foreach ($definition->actions as $action) {
+            try {
+                $results[] = $this->act($rule, $action, $issue);
+            } catch (DatabaseException $e) {
+                throw $e;
+            } catch (\Throwable $e) {
+                $this->logger->error('An action of an automation rule failed; the rest went on.', ['rule' => $rule, 'action' => $action->type->value, 'issue' => $issue->getKey(), 'exception' => $e]);
+                $results[] = StepResult::skipped($action->type, 'error');
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * @param RuleStep<ActionType> $action
+     */
+    private function act(string $rule, RuleStep $action, Issue $issue): StepResult
+    {
+        return match ($action->type) {
+            ActionType::Assign => $this->assign($rule, $action, $issue),
+            ActionType::Move => $this->move($rule, $action, $issue),
+            ActionType::SetCriticality => $this->setCriticality($rule, $action, $issue),
+            ActionType::Subscribe => $this->subscribe($action, $issue),
+            ActionType::Comment => $this->comment($rule, $action, $issue),
+            ActionType::MakePrivate => $this->makePrivate($rule, $issue),
+        };
+    }
+
+    /**
+     * @param RuleStep<ActionType> $action
+     */
+    private function assign(string $rule, RuleStep $action, Issue $issue): StepResult
+    {
+        $target = $this->targets->resolve($action->text('target'), $issue);
+        if ($target->isMissing()) {
+            return StepResult::skipped(ActionType::Assign, (string) $target->reason, $target->label);
+        }
+        $user = $target->user;
+        // as for a person who assigns: only someone with a role on the project
+        if (null !== $user && null === $this->access->roleOn($user, $issue->getProject())) {
+            return StepResult::skipped(ActionType::Assign, 'not_a_member', $user->getFullName());
+        }
+        $previous = $issue->getAssignee();
+        if ($previous?->getId() === $user?->getId()) {
+            return StepResult::unchanged(ActionType::Assign, (string) $user?->getFullName());
+        }
+
+        $issue->assignTo($user);
+        $this->recordUpdate($rule, $issue, JournalEntry::changed($issue, null, 'assignee', $previous?->getFullName(), $user?->getFullName()), $user);
+
+        return StepResult::applied(ActionType::Assign, (string) $user?->getFullName());
+    }
+
+    /**
+     * @param RuleStep<ActionType> $action
+     */
+    private function move(string $rule, RuleStep $action, Issue $issue): StepResult
+    {
+        $definition = $this->config->definition();
+        $workflowId = $issue->getTracker()->getWorkflowId();
+        $workflow = $definition->hasWorkflow($workflowId) ? $definition->workflow($workflowId) : null;
+        $from = $workflow?->findPlace($issue->getPlace());
+        $to = $workflow?->findPlace($action->text('place'));
+        if (null === $from || null === $to) {
+            return StepResult::skipped(ActionType::Move, 'unknown_place', $action->text('place'));
+        }
+        if ($from->id === $to->id) {
+            return StepResult::unchanged(ActionType::Move, $to->label);
+        }
+
+        $issue->moveTo($to);
+        $this->support->arrive($issue);
+        $this->support->record(new IssueMoved($issue, null, [JournalEntry::moved($issue, null, $from, $to)->byRule($rule)], $rule));
+
+        return StepResult::applied(ActionType::Move, $to->label);
+    }
+
+    /**
+     * @param RuleStep<ActionType> $action
+     */
+    private function setCriticality(string $rule, RuleStep $action, Issue $issue): StepResult
+    {
+        $criticality = Criticality::tryFrom($action->text('criticality'));
+        if (null === $criticality) {
+            return StepResult::skipped(ActionType::SetCriticality, 'unknown_criticality', $action->text('criticality'));
+        }
+        $previous = $issue->getCriticality();
+        if ($previous === $criticality) {
+            return StepResult::unchanged(ActionType::SetCriticality, $criticality->value);
+        }
+
+        $issue->setCriticality($criticality);
+        $this->recordUpdate($rule, $issue, JournalEntry::changed($issue, null, 'criticality', $previous->value, $criticality->value));
+
+        return StepResult::applied(ActionType::SetCriticality, $criticality->value);
+    }
+
+    /**
+     * Following is not a change of the issue: nothing is journaled, as
+     * when someone follows by themselves.
+     *
+     * @param RuleStep<ActionType> $action
+     */
+    private function subscribe(RuleStep $action, Issue $issue): StepResult
+    {
+        $target = $this->targets->resolve($action->text('target'), $issue);
+        $user = $target->user;
+        if (null === $user) {
+            return StepResult::skipped(ActionType::Subscribe, $target->reason ?? 'unknown_user', $target->label);
+        }
+        if ($this->subscriptions->isSubscribed($issue, $user)) {
+            return StepResult::unchanged(ActionType::Subscribe, $user->getFullName());
+        }
+        // someone who may not see the issue cannot follow it
+        if (!$this->subscriptions->subscribe($issue, $user)) {
+            return StepResult::skipped(ActionType::Subscribe, 'cannot_see', $user->getFullName());
+        }
+
+        return StepResult::applied(ActionType::Subscribe, $user->getFullName());
+    }
+
+    /**
+     * @param RuleStep<ActionType> $action
+     */
+    private function comment(string $rule, RuleStep $action, Issue $issue): StepResult
+    {
+        $body = trim($action->text('body'));
+        if ('' === $body) {
+            return StepResult::skipped(ActionType::Comment, 'empty_comment');
+        }
+        $comment = Comment::byRule($issue, $rule, $body, $action->flag('private'));
+        $this->entityManager->persist($comment);
+        $this->support->record(new CommentAdded($issue, null, [], $comment, $rule));
+
+        return StepResult::applied(ActionType::Comment);
+    }
+
+    private function makePrivate(string $rule, Issue $issue): StepResult
+    {
+        if ($issue->isPrivate()) {
+            return StepResult::unchanged(ActionType::MakePrivate);
+        }
+
+        $issue->makePrivate();
+        $this->recordUpdate($rule, $issue, JournalEntry::changed($issue, null, 'visibility', 'public', 'private'));
+
+        return StepResult::applied(ActionType::MakePrivate);
+    }
+
+    /**
+     * A property of the issue changed: its journal entry, signed, and the
+     * event a person's UpdateIssue would record.
+     */
+    private function recordUpdate(string $rule, Issue $issue, JournalEntry $entry, ?User $newAssignee = null): void
+    {
+        $this->support->record(new IssueUpdated($issue, null, [$entry->byRule($rule)], newAssignee: $newAssignee, rule: $rule));
+    }
+}

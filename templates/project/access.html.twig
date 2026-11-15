@@ -1,13 +1,9 @@
-{% extends 'layout/project.html.twig' %}
+{% extends 'project/settings/base.html.twig' %}
 
-{% block page_title %}{{ 'project.access.title'|trans }}{% endblock %}
+{# Who holds a role on the project, and the referent of each role: a page of the Configuration section like the others, in the same frame. #}
+{% block settings_title %}{{ 'project.access.title'|trans }}{% endblock %}
 
-{% block content %}
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 py-5 space-y-4">
-        <div>
-            <h1 class="text-xl font-semibold text-strong">{{ 'project.access.title'|trans }}</h1>
-            <p class="text-xs text-muted">{{ 'project.access.intro'|trans({ '%workspace%': project.workspace.name }) }}</p>
-        </div>
-        <twig:Membership:Grants :project="project" />
-    </div>
+{% block settings_content %}
+    <p class="max-w-3xl text-sm text-muted">{{ 'project.access.intro'|trans({ '%workspace%': project.workspace.name }) }}</p>
+    <twig:Membership:Grants :project="project" />
 {% endblock %}

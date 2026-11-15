@@ -7,6 +7,7 @@ namespace App\Tests\Notification;
 use App\Entity\Enum\Criticality;
 use App\Entity\Enum\MailGrouping;
 use App\Entity\Tracker;
+use App\Message\Command\Automation\CreateRule;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\Command\Issue\UnfollowIssue;
@@ -250,6 +251,26 @@ final class ProjectMailSenderTest extends KernelTestCase
     }
 
     /** What the worker does: every change the commands left is queued for its subscribers. */
+    public function testWhatARuleDidIsToldUnderItsName(): void
+    {
+        $this->commands->dispatch(new CreateRule((int) $this->fixtures->access->shop->getId(), 'Welcome', null, [
+            'trigger' => ['type' => 'issue_created'],
+            'actions' => [['type' => 'comment', 'params' => ['body' => 'Thank you, we **received** your issue.']], ['type' => 'set_criticality', 'params' => ['criticality' => 'high']]],
+        ]));
+        $this->fixtures->createIssue($this->fixtures->client);
+        $this->queue();
+
+        $this->clock->sleep(ProjectMailSender::CALM + 1);
+        $this->sender->sendDue();
+
+        $toClaire = $this->emailTo('claire@client.test');
+        self::assertEmailHtmlBodyContains($toClaire, 'Welcome', 'the author of the issue is told what the rule did, under its name');
+        self::assertEmailHtmlBodyContains($toClaire, 'we <strong>received</strong> your issue');
+        self::assertEmailHtmlBodyContains($toClaire, 'automation');
+        self::assertEmailHtmlBodyNotContains($toClaire, 'created the issue', 'not what they did themselves');
+        self::assertEmailHtmlBodyContains($this->emailTo('thomas@agency.test'), 'Welcome');
+    }
+
     private function queue(): void
     {
         $handler = self::getContainer()->get(NotifyIssueChangeHandler::class);

@@ -17,7 +17,7 @@ use App\Workflow\WorkflowProvider;
 
 /**
  * A tracker with what its workflow asks of an issue: its steps and its
- * fields, the internal ones for the agency only.
+ * fields, the internal ones for internal users only.
  */
 final class TrackerMapper
 {

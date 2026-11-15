@@ -10,7 +10,8 @@ use App\Entity\JournalEntry;
 use App\Entity\User;
 
 /**
- * A workflow action was applied, with or without a comment.
+ * A workflow action was applied, with or without a comment. The action is
+ * named by its id for what reacts to a given one (the automation rules).
  */
 final readonly class IssueTransitioned extends IssueEvent
 {
@@ -22,6 +23,7 @@ final readonly class IssueTransitioned extends IssueEvent
         User $actor,
         array $entries,
         public ?Comment $comment = null,
+        public ?string $transitionId = null,
     ) {
         parent::__construct($issue, $actor, $entries);
     }

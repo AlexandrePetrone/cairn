@@ -51,4 +51,23 @@ class JournalEntryRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * The last entry written by an internal user whose account is
+     * still active.
+     */
+    public function findLastByInternal(Issue $issue): ?JournalEntry
+    {
+        /* @var JournalEntry|null */
+        return $this->createQueryBuilder('e')
+            ->join('e.author', 'u')
+            ->andWhere('e.issue = :issue')
+            ->andWhere('u.internal = true')
+            ->andWhere('u.active = true')
+            ->setParameter('issue', $issue)
+            ->orderBy('e.id', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

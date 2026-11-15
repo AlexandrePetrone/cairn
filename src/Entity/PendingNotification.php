@@ -34,9 +34,12 @@ class PendingNotification
     #[ORM\JoinColumn(nullable: false)]
     private Issue $issue;
 
+    /** Null when an automation rule acted: `rule` then names it. */
     #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: false)]
-    private User $actor;
+    private ?User $actor;
+
+    #[ORM\Column(length: 120, nullable: true)]
+    private ?string $rule;
 
     /** @var list<int> the journal entries the command wrote */
     #[ORM\Column(type: Types::JSON)]
@@ -52,13 +55,14 @@ class PendingNotification
     /**
      * @param list<int> $entryIds
      */
-    public function __construct(User $recipient, Issue $issue, User $actor, array $entryIds, ?int $commentId)
+    public function __construct(User $recipient, Issue $issue, ?User $actor, array $entryIds, ?int $commentId, ?string $rule = null)
     {
         $this->recipient = $recipient;
         $this->issue = $issue;
         $this->actor = $actor;
         $this->entryIds = $entryIds;
         $this->commentId = $commentId;
+        $this->rule = $rule;
         $this->createdAt = now();
     }
 
@@ -77,9 +81,14 @@ class PendingNotification
         return $this->issue;
     }
 
-    public function getActor(): User
+    public function getActor(): ?User
     {
         return $this->actor;
+    }
+
+    public function getRule(): ?string
+    {
+        return $this->rule;
     }
 
     /**

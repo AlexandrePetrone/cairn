@@ -39,11 +39,13 @@ final readonly class HistoryEntryResource
         /** The sentence of the issue page, in the language of the instance. */
         public string $label,
         public \DateTimeImmutable $at,
-        /** Nobody when a forge wrote the entry. */
+        /** Nobody when a forge wrote the entry, or an automation rule (`rule` then names it). */
         public ?UserRef $author,
         public bool $private,
         /** Id of the comment that came with it, among those of GET /issues/{key}/comments. */
         public ?int $comment = null,
+        /** The name of the automation rule that wrote the entry. */
+        public ?string $rule = null,
     ) {
     }
 }

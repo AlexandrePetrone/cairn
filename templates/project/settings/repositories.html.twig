@@ -1,6 +1,8 @@
 {% extends 'project/settings/base.html.twig' %}
 
 {# The repositories of the forges linked to the project, with their webhook installed or not, and the form linking one more. A repository waiting for its webhook shows what to paste on the forge; unlinking confirms in place. #}
+{% block settings_title %}{{ 'nav.project.configuration.repositories'|trans }}{% endblock %}
+
 {% block settings_content %}
     <p class="text-sm text-muted max-w-3xl">{{ 'project.settings.repository.intro'|trans({ '%prefix%': project.issuePrefix }) }}</p>
     <div class="grid gap-5 items-start lg:grid-cols-[1fr_20rem]">

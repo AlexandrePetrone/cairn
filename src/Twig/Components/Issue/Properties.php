@@ -39,7 +39,7 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * assignee, criticality, release and visibility read as values and, for
  * whoever may change them, open a menu of the choices; the release shows
  * once the project has releases.
- * The step is a menu for the agency only: the places of the workflow the
+ * The step is a menu for internal users only: the places of the workflow the
  * viewer may take the issue to (`AccessControl::movesFor()`: by an action
  * when one leads there, outside the workflow otherwise) and, last, the
  * other trackers of the project, each with the places of its workflow.
@@ -74,7 +74,7 @@ final class Properties
     }
 
     /**
-     * Whether the step is a menu: for the agency, when it leads somewhere.
+     * Whether the step is a menu: for internal users, when it leads somewhere.
      */
     public function canChangePlace(): bool
     {

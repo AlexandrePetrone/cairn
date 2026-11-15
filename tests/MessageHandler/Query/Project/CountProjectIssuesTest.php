@@ -33,7 +33,7 @@ final class CountProjectIssuesTest extends KernelTestCase
      */
     public static function viewers(): iterable
     {
-        yield 'a project manager of the agency' => ['thomas.girard@cairn.test'];
+        yield 'an internal project manager' => ['thomas.girard@cairn.test'];
         yield 'a developer' => ['nadia.benali@cairn.test'];
         yield 'a client' => ['claire.martin@maison-dupont.test'];
     }
@@ -66,10 +66,10 @@ final class CountProjectIssuesTest extends KernelTestCase
         $queries = self::queryBus();
 
         $client = $queries->ask(new CountProjectIssues($this->scene->user('claire.martin@maison-dupont.test'), $shop));
-        $agency = $queries->ask(new CountProjectIssues($this->scene->user('thomas.girard@cairn.test'), $shop));
+        $internal = $queries->ask(new CountProjectIssues($this->scene->user('thomas.girard@cairn.test'), $shop));
 
-        self::assertLessThan($agency->all, $client->all, 'private issues and private trackers stay out');
+        self::assertLessThan($internal->all, $client->all, 'private issues and private trackers stay out');
         self::assertSame(0, $client->of($this->scene->tasks), 'a private tracker counts nothing for a client');
-        self::assertGreaterThan(0, $agency->of($this->scene->tasks));
+        self::assertGreaterThan(0, $internal->of($this->scene->tasks));
     }
 }

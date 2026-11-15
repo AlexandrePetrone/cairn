@@ -25,4 +25,12 @@ class CodeReferenceRepository extends ServiceEntityRepository
     {
         return $this->findOneBy(['issue' => $issue, 'forge' => $forge, 'repositoryPath' => $repositoryPath, 'kind' => $kind, 'externalId' => $externalId]);
     }
+
+    /**
+     * Whether a commit or a merge request references the issue.
+     */
+    public function hasAny(Issue $issue): bool
+    {
+        return null !== $this->findOneBy(['issue' => $issue]);
+    }
 }

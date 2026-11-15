@@ -11,7 +11,7 @@ use App\Entity\JournalEntry;
  * A forge delivered commits or a merge request mentioning the issue: new
  * references were written, or a merge request changed state. No actor,
  * the forge acted. Nobody listens to it for notifications or
- * subscriptions, on purpose: the code is the agency's business.
+ * subscriptions, on purpose: the code is the business of internal users.
  */
 final readonly class CodeReferenced extends IssueEvent
 {

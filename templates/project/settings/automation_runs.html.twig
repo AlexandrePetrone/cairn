@@ -1,0 +1,103 @@
+{% extends 'project/settings/base.html.twig' %}
+
+{# What the automation rules of the project did, the latest first: the rule under the name it had, the issue, what triggered it, and how it ended with what each action did. Filtered by rule and by result with a GET form. #}
+{% block settings_title %}{{ 'automation.title'|trans }}{% endblock %}
+
+{% block settings_content %}
+    {% set runsSelectClasses = 'h-8 rounded-md border border-line-strong bg-surface py-0 pl-2 pr-8 text-sm text-body focus:border-focus focus:outline-none focus:ring-0' %}
+    {{ include('project/settings/_automation_tabs.html.twig') }}
+
+    <form method="get" class="flex flex-wrap items-center gap-2" data-controller="autosubmit">
+        <select name="rule" aria-label="{{ 'automation.run.rule'|trans }}" class="{{ runsSelectClasses }}" data-action="change->autosubmit#submit">
+            <option value="">{{ 'automation.run.all_rules'|trans }}</option>
+            {% for rule in rules %}
+                <option value="{{ rule.id }}" {{ rule.id == ruleId ? 'selected' }}>{{ rule.name }}</option>
+            {% endfor %}
+        </select>
+        <select name="outcome" aria-label="{{ 'automation.run.result'|trans }}" class="{{ runsSelectClasses }}" data-action="change->autosubmit#submit">
+            <option value="">{{ 'automation.run.all_outcomes'|trans }}</option>
+            {% for value in ['applied', 'partial', 'skipped', 'stopped'] %}
+                <option value="{{ value }}" {{ outcome and outcome.value == value ? 'selected' }}>{{ ('automation.run.outcome.' ~ value)|trans }}</option>
+            {% endfor %}
+        </select>
+        <span class="ml-auto text-xs text-muted">{{ 'automation.run.count'|trans({ '%count%': runs.total }) }}</span>
+    </form>
+
+    {% if runs.items is empty %}
+        <twig:Ui:EmptyState :title="'automation.run.empty'|trans" icon="zap" bordered />
+    {% else %}
+        <div class="overflow-x-auto rounded-lg border border-line bg-surface">
+            <table class="w-full min-w-[46rem] text-sm">
+                <thead>
+                    <tr class="border-b border-line text-left text-[11px] font-semibold uppercase tracking-wider text-muted">
+                        <th scope="col" class="px-4 py-2.5">{{ 'automation.run.when'|trans }}</th>
+                        <th scope="col" class="px-4 py-2.5">{{ 'automation.run.rule'|trans }}</th>
+                        <th scope="col" class="px-4 py-2.5">{{ 'automation.run.issue'|trans }}</th>
+                        <th scope="col" class="px-4 py-2.5">{{ 'automation.run.cause'|trans }}</th>
+                        <th scope="col" class="px-4 py-2.5">{{ 'automation.run.result'|trans }}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-line-subtle">
+                    {% for run in runs.items %}
+                        {% set runOutcome = run.outcome.value %}
+                        <tr class="align-top">
+                            <td class="whitespace-nowrap px-4 py-2.5 text-xs text-muted">{{ run.at|date('d/m/Y H:i') }}</td>
+                            <td class="px-4 py-2.5">
+                                {% if run.rule %}
+                                    <a href="{{ path('app_project_settings_automation', settingsRoute|merge({ rule: run.rule.id })) }}" class="text-strong hover:text-brand">{{ run.ruleName }}</a>
+                                {% else %}
+                                    <span class="text-body">{{ run.ruleName }}</span> <span class="text-xs text-muted">({{ 'automation.run.deleted_rule'|trans }})</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-2.5">
+                                <twig:Ui:IssueKey :key="run.issue.key" href="{{ path('app_issue_show', settingsRoute|merge({ number: run.issue.number })) }}" />
+                                <span class="text-body">{{ run.issue.title }}</span>
+                            </td>
+                            <td class="px-4 py-2.5 text-body">
+                                {% if rule_trigger_is_timed(run.trigger) %}
+                                    {{ 'automation.run.cause_of.inactive_for'|trans }}
+                                {% elseif run.actor %}
+                                    {{ ('automation.run.cause_of.' ~ run.trigger)|trans({ '%name%': run.actor.fullName }) }}
+                                {% else %}
+                                    {{ 'automation.run.cause_of.rule'|trans }}
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-2.5">
+                                <twig:Ui:Badge :tone="{ applied: 'emerald', partial: 'amber', skipped: 'amber', stopped: 'red' }[runOutcome]" :icon="{ applied: 'check', partial: 'circle-alert', skipped: 'circle-alert', stopped: 'x' }[runOutcome]">{{ ('automation.run.outcome.' ~ runOutcome)|trans }}</twig:Ui:Badge>
+                                {% if run.steps is not empty %}
+                                    <ul class="mt-1 space-y-0.5 text-xs text-muted">
+                                        {% for step in run.steps %}
+                                            <li>
+                                                {{ ('automation.action.' ~ step.action)|trans }}
+                                                {%- if step.result == 'applied' -%}
+                                                    {%- if step.value is defined and step.value != '' %} {{ step.action == 'set_criticality' ? ('criticality.' ~ step.value)|trans|lower : step.value }}{% endif -%}
+                                                {%- elseif step.result == 'unchanged' %} · {{ 'automation.run.step.unchanged'|trans -}}
+                                                {%- else %} · {{ 'automation.run.step.skipped'|trans({ '%reason%': ('automation.run.reason.' ~ step.reason|default('unknown_user'))|trans({ '%value%': step.value|default('') }) }) -}}
+                                                {%- endif -%}
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    {% if runs.pageCount > 1 %}
+        <nav class="flex items-center justify-between text-xs text-muted" aria-label="{{ 'pagination.label'|trans }}">
+            <span>{{ 'pagination.page_of'|trans({ '%page%': runs.page, '%count%': runs.pageCount }) }}</span>
+            <div class="flex items-center gap-2">
+                {% if runs.page > 1 %}
+                    <twig:Ui:Button size="sm" href="{{ path('app_project_settings_automation_runs', settingsRoute|merge(app.request.query.all)|merge({ page: runs.page - 1 })) }}">{{ 'pagination.previous'|trans }}</twig:Ui:Button>
+                {% endif %}
+                {% if runs.page < runs.pageCount %}
+                    <twig:Ui:Button size="sm" href="{{ path('app_project_settings_automation_runs', settingsRoute|merge(app.request.query.all)|merge({ page: runs.page + 1 })) }}">{{ 'pagination.next'|trans }}</twig:Ui:Button>
+                {% endif %}
+            </div>
+        </nav>
+    {% endif %}
+    <p class="text-xs text-muted">{{ 'automation.run.footer'|trans }}</p>
+{% endblock %}

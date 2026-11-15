@@ -85,7 +85,7 @@ final class IssueHandlerSupport
         $to = $definition->place($issue->getPlace());
         $this->arrive($issue);
 
-        $this->record(new IssueTransitioned($issue, $actor, [JournalEntry::transitioned($issue, $actor, $transition->label, $from, $to, $written)], $written));
+        $this->record(new IssueTransitioned($issue, $actor, [JournalEntry::transitioned($issue, $actor, $transition->label, $from, $to, $written)], $written, $transition->id));
     }
 
     /**
@@ -111,6 +111,9 @@ final class IssueHandlerSupport
             $this->entityManager->persist($entry);
         }
         $event->issue->touch();
+        if (null === $event->rule) {
+            $event->issue->markActivity();
+        }
         $this->events->dispatch($event);
     }
 

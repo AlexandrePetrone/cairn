@@ -30,7 +30,7 @@ class JournalEntry
     #[ORM\JoinColumn(nullable: false)]
     private Issue $issue;
 
-    /** Null when the system acted (a webhook, a migration). */
+    /** Null when no person acted: a forge, an import, an automation rule (its name is then in `data.rule`). */
     #[ORM\ManyToOne]
     private ?User $author;
 
@@ -85,7 +85,7 @@ class JournalEntry
     }
 
     /** The issue was put on a place without an action of the workflow. */
-    public static function moved(Issue $issue, User $author, PlaceDefinition $from, PlaceDefinition $to): self
+    public static function moved(Issue $issue, ?User $author, PlaceDefinition $from, PlaceDefinition $to): self
     {
         return new self($issue, $author, JournalEntryType::Moved, [
             'from' => $from->label,
@@ -112,13 +112,31 @@ class JournalEntry
      * (enum values), `visibility` (`public`, `private`), `title` (the
      * titles) or `description` (both texts). Null is "none".
      */
-    public static function changed(Issue $issue, User $author, string $field, ?string $from, ?string $to): self
+    public static function changed(Issue $issue, ?User $author, string $field, ?string $from, ?string $to): self
     {
         return new self($issue, $author, JournalEntryType::Changed, [
             'field' => $field,
             'from' => $from,
             'to' => $to,
         ]);
+    }
+
+    /**
+     * An automation rule wrote the entry, not a person: it keeps the name
+     * the rule had then, shown where an author would be.
+     */
+    public function byRule(string $name): static
+    {
+        $this->data['rule'] = $name;
+
+        return $this;
+    }
+
+    public function getRule(): ?string
+    {
+        $rule = $this->data['rule'] ?? null;
+
+        return \is_string($rule) ? $rule : null;
     }
 
     /**
@@ -132,8 +150,8 @@ class JournalEntry
         return new self($issue, $author, JournalEntryType::CommentEdited, [
             'from' => $from,
             'to' => $to,
-            'author' => $comment->getAuthor()->getFullName(),
-            'author_id' => $comment->getAuthor()->getId(),
+            'author' => $comment->getAuthorName(),
+            'author_id' => $comment->getAuthor()?->getId(),
         ], $comment->isPrivate());
     }
 
@@ -145,8 +163,8 @@ class JournalEntry
     {
         return new self($issue, $author, JournalEntryType::CommentDeleted, [
             'body' => $comment->getBody(),
-            'author' => $comment->getAuthor()->getFullName(),
-            'author_id' => $comment->getAuthor()->getId(),
+            'author' => $comment->getAuthorName(),
+            'author_id' => $comment->getAuthor()?->getId(),
             'at' => $comment->getCreatedAt()->format(\DateTimeInterface::ATOM),
         ], $comment->isPrivate());
     }
@@ -208,7 +226,7 @@ class JournalEntry
      * A forge delivered a push whose commits mention the issue: one entry
      * per push, listing the commits new to the issue, each with its short
      * sha, title, URL and author. No author: the forge acted. Private: the
-     * code is the agency's.
+     * code is for internal users.
      *
      * @param non-empty-list<CodeReference> $commits
      */
@@ -253,7 +271,7 @@ class JournalEntry
      * The issue was imported: from which tracker, under which name there,
      * and what the import could not keep (`notes`, in the language of the
      * instance). No author: the import acted. Private: the old tracker is
-     * the agency's.
+     * for internal users.
      *
      * @param list<string> $notes
      */

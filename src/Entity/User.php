@@ -14,7 +14,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use function Symfony\Component\Clock\now;
 
 /**
- * Someone who signs in. `internal` tells agency users from client users and
+ * Someone who signs in. `internal` tells internal users from external ones and
  * drives what is private; `admin` is an internal user who also manages
  * workspaces, users and memberships, and holds every permission. A
  * deactivated account cannot sign in (Security/UserChecker) and loses its
@@ -140,7 +140,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Equatab
     }
 
     /**
-     * Makes the user part of the agency. Administrator status is only
+     * Makes the user an internal one. Administrator status is only
      * meaningful for internal users.
      */
     public function makeInternal(bool $admin = false): void

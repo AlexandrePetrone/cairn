@@ -28,7 +28,7 @@ final class Refs
     }
 
     /**
-     * A person as the viewer sees them: their email is for the agency.
+     * A person as the viewer sees them: their email is for internal users.
      */
     public function user(User $user): UserRef
     {

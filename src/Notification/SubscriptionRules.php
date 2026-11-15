@@ -153,7 +153,9 @@ final class SubscriptionRules
 
     private function onComment(Comment $comment): void
     {
-        $this->subscribe($comment->getIssue(), $comment->getAuthor());
+        if (null !== $comment->getAuthor()) {
+            $this->subscribe($comment->getIssue(), $comment->getAuthor());
+        }
         $this->subscribeMentioned($comment->getIssue(), $comment->getBody(), $comment);
     }
 

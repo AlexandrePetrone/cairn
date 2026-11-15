@@ -16,13 +16,16 @@ namespace App\Message\Notification;
 final readonly class NotifyIssueChange
 {
     /**
-     * @param list<int> $entryIds the journal entries the command wrote
+     * @param int|null    $actorId  who acted; null when an automation rule did
+     * @param list<int>   $entryIds the journal entries the command wrote
+     * @param string|null $rule     the name of the rule that acted, when one did
      */
     public function __construct(
         public int $issueId,
-        public int $actorId,
+        public ?int $actorId,
         public array $entryIds,
         public ?int $commentId,
+        public ?string $rule = null,
     ) {
     }
 }

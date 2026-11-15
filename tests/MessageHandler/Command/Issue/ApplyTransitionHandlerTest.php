@@ -100,10 +100,10 @@ final class ApplyTransitionHandlerTest extends KernelTestCase
         self::assertNotNull($comment);
         self::assertSame('Still empty in production.', $comment->getBody());
         self::assertFalse($entry->isPrivate());
-        self::assertSame($this->fixtures->client->getId(), $comment->getAuthor()->getId());
+        self::assertSame($this->fixtures->client->getId(), $comment->getAuthor()?->getId());
     }
 
-    public function testTheAgencyAppliesATransitionWithoutTheCommentItAsksOfClients(): void
+    public function testAnInternalUserAppliesATransitionWithoutTheCommentItAsksOfClients(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
         $developer = (int) $this->fixtures->developer->getId();

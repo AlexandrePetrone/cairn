@@ -57,7 +57,7 @@ final class NotifyIssueChangeHandlerTest extends KernelTestCase
         $waiting = $this->waiting();
         self::assertSame(['thomas@agency.test'], $this->recipients($waiting), 'the author does not wait for their own creation');
         self::assertSame($issue->getId(), $waiting[0]->getIssue()->getId());
-        self::assertSame($this->fixtures->client->getId(), $waiting[0]->getActor()->getId());
+        self::assertSame($this->fixtures->client->getId(), $waiting[0]->getActor()?->getId());
         self::assertCount(1, $waiting[0]->getEntryIds());
         self::assertNull($waiting[0]->getCommentId());
         self::assertEmailCount(0);

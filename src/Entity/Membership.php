@@ -36,6 +36,15 @@ class Membership
     #[ORM\Column(length: 60)]
     private string $role;
 
+    /**
+     * Whether this person is the one the role answers through where the
+     * membership applies: the project, or every project of the workspace
+     * that names no referent of its own (see Security\Referents). Nobody
+     * is one until someone says so.
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $referent = false;
+
     private function __construct(User $user, string $role)
     {
         $this->user = $user;
@@ -83,9 +92,30 @@ class Membership
         return $this->role;
     }
 
+    /**
+     * A referent is the referent of a role: another role takes the mark away.
+     */
     public function changeRole(string $role): void
     {
+        if ($role !== $this->role) {
+            $this->referent = false;
+        }
         $this->role = $role;
+    }
+
+    public function isReferent(): bool
+    {
+        return $this->referent;
+    }
+
+    public function designateReferent(): void
+    {
+        $this->referent = true;
+    }
+
+    public function withdrawReferent(): void
+    {
+        $this->referent = false;
     }
 
     /**

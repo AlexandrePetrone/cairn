@@ -92,6 +92,16 @@ class Issue implements HasPlace
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
+    /**
+     * When someone last acted on the issue. `updatedAt` moves with every
+     * change, those of the automation rules included; this one only when a
+     * person (or a forge) acted, so that "nothing happened for 30 days"
+     * is not reset by the reminder a rule wrote. Null on the issues written
+     * before the column existed: `updatedAt` then stands for it.
+     */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $lastActivityAt = null;
+
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $closedAt = null;
 
@@ -113,6 +123,7 @@ class Issue implements HasPlace
         $this->description = $description;
         $this->createdAt = now();
         $this->updatedAt = $this->createdAt;
+        $this->lastActivityAt = $this->createdAt;
         $this->moveTo($place);
     }
 
@@ -149,6 +160,7 @@ class Issue implements HasPlace
         $issue->importedRef = $importedRef;
         $issue->createdAt = $createdAt;
         $issue->updatedAt = max($createdAt, $updatedAt);
+        $issue->lastActivityAt = $issue->updatedAt;
         $issue->closedAt = PlaceStatus::Closed === $place->status ? ($closedAt ?? $issue->updatedAt) : null;
 
         return $issue;
@@ -364,11 +376,26 @@ class Issue implements HasPlace
         return $this->closedAt;
     }
 
+    public function getLastActivityAt(): \DateTimeImmutable
+    {
+        return $this->lastActivityAt ?? $this->updatedAt;
+    }
+
     /**
      * Records activity on the issue (a comment, for instance).
      */
     public function touch(): void
     {
+        // An issue older than `lastActivityAt` takes it from `updatedAt` before that one moves.
+        $this->lastActivityAt ??= $this->updatedAt;
         $this->updatedAt = now();
+    }
+
+    /**
+     * Someone acted on the issue, not an automation rule.
+     */
+    public function markActivity(): void
+    {
+        $this->lastActivityAt = now();
     }
 }

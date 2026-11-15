@@ -41,7 +41,7 @@ final readonly class TrackerResource
         public int $id,
         public string $name,
         public ?string $description,
-        /** Its issues are for the agency. */
+        /** Its issues are for internal users. */
         public bool $private,
         public PlaceRef $workflow,
         public array $places,

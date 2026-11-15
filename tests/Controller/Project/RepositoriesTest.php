@@ -15,7 +15,7 @@ use Symfony\Component\HttpClient\Response\MockResponse;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
- * The repositories tab of the shop's settings: Thomas manages Maison
+ * The repositories page of the shop's settings: Thomas manages Maison
  * Dupont, Nadia develops on the shop. GitLab is a script of answers.
  */
 final class RepositoriesTest extends WebTestCase
@@ -48,7 +48,7 @@ final class RepositoriesTest extends WebTestCase
         return self::getContainer()->get(CodeRepositoryRepository::class)->findByProject($this->scene->shop);
     }
 
-    public function testOnlyTheManagerSeesTheTab(): void
+    public function testOnlyTheManagerSeesThePageInTheNavigation(): void
     {
         $this->signInAs('nadia.benali@cairn.test');
         $this->client->request('GET', '/MD/SPT/settings/repositories');

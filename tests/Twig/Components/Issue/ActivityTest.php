@@ -43,7 +43,7 @@ final class ActivityTest extends KernelTestCase
         self::assertStringNotContainsString('Comment privately', $client);
 
         $manager = (string) $this->activity('thomas.girard@cairn.test')->render();
-        self::assertStringContainsString('data-live-transition-param="accept"', $manager, 'the agency reads its actions there too');
+        self::assertStringContainsString('data-live-transition-param="accept"', $manager, 'an internal user reads their actions there too');
 
         $developer = (string) $this->activity('nadia.benali@cairn.test')->render();
         self::assertStringNotContainsString('data-live-action-param="apply"', $developer, 'acceptance is for the client and the manager');
@@ -61,7 +61,7 @@ final class ActivityTest extends KernelTestCase
         $claire = 'claire.martin@maison-dupont.test';
 
         $new = (string) $this->activityOn('MD-SPT-1', $claire)->render();
-        self::assertStringNotContainsString('data-live-action-param="apply"', $new, 'qualifying is for the agency: Claire only comments');
+        self::assertStringNotContainsString('data-live-action-param="apply"', $new, 'qualifying is for internal users: Claire only comments');
         self::assertStringNotContainsString('Qualify', $new);
 
         self::assertStringContainsString('The fix is accepted', (string) $this->activity($claire)->render(), 'the description of the configuration');
@@ -86,7 +86,7 @@ final class ActivityTest extends KernelTestCase
         self::assertSame(['message' => 'MD-SPT-4: "Accept" applied.'], $component->getDispatchedBrowserEvent($render, 'toast:show')['payload'] ?? null);
     }
 
-    public function testTheAgencyIsNotHeldToTheCommentAskedOfClients(): void
+    public function testAnInternalUserIsNotHeldToTheCommentAskedOfClients(): void
     {
         $component = $this->activity('thomas.girard@cairn.test');
 

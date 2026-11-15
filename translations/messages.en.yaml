@@ -282,9 +282,13 @@ nav:
         issues: Issues
         trackers: Categories
         releases: Releases
-        manage: Project
-        access: Access
-        settings: Configuration
+        configuration:
+            title: Configuration
+            general: General
+            trackers: Categories
+            access: Access
+            automations: Automations
+            repositories: Repositories
     issues:
         all: All
         assigned: Assigned to me
@@ -478,6 +482,12 @@ admin:
         revoke: Revoke access
         revoke_confirm: Revoke this access?
         revoked: Access revoked.
+        referent: Referent
+        referent_designate: Make referent of this role
+        referent_withdraw: No longer referent of this role
+        referent_designated: Referent designated.
+        referent_withdrawn: This role has no referent here any more.
+        referent_deactivated: 'This account is deactivated: it answers for nothing until it is reactivated.'
         search_user: Search a person…
         search_target: Search a workspace or a project…
         no_match: Nothing matches.
@@ -792,10 +802,6 @@ project:
     settings:
         title: Configuration
         subtitle: 'Project %project% · workspace %workspace%'
-        tab:
-            trackers: Trackers
-            general: General
-            repositories: Repositories
         trackers: Trackers
         save: Save
         saved: Changes saved.
@@ -820,13 +826,13 @@ project:
             description_help: Shown on the card clients pick when creating an issue.
             workflow: Workflow
             workflow_help: It never changes once the tracker is created.
-            workflow_fixed: Chosen when the tracker was created, it does not change. Its places, fields and actions are defined by the agency in the configuration.
+            workflow_fixed: Chosen when the tracker was created, it does not change. Its places, fields and actions are defined in the configuration of the instance.
             private: Internal users only
             private_help: External users neither see its issues nor create any.
             active: Takes new issues
             active_help: A deactivated tracker keeps its issues but disappears from the creation form and the menu.
         repository:
-            intro: "Commits and merge requests of the linked repositories that mention an issue of the project (%prefix%-12) show on its page, for the agency only."
+            intro: "Commits and merge requests of the linked repositories that mention an issue of the project (%prefix%-12) show on its page, for internal users only."
             new: Link a repository
             forge: Forge
             path: Repository path
@@ -834,7 +840,7 @@ project:
             path_placeholder: group/project
             link: Link
             link_help: "No instance token is configured: the webhook will have to be installed by hand, with the address and secret shown."
-            link_help_api: "The webhook is installed on the forge as soon as the repository is linked, with the agency's token."
+            link_help_api: "The webhook is installed on the forge as soon as the repository is linked, with the token of the instance."
             installed: 'Webhook installed on %date%'
             not_installed: Webhook to install
             empty: No linked repository
@@ -1069,10 +1075,10 @@ permission:
     project:
         configure:
             label: Configure the project
-            help: Change its name and description, create, arrange and deactivate its trackers.
+            help: Change its name and description, create, arrange and deactivate its trackers, link its code repositories and write its automation rules.
         manage_members:
             label: Manage access to the project
-            help: Grant, change and revoke the roles held on the project itself. Workspace roles stay with the administration.
+            help: Grant, change and revoke the roles held on the project itself, and designate the referent of each role there. Workspace roles stay with the administration.
     release:
         manage:
             label: Manage releases
@@ -1084,7 +1090,7 @@ code_repository:
         forge_unavailable: This forge is not supported yet.
         already_linked: 'The repository %path% is already linked to this project.'
         api_not_configured: "No instance token for this forge: install the webhook by hand."
-        forge_refused: "The forge refused the call: check the repository path and the rights of the agency's token."
+        forge_refused: "The forge refused the call: check the repository path and the rights of the token of the instance."
 forge:
     gitlab: GitLab
     github: GitHub
@@ -1106,6 +1112,209 @@ migration_policy:
     fallback:
         label: Fallback
         help: the issues sitting on a place that disappears move to the fallback place of their workflow.
+
+automation:
+    signature: automation
+    title: Automations
+    intro: 'Rules that act on the issues of this project by themselves: when something happens, or when nothing happens any more.'
+    new: New rule
+    new_title: New rule
+    edit_title: Edit the rule
+    tab:
+        rules: Rules
+        runs: Executions
+    group:
+        event: When something happens
+        timed: When nothing happens any more
+    empty: This project has no rule yet.
+    empty_hint: 'A first one, for instance: when an issue is created without an assignee, assign it to the referent project manager.'
+    all_trackers: All categories
+    last_run: Last execution
+    never: Never run yet
+    active: Active
+    inactive: Inactive
+    activated: Rule activated.
+    deactivated: Rule deactivated.
+    delete: Delete the rule
+    delete_confirm: Delete this rule? What it did stays in the history.
+    saved: Rule saved.
+    created: Rule created.
+    deleted: Rule deleted.
+    referent:
+        none: 'This project has no %role% referent: what a rule aims at them is skipped until one is designated.'
+        deactivated: 'The %role% referent, %name%, has a deactivated account: what a rule aims at them is skipped until the account is reactivated or someone else is designated.'
+        other_role: '%name% was designated as the %role% referent but holds another role on this project now: what a rule aims at them is skipped until someone is designated.'
+    designate: Designate a referent
+    form:
+        name: Name
+        name_help: 'External users read it too: this name signs what the rule does, in the history of the issues and in the mails.'
+        tracker: Applies to
+        when: When
+        if: If
+        if_help: all must be true
+        no_condition: 'No condition: the rule acts every time.'
+        then: Then
+        then_help: done in order
+        add_condition: Add a condition
+        add_action: Add an action
+        remove: Remove
+        save: Save
+        cancel: Cancel
+        choose: Choose…
+        any_place: any step
+        any_of: 'Check one or several values: the condition holds when one of them matches.'
+        needs_tracker: Limit the rule to a category to choose here.
+        in_plain: In plain words
+        how: How it acts
+        how_author: 'Without an author: the history of the issue names the rule.'
+        how_rights: It is held to neither the rights nor the workflow.
+        how_chain: What it changes may trigger other rules, three in a row at most.
+        event_help: The rule acts at once, in the same move as what triggered it.
+        timed_help: 'Counted from the last time a person acted: what rules do does not reset the count. The rule acts once, then waits for someone to act.'
+        days: days
+        referent_today: 'Today: %name%.'
+        referent_missing: 'Nobody today: the action is skipped until a referent is designated.'
+        referent_unavailable: '%name% is designated but does not answer today (account deactivated, or another role since): the action is skipped.'
+        private: Private comment (internal users only)
+        body: Text of the comment
+        body_help: Signed with the name of the rule, sent to the followers like any comment.
+    trigger_group:
+        event: On an event
+        timed: On time
+    trigger:
+        issue_created: An issue is created
+        comment_added: A comment is added
+        transition_applied: A workflow action is applied
+        place_changed: The issue changes step
+        criticality_changed: The criticality of the issue changes
+        inactive_for: No activity for
+    condition:
+        actor: The person who acted
+        assignee: The issue is assigned
+        place: The issue is at the step
+        criticality: The criticality is
+        code: Linked commits and merge requests
+    action:
+        assign: Assign to
+        move: Move to the step
+        set_criticality: Set the criticality to
+        subscribe: Subscribe to the issue
+        comment: Add a comment
+        make_private: Make the issue private
+    option:
+        actor:
+            internal: is an internal user
+            external: is an external user
+        assignee:
+            internal: to an internal user
+            external: to an external user
+            nobody: to nobody
+            external_or_nobody: to an external user or to nobody
+        code:
+            none: none
+            some: at least one
+    target:
+        group:
+            referents: Referents of the project
+            issue: From the issue
+            people: A member of the project
+        referent: 'The %role% referent'
+        author: The author of the issue
+        last_internal: The last internal user who acted
+        nobody: Nobody (remove the assignee)
+    sentence:
+        when:
+            issue_created: When an issue is created
+            comment_added: When a comment is added
+            transition_applied: 'When the action “%transition%” is applied'
+            place_changed: 'When the issue arrives at the step “%place%”'
+            place_changed_any: When the issue changes step
+            criticality_changed: When the criticality of the issue changes
+            inactive_for: '{1}After a day without activity|]1,Inf[After %count% days without activity'
+        if:
+            actor:
+                internal: the person who acted is an internal user
+                external: the person who acted is an external user
+            assignee:
+                internal: it is assigned to an internal user
+                external: it is assigned to an external user
+                nobody: it is assigned to nobody
+                external_or_nobody: it is assigned to an external user or to nobody
+            place: 'it is at the step %places%'
+            criticality: 'its criticality is %criticality%'
+            code:
+                none: no commit nor merge request is linked to it
+                some: at least one commit or merge request is linked to it
+        then:
+            assign: 'assign it to %target%'
+            unassign: remove the assignee
+            move: 'move it to “%place%”'
+            set_criticality: 'set its criticality to %criticality%'
+            subscribe: 'subscribe %target% to the issue'
+            comment: add a comment
+            comment_private: add a private comment
+            make_private: make it private
+        target:
+            referent: 'the %role% referent'
+            author: its author
+            last_internal: the last internal user who acted
+            nobody: nobody
+        join:
+            if: ', if '
+            and: ' and '
+            or: ' or '
+            then: ': '
+            next: ', then '
+            nothing: nothing
+    run:
+        when: When
+        rule: Rule
+        issue: Issue
+        cause: Triggered by
+        result: Result
+        all_rules: All rules
+        all_outcomes: All results
+        count: '{0}No execution|{1}1 execution|]1,Inf[ %count% executions'
+        empty: No execution yet.
+        deleted_rule: rule deleted since
+        footer: An execution keeps the name the rule had when it ran. The issue keeps the line in its own history.
+        cause_of:
+            issue_created: '%name% created it'
+            comment_added: '%name% commented'
+            transition_applied: '%name% applied an action'
+            place_changed: '%name% moved it'
+            criticality_changed: '%name% changed the criticality'
+            inactive_for: no activity
+            rule: another rule
+        outcome:
+            applied: Applied
+            partial: Partly applied
+            skipped: Skipped
+            stopped: 'Stopped: three rules in a row'
+        step:
+            unchanged: nothing to change
+            skipped: 'skipped: %reason%'
+        reason:
+            no_referent: 'no %value% referent'
+            no_internal: no internal user acted on it
+            unknown_user: this person no longer exists
+            deactivated: 'the account of %value% is deactivated'
+            not_a_member: '%value% has no role on the project'
+            unknown_place: 'the step “%value%” no longer exists'
+            unknown_criticality: 'the criticality “%value%” does not exist'
+            cannot_see: '%value% may not see the issue'
+            empty_comment: the comment is empty
+            error: an unexpected error, logged
+    refused:
+        not_found: This rule no longer exists.
+        malformed: The rule is not written as a rule.
+        unknown_type: '“%type%” is not a trigger, a condition or an action Cairn knows.'
+        no_action: A rule needs at least one action.
+        too_many_steps: 'A rule holds %max% conditions and %max% actions at most.'
+        needs_tracker: 'A step names a step or an action of a workflow: limit the rule to a category.'
+        unknown_tracker: This category is not one of the project.
+        invalid_value: 'A value of the rule is not one it may take here (%step%, %parameter%).'
+        nobody_acts: 'A rule that waits for time cannot ask who did it: nobody did.'
 
 email:
     issue:

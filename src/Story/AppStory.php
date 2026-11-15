@@ -29,6 +29,7 @@ use App\Forge\Event\CommitPayload;
 use App\Forge\Event\MergeRequestPayload;
 use App\Message\Command\Attachment\AddAttachment;
 use App\Message\Command\Attachment\UploadAttachment;
+use App\Message\Command\Automation\CreateRule;
 use App\Message\Command\Forge\LinkRepository;
 use App\Message\Command\Forge\RecordCommits;
 use App\Message\Command\Forge\RecordMergeRequest;
@@ -107,6 +108,8 @@ final class AppStory extends Story
                 }
                 if ($definition['archived'] ?? false) {
                     $project->archive();
+                } else {
+                    $this->createRules($project, $trackers['bug']);
                 }
             }
             $this->createLinks($now);
@@ -226,7 +229,8 @@ final class AppStory extends Story
     private function workspace(string $name, string $key, string $notes, string $manager, array $clients): Workspace
     {
         $workspace = WorkspaceFactory::createOne(['name' => $name, 'key' => $key, 'notes' => $notes]);
-        MembershipFactory::createOne(['user' => $this->users[$manager], 'workspace' => $workspace, 'role' => 'project_manager']);
+        // The manager of a client answers for it on every project: the referent the automation rules aim at.
+        MembershipFactory::createOne(['user' => $this->users[$manager], 'workspace' => $workspace, 'role' => 'project_manager', 'referent' => true]);
         foreach ($clients as $user => $role) {
             MembershipFactory::createOne(['user' => $this->users[$user], 'workspace' => $workspace, 'role' => $role]);
         }
@@ -245,6 +249,42 @@ final class AppStory extends Story
         }
 
         return $project;
+    }
+
+    /**
+     * The automation rules of a project, written once its issues are: they
+     * act from then on, the history above stays what people did. New
+     * issues and the answers of the client go to the referent project
+     * manager; an issue left with the client is reminded after a month,
+     * and the rule that would close it two weeks later is there, switched
+     * off.
+     */
+    private function createRules(Project $project, Tracker $bugs): void
+    {
+        $projectId = (int) $project->getId();
+        $toTheManager = [['type' => 'assign', 'params' => ['target' => 'referent:project_manager']]];
+        $leftWithTheClient = [['type' => 'assignee', 'params' => ['is' => 'external']], ['type' => 'code', 'params' => ['is' => 'none']]];
+
+        $this->commands->dispatch(new CreateRule($projectId, 'New issue to the project manager', null, [
+            'trigger' => ['type' => 'issue_created'],
+            'conditions' => [['type' => 'assignee', 'params' => ['is' => 'nobody']]],
+            'actions' => $toTheManager,
+        ]));
+        $this->commands->dispatch(new CreateRule($projectId, 'The client answers: back to the project manager', null, [
+            'trigger' => ['type' => 'comment_added'],
+            'conditions' => [['type' => 'actor', 'params' => ['is' => 'external']], ['type' => 'assignee', 'params' => ['is' => 'external_or_nobody']]],
+            'actions' => $toTheManager,
+        ]));
+        $this->commands->dispatch(new CreateRule($projectId, 'Reminder to the client', null, [
+            'trigger' => ['type' => 'inactive_for', 'params' => ['days' => 30]],
+            'conditions' => $leftWithTheClient,
+            'actions' => [['type' => 'comment', 'params' => ['body' => 'This issue has been waiting for your answer for 30 days. Without news from you, it will be closed in 15 days; it can always be reopened.']]],
+        ]));
+        $this->commands->dispatch(new CreateRule($projectId, 'Closing without an answer', (int) $bugs->getId(), [
+            'trigger' => ['type' => 'inactive_for', 'params' => ['days' => 45]],
+            'conditions' => $leftWithTheClient,
+            'actions' => [['type' => 'move', 'params' => ['place' => 'done']]],
+        ], active: false));
     }
 
     /**
@@ -269,7 +309,7 @@ final class AppStory extends Story
         $assignee = $definition[4] ?? null;
         $workflow = $this->workflows->definition($tracker->getWorkflowId());
 
-        // Clients report bugs and evolutions; the agency writes internal tasks.
+        // Clients report bugs and evolutions; internal users write internal tasks.
         $author = $tracker->isPrivate() || null === $people['client'] || 0 === $index % 4 ? $this->users[$people['manager']] : $this->users[$people['client']];
         $clock = new MockClock($createdAt);
         Clock::set($clock);

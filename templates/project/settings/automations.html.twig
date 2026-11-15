@@ -1,0 +1,58 @@
+{% extends 'project/settings/base.html.twig' %}
+
+{# The automation rules of the project, those that react to an event then those that wait for time: each with its switch, what it says in one sentence, where it applies and when it last ran. A role the rules aim at without a referent is said first. #}
+{% block settings_title %}{{ 'automation.title'|trans }}{% endblock %}
+
+{% block settings_content %}
+    {{ include('project/settings/_automation_tabs.html.twig') }}
+    <div class="flex flex-wrap items-start gap-3">
+        <p class="min-w-0 flex-1 basis-80 max-w-3xl text-sm text-muted">{{ 'automation.intro'|trans }}</p>
+        <twig:Ui:Button variant="primary" icon="plus" href="{{ path('app_project_settings_automation_new', settingsRoute) }}">{{ 'automation.new'|trans }}</twig:Ui:Button>
+    </div>
+
+    {% for role, missing in missingReferents %}
+        <twig:Ui:Callout tone="amber" size="sm" role="status" class="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>{{ ('automation.referent.' ~ missing.reason)|trans({ '%role%': missing.label, '%name%': missing.name }) }}</span>
+            {% if is_granted('project.manage_members', project) %}
+                <a href="{{ path('app_project_access', settingsRoute) }}" class="font-medium underline">{{ 'automation.designate'|trans }}</a>
+            {% endif %}
+        </twig:Ui:Callout>
+    {% endfor %}
+
+    {% if rules is empty %}
+        <twig:Ui:EmptyState :title="'automation.empty'|trans" icon="zap" bordered>{{ 'automation.empty_hint'|trans }}</twig:Ui:EmptyState>
+    {% endif %}
+
+    {% for group in [{ timed: false, title: 'automation.group.event', icon: 'zap' }, { timed: true, title: 'automation.group.timed', icon: 'clock' }] %}
+        {% set groupRules = rules|filter(rule => rule_is_timed(rule) == group.timed) %}
+        {% if groupRules is not empty %}
+            <section class="space-y-2">
+                <h2 class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted"><twig:ux:icon name="lucide:{{ group.icon }}" class="h-3.5 w-3.5" />{{ group.title|trans }}</h2>
+                <ul class="divide-y divide-line-subtle rounded-lg border border-line bg-surface">
+                    {% for rule in groupRules %}
+                        {% set ruleHref = path('app_project_settings_automation', settingsRoute|merge({ rule: rule.id })) %}
+                        <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                            {# The switch is the kit's toggle in a form of its own, sent as soon as it changes. #}
+                            <form method="post" action="{{ path('app_project_settings_automation_switch', settingsRoute|merge({ rule: rule.id, action: rule.active ? 'deactivate' : 'activate' })) }}" data-controller="autosubmit">
+                                <input type="hidden" name="_token" value="{{ csrf_token('submit') }}" data-controller="csrf-protection">
+                                <twig:Ui:Form:Toggle :label="(rule.active ? 'automation.active' : 'automation.inactive')|trans" :checked="rule.active" tone="indigo" class="w-20" data-action="change->autosubmit#submit" />
+                            </form>
+                            <div class="min-w-0 flex-1 basis-72 leading-snug">
+                                <a href="{{ ruleHref }}" class="text-sm font-medium hover:text-brand {{ rule.active ? 'text-strong' : 'text-muted' }}">{{ rule.name }}</a>
+                                <p class="text-xs text-muted">{{ rule_sentence(rule) }}</p>
+                            </div>
+                            <twig:Ui:Badge :tone="rule.tracker ? 'indigo' : 'gray'">{{ rule.tracker ? rule.tracker.name : 'automation.all_trackers'|trans }}</twig:Ui:Badge>
+                            <span class="w-44 text-right text-xs leading-snug text-muted">
+                                {% if lastRuns[rule.id] is defined %}
+                                    {{ 'automation.last_run'|trans }}<br><a href="{{ path('app_project_settings_automation_runs', settingsRoute|merge({ rule: rule.id })) }}" class="text-body hover:text-brand">{{ lastRuns[rule.id]|date('d/m/Y H:i') }}</a>
+                                {% else %}
+                                    {{ 'automation.never'|trans }}
+                                {% endif %}
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+    {% endfor %}
+{% endblock %}

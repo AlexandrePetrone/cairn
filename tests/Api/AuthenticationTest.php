@@ -22,7 +22,7 @@ final class AuthenticationTest extends ApiTestCase
         self::assertSame('Nadia Benali', $me['name']);
         self::assertSame(self::DEVELOPER, $me['email']);
         self::assertTrue($me['internal']);
-        self::assertArrayNotHasKey('company', $me, 'the agency has none');
+        self::assertArrayNotHasKey('company', $me, 'an internal user has none');
         self::assertSame('read', $me['scope']);
     }
 

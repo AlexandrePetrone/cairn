@@ -1,0 +1,5 @@
+{# The two pages of the automations of a project: its rules, and what they did. The same on both, first under the title, so that going from one to the other moves nothing. #}
+<nav class="flex items-center gap-1 border-b border-line">
+    <twig:Ui:Tab href="{{ path('app_project_settings_automations', settingsRoute) }}" :active="app.current_route == 'app_project_settings_automations'">{{ 'automation.tab.rules'|trans }}</twig:Ui:Tab>
+    <twig:Ui:Tab href="{{ path('app_project_settings_automation_runs', settingsRoute) }}" :active="app.current_route == 'app_project_settings_automation_runs'">{{ 'automation.tab.runs'|trans }}</twig:Ui:Tab>
+</nav>

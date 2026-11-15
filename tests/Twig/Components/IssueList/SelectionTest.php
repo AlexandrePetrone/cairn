@@ -51,7 +51,7 @@ final class SelectionTest extends KernelTestCase
         self::assertStringNotContainsString('MD-SPT-6', $render, 'an issue she may not see is left out');
         self::assertStringContainsString('data-live-property-param="criticality"', $render);
         self::assertStringContainsString('data-live-property-param="follow"', $render);
-        self::assertStringNotContainsString('data-live-action-param="move"', $render, 'the step is the agency\'s to change');
+        self::assertStringNotContainsString('data-live-action-param="move"', $render, 'the step is for internal users to change');
         self::assertStringNotContainsString('data-live-property-param="assignee"', $render);
         self::assertStringNotContainsString('data-live-property-param="visibility"', $render);
     }

@@ -69,13 +69,12 @@ final class NotificationDispatcher implements ResetInterface
         $this->pending = [];
         foreach ($events as $event) {
             $issueId = $event->issue->getId();
-            $actorId = $event->actor?->getId();
-            if (null === $issueId || null === $actorId) {
+            if (null === $issueId) {
                 continue;
             }
             $entryIds = array_values(array_filter(array_map(static fn (JournalEntry $entry): ?int => $entry->getId(), $event->entries)));
             $this->bus->dispatch(
-                new NotifyIssueChange($issueId, $actorId, $entryIds, $event->comment()?->getId()),
+                new NotifyIssueChange($issueId, $event->actor?->getId(), $entryIds, $event->comment()?->getId(), $event->rule),
                 [new DispatchAfterCurrentBusStamp()],
             );
         }

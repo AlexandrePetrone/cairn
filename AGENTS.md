@@ -3,7 +3,7 @@
 Cairn is an issue tracker for a web agency and its clients: a single
 instance holds every client (a workspace each, several projects per
 workspace), several issue categories per project, each with its own
-workflow, and the people of the agency and of the client work on the same
+workflow, and its internal users and those of the client work on the same
 issues, each seeing what their role allows. This file is the reference for
 anyone, human or agent, who changes the code: the decisions taken and the
 rules that keep them.
@@ -21,7 +21,7 @@ REST API, and Mercure (`symfony/mercure-bundle`) for the optional real time.
 Decisions already taken:
 
 - Persistence: Doctrine ORM, schema compatible with both MariaDB and
-  PostgreSQL. Nothing is ever physically deleted, with ten exceptions:
+  PostgreSQL. Nothing is ever physically deleted, with eleven exceptions:
   a removed attachment (file and row, the journal keeps its name), a
   deleted comment (row and files, the journal keeps its text, author and
   date), a revoked membership (memberships are the current state of
@@ -35,7 +35,9 @@ Decisions already taken:
   (`ListView`: personal, replaced by the next, gone with it), and a
   notification once its mail left (`PendingNotification`: a queue, not
   history), and the picture of an account once replaced or removed (the
-  file; an account keeps one at most).
+  file; an account keeps one at most), and an automation rule a manager
+  deletes (`AutomationRule`: configuration, like a linked repository;
+  what it did stays in the journal and in its executions).
 - Interface: server-rendered Twig + Turbo + UX Twig/Live Components, Tailwind
   for styling, no JavaScript framework: an issue list is a GET form and
   a Turbo frame, the kanban is Live components with SortableJS in a
@@ -64,9 +66,9 @@ Decisions already taken:
   (`Entity/PasswordToken`, hashed verifier), behind `Security/PasswordTokens`,
   the only class that talks to it; the mails are `Notification/AccountMailer`.
   `bin/console app:user:create` (interactive) creates the first
-  administrator with a password, before any mailer exists. Agency SSO
-  comes later.
-- API: a REST API under `/api` for the people of the agency, served by
+  administrator with a password, before any mailer exists. An SSO for
+  internal users comes later.
+- API: a REST API under `/api` for internal users, served by
   API Platform over the same commands and queries as the pages, signed in
   with personal tokens (see [API](#api)). An MCP server comes next, on the
   same tokens and the same resources.
@@ -101,7 +103,7 @@ columns are what the English and the French catalogues show.
 | `Project`        | Project           | Projet           |                                                                  |
 | `Role`           | Role              | Rôle             | Defined in configuration.                                        |
 | `Membership`     | Access            | Accès            | Role of a user on a project or a workspace. No organisation entity: a client is a workspace. |
-| `internal` flag  | Internal/External | Interne/Externe  | Agency user vs client user.                                      |
+| `internal` flag  | Internal/External | Interne/Externe  | Internal user (who runs the instance) vs external user (a client). |
 | `company`        | Company           | Société          | Free text on a user, suggested from the values already typed.   |
 | `private`        | Private           | Privé            | Hidden from external users.                                      |
 | `Release`        | Release           | Version          | Planned delivery, optional per project.                          |
@@ -109,6 +111,9 @@ columns are what the English and the French catalogues show.
 | `Attachment`     | File              | Fichier          |                                                                  |
 | `ConfigSnapshot` | —                 | —                | Applied configuration definition, stored in database.            |
 | `Import`         | Import            | Import           | An export archive of another tracker brought into a project, once. |
+| `AutomationRule` | Rule (Automations) | Règle (Automatisations) | A rule of a project that acts on its issues by itself: a trigger, conditions, actions. |
+| `AutomationRun`  | Execution         | Exécution        | What a rule did on an issue, once: applied, skipped or stopped.  |
+| `referent`       | Referent          | Référent         | The member a role answers through on a project; designated by hand, on an access. |
 
 ## Architecture
 
@@ -161,9 +166,16 @@ src/
                      ImportManifest (the format), ImportAnalyser,
                      ImportMapping, ImportRunner, ImportIssueBuilder, the
                      ImportsDirectory
+  Automation/        the automation rules: Definition/ what a rule may say,
+                     without the database (TriggerType, ConditionType,
+                     ActionType and their Parameters, Target, RuleDefinition,
+                     RuleChecker in a RuleContext); at the root what reads a
+                     project and acts (RuleEngine, RuleConditions,
+                     RuleExecutor, Targets, TimeRuleRunner, RuleContexts,
+                     RuleSentence)
   Markdown/          rendering of the text users write, references resolved
   Attachment/        where attachment files live (AttachmentStorage)
-  Command/           console commands (app:config:sync, digest, …)
+  Command/           console commands (app:config:sync, app:automations:run, …)
 ```
 
 ### Code organisation
@@ -325,6 +337,10 @@ src/
   `ImportIssue` writes an imported issue without `record()`, which would
   date it of today and notify; it dispatches no event, writes its
   journal line itself and subscribes through `SubscriptionRules::subscribe()`.
+  An event has an actor, or the name of the automation rule that acted
+  (`IssueEvent::$rule`, see [Automations](#automations)), or neither when
+  a forge did: `record()` counts as someone acting (`Issue::$lastActivityAt`)
+  whatever is not a rule, and `updatedAt` moves with everything.
 
 ### Authorization and visibility
 
@@ -368,8 +384,8 @@ src/
 
 ### The issue page
 
-- **The workflow is the contract with the client; the agency may leave
-  it, and one rule says how.** `AccessControl::movesFor()` lists where a
+- **The workflow is the contract with the client; internal users may
+  leave it, and one rule says how.** `AccessControl::movesFor()` lists where a
   user may take an issue from its place, in the order of the workflow:
   one `PlaceMove` per action of their role that leads to a place and,
   for a place no action of theirs leads to, a move outside the workflow
@@ -392,7 +408,7 @@ src/
   decision turns into the `commentPrompt`, an editor and the button, and
   the comment is sent with the action. `requiresComment` binds external
   users only (`AccessControl::commentRequired()`, the one place that
-  says so): the agency applies any transition without a word. The
+  says so): an internal user applies any transition without a word. The
   comment box below is a comment and nothing else; whoever wants both
   does both. The actions of others are never shown, nor the place an
   action leads to: clients act because they are asked to choose, not
@@ -404,7 +420,7 @@ src/
   and its journal line from external users, never the place it led to,
   which they read in the properties. In the side panel the step is the
   first row of `Issue:Properties`: read by external users, a menu for
-  the agency, listing the places of the workflow in its order, the
+  internal users, listing the places of the workflow in its order, the
   current one checked, a place an action leads to named after the
   action (one row per action when several lead there), the others
   greyed. Its last row, for whoever holds `issue.change_tracker`
@@ -538,7 +554,7 @@ src/
   a place arrives on top, a step (`Issue::RANK_STEP`) over the highest
   rank there: `IssueHandlerSupport::arrive()`, called wherever a place is
   taken (creation, `transition()`, forced place, change of tracker).
-  Whoever holds `issue.rank` (the agency in the example; not
+  Whoever holds `issue.rank` (the internal roles in the example; not
   internal-only, a client role may order its backlog) drags a card within
   its column, closed places included, or drops it between two cards of
   another: the `board` controller sends the two cards it stands between,
@@ -575,7 +591,7 @@ src/
   on every project of the selection, the people offered for assignment
   being the members of all of them, and, when the selection holds one
   project, its open releases and the trackers every issue may go to
-  (`SelectionActions::$moveTrackers`). The step is the agency's, and of
+  (`SelectionActions::$moveTrackers`). The step is for internal users, and of
   the page of a project only: its menu lists the places of those
   trackers, under their tracker, and each line of the list shows how the
   issue will get there (the action that leads there, outside the
@@ -600,7 +616,8 @@ src/
 
 - **Notifications are subscriptions, and the events are the policy.**
   `IssueSubscription` says who follows an issue; the recipients of a
-  change are its subscribers minus the actor. `Notification/SubscriptionRules`
+  change are its subscribers minus the actor (all of them when an
+  automation rule acted: the mail then names the rule). `Notification/SubscriptionRules`
   listens to the events and subscribes the author at creation, the
   members whose effective role has `followsNewIssues` in the configuration
   (the project managers in the example), the assignee when assigned, the
@@ -672,7 +689,8 @@ src/
   purged, never kept. A worker must consume `async` and
   `scheduler_default` in production, as `messenger:consume async
   scheduler_default` does in dev: without the second, changes queue and
-  no issue mail ever leaves; `app:notifications:send` sends what is due
+  no issue mail ever leaves, and no automation rule that waits for time
+  ever runs; `app:notifications:send` sends what is due
   by hand, `--now` everything that waits. `MAILER_FROM` and
   `DEFAULT_URI` are set per environment.
 
@@ -724,15 +742,138 @@ src/
   run without a hub, except those that give themselves one
   (`IssueBroadcasterTest`, `LiveUpdatesTest`).
 
+### Automations
+
+- **A rule is a trigger, conditions and actions, from closed lists.** An
+  `AutomationRule` belongs to a project, holds on every tracker or on the
+  one it is limited to, and keeps what it says as an array
+  (`Automation/Definition/RuleDefinition`): one trigger (`TriggerType`), conditions
+  that must all hold (`ConditionType`), actions done in order
+  (`ActionType`). No branch, no script, no variable. Each case of the
+  three enums declares the values it asks for as `Parameter`s of a
+  `ParameterKind` (a choice, days, a place, a place or an action of the
+  rule's tracker, a criticality, a target, a text, a flag), possibly
+  several at once (`Parameter::$multiple`: the step holds on any of
+  them; the conditions on the place and on the criticality do), and the kind
+  alone decides how the value is checked (`RuleChecker`) and which field
+  edits it (`Form/Automation/RuleType`): a new type of step is an enum
+  case, its labels (`automation.trigger|condition|action.<value>`, its
+  sentence in `automation.sentence.*`) and its effect in the one class
+  that reads the enum (`RuleEngine::triggers()`, `RuleConditions`,
+  `RuleExecutor`), never a form. A step that names a place or an action
+  of a workflow needs the rule limited to a tracker. A place belongs to
+  one workflow (`workflow:place`): the step condition takes several and
+  holds on any of them, which is how one rule covers the "waiting"
+  places of two workflows. The form offers them as boxes grouped under
+  their workflow (`RuleContext::places()`), and a place that reads on
+  its own, in the sentence or in a closed list, says whose it is
+  wherever several workflows are in reach ("Bug › In progress",
+  `placeLabels()`); a rule limited to a tracker is only offered the
+  places of that tracker.
+- **A rule names roles, not people.** Whoever an action aims at is a
+  `Target`: the referent of a role, the author, the last
+  internal user who wrote on the issue, nobody, or a named member
+  (`user:<id>`, the only target tied to one project). `Automation/Targets`
+  resolves it on an issue and says why when nobody is behind it. A
+  **referent** is a mark on a `Membership` (`Membership::$referent`,
+  `SetReferent`, one per role where the membership applies): nobody is
+  one by default, a project membership answers for that project, a
+  workspace membership for every project of the workspace that names
+  none of its own (`Security/Referents`), and changing the role takes
+  the mark away. A project manager designates on the Access page among
+  the direct members; only the administration marks a workspace
+  membership. Two holders of a role on a workspace cannot each be the
+  referent of one project: give them their access per project. This is
+  what a project template needs: its rules will be copied as they are.
+- **Where a rule is written is a context.** `RuleChecker`, the form and
+  `RuleSentence` only know a `RuleContext`: the trackers with their
+  workflow, the roles, the people. `RuleContexts::ofProject()` gives the
+  one of a project; a template will give another (trackers by a key of
+  its own, no people) and reuse the three as they are. Rules are written
+  under `project.configure` on `/MD/SPT/settings/automations`
+  (`Controller/Project/AutomationController`: the list, switched on and
+  off in place, the editor, the executions), with `CreateRule`,
+  `UpdateRule` (PATCH; `active` is a property) and `DeleteRule`, which
+  carry an optional `actorId` like the other project configuration. The
+  editor is the live component `Automation:RuleForm`: a Symfony form
+  rebuilt at each change from what the page holds
+  (`RuleData::fromValues()`, which drops the values of the type a row no
+  longer has and the choices `RuleChecker::allows()` no longer accepts
+  there), in the shape a rule is kept in, so nothing is converted
+  between the form and the commands; rows added and removed by live
+  actions, and the rule said
+  in one sentence beside it (`RuleSentence`, also `rule_sentence()` in
+  the list). No dynamic-form library: the redraw is the dependency. The
+  editor lists private trackers and the members, so it checks
+  `project.configure` each time it is drawn (`RuleForm::guard()`), not
+  only the page that holds it; every choice is offered by its value,
+  since two members may bear the same name.
+- **A rule acts without an author, through the usual doors.**
+  `RuleEngine` listens to the domain events inside the command's
+  transaction, after the other listeners (its `#[AsEventListener]`s are
+  the whole list of what may trigger a rule), and gives each rule whose
+  trigger and conditions match to `RuleExecutor`. A rule is written by
+  whoever configures the project, so it asks no right and follows no
+  workflow (it puts an issue on a place whether an action leads there or
+  not), but it changes the issue as a handler does: the intent methods,
+  journal entries without author that keep the name of the rule
+  (`JournalEntry::byRule()`, `data.rule`), a comment without author
+  signed the same way (`Comment::byRule()`, `Comment::$signature`), and
+  `IssueHandlerSupport::record()` with the usual event, no actor and the
+  rule's name. So the assignee is subscribed, the mails leave (to every
+  follower, under the name of the rule: `NotifyIssueChange`,
+  `PendingNotification` and `IssueChange` carry `rule` beside a nullable
+  actor) and the lists redraw. What cannot be done is skipped and
+  reported, and so is an action that throws (logged, reason `error`):
+  a rule must not fail the command that triggered it. Only an error of
+  the database goes up, since the transaction it broke cannot go on. Rules do not go through the issue commands, which are
+  what a person may do; do not add an `actorId: null` to those.
+- **Rules follow one another, three deep.** What a rule does is an
+  event, so another rule may react. A chain is everything that follows
+  from one thing someone did (or from one rule that time started): a
+  rule runs once per issue in it, and the rule that would be the fourth
+  inside one another is not run (`RuleEngine::MAX_CHAIN`); an execution
+  says so. A rule itself holds twenty conditions and twenty actions at
+  most (`RuleChecker::MAX_STEPS`).
+- **Every execution is kept.** An `AutomationRun` is written when a rule
+  whose trigger and conditions matched ran or was stopped: the rule
+  under the name it had, the issue, what triggered it, its `RunOutcome`
+  (applied; partial when some actions could not be done; skipped when
+  none could; stopped) and one line per action (`StepResult`) with its
+  result and, when skipped, the reason
+  (`no_referent`, `not_a_member`, `unknown_place`…). A rule that did not
+  match leaves nothing. The Executions page lists them
+  (`ListAutomationRuns`); the page of the rules warns of a role its
+  active rules aim at that has no referent (`MissingReferents`). A rule
+  that stopped meaning something (a place gone from the instance file)
+  blocks nothing: the configuration sync knows nothing of the rules, and
+  the rule is skipped where it cannot act, which its executions say.
+- **Time is counted from the last person.** A rule may wait for
+  "no activity for N days" instead of an event. `Issue::$lastActivityAt`
+  moves when a person or a forge acts, never when a rule does, so the
+  reminder one rule writes does not put off the closing another
+  promises. `Automation/TimeRuleRunner`, a Scheduler task every hour,
+  finds for each such rule the open issues untouched for that long on
+  which it has not run since (`AutomationRuleRepository::findDueIssues()`,
+  which reads the executions), checks the conditions, and dispatches one
+  `RunRule` per issue, each its own transaction; the handler asks the
+  same SQL again for that issue (`isDueOn()`), so "due" is written
+  once. An execution of any outcome counts: a rule skipped for want of a
+  referent does not try again every hour, it waits for someone to act. A rule acts once, then waits for
+  someone to touch the issue. `app:automations:run` does the same by
+  hand, `--dry-run` only counts. Outside for now: triggers from the
+  forges (a merge request merged), an action that changes the tracker,
+  rules in the API.
+
 ### Forges
 
-- **Code references come from the forges, for the agency only.** A
+- **Code references come from the forges, for internal users only.** A
   project links the repositories of a forge (`CodeRepository`: forge,
   path `group/project` kept in lower case, a secret of its own generated
   by Cairn) on `/MD/SPT/settings/repositories`, under `project.configure`.
   `UpdateRepository` (PATCH: `installed`, `regenerateSecret`) installs
-  the webhook on the forge through its API with the instance token of
-  the agency (`FORGE_GITLAB_URL`, `FORGE_GITLAB_TOKEN`) or removes it;
+  the webhook on the forge through its API with the token of the
+  instance (`FORGE_GITLAB_URL`, `FORGE_GITLAB_TOKEN`) or removes it;
   without a token the page shows the URL (`ForgeApi::deliveryUrl()`,
   built from `DEFAULT_URI`) and the secret to paste by hand.
   `UnlinkRepository` deletes the link after confirming in place; the
@@ -787,7 +928,7 @@ src/
   actions offered and where they lead, decided with `AccessControl`
   for the viewer), `CommentMapper`, `LinkMapper`, `TrackerMapper`, and
   `Refs` for what every resource names the same way (a person, whose
-  email is for the agency, a file, another issue, their addresses). A
+  email is for internal users, a file, another issue, their addresses). A
   resource that only copies what a query returned builds itself
   (`ProjectResource::of()`, `ReleaseResource::of()`). The values nested
   in a resource are readonly classes of `Api/Resource/Value/`
@@ -935,8 +1076,14 @@ src/
   its workspace, the last active administrator stays one. Keys never
   change once created. Project configuration and memberships seen from
   a project belong to its manager, in the project zone, not here:
-  `/MD/SPT/settings` (trackers, general settings) and `/MD/SPT/access`,
-  guarded by `project.configure` and `project.manage_members`. They
+  the Configuration section of the project navigation (`Layout:ProjectNav`),
+  one item and one page per subject: General (`/MD/SPT/settings/general`),
+  Categories (`/MD/SPT/settings`), Access (`/MD/SPT/access`), Automations
+  (`/MD/SPT/settings/automations`) and Repositories, the access
+  guarded by `project.manage_members`, the rest by `project.configure`.
+  A new subject is a route, a page extending
+  `project/settings/base.html.twig` (`settings_title`, `settings_content`)
+  and an item of that section, never a tab. They
   reuse the administration's commands with an optional `actorId`: null
   is the administration, a set actor is checked by
   `MessageHandler/Command/ProjectActor` (one call per handler), may
@@ -1338,6 +1485,11 @@ by default). The journal is never migrated.
 - Code, identifiers, comments, tests, fixtures, commit messages and this
   file are in English. French lives only in the translation catalogues
   (`translations/*.fr.yaml`) and in `config/instance.example.fr.php`.
+- **"Agency" is not a term of the application.** Cairn is built for one,
+  but what it knows is a user's `internal` flag: say *internal* and
+  *external* users in code, comments, tests and this file, *Interne* and
+  *Externe* in the interface. *Client* stays where it names a role of
+  the configuration, a workspace, or fixture data.
 - **One language per instance**, set by `CAIRN_LOCALE` (wired to
   `framework.default_locale`). There is no per-user locale: issues are
   written in one language, so the interface follows it. Two kinds of text:
@@ -1351,7 +1503,7 @@ by default). The journal is never migrated.
     from a value, such as `permission.<value>.label`, show as unused).
     Every `Permission` case comes with `permission.<value>.label` and
     `.help` in each catalogue; `PermissionTest` checks it.
-  - Content written by the agency or the users (configuration labels,
+  - Content written by the administrators or the users (configuration labels,
     hints and prompts; project, tracker, issue and comment text) is data in
     the instance language. It is displayed as-is and never passed to the
     translator.
@@ -1395,7 +1547,8 @@ Castor are the only things needed on the host. Commands run inside the
 - The services: `php` (FrankenPHP, <http://localhost:8000>, with its
   built-in Mercure hub at `/.well-known/mercure`), `messenger`
   (`messenger:consume async scheduler_default`: notification mails,
-  real-time signals and scheduled tasks), `vite` (the Vite dev server with hot reload, port 5173),
+  real-time signals and scheduled tasks, the automation rules that wait
+  for time among them), `vite` (the Vite dev server with hot reload, port 5173),
   `storia` (live reload of `/storia`), `database` (PostgreSQL 18) and
   `mailer` (Mailpit, <http://localhost:8025>). `HTTP_PORT`, `VITE_PORT`
   and `MAILPIT_PORT` change the published ports. `compose.yaml` injects
@@ -1437,6 +1590,11 @@ Castor are the only things needed on the host. Commands run inside the
   `tests/Forge/Fixture/` to `/webhook/gitlab` with `X-Gitlab-Event` and
   `X-Gitlab-Token` set to the repository's secret; the `messenger`
   worker records it.
+- Automations: every project of the development data has four rules
+  (Configuration > Automations) and its manager as referent. Sign in as a
+  client and create or comment an issue to see the first two act; `castor
+  console app:automations:run` runs those that wait for time at once
+  (`--dry-run` counts what is due).
 - Imports: zip `templates/admin/import/example/` with two files `files/501` and
   `files/502` to get an archive to try, drop it in `var/imports_dev/`
   (`IMPORTS_DIR`) and follow Administration > Imports; the `messenger`

@@ -1,7 +1,8 @@
-{# Project level: the issue lists and the releases, the trackers the viewer may see, each list with its count of open issues, then the access and the configuration of the project for those who manage them. #}
+{# Project level: the issue lists and the releases, the trackers the viewer may see, each list with its count of open issues, then the configuration of the project, one item per subject, for those who manage it (the access under `project.manage_members`, the rest under `project.configure`). #}
 {% set route = { workspaceKey: project.workspace.key, projectKey: project.key } %}
 {% set navTrackers = this.trackers %}
 {% set navCounts = this.counts %}
+{% set navRoute = app.current_route %}
 {% set navReleases = this.hasReleases or is_granted('release.manage', project) %}
 <twig:Ui:Layout:Sidebar :title="project.name">
     <twig:Ui:Layout:Sidebar:Section :label="'nav.project.issues'|trans">
@@ -22,12 +23,17 @@
     {% set navManagesMembers = is_granted('project.manage_members', project) %}
     {% set navConfigures = is_granted('project.configure', project) %}
     {% if navManagesMembers or navConfigures %}
-        <twig:Ui:Layout:Sidebar:Section :label="'nav.project.manage'|trans">
+        <twig:Ui:Layout:Sidebar:Section :label="'nav.project.configuration.title'|trans">
+            {% if navConfigures %}
+                <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_settings_general', route) }}" icon="settings" :active="navRoute == 'app_project_settings_general'">{{ 'nav.project.configuration.general'|trans }}</twig:Ui:Layout:Sidebar:Item>
+                <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_settings', route) }}" icon="kanban" :active="navRoute in ['app_project_settings', 'app_project_settings_tracker']">{{ 'nav.project.configuration.trackers'|trans }}</twig:Ui:Layout:Sidebar:Item>
+            {% endif %}
             {% if navManagesMembers %}
-                <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_access', route) }}" icon="users" :active="app.current_route == 'app_project_access'">{{ 'nav.project.access'|trans }}</twig:Ui:Layout:Sidebar:Item>
+                <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_access', route) }}" icon="users" :active="navRoute == 'app_project_access'">{{ 'nav.project.configuration.access'|trans }}</twig:Ui:Layout:Sidebar:Item>
             {% endif %}
             {% if navConfigures %}
-                <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_settings', route) }}" icon="settings" :active="app.current_route starts with 'app_project_settings'">{{ 'nav.project.settings'|trans }}</twig:Ui:Layout:Sidebar:Item>
+                <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_settings_automations', route) }}" icon="zap" :active="navRoute starts with 'app_project_settings_automation'">{{ 'nav.project.configuration.automations'|trans }}</twig:Ui:Layout:Sidebar:Item>
+                <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_settings_repositories', route) }}" icon="git-branch" :active="navRoute starts with 'app_project_settings_repositor'">{{ 'nav.project.configuration.repositories'|trans }}</twig:Ui:Layout:Sidebar:Item>
             {% endif %}
         </twig:Ui:Layout:Sidebar:Section>
     {% endif %}

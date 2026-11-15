@@ -16,7 +16,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
  * Queues the change for every subscriber of the issue, except the one who
- * acted, with what each may read of it (Notification/ChangeFilter): an
+ * acted (an automation rule tells everyone), with what each may read of it (Notification/ChangeFilter): an
  * external user waits for nothing when the change is private. No mail
  * leaves here: Notification/ProjectMailSender sends what waits, grouped
  * by person and project, once things calmed down.
@@ -36,14 +36,14 @@ final class NotifyIssueChangeHandler
     public function __invoke(NotifyIssueChange $message): void
     {
         $issue = $this->issues->find($message->issueId);
-        $actor = $this->users->find($message->actorId);
-        if (null === $issue || null === $actor) {
+        $actor = null === $message->actorId ? null : $this->users->find($message->actorId);
+        if (null === $issue || (null === $actor && null === $message->rule)) {
             return;
         }
         [$entries, $comment] = $this->filter->load($message->entryIds, $message->commentId);
 
         foreach ($this->subscriptions->findSubscribers($issue) as $recipient) {
-            if ($recipient->getId() === $actor->getId()) {
+            if ($recipient->getId() === $actor?->getId()) {
                 continue;
             }
             $visible = $this->filter->visible($recipient, $issue, $entries, $comment);
@@ -52,7 +52,7 @@ final class NotifyIssueChangeHandler
             }
             [$visibleEntries, $visibleComment] = $visible;
             $entryIds = array_values(array_filter(array_map(static fn (JournalEntry $entry): ?int => $entry->getId(), $visibleEntries)));
-            $this->entityManager->persist(new PendingNotification($recipient, $issue, $actor, $entryIds, $visibleComment?->getId()));
+            $this->entityManager->persist(new PendingNotification($recipient, $issue, $actor, $entryIds, $visibleComment?->getId(), $message->rule));
         }
         $this->entityManager->flush();
     }

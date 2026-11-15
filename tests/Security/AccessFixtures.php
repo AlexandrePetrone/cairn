@@ -49,15 +49,19 @@ final class AccessFixtures
         return $user;
     }
 
-    public function grantOnWorkspace(User $user, Workspace $workspace, string $role): void
+    public function grantOnWorkspace(User $user, Workspace $workspace, string $role): Membership
     {
-        $this->entityManager->persist(Membership::onWorkspace($user, $workspace, $role));
+        $this->entityManager->persist($membership = Membership::onWorkspace($user, $workspace, $role));
         $this->entityManager->flush();
+
+        return $membership;
     }
 
-    public function grantOnProject(User $user, Project $project, string $role): void
+    public function grantOnProject(User $user, Project $project, string $role): Membership
     {
-        $this->entityManager->persist(Membership::onProject($user, $project, $role));
+        $this->entityManager->persist($membership = Membership::onProject($user, $project, $role));
         $this->entityManager->flush();
+
+        return $membership;
     }
 }

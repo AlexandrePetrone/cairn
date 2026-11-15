@@ -47,12 +47,13 @@ final class CommentMapper
         return new CommentResource(
             id: (int) $comment->getId(),
             issue: $comment->getIssue()->getKey(),
-            author: $this->refs->user($comment->getAuthor()),
+            author: null === $comment->getAuthor() ? null : $this->refs->user($comment->getAuthor()),
             body: $comment->getBody(),
             private: $comment->isPrivate(),
             createdAt: $comment->getCreatedAt(),
             editedAt: $comment->getEditedAt(),
             attachments: array_map($this->refs->file(...), $attachments),
+            signature: $comment->getSignature(),
         );
     }
 }

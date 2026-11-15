@@ -19,11 +19,12 @@ final readonly class CommentAdded extends IssueEvent
      */
     public function __construct(
         Issue $issue,
-        User $actor,
+        ?User $actor,
         array $entries,
         public Comment $comment,
+        ?string $rule = null,
     ) {
-        parent::__construct($issue, $actor, $entries);
+        parent::__construct($issue, $actor, $entries, $rule);
     }
 
     public function comment(): Comment

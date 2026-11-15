@@ -143,7 +143,7 @@ final class ImportRunTest extends KernelTestCase
         self::assertCount(2, $comments);
         self::assertSame('Fixed with #MD-SPT-12, see @[Bob Client](user:'.$bob->getId().').', $comments[0]->getBody());
         self::assertSame('2024-03-02T10:00:00+00:00', $comments[0]->getCreatedAt()->format(\DATE_ATOM));
-        self::assertSame($nadia->getId(), $comments[0]->getAuthor()->getId());
+        self::assertSame($nadia->getId(), $comments[0]->getAuthor()?->getId());
         self::assertTrue($comments[1]->isPrivate(), 'a private comment stays private');
         self::assertSame($comments[1]->getId(), $trace->getComment()?->getId(), 'and its file goes with it');
         self::assertStringContainsString('[trace.log](/attachments/'.$trace->getUuid()->toRfc4122().'/trace.log)', $comments[1]->getBody());

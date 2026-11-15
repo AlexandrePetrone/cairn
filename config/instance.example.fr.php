@@ -60,7 +60,7 @@ return new InstanceDefinition(
         // grant editing the content written by others.
         Permission::IssueEdit->value => $managers,
         Permission::IssueChangeTracker->value => $internal,
-        // Put an issue on any step, even one no action leads to: the agency
+        // Put an issue on any step, even one no action leads to: internal users
         // may leave the workflow shown to clients, and the journal says so.
         Permission::IssueForcePlace->value => $internal,
         Permission::IssueAssign->value => $internal,
@@ -135,11 +135,11 @@ return new InstanceDefinition(
             initial: 'new',
             places: [
                 new PlaceDefinition(id: 'new', label: 'Nouvelle', status: PlaceStatus::Open),
-                // Waiting on the client: the agency cannot qualify without more details.
+                // Waiting on the client: internal users cannot qualify without more details.
                 new PlaceDefinition(id: 'needs_info', label: 'Info demandée', status: PlaceStatus::Waiting),
                 new PlaceDefinition(id: 'qualified', label: 'Qualifiée', status: PlaceStatus::Open),
                 new PlaceDefinition(id: 'in_progress', label: 'En cours', status: PlaceStatus::InProgress),
-                // Waiting on a third party or a prerequisite: the agency holds the issue.
+                // Waiting on a third party or a prerequisite: internal users hold the issue.
                 new PlaceDefinition(id: 'blocked', label: 'Bloquée', status: PlaceStatus::Waiting),
                 new PlaceDefinition(id: 'to_test', label: 'À recetter', status: PlaceStatus::Waiting),
                 new PlaceDefinition(id: 'to_release', label: 'À mettre en production', status: PlaceStatus::InProgress),
@@ -208,7 +208,7 @@ return new InstanceDefinition(
                 new PlaceDefinition(id: 'to_approve', label: 'Chiffrage à valider', status: PlaceStatus::Waiting),
                 new PlaceDefinition(id: 'planned', label: 'Planifiée', status: PlaceStatus::InProgress),
                 new PlaceDefinition(id: 'in_progress', label: 'En cours', status: PlaceStatus::InProgress),
-                // Waiting on a third party or a prerequisite: the agency holds the issue.
+                // Waiting on a third party or a prerequisite: internal users hold the issue.
                 new PlaceDefinition(id: 'blocked', label: 'Bloquée', status: PlaceStatus::Waiting),
                 new PlaceDefinition(id: 'to_test', label: 'À recetter', status: PlaceStatus::Waiting),
                 new PlaceDefinition(id: 'to_release', label: 'À mettre en production', status: PlaceStatus::InProgress),

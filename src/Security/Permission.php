@@ -30,7 +30,7 @@ enum Permission: string
     case CommentSetPrivate = 'comment.set_private';
     /** Edit or delete the comments of others; authors always handle their own. */
     case CommentEdit = 'comment.edit';
-    /** Change the project's name and description, create and arrange its trackers. */
+    /** Change the project's name and description, create and arrange its trackers, link its repositories, write its automation rules. */
     case ProjectConfigure = 'project.configure';
     /** Grant, change and revoke the roles held directly on the project. */
     case ProjectManageMembers = 'project.manage_members';

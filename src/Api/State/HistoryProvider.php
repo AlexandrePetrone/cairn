@@ -46,6 +46,7 @@ final class HistoryProvider implements ProviderInterface
                 author: null === $event->getAuthor() ? null : $this->refs->user($event->getAuthor()),
                 private: $event->isPrivate(),
                 comment: $event->getComment()?->getId(),
+                rule: $event->getRule(),
             );
         }
 

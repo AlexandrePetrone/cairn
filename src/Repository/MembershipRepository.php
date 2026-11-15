@@ -68,6 +68,39 @@ class MembershipRepository extends ServiceEntityRepository
     }
 
     /**
+     * The referent of a role marked on a project, or on a workspace: the
+     * mark is held by one membership at most there (SetReferent).
+     */
+    public function findReferent(Project|Workspace $scope, string $role): ?Membership
+    {
+        return $this->findOneBy([$scope instanceof Project ? 'project' : 'workspace' => $scope, 'role' => $role, 'referent' => true]);
+    }
+
+    /**
+     * Every membership marked as referent that applies to a project, by
+     * the role or the other: those of the project first, then those of
+     * its workspace.
+     *
+     * @return list<Membership>
+     */
+    public function findReferentsApplyingTo(Project $project): array
+    {
+        /* @var list<Membership> */
+        return $this->createQueryBuilder('m')
+            ->addSelect('u')
+            ->join('m.user', 'u')
+            ->andWhere('m.referent = true')
+            ->andWhere('m.project = :project OR m.workspace = :workspace')
+            ->setParameter('project', $project)
+            ->setParameter('workspace', $project->getWorkspace())
+            ->addSelect('CASE WHEN m.project IS NULL THEN 1 ELSE 0 END AS HIDDEN scopeOrder')
+            ->orderBy('scopeOrder')
+            ->addOrderBy('m.id')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * The roles of a user with where they apply, grouped by workspace:
      * the workspace first, then its projects by name.
      *

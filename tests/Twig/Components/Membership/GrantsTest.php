@@ -196,6 +196,32 @@ final class GrantsTest extends KernelTestCase
         self::assertNotNull(self::getContainer()->get(MembershipRepository::class)->find((int) $membership->getId()), 'a developer revokes nothing');
     }
 
+    public function testOnAProjectTheManagerDesignatesTheReferentOfARole(): void
+    {
+        $memberships = self::getContainer()->get(MembershipRepository::class);
+        $nadia = $memberships->findOneBy(['user' => $this->user('nadia.benali@cairn.test'), 'project' => $this->scene->shop]);
+        $lea = $memberships->findOneBy(['user' => $this->user('lea.fontaine@cairn.test'), 'project' => $this->scene->shop]);
+        self::assertNotNull($nadia);
+        self::assertNotNull($lea);
+        $component = $this->onProject('thomas.girard@cairn.test');
+        self::assertStringNotContainsString('>Referent<', (string) $component->render(), 'nobody is a referent by default');
+
+        // each call is a request of its own: the memberships are read again after it
+        $isReferent = static fn (int $id): bool => (bool) self::getContainer()->get(MembershipRepository::class)->find($id)?->isReferent();
+        [$nadiaId, $leaId] = [(int) $nadia->getId(), (int) $lea->getId()];
+
+        $component->call('setReferent', ['membership' => $nadiaId, 'referent' => 1]);
+        self::assertTrue($isReferent($nadiaId));
+        self::assertSame(1, substr_count((string) $component->render(), 'Referent</span>'));
+
+        $component->call('setReferent', ['membership' => $leaId, 'referent' => 1]);
+        self::assertFalse($isReferent($nadiaId), 'one referent per role');
+        self::assertTrue($isReferent($leaId));
+
+        $component->call('setReferent', ['membership' => $leaId, 'referent' => 0]);
+        self::assertFalse($isReferent($leaId));
+    }
+
     private function onProject(string $viewer): TestLiveComponent
     {
         return $this->createLiveComponent('Membership:Grants', ['project' => $this->scene->shop])->actingAs($this->user($viewer));

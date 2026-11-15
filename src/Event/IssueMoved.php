@@ -18,9 +18,10 @@ final readonly class IssueMoved extends IssueEvent
      */
     public function __construct(
         Issue $issue,
-        User $actor,
+        ?User $actor,
         array $entries,
+        ?string $rule = null,
     ) {
-        parent::__construct($issue, $actor, $entries);
+        parent::__construct($issue, $actor, $entries, $rule);
     }
 }
