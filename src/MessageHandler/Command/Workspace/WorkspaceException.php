@@ -34,6 +34,11 @@ final class WorkspaceException extends \DomainException implements TranslatableI
         return new self(\sprintf('A workspace already uses the key "%s".', $key), 'admin.refused.workspace_key_taken', ['%key%' => $key]);
     }
 
+    public static function notArchived(string $workspaceName): self
+    {
+        return new self(\sprintf('Workspace "%s" is not archived: it is archived before it is deleted.', $workspaceName), 'admin.refused.workspace_not_archived', ['%name%' => $workspaceName]);
+    }
+
     public function trans(TranslatorInterface $translator, ?string $locale = null): string
     {
         return $translator->trans($this->reason, $this->parameters, null, $locale);

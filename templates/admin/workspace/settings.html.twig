@@ -8,4 +8,13 @@
         {{ form_row(form.archived) }}
         <twig:Ui:Button type="submit" variant="primary" size="lg">{{ 'admin.save'|trans }}</twig:Ui:Button>
     {{ form_end(form) }}
+    {% if workspace.archived %}
+        <twig:Ui:Callout tone="danger" class="max-w-2xl flex flex-wrap items-center gap-3">
+            <div class="flex-1 basis-64">
+                <h2 class="font-semibold text-strong">{{ 'admin.workspace.delete'|trans }}</h2>
+                <p class="text-xs text-muted">{{ 'admin.workspace.delete_help'|trans }}</p>
+            </div>
+            <twig:Ui:Button variant="danger" icon="trash-2" href="{{ path('app_admin_workspace_delete', { key: workspace.key }) }}">{{ 'admin.workspace.delete'|trans }}…</twig:Ui:Button>
+        </twig:Ui:Callout>
+    {% endif %}
 {% endblock %}

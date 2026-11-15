@@ -34,7 +34,7 @@ final class CreateTrackerHandler
             throw TrackerException::unknownWorkflow($command->workflowId);
         }
 
-        $position = \count($this->trackers->findByProject($project, includeInactive: true));
+        $position = \count($this->trackers->findByProject($project, includeArchived: true));
         $tracker = new Tracker($project, $command->name, $command->workflowId, $position);
         $tracker->setDescription($command->description);
         if ($command->private) {

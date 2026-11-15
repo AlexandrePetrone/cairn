@@ -112,6 +112,7 @@ final class DefinitionFactory
                 Permission::IssueLink->value => ['project_manager', 'developer'],
                 Permission::IssueChangeTracker->value => ['project_manager', 'developer'],
                 Permission::IssueForcePlace->value => ['project_manager'],
+                Permission::IssueDelete->value => ['project_manager', 'developer'],
                 Permission::CommentCreate->value => ['project_manager', 'developer', 'client'],
                 Permission::CommentSetPrivate->value => ['project_manager', 'developer'],
                 Permission::CommentEdit->value => ['project_manager'],

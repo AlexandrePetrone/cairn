@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Tests\MessageHandler\Command\Release;
 
 use App\Entity\Enum\ReleaseStatus;
+use App\Entity\JournalEntry;
 use App\Entity\Release;
+use App\Message\Command\Issue\UpdateIssue;
 use App\Message\Command\Release\CreateRelease;
+use App\Message\Command\Release\DeleteRelease;
 use App\Message\Command\Release\UpdateRelease;
 use App\Message\CommandBus;
 use App\MessageHandler\Command\Release\ReleaseException;
@@ -18,7 +21,7 @@ use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 /**
- * CreateRelease and UpdateRelease. Test permissions: release.manage for
+ * CreateRelease, UpdateRelease and DeleteRelease. Test permissions: release.manage for
  * project managers only.
  */
 final class ReleaseHandlersTest extends KernelTestCase
@@ -107,6 +110,35 @@ final class ReleaseHandlersTest extends KernelTestCase
         $this->update($release, status: ReleaseStatus::Abandoned);
         self::assertSame(ReleaseStatus::Abandoned, $release->getStatus());
         self::assertNull($release->getDeliveredAt());
+    }
+
+    public function testADeletedReleaseLeavesItsIssuesWithoutOneAndTheirHistorySaysSo(): void
+    {
+        $release = $this->create('2.5.0');
+        $manager = (int) $this->fixtures->manager->getId();
+        $first = $this->fixtures->createIssue($this->fixtures->client);
+        $internal = $this->fixtures->createIssue($this->fixtures->manager, $this->fixtures->tasks);
+        $other = $this->fixtures->createIssue($this->fixtures->client);
+        foreach ([$first, $internal] as $issue) {
+            $this->commands->dispatch(new UpdateIssue($manager, $issue->getKey(), releaseId: $release->getId()));
+        }
+        $this->update($release, status: ReleaseStatus::Delivered);
+        $releaseId = (int) $release->getId();
+
+        try {
+            $this->commands->dispatch(new DeleteRelease((int) $this->fixtures->developer->getId(), $releaseId));
+            self::fail('A developer does not manage releases.');
+        } catch (AccessDeniedException) {
+        }
+        $this->commands->dispatch(new DeleteRelease($manager, $releaseId));
+
+        self::assertNull($this->entityManager->getRepository(Release::class)->find($releaseId));
+        self::assertNull($first->getRelease());
+        self::assertNull($internal->getRelease());
+        $entries = $this->entityManager->getRepository(JournalEntry::class)->findBy(['issue' => $first], ['id' => 'DESC'], 1);
+        self::assertSame(['field' => 'release', 'from' => '2.5.0', 'to' => null], $entries[0]->getData());
+        self::assertSame($this->fixtures->manager, $entries[0]->getAuthor());
+        self::assertCount(1, $this->entityManager->getRepository(JournalEntry::class)->findBy(['issue' => $other]), 'an issue that was not in the release is left alone');
     }
 
     public function testAPropertyLeftNullKeepsItsValue(): void

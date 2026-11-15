@@ -119,7 +119,7 @@ final class Mapping extends AbstractController
             'manifest' => $this->getManifest(),
             'definition' => $this->config->definition(),
             'mapping' => $draft,
-            'trackers' => $this->trackers->findByProject($this->import->getProject(), includeInactive: true),
+            'trackers' => $this->trackers->findByProject($this->import->getProject(), includeArchived: true),
             'csrf_protection' => false,
         ]);
     }
@@ -150,7 +150,7 @@ final class Mapping extends AbstractController
             $this->getManifest(),
             $this->getAnalysis(),
             $this->config->definition(),
-            $this->trackers->findByProject($this->import->getProject(), includeInactive: true),
+            $this->trackers->findByProject($this->import->getProject(), includeArchived: true),
         );
     }
 }

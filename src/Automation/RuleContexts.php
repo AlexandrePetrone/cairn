@@ -30,7 +30,7 @@ final class RuleContexts
         $definition = $this->config->definition();
         $trackers = [];
         $workflows = [];
-        foreach ($this->trackers->findByProject($project) as $tracker) {
+        foreach ($this->trackers->findByProject($project, includeArchived: true) as $tracker) {
             if (!$definition->hasWorkflow($tracker->getWorkflowId())) {
                 continue;
             }

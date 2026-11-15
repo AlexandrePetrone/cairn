@@ -12,6 +12,7 @@ use App\Event\CommentAdded;
 use App\Event\CommentDeleted;
 use App\Event\CommentEdited;
 use App\Event\IssueCreated;
+use App\Event\IssueDeleted;
 use App\Event\IssueEvent;
 use App\Event\IssueMoved;
 use App\Event\IssuesLinked;
@@ -69,6 +70,7 @@ final class IssueBroadcaster implements ResetInterface
     #[AsEventListener(event: AttachmentRemoved::class)]
     #[AsEventListener(event: IssuesLinked::class)]
     #[AsEventListener(event: IssuesUnlinked::class)]
+    #[AsEventListener(event: IssueDeleted::class)]
     public function collect(IssueEvent $event): void
     {
         if ($this->topics->enabled()) {

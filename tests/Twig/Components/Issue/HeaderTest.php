@@ -8,6 +8,7 @@ use App\Entity\Issue;
 use App\Message\Command\Issue\MoveIssue;
 use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
+use App\Repository\IssueRepository;
 use App\Tests\Scene\ShopScene;
 use App\Twig\Components\Issue\Header;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -44,6 +45,32 @@ final class HeaderTest extends KernelTestCase
         $component->emit('issue:changed');
 
         self::assertStringContainsString('Private', (string) $component->render());
+    }
+
+    public function testADeveloperDeletesTheIssueAfterTheDialogAndLandsOnTheList(): void
+    {
+        $nadia = $this->scene->user('nadia.benali@cairn.test');
+        $component = $this->createLiveComponent('Issue:Header', ['issue' => $this->issue])->actingAs($nadia);
+        self::assertStringNotContainsString('role="dialog"', (string) $component->render());
+
+        $component->call('confirmDelete');
+        $render = (string) $component->render();
+        self::assertStringContainsString('role="dialog"', $render);
+        self::assertStringContainsString('erased for good', $render);
+
+        $component->call('delete');
+        self::assertSame('/MD/SPT/issues', $component->response()->headers->get('Location'));
+        self::assertNull(self::getContainer()->get(IssueRepository::class)->findOneByKey('MD-SPT-4'));
+    }
+
+    public function testAClientIsNotOfferedToDeleteTheirIssue(): void
+    {
+        $claire = $this->scene->user('claire.martin@maison-dupont.test');
+        $component = $this->createLiveComponent('Issue:Header', ['issue' => $this->issue])->actingAs($claire);
+
+        self::assertStringNotContainsString('Delete the issue', (string) $component->render());
+        $component->call('confirmDelete');
+        self::assertStringNotContainsString('role="dialog"', (string) $component->render());
     }
 
     public function testThePathIsTheOneTheJournalTells(): void

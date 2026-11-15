@@ -15,6 +15,8 @@ enum Permission: string
     /** Edit the content of issues written by others; authors always edit their own. */
     case IssueEdit = 'issue.edit';
     case IssueChangeTracker = 'issue.change_tracker';
+    /** Delete an issue for good, with its comments, files, links and history. */
+    case IssueDelete = 'issue.delete';
     /** Put an issue on any place of its workflow without an action; journaled as `moved`. */
     case IssueForcePlace = 'issue.force_place';
     case IssueAssign = 'issue.assign';
@@ -42,13 +44,14 @@ enum Permission: string
      * project configuration shows private trackers and their private
      * issues, managing members shows every account of the instance; or
      * what leaves the workflow clients are shown: forcing a place,
-     * changing the tracker. The configuration grants these to
+     * changing the tracker; or what cannot be undone: deleting an issue.
+     * The configuration grants these to
      * internal-only roles, which ConfigValidator enforces.
      */
     public function internalOnly(): bool
     {
         return match ($this) {
-            self::ProjectConfigure, self::ProjectManageMembers, self::IssueForcePlace, self::IssueChangeTracker => true,
+            self::ProjectConfigure, self::ProjectManageMembers, self::IssueForcePlace, self::IssueChangeTracker, self::IssueDelete => true,
             default => false,
         };
     }

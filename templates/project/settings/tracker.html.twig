@@ -1,6 +1,6 @@
 {% extends 'project/settings/base.html.twig' %}
 
-{# The page of one tracker: the trackers in their order beside it, its settings, and its workflow drawn, which it keeps. The dialog creating another loads in the `modal` frame of the layout. #}
+{# The page of one tracker: the trackers in their order beside it, its settings, its workflow drawn, which it keeps, then what archives it or, when it holds no issue, deletes it. The dialog creating another loads in the `modal` frame of the layout. #}
 {% block settings_title %}{{ 'nav.project.configuration.trackers'|trans }}{% endblock %}
 
 {% block settings_actions %}
@@ -12,12 +12,11 @@
         <twig:Tracker:Order :project="project" :current="tracker.id" />
         <div class="space-y-4 min-w-0">
             {{ form_start(form, { attr: { class: 'rounded-lg border border-line bg-surface p-4 space-y-4' } }) }}
-                <h2 class="font-semibold text-strong">{{ tracker.name }}</h2>
+                <h2 class="flex items-center gap-2 font-semibold text-strong">{{ tracker.name }}{% if tracker.archived %} <twig:Ui:Badge tone="amber" icon="archive">{{ 'project.settings.tracker.archived_badge'|trans }}</twig:Ui:Badge>{% endif %}</h2>
                 {{ form_errors(form) }}
                 {{ form_row(form.name) }}
                 {{ form_row(form.description) }}
                 {{ form_row(form.private) }}
-                {{ form_row(form.active) }}
                 <twig:Ui:Button type="submit" variant="primary">{{ 'project.settings.save'|trans }}</twig:Ui:Button>
             {{ form_end(form) }}
             <section class="rounded-lg border border-line bg-surface p-4 space-y-3">
@@ -29,6 +28,34 @@
                     <twig:Workflow:Diagram :workflow="workflow" />
                 {% endif %}
             </section>
+            {% set trackerAction = settingsRoute|merge({ tracker: tracker.id }) %}
+            <twig:Ui:Callout :tone="tracker.archived ? 'amber' : 'gray'" class="flex flex-wrap items-center gap-3">
+                <div class="flex-1 basis-64">
+                    <h2 class="font-semibold text-strong">{{ (tracker.archived ? 'project.settings.tracker.archived_title' : 'project.settings.tracker.archive_title')|trans }}</h2>
+                    <p class="text-xs text-muted">{{ (tracker.archived ? 'project.settings.tracker.archived_help' : 'project.settings.tracker.archive_help')|trans }}</p>
+                </div>
+                <form method="post" action="{{ path('app_project_settings_tracker_action', trackerAction|merge({ action: tracker.archived ? 'unarchive' : 'archive' })) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('submit') }}" data-controller="csrf-protection">
+                    <twig:Ui:Button type="submit" :icon="tracker.archived ? 'archive-restore' : 'archive'">{{ (tracker.archived ? 'project.settings.tracker.unarchive' : 'project.settings.tracker.archive')|trans }}</twig:Ui:Button>
+                </form>
+            </twig:Ui:Callout>
+            <twig:Ui:Callout tone="danger">
+                <h2 class="font-semibold text-strong">{{ 'project.settings.tracker.delete_title'|trans }}</h2>
+                {% if issueCount > 0 %}
+                    <p class="text-xs text-muted">{{ 'project.settings.tracker.delete_blocked'|trans({ '%count%': issueCount }) }}</p>
+                {% else %}
+                    <p class="text-xs text-muted">{{ 'project.settings.tracker.delete_help'|trans }}{% if ruleCount > 0 %} {{ 'project.settings.tracker.delete_rules'|trans({ '%count%': ruleCount }) }}{% endif %}</p>
+                    <twig:Ui:Disclosure :closedLabel="'project.settings.tracker.delete'|trans" :openLabel="'issue.edit.cancel'|trans" class="mt-2">
+                        <div class="mt-2 flex flex-wrap items-center gap-2" role="alertdialog">
+                            <span class="flex-1 text-sm">{{ 'project.settings.tracker.delete_confirm'|trans }}</span>
+                            <form method="post" action="{{ path('app_project_settings_tracker_action', trackerAction|merge({ action: 'delete' })) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('submit') }}" data-controller="csrf-protection">
+                                <twig:Ui:Button type="submit" size="sm" variant="danger" icon="trash-2">{{ 'project.settings.tracker.delete'|trans }}</twig:Ui:Button>
+                            </form>
+                        </div>
+                    </twig:Ui:Disclosure>
+                {% endif %}
+            </twig:Ui:Callout>
         </div>
     </div>
 {% endblock %}

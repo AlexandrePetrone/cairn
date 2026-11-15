@@ -59,7 +59,10 @@
                             <span class="text-xs tabular-nums text-muted">{{ 'issue.list.count'|trans({ '%count%': summary.total }) }}</span>
                             {% if release.deliveredAt %}<span class="text-xs text-muted">{{ 'release.delivered_on'|trans({ '%date%': release.deliveredAt|date('d/m/Y') }) }}</span>{% endif %}
                             <a href="{{ path('app_project_issues', releasesRoute|merge({ releases: [release.id], closed: 1 })) }}" class="text-faint hover:text-brand" title="{{ 'release.see_issues'|trans }}"><twig:ux:icon name="lucide:list" class="h-4 w-4" /></a>
-                            {% if releasesManage %}{{ include('project/_release_status.html.twig', { status: 'open', variant: 'ghost' }) }}{% endif %}
+                            {% if releasesManage %}
+                                {{ include('project/_release_status.html.twig', { status: 'open', variant: 'ghost' }) }}
+                                <twig:Ui:IconButton icon="pencil" :label="'release.edit'|trans" href="{{ path('app_project_release_edit', releasesRoute|merge({ release: release.id })) }}" data-turbo-frame="modal" />
+                            {% endif %}
                         </li>
                     {% endfor %}
                 </ul>
@@ -69,22 +72,38 @@
 
 {% endblock %}
 
-{# The dialog creating a release, or changing `dialogRelease`: answered alone to a request made for the frame, so it reads only `project`, `form` and `dialogRelease`. The form abandoning the release sits beside the one of the dialog, in the frame: the button names it. #}
+{# The dialog creating a release, or changing `dialogRelease`: answered alone to a request made for the frame, so it reads only `project`, `form`, `dialogRelease` and `dialogIssueCount`. The forms abandoning and deleting the release sit beside the one of the dialog, in the frame: their buttons name them. #}
 {% block modal %}
     {% set modalRoute = { workspaceKey: project.workspace.key, projectKey: project.key } %}
     {% set modalAbandonForm = '' %}
     {% set modalAbandon = '' %}
-    {% if form and dialogRelease and dialogRelease.open %}
+    {% if form and dialogRelease %}
         {% set modalAbandonForm %}
+            <form id="release-delete" method="post" action="{{ path('app_project_release_delete', modalRoute|merge({ release: dialogRelease.id })) }}" class="hidden">
+                <input type="hidden" name="_token" value="{{ csrf_token('submit') }}" data-controller="csrf-protection">
+            </form>
+            {% if dialogRelease.open %}
             <form id="release-abandon" method="post" action="{{ path('app_project_release_status', modalRoute|merge({ release: dialogRelease.id })) }}" class="hidden">
                 <input type="hidden" name="_token" value="{{ csrf_token('submit') }}" data-controller="csrf-protection">
                 <input type="hidden" name="status" value="abandoned">
             </form>
+            {% endif %}
         {% endset %}
         {% set modalAbandon %}
+            {% if dialogRelease.open %}
             <twig:Ui:Callout tone="danger" size="sm" class="mt-4 flex flex-wrap items-center gap-3">
                 <p class="flex-1 basis-48">{{ 'release.abandon_help'|trans }}</p>
                 <twig:Ui:Button type="submit" variant="danger" size="sm" form="release-abandon">{{ 'release.to_status.abandoned'|trans }}</twig:Ui:Button>
+            </twig:Ui:Callout>
+            {% endif %}
+            <twig:Ui:Callout tone="danger" size="sm" class="mt-3">
+                <p>{{ 'release.delete_help'|trans({ '%count%': dialogIssueCount }) }}</p>
+                <twig:Ui:Disclosure :closedLabel="'release.delete'|trans" :openLabel="'issue.edit.cancel'|trans" class="mt-1.5">
+                    <div class="mt-2 flex flex-wrap items-center gap-3" role="alertdialog">
+                        <span class="flex-1 basis-48">{{ 'release.delete_confirm'|trans }}</span>
+                        <twig:Ui:Button type="submit" variant="danger" size="sm" icon="trash-2" form="release-delete">{{ 'release.delete'|trans }}</twig:Ui:Button>
+                    </div>
+                </twig:Ui:Disclosure>
             </twig:Ui:Callout>
         {% endset %}
     {% endif %}

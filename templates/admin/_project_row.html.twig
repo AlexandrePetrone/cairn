@@ -1,8 +1,8 @@
-{# A project in an administration list: its key, its name (opening it as its members see it), its state, the archive button on hover. Expects `project`. #}
-<twig:Ui:Table:Row :closed="project.readOnly">
+{# A project in an administration list: its key, its name (opening it as its members see it), its state as a badge (an archived project is written like the others: the badge says it), the archive button on hover and, once it is read-only, the link to the page that deletes it. Expects `project`. #}
+<twig:Ui:Table:Row>
     <td class="sm:px-4 sm:py-2.5 sm:w-28 order-1 whitespace-nowrap"><twig:Ui:Chip>{{ project.issuePrefix }}</twig:Ui:Chip></td>
     <td class="sm:px-3 sm:py-2.5 order-2 basis-full sm:basis-auto">
-        <a href="{{ path('app_project_issues', { workspaceKey: project.workspace.key, projectKey: project.key }) }}" class="font-medium {{ project.readOnly ? 'text-muted' : 'text-strong' }} hover:text-amber">{{ project.name }}</a>
+        <a href="{{ path('app_project_issues', { workspaceKey: project.workspace.key, projectKey: project.key }) }}" class="font-medium text-strong hover:text-amber">{{ project.name }}</a>
         {% if project.archived %}
             <twig:Ui:Badge size="sm">{{ 'admin.project.archived_badge'|trans }}</twig:Ui:Badge>
         {% elseif project.workspace.archived %}
@@ -11,6 +11,9 @@
     </td>
     <td class="sm:px-3 sm:py-2.5 sm:w-32 order-3 text-xs text-faint whitespace-nowrap">{{ 'admin.created_on'|trans({ '%date%': project.createdAt|date('d/m/Y') }) }}</td>
     <td class="sm:px-4 sm:py-2.5 sm:w-40 order-4 ml-auto text-right whitespace-nowrap">
-        <span class="hover-actions inline-flex justify-end">{{ include('admin/_project_archive.html.twig') }}</span>
+        <span class="hover-actions inline-flex items-center justify-end gap-1">
+            {{ include('admin/_project_archive.html.twig') }}
+            {% if project.readOnly %}<twig:Ui:IconButton icon="trash-2" tone="danger" :label="'admin.project.delete'|trans" href="{{ path('app_admin_project_delete', { workspaceKey: project.workspace.key, projectKey: project.key }) }}" />{% endif %}
+        </span>
     </td>
 </twig:Ui:Table:Row>

@@ -102,7 +102,7 @@ final class SettingsTest extends WebTestCase
         self::assertSelectorNotExists('nav');
     }
 
-    public function testTheManagerDeactivatesATrackerWhoseWorkflowIsShown(): void
+    public function testTheManagerArchivesATrackerWhoseWorkflowIsShown(): void
     {
         $this->signInAs('thomas.girard@cairn.test');
         $url = \sprintf('/MD/SPT/settings/trackers/%d', $this->scene->evolutions->getId());
@@ -111,16 +111,45 @@ final class SettingsTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('[data-controller="workflow-diagram"]');
 
-        $this->client->submitForm('Save', ['tracker[name]' => 'Features', 'tracker[active]' => false]);
+        $this->client->submitForm('Save', ['tracker[name]' => 'Features']);
         self::assertResponseRedirects($url);
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'by clients too', 'what archiving means is said under the button');
+        $this->client->submitForm('Archive');
+        self::assertResponseRedirects($url);
+        $this->client->followRedirect();
+        self::assertSelectorTextContains(\sprintf('#tracker-%d', $this->scene->evolutions->getId()), 'Archived');
+        self::assertSelectorExists('form[action$="/unarchive"]');
+        self::assertSelectorNotExists('form[action$="/delete"]', 'a tracker that holds issues is not deleted');
 
         $evolutions = self::getContainer()->get(TrackerRepository::class)->find($this->scene->evolutions->getId());
         self::assertInstanceOf(Tracker::class, $evolutions);
         self::assertSame('Features', $evolutions->getName());
-        self::assertFalse($evolutions->isActive());
+        self::assertTrue($evolutions->isArchived());
 
         $this->client->request('GET', '/MD/SPT/issues');
-        self::assertSelectorNotExists(\sprintf('nav a[href="/MD/SPT/issues/tracker/%d"]', $evolutions->getId()), 'a deactivated tracker leaves the menu');
+        self::assertSelectorExists(\sprintf('nav a[href="/MD/SPT/issues/tracker/%d"]', $evolutions->getId()), 'an archived tracker stays in the menu, as an archived project stays listed');
+
+        $this->client->request('GET', '/MD/SPT/issues/new');
+        self::assertSelectorTextNotContains('main', 'Features');
+    }
+
+    public function testTheManagerDeletesATrackerWithoutIssues(): void
+    {
+        $this->signInAs('thomas.girard@cairn.test');
+        $this->client->request('GET', '/MD/SPT/settings/trackers/new');
+        $this->client->submitForm('Create the tracker', ['new_tracker[name]' => 'Support', 'new_tracker[workflowId]' => 'bug']);
+        $crawler = $this->client->followRedirect();
+        $url = $this->client->getRequest()->getPathInfo();
+
+        $this->client->submit($crawler->filter('form[action$="/delete"]')->form());
+        self::assertResponseRedirects('/MD/SPT/settings');
+        $this->client->followRedirect();
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('body', 'Tracker "Support" deleted.');
+
+        $this->client->request('GET', $url);
+        self::assertResponseStatusCodeSame(404);
     }
 
     public function testATrackerOfAnotherProjectIsNotFound(): void

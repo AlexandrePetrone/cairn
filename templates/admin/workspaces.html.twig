@@ -30,8 +30,8 @@
                     <th class="px-3 py-2 text-left font-medium w-24">{{ 'admin.workspace.column.state'|trans }}</th>
                 </twig:block>
                 {% for workspace in workspaces %}
-                    <twig:Ui:Table:Row :closed="workspace.archived">
-                        <td class="sm:px-4 sm:py-2.5 order-1 basis-full sm:basis-auto"><a href="{{ path('app_admin_workspace', { key: workspace.key }) }}" class="font-medium {{ workspace.archived ? 'text-muted' : 'text-strong' }} hover:text-amber">{{ workspace.name }}</a></td>
+                    <twig:Ui:Table:Row>
+                        <td class="sm:px-4 sm:py-2.5 order-1 basis-full sm:basis-auto"><a href="{{ path('app_admin_workspace', { key: workspace.key }) }}" class="font-medium text-strong hover:text-amber">{{ workspace.name }}</a></td>
                         <td class="sm:px-3 sm:py-2.5 order-2"><twig:Ui:Chip>{{ workspace.key }}</twig:Ui:Chip></td>
                         <td class="sm:px-4 sm:py-2.5 order-3 basis-full sm:basis-auto">
                             <div class="flex flex-wrap items-center gap-1.5">

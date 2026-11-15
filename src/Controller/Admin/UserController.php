@@ -9,12 +9,14 @@ use App\Form\User\UserData;
 use App\Form\User\UserFilters;
 use App\Form\User\UserType;
 use App\Message\Command\User\CreateUser;
+use App\Message\Command\User\DeleteUser;
 use App\Message\Command\User\InviteUser;
 use App\Message\Command\User\UpdateUser;
 use App\Message\CommandBus;
 use App\Message\Query\User\SearchUsers;
 use App\Message\QueryBus;
 use App\MessageHandler\Command\User\UserException;
+use App\Repository\UserRepository;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -23,6 +25,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsCsrfTokenValid;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -40,6 +43,7 @@ final class UserController extends AbstractController
     public function __construct(
         private readonly CommandBus $commands,
         private readonly QueryBus $queries,
+        private readonly UserRepository $users,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -103,7 +107,7 @@ final class UserController extends AbstractController
             }
         }
 
-        return $this->render('admin/user.html.twig', ['user' => $user, 'form' => $form], new Response(null, $form->isSubmitted() ? 422 : 200));
+        return $this->render('admin/user.html.twig', ['user' => $user, 'form' => $form, 'hasHistory' => $this->users->hasHistory($user)], new Response(null, $form->isSubmitted() ? 422 : 200));
     }
 
     /**
@@ -122,5 +126,29 @@ final class UserController extends AbstractController
         }
 
         return $this->redirectToRoute('app_admin_user', ['id' => $user->getId()]);
+    }
+
+    /**
+     * Deletes an account that left no trace; nobody deletes their own.
+     */
+    #[Route('/{id}/delete', name: 'app_admin_user_delete', requirements: ['id' => '\\d+'], methods: ['POST'])]
+    #[IsCsrfTokenValid('submit')]
+    public function delete(#[MapEntity] User $user, #[CurrentUser] User $viewer): RedirectResponse
+    {
+        if ($user->getId() === $viewer->getId()) {
+            throw $this->createAccessDeniedException('Nobody deletes their own account.');
+        }
+        $id = (int) $user->getId();
+        $name = $user->getFullName();
+        try {
+            $this->commands->dispatch(new DeleteUser($id));
+            $this->addFlash('success', $this->translator->trans('admin.user.deleted', ['%name%' => $name]));
+
+            return $this->redirectToRoute('app_admin_users');
+        } catch (UserException $e) {
+            $this->addFlash('error', $e->trans($this->translator));
+        }
+
+        return $this->redirectToRoute('app_admin_user', ['id' => $id]);
     }
 }

@@ -13,9 +13,9 @@ use function Symfony\Component\Clock\now;
 /**
  * A category of issues within a project, bound to one workflow of the
  * configuration for good. A private tracker hides all of its issues from
- * external users. Position orders the creation form and the menu. A
- * deactivated tracker keeps its issues but takes no new one: it is never
- * deleted.
+ * external users. Position orders the creation form and the menu. An
+ * archived tracker takes no new issue: those it holds stay as they are,
+ * seen and changed as before. Only a tracker without any issue is deleted.
  */
 #[ORM\Entity(repositoryClass: TrackerRepository::class)]
 class Tracker
@@ -43,7 +43,7 @@ class Tracker
     private bool $private = false;
 
     #[ORM\Column]
-    private bool $active = true;
+    private bool $archived = false;
 
     #[ORM\Column]
     private int $position;
@@ -110,19 +110,19 @@ class Tracker
         $this->private = false;
     }
 
-    public function isActive(): bool
+    public function isArchived(): bool
     {
-        return $this->active;
+        return $this->archived;
     }
 
-    public function activate(): void
+    public function archive(): void
     {
-        $this->active = true;
+        $this->archived = true;
     }
 
-    public function deactivate(): void
+    public function unarchive(): void
     {
-        $this->active = false;
+        $this->archived = false;
     }
 
     public function getPosition(): int

@@ -45,8 +45,8 @@ final class ChangeTrackerHandler
         if ($tracker->getProject()->getId() !== $project->getId()) {
             throw IssueException::trackerOutsideProject($tracker->getName(), $project->getName());
         }
-        if (!$tracker->isActive()) {
-            throw IssueException::inactiveTracker($tracker->getName());
+        if ($tracker->isArchived()) {
+            throw IssueException::archivedTracker($tracker->getName());
         }
 
         $previous = $this->workflows->definition($current->getWorkflowId());

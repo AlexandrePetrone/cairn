@@ -101,6 +101,55 @@ final class AdminTest extends WebTestCase
         self::assertSelectorNotExists('header a[href="/MD/SPT/issues/new"]', 'read-only');
     }
 
+    public function testAnArchivedProjectIsDeletedOnceItsKeyIsTypedAgain(): void
+    {
+        $this->signInAsAdmin();
+        $this->client->request('GET', '/admin/projects/MD/SPT/delete');
+        self::assertResponseStatusCodeSame(404, 'a project is archived before it is deleted');
+
+        $crawler = $this->client->request('GET', '/admin/workspaces/MD');
+        self::assertSelectorNotExists('a[href="/admin/projects/MD/SPT/delete"]');
+        $this->client->submit($crawler->filter('form[action="/admin/projects/MD/SPT"]')->form());
+        $this->client->followRedirect();
+        $this->client->click($this->client->getCrawler()->filter('a[href="/admin/projects/MD/SPT/delete"]')->link());
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main', '10 issues');
+
+        $this->client->submitForm('Delete the project', ['deletion[confirmation]' => 'MD-INT']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('form[name="deletion"]', 'This is not the key');
+        self::assertNotNull($this->entity(Project::class, ['key' => 'SPT']));
+
+        $this->client->submitForm('Delete the project', ['deletion[confirmation]' => 'MD-SPT']);
+        self::assertResponseRedirects('/admin/workspaces/MD');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('body', 'Project "Online shop" deleted');
+        self::assertNull($this->entity(Project::class, ['key' => 'SPT']));
+        self::assertNotNull($this->entity(Project::class, ['key' => 'INT']));
+    }
+
+    public function testAnArchivedWorkspaceIsDeletedFromItsSettings(): void
+    {
+        $this->signInAsAdmin();
+        $this->client->request('GET', '/admin/workspaces/MD/settings');
+        self::assertSelectorNotExists('a[href="/admin/workspaces/MD/delete"]');
+        $this->client->request('GET', '/admin/workspaces/MD/delete');
+        self::assertResponseStatusCodeSame(404);
+
+        $this->client->request('GET', '/admin/workspaces/TR/settings');
+        $this->client->submitForm('Save', ['workspace[archived]' => true]);
+        $this->client->followRedirect();
+        $this->client->clickLink('Delete the workspace…');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main', 'Booking site');
+
+        $this->client->submitForm('Delete the workspace', ['deletion[confirmation]' => 'TR']);
+        self::assertResponseRedirects('/admin/workspaces');
+        self::assertNull($this->entity(Workspace::class, ['key' => 'TR']));
+        self::assertNull($this->entity(Project::class, ['key' => 'RES']));
+        self::assertNotNull($this->entity(Workspace::class, ['key' => 'MD']));
+    }
+
     public function testAProjectIsArchivedFromTheList(): void
     {
         $this->signInAsAdmin();
@@ -232,6 +281,26 @@ final class AdminTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('form[name="user"]', 'At least one active administrator must remain.');
+    }
+
+    public function testAnAccountWithoutHistoryIsDeletedAndTheOthersAreNot(): void
+    {
+        $this->signInAsAdmin();
+        $this->client->request('GET', '/admin/users/new');
+        $this->client->submitForm('Create', ['user[firstName]' => 'Zoe', 'user[lastName]' => 'Mistake', 'user[email]' => 'zoe@cairn.test']);
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'it can be deleted for good');
+
+        $this->client->submit($crawler->filter('form[action$="/delete"]')->form());
+        self::assertResponseRedirects('/admin/users');
+        self::assertNull($this->entity(User::class, ['email' => 'zoe@cairn.test']));
+
+        $this->client->request('GET', \sprintf('/admin/users/%d', $this->scene->user('claire.martin@maison-dupont.test')->getId()));
+        self::assertSelectorNotExists('form[action$="/delete"]');
+        self::assertSelectorTextContains('main', 'deactivate it to close its access');
+
+        $this->client->request('GET', \sprintf('/admin/users/%d', $this->scene->user('julie.admin@cairn.test')->getId()));
+        self::assertSelectorTextNotContains('main', 'Delete the account');
     }
 
     public function testTheUsersAreFiltered(): void

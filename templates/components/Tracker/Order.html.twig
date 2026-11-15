@@ -19,10 +19,10 @@
                             class="flex items-center gap-2 px-2 py-2 {{ tracker.id == current ? 'bg-brand-soft' : 'hover:bg-subtle' }}">
                             <span class="cursor-grab text-ghost hover:text-muted" title="{{ 'project.settings.tracker.drag'|trans }}"><twig:ux:icon name="lucide:grip-vertical" class="h-4 w-4" /></span>
                             <a href="{{ path('app_project_settings_tracker', orderRoute|merge({ tracker: tracker.id })) }}" class="min-w-0 flex-1 leading-tight" {% if tracker.id == current %}aria-current="page"{% endif %}>
-                                <span class="block text-sm truncate {{ tracker.active ? 'text-strong' : 'text-faint line-through' }}">{{ tracker.name }}</span>
+                                <span class="block text-sm truncate text-strong">{{ tracker.name }}</span>
                                 <span class="block text-xs text-muted truncate">{{ orderWorkflows[tracker.workflowId] ?? tracker.workflowId }} · {{ 'project.settings.tracker.issue_count'|trans({ '%count%': orderCount }) }}</span>
                             </a>
-                            {% if not tracker.active %}<twig:Ui:Badge size="sm">{{ 'project.settings.tracker.inactive_badge'|trans }}</twig:Ui:Badge>{% endif %}
+                            {% if tracker.archived %}<twig:Ui:Badge tone="amber" icon="archive" class="shrink-0">{{ 'project.settings.tracker.archived_badge'|trans }}</twig:Ui:Badge>{% endif %}
                             {% if tracker.private %}<twig:ux:icon name="lucide:lock" class="h-3.5 w-3.5 text-faint" aria-label="{{ 'project.settings.tracker.private_badge'|trans }}" />{% endif %}
                         </li>
                     {% endfor %}

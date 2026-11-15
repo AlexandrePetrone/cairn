@@ -34,7 +34,15 @@ final class AttachmentStorage
 
     public function delete(Attachment $attachment): void
     {
-        $path = $this->path($attachment);
+        $this->remove($attachment->getUuid());
+    }
+
+    /**
+     * The file of an attachment whose row is already gone.
+     */
+    public function remove(Uuid $uuid): void
+    {
+        $path = $this->pathOf($uuid);
         if (is_file($path)) {
             unlink($path);
         }

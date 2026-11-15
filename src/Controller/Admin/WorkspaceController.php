@@ -4,16 +4,24 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Entity\Project;
 use App\Entity\Workspace;
+use App\Form\Admin\DeletionData;
+use App\Form\Admin\DeletionType;
 use App\Form\Workspace\WorkspaceData;
 use App\Form\Workspace\WorkspaceType;
 use App\Message\Command\Workspace\CreateWorkspace;
+use App\Message\Command\Workspace\DeleteWorkspace;
 use App\Message\Command\Workspace\UpdateWorkspace;
 use App\Message\CommandBus;
 use App\Message\Query\Project\ListProjects;
+use App\Message\Query\Project\ProjectContents;
+use App\Message\Query\Project\ShowProjectContents;
 use App\Message\Query\Workspace\ListWorkspaces;
 use App\Message\QueryBus;
+use App\MessageHandler\Command\Project\ProjectException;
 use App\MessageHandler\Command\Workspace\WorkspaceException;
+use App\Repository\MembershipRepository;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -107,5 +115,39 @@ final class WorkspaceController extends AbstractController
         }
 
         return $this->render('admin/workspace/settings.html.twig', ['workspace' => $workspace, 'form' => $form], new Response(null, $form->isSubmitted() ? 422 : 200));
+    }
+
+    /**
+     * What the workspace holds, project by project, and the form that
+     * deletes it all for good once its key is typed again: for an archived
+     * workspace only.
+     */
+    #[Route('/{key}/delete', name: 'app_admin_workspace_delete', requirements: ['key' => '[A-Z]{2,5}'], methods: ['GET', 'POST'])]
+    public function delete(#[MapEntity(mapping: ['key' => 'key'])] Workspace $workspace, Request $request, MembershipRepository $memberships): Response
+    {
+        if (!$workspace->isArchived()) {
+            throw $this->createNotFoundException('Only an archived workspace is deleted.');
+        }
+        $data = new DeletionData();
+        $form = $this->createForm(DeletionType::class, $data, ['expected' => $workspace->getKey()]);
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            $name = $workspace->getName();
+            try {
+                $this->commands->dispatch(new DeleteWorkspace((int) $workspace->getId()));
+                $this->addFlash('success', $this->translator->trans('admin.workspace.deleted', ['%name%' => $name]));
+
+                return $this->redirectToRoute('app_admin_workspaces');
+            } catch (WorkspaceException|ProjectException $e) {
+                $form->addError(new FormError($e->trans($this->translator)));
+            }
+        }
+
+        return $this->render('admin/workspace/delete.html.twig', [
+            'workspace' => $workspace,
+            'contents' => array_map(fn (Project $project): ProjectContents => $this->queries->ask(new ShowProjectContents($project)), $this->queries->ask(new ListProjects(workspaceId: $workspace->getId()))),
+            'members' => $memberships->count(['workspace' => $workspace]),
+            'form' => $form,
+        ], new Response(null, $form->isSubmitted() ? 422 : 200));
     }
 }

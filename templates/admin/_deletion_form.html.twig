@@ -1,0 +1,10 @@
+{# The form that confirms a deletion for good by typing the key again. Expects `form`, `cancelHref`, `submitLabel`. #}
+{{ form_start(form, { attr: { class: 'rounded-lg border border-red-line bg-surface p-4 space-y-4' } }) }}
+    <p class="text-sm text-body">{{ 'admin.delete.irreversible'|trans }}</p>
+    {{ form_errors(form) }}
+    {{ form_row(form.confirmation) }}
+    <div class="flex items-center gap-2">
+        <twig:Ui:Button type="submit" variant="danger" size="lg" icon="trash-2">{{ submitLabel }}</twig:Ui:Button>
+        <twig:Ui:Button variant="ghost" size="lg" href="{{ cancelHref }}">{{ 'admin.cancel'|trans }}</twig:Ui:Button>
+    </div>
+{{ form_end(form) }}

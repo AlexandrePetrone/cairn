@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace App\Tests\MessageHandler\Command\Tracker;
 
+use App\Entity\AutomationRule;
 use App\Entity\Tracker;
+use App\Message\Command\Automation\CreateRule;
+use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ChangeTracker;
+use App\Message\Command\Issue\UpdateIssue;
 use App\Message\Command\Tracker\CreateTracker;
+use App\Message\Command\Tracker\DeleteTracker;
 use App\Message\Command\Tracker\UpdateTracker;
 use App\Message\CommandBus;
 use App\MessageHandler\Command\Issue\IssueException;
 use App\MessageHandler\Command\Tracker\TrackerException;
+use App\Repository\AutomationRuleRepository;
 use App\Repository\TrackerRepository;
 use App\Tests\KernelHelpers;
 use App\Tests\MessageHandler\Command\Issue\IssueFixtures;
@@ -47,7 +53,7 @@ final class TrackerHandlersTest extends KernelTestCase
         self::assertSame('bug', $tracker->getWorkflowId());
         self::assertSame('For the questions.', $tracker->getDescription());
         self::assertTrue($tracker->isPrivate());
-        self::assertTrue($tracker->isActive());
+        self::assertFalse($tracker->isArchived());
     }
 
     public function testATrackerIsBoundToAWorkflowOfTheConfiguration(): void
@@ -68,28 +74,79 @@ final class TrackerHandlersTest extends KernelTestCase
         $this->commands->dispatch(new UpdateTracker((int) $this->fixtures->client->getId(), (int) $this->fixtures->bugs->getId(), name: 'Defect'));
     }
 
-    public function testATrackerIsRenamedAndDeactivatedThenTakesNoNewIssue(): void
+    public function testATrackerIsRenamedAndArchivedThenTakesNoNewIssue(): void
     {
         $task = $this->fixtures->createIssue($this->fixtures->manager, $this->fixtures->tasks);
-        $this->update(name: 'Defect', description: '', private: true, active: false);
+        $this->update(name: 'Defect', description: '', private: true, archived: true);
 
         $bugs = $this->fixtures->bugs;
         self::assertSame('Defect', $bugs->getName());
         self::assertNull($bugs->getDescription());
         self::assertTrue($bugs->isPrivate());
-        self::assertFalse($bugs->isActive());
+        self::assertTrue($bugs->isArchived());
         self::assertNotContains($bugs, $this->trackers->findByProject($this->fixtures->access->shop));
 
         try {
             $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->manager->getId(), $task->getKey(), (int) $bugs->getId(), 'new'));
-            self::fail('A deactivated tracker takes no issue from another one.');
+            self::fail('An archived tracker takes no issue from another one.');
         } catch (IssueException $e) {
-            self::assertStringContainsString('deactivated', $e->getMessage());
+            self::assertStringContainsString('archived', $e->getMessage());
         }
 
         $this->expectException(IssueException::class);
-        $this->expectExceptionMessage('deactivated');
+        $this->expectExceptionMessage('archived');
         $this->fixtures->createIssue($this->fixtures->manager);
+    }
+
+    public function testTheIssuesOfAnArchivedTrackerAreStillChanged(): void
+    {
+        $bug = $this->fixtures->createIssue($this->fixtures->client);
+        $this->update(archived: true);
+
+        $this->commands->dispatch(new AddComment((int) $this->fixtures->client->getId(), $bug->getKey(), 'Still there.'));
+        $this->commands->dispatch(new UpdateIssue((int) $this->fixtures->manager->getId(), $bug->getKey(), title: 'Renamed'));
+
+        self::assertSame('Renamed', $bug->getTitle());
+
+        $this->update(archived: false);
+        $this->fixtures->createIssue($this->fixtures->client);
+    }
+
+    public function testAnEmptyTrackerIsDeletedWithItsRulesAndTheOthersCloseRanks(): void
+    {
+        $support = $this->create('Support');
+        $last = $this->create('Last');
+        $manager = (int) $this->fixtures->manager->getId();
+        $rule = $this->commands->dispatch(new CreateRule((int) $this->fixtures->access->shop->getId(), 'Greets', (int) $support->getId(), [
+            'trigger' => ['type' => 'issue_created', 'params' => []],
+            'conditions' => [],
+            'actions' => [['type' => 'set_criticality', 'params' => ['criticality' => 'high']]],
+        ], actorId: $manager));
+        self::assertInstanceOf(AutomationRule::class, $rule);
+        $ruleId = (int) $rule->getId();
+        $supportId = (int) $support->getId();
+
+        $this->commands->dispatch(new DeleteTracker($manager, $supportId));
+
+        self::assertNull($this->trackers->find($supportId));
+        self::assertNull(self::getContainer()->get(AutomationRuleRepository::class)->find($ruleId));
+        self::assertSame(['Bug', 'Internal task', 'Last'], $this->names());
+        self::assertSame(2, $last->getPosition());
+    }
+
+    public function testATrackerThatHoldsIssuesIsNotDeleted(): void
+    {
+        $this->fixtures->createIssue($this->fixtures->client);
+
+        try {
+            $this->commands->dispatch(new DeleteTracker((int) $this->fixtures->developer->getId(), (int) $this->fixtures->bugs->getId()));
+            self::fail('A developer does not configure the project.');
+        } catch (AccessDeniedException) {
+        }
+
+        $this->expectException(TrackerException::class);
+        $this->expectExceptionMessage('holds 1 issues');
+        $this->commands->dispatch(new DeleteTracker((int) $this->fixtures->manager->getId(), (int) $this->fixtures->bugs->getId()));
     }
 
     public function testMovingATrackerNumbersTheListAgain(): void
@@ -112,9 +169,9 @@ final class TrackerHandlersTest extends KernelTestCase
         return $tracker;
     }
 
-    private function update(?string $name = null, ?string $description = null, ?bool $private = null, ?bool $active = null): void
+    private function update(?string $name = null, ?string $description = null, ?bool $private = null, ?bool $archived = null): void
     {
-        $this->commands->dispatch(new UpdateTracker((int) $this->fixtures->manager->getId(), (int) $this->fixtures->bugs->getId(), $name, $description, $private, $active));
+        $this->commands->dispatch(new UpdateTracker((int) $this->fixtures->manager->getId(), (int) $this->fixtures->bugs->getId(), $name, $description, $private, $archived));
     }
 
     /**
@@ -122,7 +179,7 @@ final class TrackerHandlersTest extends KernelTestCase
      */
     private function all(): array
     {
-        return $this->trackers->findByProject($this->fixtures->access->shop, includeInactive: true);
+        return $this->trackers->findByProject($this->fixtures->access->shop, includeArchived: true);
     }
 
     /**

@@ -48,12 +48,12 @@ final class ListTrackersHandlerTest extends KernelTestCase
         self::assertSame(['Bug', 'Internal task', 'Feature'], $this->names($this->internal, $project));
     }
 
-    public function testDeactivatedTrackersComeOnlyWhenAskedFor(): void
+    public function testArchivedTrackersComeOnlyWhenAskedFor(): void
     {
         $project = $this->project();
 
-        self::assertSame(['Bug', 'Feature', 'Support'], $this->names($this->external, $project, inactive: true));
-        self::assertSame(['Bug', 'Internal task', 'Feature', 'Support'], $this->names($this->internal, $project, inactive: true));
+        self::assertSame(['Bug', 'Feature', 'Support'], $this->names($this->external, $project, archived: true));
+        self::assertSame(['Bug', 'Internal task', 'Feature', 'Support'], $this->names($this->internal, $project, archived: true));
     }
 
     public function testTheTrackersOfAnotherProjectStayOut(): void
@@ -61,12 +61,12 @@ final class ListTrackersHandlerTest extends KernelTestCase
         $this->project();
         $other = ProjectFactory::createOne();
 
-        self::assertSame([], $this->names($this->internal, $other, inactive: true));
+        self::assertSame([], $this->names($this->internal, $other, archived: true));
     }
 
     /**
      * Bug (public), Internal task (private), Feature (public) and
-     * Support (public, deactivated), in that order.
+     * Support (public, archived), in that order.
      */
     private function project(): Project
     {
@@ -75,7 +75,7 @@ final class ListTrackersHandlerTest extends KernelTestCase
         $tasks = new Tracker($project, 'Internal task', 'task', 1);
         $tasks->makePrivate();
         $support = new Tracker($project, 'Support', 'bug', 3);
-        $support->deactivate();
+        $support->archive();
         foreach ([new Tracker($project, 'Feature', 'evolution', 2), $tasks, new Tracker($project, 'Bug', 'bug', 0), $support] as $tracker) {
             $entityManager->persist($tracker);
         }
@@ -87,8 +87,8 @@ final class ListTrackersHandlerTest extends KernelTestCase
     /**
      * @return list<string>
      */
-    private function names(User $viewer, Project $project, bool $inactive = false): array
+    private function names(User $viewer, Project $project, bool $archived = false): array
     {
-        return array_map(static fn (Tracker $tracker): string => $tracker->getName(), self::queryBus()->ask(new ListTrackers($viewer, $project, $inactive)));
+        return array_map(static fn (Tracker $tracker): string => $tracker->getName(), self::queryBus()->ask(new ListTrackers($viewer, $project, $archived)));
     }
 }

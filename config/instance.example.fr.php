@@ -60,6 +60,8 @@ return new InstanceDefinition(
         // grant editing the content written by others.
         Permission::IssueEdit->value => $managers,
         Permission::IssueChangeTracker->value => $internal,
+        // Supprimer une demande efface définitivement ses commentaires, fichiers, liens et historique.
+        Permission::IssueDelete->value => $internal,
         // Put an issue on any step, even one no action leads to: internal users
         // may leave the workflow shown to clients, and the journal says so.
         Permission::IssueForcePlace->value => $internal,

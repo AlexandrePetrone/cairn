@@ -122,6 +122,25 @@ final class ReleaseTest extends WebTestCase
         self::assertSame(ReleaseStatus::Abandoned, $this->release($release->getName())->getStatus());
     }
 
+    public function testTheManagerDeletesAReleaseThatHoldsIssuesFromItsDialog(): void
+    {
+        $release = $this->scene->release('2.5.0', ['MD-SPT-1', 'MD-SPT-2']);
+        $this->signInAs('thomas.girard@cairn.test');
+
+        $this->client->request('GET', \sprintf('/MD/SPT/releases/%d', $release->getId()));
+        self::assertSelectorTextContains('[role="dialog"]', 'the 2 issues it holds will have no release');
+
+        $this->client->submitForm('Delete the release');
+        self::assertResponseRedirects('/MD/SPT/releases');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('body', 'Release 2.5.0 deleted.');
+        self::assertNull(self::getContainer()->get(ReleaseRepository::class)->findOneByName($this->scene->shop, '2.5.0'));
+
+        $this->client->request('GET', '/MD/SPT/issues/1');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main', '2.5.0', 'the history keeps the name of the release');
+    }
+
     public function testTheDialogOfAReleaseIsAnsweredAloneToItsFrame(): void
     {
         $this->signInAs('thomas.girard@cairn.test');

@@ -21,23 +21,44 @@ REST API, and Mercure (`symfony/mercure-bundle`) for the optional real time.
 Decisions already taken:
 
 - Persistence: Doctrine ORM, schema compatible with both MariaDB and
-  PostgreSQL. Nothing is ever physically deleted, with eleven exceptions:
-  a removed attachment (file and row, the journal keeps its name), a
-  deleted comment (row and files, the journal keeps its text, author and
-  date), a revoked membership (memberships are the current state of
-  access, not its history), a removed link between issues (the journal
-  of both issues keeps it), an issue subscription a person ends
-  (following is the current state, personal and unjournaled), and a
-  code repository a manager unlinks from a project (it is configuration,
-  like a membership; the code references it produced stay), and a
-  password token once used, replaced by a newer one or long expired (a
-  credential, not history), and the view someone keeps of an issue list
-  (`ListView`: personal, replaced by the next, gone with it), and a
-  notification once its mail left (`PendingNotification`: a queue, not
-  history), and the picture of an account once replaced or removed (the
-  file; an account keeps one at most), and an automation rule a manager
-  deletes (`AutomationRule`: configuration, like a linked repository;
-  what it did stays in the journal and in its executions).
+  PostgreSQL. What is deleted is deleted physically (no soft delete, no
+  bin), and three rules say what may be:
+  - **What is the current state or configuration, not history, goes
+    freely**, by whoever manages it: a removed attachment (file and row,
+    the journal keeps its name), a deleted comment (row and files, the
+    journal keeps its text, author and date), a revoked membership, a
+    removed link between issues (the journal of both keeps it), an issue
+    subscription a person ends, a code repository a manager unlinks (the
+    code references it produced stay), a password token once used,
+    replaced or long expired, the view someone keeps of an issue list
+    (`ListView`), a notification once its mail left
+    (`PendingNotification`), the picture of an account once replaced, an
+    automation rule (`AutomationRule`: what it did stays in the journal
+    and in its executions), and a release (`DeleteRelease`: its issues
+    are left without one, which their journal says).
+  - **What holds history is archived, and deleted only while empty.** A
+    tracker is archived (`UpdateTracker::$archived`: nothing new goes in
+    it, its issues stay seen and changed as before, by clients too) and
+    deleted only without any issue (`DeleteTracker`); an account is
+    deactivated, and deleted only when it left no trace (`DeleteUser`,
+    `UserRepository::hasHistory()`). Anonymising an account is not done.
+  - **History goes only on purpose, with its container.** An issue is
+    erased with all that hangs from it under `issue.delete`
+    (`DeleteIssue`); a project or a workspace, by an administrator and
+    only once archived (`DeleteProject`, `DeleteWorkspace`), with
+    everything they hold. `Repository/IssueEraser` is the one place that
+    knows what hangs from an issue and in which order it goes, in a few
+    bulk statements whatever the number (measured: two seconds for
+    20,000 issues and their 200,000 lines, so no worker and no "being
+    deleted" state); `MessageHandler/Command/Project/ProjectRemoval` adds
+    what belongs to a project. Bulk statements run no Doctrine listener,
+    so the files go afterwards: `RemoveFiles`, dispatched with
+    `DispatchAfterCurrentBusStamp`, runs once the transaction committed
+    and is dropped with it; a file it could not remove is taken by
+    `AttachmentPruner` the next day. A link to an erased issue goes
+    without a word in the history of the other one, a reference to it in
+    a text elsewhere reads as plain text, and the key of a deleted
+    project is free again. Deleting notifies nobody.
 - Interface: server-rendered Twig + Turbo + UX Twig/Live Components, Tailwind
   for styling, no JavaScript framework: an issue list is a GET form and
   a Turbo frame, the kanban is Live components with SortableJS in a
@@ -326,7 +347,8 @@ src/
   EventDispatcher, inside the transaction, so a listener may still write
   (`SubscriptionRules`). One event per command and per issue: linking
   dispatches one for each end; `RankIssue`, which arranges the kanban,
-  records nothing. Nothing has an id when the event fires;
+  records nothing, and `DeleteIssue`, which leaves no journal to write
+  in, dispatches `IssueDeleted` itself, for the real time only. Nothing has an id when the event fires;
   `Notification/NotificationDispatcher` keeps the events it listens to
   until Doctrine's `postFlush`, then dispatches `NotifyIssueChange` (ids
   only) on the default bus with `DispatchAfterCurrentBusStamp`: the
@@ -381,6 +403,12 @@ src/
   (`Twig/JournalLabelExtension`) turns an entry into its sentence, for
   the thread (`Issue:JournalEntry`) and the mails alike: the only place
   that reads what each type recorded.
+- **Deleting an issue is a right, not the author's.** `issue.delete`
+  (project managers and developers in the example) erases an issue for
+  what should never have been written: a test, a mistake, a secret pasted
+  in a description. The bin of `Issue:Header` asks in a dialog, saying how
+  many comments and files go, then leads to the list of the project. A
+  client never deletes, even their own issue; they ask.
 
 ### The issue page
 
@@ -454,7 +482,9 @@ src/
   and the Releases page (`/MD/SPT/releases`, `Project/ReleaseController`)
   is in its navigation only for whoever may create the first
   (`release.manage`). A release is created (`/releases/new`) and changed
-  (`/releases/{id}`, where an open one is also abandoned) in a dialog
+  (`/releases/{id}`, where an open one is also abandoned, and any one
+  deleted: `DeleteRelease` takes it out of each issue it held through
+  `record()`, as if the actor had done so by hand) in a dialog
   over the list. Clients read the releases, their progress counted
   over the issues they see (`ListReleases`, through `Visibility`).
 
@@ -1084,7 +1114,12 @@ src/
   never goes to an external user (who cannot become external while they
   hold one), a role granted on a project widens the one inherited from
   its workspace, the last active administrator stays one. Keys never
-  change once created. Project configuration and memberships seen from
+  change once created. An archived project, or workspace, is deleted for
+  good from a page of its own (`/admin/projects/MD/SPT/delete`, reached
+  from its row; `/admin/workspaces/MD/delete`, from its settings), which
+  counts what goes with it (`ShowProjectContents`) and asks for its key
+  to be typed again (`Form/Admin/DeletionType`); an account that left no
+  trace is deleted from its page, confirmed in place. Project configuration and memberships seen from
   a project belong to its manager, in the project zone, not here:
   the Configuration section of the project navigation (`Layout:ProjectNav`),
   one item and one page per subject: General (`/MD/SPT/settings/general`),
@@ -1118,9 +1153,14 @@ src/
   `issue.change_tracker` leave the workflow clients are shown, so the
   configuration grants
   them to internal-only roles: `Permission::internalOnly()` says which,
-  `ConfigValidator` refuses the rest. Trackers are never deleted:
-  `UpdateTracker` deactivates one (no new issue, out of the menu) or
-  moves it (`position`).
+  `ConfigValidator` refuses the rest; `issue.delete`, which cannot be
+  undone, is internal-only too. A tracker is archived
+  (`UpdateTracker::$archived`: no new issue, out of the creation form and
+  of the trackers an issue may change to, but still in the navigation,
+  after the others, with its list and its kanban), moved (`position`), or
+  deleted while it holds no issue (`DeleteTracker`, with the rules
+  limited to it): the buttons under its settings, each saying what it
+  does.
   The configuration itself is shown read-only under
   `/admin/configuration` (`Controller/Admin/ConfigurationController`,
   its own section of `Layout:AdminNav`): roles and the permission

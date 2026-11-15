@@ -1,0 +1,26 @@
+{% extends 'layout/admin.html.twig' %}
+
+{# Deleting an archived workspace for good: each of its projects with what goes with it, then its key typed again. #}
+{% block page_title %}{{ 'admin.workspace.delete'|trans }}{% endblock %}
+
+{% block breadcrumb %}
+    <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-ghost shrink-0" />
+    <a href="{{ path('app_admin_workspace_settings', { key: workspace.key }) }}" class="hover:text-strong">{{ workspace.name }}</a>
+{% endblock %}
+
+{% block content %}
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 py-5 space-y-4">
+        <h1 class="text-xl font-semibold text-strong flex items-center gap-2">{{ 'admin.workspace.delete_title'|trans({ '%name%': workspace.name }) }} <twig:Ui:Chip>{{ workspace.key }}</twig:Ui:Chip></h1>
+        <section class="rounded-lg border border-line bg-surface p-4 space-y-3">
+            <p class="text-sm text-body">{{ 'admin.workspace.delete_contents'|trans({ '%count%': contents|length, '%members%': members }) }}</p>
+            {% for projectContents in contents %}
+                <div class="border-t border-line-subtle pt-3">
+                    <h2 class="text-sm font-medium text-strong">{{ projectContents.project.name }} <twig:Ui:Chip>{{ projectContents.project.issuePrefix }}</twig:Ui:Chip></h2>
+                    {{ include('admin/_deletion_contents.html.twig', { contents: projectContents }) }}
+                </div>
+            {% endfor %}
+            <p class="text-xs text-muted">{{ 'admin.delete.consequences'|trans({ '%key%': workspace.key ~ '-…' }) }}</p>
+        </section>
+        {{ include('admin/_deletion_form.html.twig', { cancelHref: path('app_admin_workspace_settings', { key: workspace.key }), submitLabel: 'admin.workspace.delete'|trans }) }}
+    </div>
+{% endblock %}

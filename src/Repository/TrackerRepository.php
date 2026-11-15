@@ -23,15 +23,15 @@ class TrackerRepository extends ServiceEntityRepository
      * Every tracker of a project in display order, private ones included:
      * for the commands and the project configuration, which see them all.
      * A screen asks ListTrackers, which hides them from external users.
-     * Deactivated ones come only when asked for.
+     * Archived ones come only when asked for.
      *
      * @return list<Tracker>
      */
-    public function findByProject(Project $project, bool $includeInactive = false): array
+    public function findByProject(Project $project, bool $includeArchived = false): array
     {
         $criteria = ['project' => $project];
-        if (!$includeInactive) {
-            $criteria['active'] = true;
+        if (!$includeArchived) {
+            $criteria['archived'] = false;
         }
 
         return $this->findBy($criteria, ['position' => 'ASC', 'id' => 'ASC']);

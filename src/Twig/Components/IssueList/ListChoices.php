@@ -128,13 +128,13 @@ final class ListChoices
     }
 
     /**
-     * The trackers of the project the viewer sees, inactive ones included.
+     * The trackers of the project the viewer sees, archived ones included.
      *
      * @return list<Tracker>
      */
     public function trackers(ListScope $scope): array
     {
-        return $this->trackers[$scope] ??= null === $scope->project ? [] : $this->queries->ask(new ListTrackers($this->viewer->get(), $scope->project, inactive: true));
+        return $this->trackers[$scope] ??= null === $scope->project ? [] : $this->queries->ask(new ListTrackers($this->viewer->get(), $scope->project, archived: true));
     }
 
     /**

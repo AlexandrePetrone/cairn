@@ -1,4 +1,4 @@
-{# The top of the issue page: key, tracker, author, privacy, title and the path the issue took. Redrawn on `issue:changed`. #}
+{# The top of the issue page: key, tracker, author, privacy, title and the path the issue took, and for whoever may delete the issue a bin that asks in a dialog first. Redrawn on `issue:changed`. #}
 {% set headerPath = this.path %}
 <div {{ attributes }}>
     <div>
@@ -10,6 +10,7 @@
             <span>{{ 'issue.show.created_by'|trans({ '%name%': issue.author.fullName, '%date%': issue.createdAt|date('d/m/Y') }) }}</span>
             {% if issue.importedRef %}<span class="text-ghost">·</span><span>{{ 'issue.show.formerly'|trans({ '%ref%': issue.importedRef }) }}</span>{% endif %}
             {% if issue.private %}<twig:Ui:Badge tone="amber" size="sm" icon="lock">{{ 'issue.private'|trans }}</twig:Ui:Badge>{% endif %}
+            {% if this.canDelete %}<twig:Ui:IconButton icon="trash-2" tone="danger" size="sm" :label="'issue.delete.title'|trans" class="ml-auto" data-action="live#action" data-live-action-param="confirmDelete" />{% endif %}
         </div>
         {% if editingTitle %}
             <form class="mt-1" data-action="live#action:prevent" data-live-action-param="saveTitle">
@@ -38,4 +39,19 @@
             </ol>
         </div>
     </div>
+    {% if deleting %}
+        {% set headerContents = this.contents %}
+        <twig:Ui:Dialog :title="'issue.delete.title'|trans" closeAction="cancelDelete">
+            <twig:block name="description">
+                <p class="truncate"><span class="font-mono">{{ issue.key }}</span> · {{ issue.title }}</p>
+            </twig:block>
+            {% if error %}<twig:Ui:Callout tone="danger" size="sm" role="alert">{{ error }}</twig:Ui:Callout>{% endif %}
+            <p class="text-sm text-body">{{ 'issue.delete.help'|trans }}</p>
+            <p class="text-sm text-muted">{{ 'issue.delete.comments'|trans({ '%count%': headerContents.comments }) }} · {{ 'issue.delete.files'|trans({ '%count%': headerContents.files }) }}</p>
+            <twig:block name="footer">
+                <twig:Ui:Button variant="danger" icon="trash-2" data-action="live#action" data-live-action-param="delete" data-loading="addAttribute(disabled)">{{ 'issue.delete.confirm'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button variant="ghost" data-action="live#action" data-live-action-param="cancelDelete">{{ 'issue.edit.cancel'|trans }}</twig:Ui:Button>
+            </twig:block>
+        </twig:Ui:Dialog>
+    {% endif %}
 </div>

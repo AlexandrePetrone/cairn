@@ -47,7 +47,7 @@ final class ConfigureImportHandler
             $manifest,
             ImportAnalysis::fromArray($import->getAnalysis()),
             $definition,
-            $this->trackers->findByProject($import->getProject(), includeInactive: true),
+            $this->trackers->findByProject($import->getProject(), includeArchived: true),
         )->toArray());
     }
 }

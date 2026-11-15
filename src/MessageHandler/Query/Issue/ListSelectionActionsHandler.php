@@ -129,7 +129,7 @@ final class ListSelectionActionsHandler
         return array_values(array_filter($candidates, static function (Tracker $tracker) use ($issues, $force, $change): bool {
             foreach ($issues as $issue) {
                 $own = $issue->getTracker()->getId() === $tracker->getId();
-                if ($own ? !$force : (!$change || !$tracker->isActive())) {
+                if ($own ? !$force : (!$change || $tracker->isArchived())) {
                     return false;
                 }
             }

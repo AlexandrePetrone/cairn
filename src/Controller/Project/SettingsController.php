@@ -22,11 +22,14 @@ use App\Message\Command\Forge\UnlinkRepository;
 use App\Message\Command\Forge\UpdateRepository;
 use App\Message\Command\Project\UpdateProject;
 use App\Message\Command\Tracker\CreateTracker;
+use App\Message\Command\Tracker\DeleteTracker;
 use App\Message\Command\Tracker\UpdateTracker;
 use App\Message\CommandBus;
 use App\MessageHandler\Command\Forge\CodeRepositoryException;
 use App\MessageHandler\Command\Tracker\TrackerException;
+use App\Repository\AutomationRuleRepository;
 use App\Repository\CodeRepositoryRepository;
+use App\Repository\IssueRepository;
 use App\Repository\TrackerRepository;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -44,10 +47,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The configuration of a project, for its manager: its trackers (the list,
- * the dialog creating one, the settings of one), its general settings and
+ * the dialog creating one, the settings of one, where it is archived or deleted), its general settings and
  * the repositories of the forges linked to it (the list, the dialog
  * linking one). A dialog has an address of its own, which renders the
- * list with it open. Archiving stays in the administration.
+ * list with it open. Archiving the project stays in the administration.
  */
 #[Route('/{workspaceKey}/{projectKey}/settings', requirements: ['workspaceKey' => '[A-Z]{2,5}', 'projectKey' => '[A-Z]{2,5}'])]
 #[IsGranted('project.configure', subject: 'project')]
@@ -69,7 +72,7 @@ final class SettingsController extends AbstractController
     #[Route('', name: 'app_project_settings', methods: ['GET'])]
     public function trackers(#[CurrentProject] Project $project, Request $request, TrackerRepository $trackers): Response
     {
-        $first = $trackers->findByProject($project, includeInactive: true)[0] ?? null;
+        $first = $trackers->findByProject($project, includeArchived: true)[0] ?? null;
         if (null !== $first) {
             return $this->redirectToRoute('app_project_settings_tracker', self::route($project) + ['tracker' => $first->getId()]);
         }
@@ -105,7 +108,7 @@ final class SettingsController extends AbstractController
     }
 
     #[Route('/trackers/{tracker}', name: 'app_project_settings_tracker', requirements: ['tracker' => '\d+'], methods: ['GET', 'POST'])]
-    public function tracker(#[CurrentProject] Project $project, #[MapEntity(id: 'tracker')] Tracker $tracker, #[CurrentUser] User $actor, Request $request): Response
+    public function tracker(#[CurrentProject] Project $project, #[MapEntity(id: 'tracker')] Tracker $tracker, #[CurrentUser] User $actor, Request $request, IssueRepository $issues, AutomationRuleRepository $rules): Response
     {
         if ($tracker->getProject()->getId() !== $project->getId()) {
             throw new NotFoundHttpException();
@@ -118,11 +121,10 @@ final class SettingsController extends AbstractController
         $data->name = $tracker->getName();
         $data->description = $tracker->getDescription();
         $data->private = $tracker->isPrivate();
-        $data->active = $tracker->isActive();
         $form = $this->createForm(TrackerType::class, $data);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->commands->dispatch(new UpdateTracker((int) $actor->getId(), (int) $tracker->getId(), (string) $data->name, (string) $data->description, $data->private, $data->active));
+            $this->commands->dispatch(new UpdateTracker((int) $actor->getId(), (int) $tracker->getId(), (string) $data->name, (string) $data->description, $data->private));
             $this->addFlash('success', $this->translator->trans('project.settings.saved'));
 
             return $this->redirectToRoute('app_project_settings_tracker', self::route($project) + ['tracker' => $tracker->getId()]);
@@ -135,7 +137,40 @@ final class SettingsController extends AbstractController
             'tracker' => $tracker,
             'workflow' => $definition->hasWorkflow($tracker->getWorkflowId()) ? $definition->workflow($tracker->getWorkflowId()) : null,
             'form' => $form,
+            'issueCount' => $issues->count(['tracker' => $tracker]),
+            'ruleCount' => $rules->count(['tracker' => $tracker]),
         ], new Response(null, $form->isSubmitted() ? 422 : 200));
+    }
+
+    /**
+     * Archives the tracker or brings it back, or deletes it when it holds
+     * no issue: the buttons under its settings.
+     */
+    #[Route('/trackers/{tracker}/{action}', name: 'app_project_settings_tracker_action', requirements: ['tracker' => '\d+', 'action' => 'archive|unarchive|delete'], methods: ['POST'])]
+    #[IsCsrfTokenValid('submit')]
+    public function trackerAction(#[CurrentProject] Project $project, #[MapEntity(id: 'tracker')] Tracker $tracker, string $action, #[CurrentUser] User $actor): Response
+    {
+        if ($tracker->getProject()->getId() !== $project->getId()) {
+            throw new NotFoundHttpException();
+        }
+        $name = $tracker->getName();
+        $id = (int) $tracker->getId();
+        $deleted = false;
+        try {
+            $this->commands->dispatch(match ($action) {
+                'delete' => new DeleteTracker((int) $actor->getId(), $id),
+                default => new UpdateTracker((int) $actor->getId(), $id, archived: 'archive' === $action),
+            });
+            $this->addFlash('success', $this->translator->trans('project.settings.tracker.done.'.$action, ['%name%' => $name]));
+            $deleted = 'delete' === $action;
+        } catch (TrackerException $e) {
+            $this->addFlash('error', $e->trans($this->translator));
+        }
+        if ($deleted) {
+            return $this->redirectToRoute('app_project_settings', self::route($project));
+        }
+
+        return $this->redirectToRoute('app_project_settings_tracker', self::route($project) + ['tracker' => $id]);
     }
 
     #[Route('/general', name: 'app_project_settings_general', methods: ['GET', 'POST'])]

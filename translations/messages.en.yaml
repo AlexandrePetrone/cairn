@@ -53,6 +53,13 @@ issue:
             already: 'Already linked so to %key%.'
             other_project: '%key% belongs to another project: only internal users link across projects.'
             read_only: 'The project of %key% is archived.'
+    delete:
+        title: Delete the issue
+        help: The issue is erased for good, with its comments, its files, its links and its history. Nobody is told, and its number is not given again.
+        comments: '{0}No comment|{1}1 comment|]1,Inf[ %count% comments'
+        files: '{0}no file|{1}1 file|]1,Inf[ %count% files'
+        confirm: Delete for good
+        done: 'Issue %key% deleted.'
     show:
         path: Path
         moved_step: Moved without an action
@@ -419,6 +426,19 @@ admin:
     filter:
         state: State
         type: Type
+    delete:
+        confirmation: 'Type %key% to confirm'
+        irreversible: This cannot be undone, and nothing is kept aside. If you only want it out of the way, leave it archived.
+        consequences: 'The webhooks of its linked repositories are removed from their forge when it answers. A reference such as #%key%-12 written in another project reads as plain text afterwards, and the key becomes free again.'
+        count:
+            issues: '{0}issue|{1}issue|]1,Inf[ issues'
+            comments: '{0}comment|{1}comment|]1,Inf[ comments'
+            files: '{0}file|{1}file|]1,Inf[ files'
+            trackers: '{0}tracker|{1}tracker|]1,Inf[ trackers'
+            releases: '{0}release|{1}release|]1,Inf[ releases'
+            members: '{0}access|{1}access|]1,Inf[ accesses'
+            repositories: '{0}linked repository|{1}linked repository|]1,Inf[ linked repositories'
+            rules: '{0}automation rule|{1}automation rule|]1,Inf[ automation rules'
     project:
         count: '{0}No projects|{1}1 project|]1,Inf[ %count% projects'
         new: New project
@@ -428,6 +448,10 @@ admin:
         archived: 'Project "%name%" archived: it is now read-only.'
         unarchived: 'Project "%name%" unarchived.'
         archived_badge: Archived
+        delete: Delete the project
+        delete_title: 'Delete "%name%"'
+        delete_help: 'Everything the project holds is erased for good, for everyone:'
+        deleted: 'Project "%name%" deleted, with everything it held.'
         search: Project, key or workspace…
         empty: No project matches.
         workspace: Workspace
@@ -453,6 +477,11 @@ admin:
         archived_label: Archived
         archive_help: All of its projects become read-only. Reversible.
         archived_badge: Workspace archived
+        delete: Delete the workspace
+        delete_title: 'Delete "%name%"'
+        delete_help: An archived workspace can be deleted for good, with every project it holds.
+        delete_contents: '{0}The workspace holds no project. The access granted on it (%members%) goes with it.|{1}Its project is erased for good with everything it holds, as is the access granted on the workspace (%members%):|]1,Inf[ Its %count% projects are erased for good with everything they hold, as is the access granted on the workspace (%members%):'
+        deleted: 'Workspace "%name%" deleted, with everything it held.'
         active_badge: Active
         column:
             name: Workspace
@@ -517,6 +546,11 @@ admin:
         created: 'Account of %name% created, an invitation was sent to %email%.'
         invitation_pending: 'The invitation sent to %email% has not been accepted yet: the account has no password and cannot sign in.'
         invitation_resend: Resend the invitation
+        delete: Delete the account
+        delete_help: This account never wrote anything nor was given an issue, so it can be deleted for good, with its access.
+        delete_blocked: This account wrote or holds issues, comments or files, which keep its name. It cannot be deleted; deactivate it to close its access.
+        delete_confirm: 'Delete the account of %name% for good?'
+        deleted: 'Account of %name% deleted.'
         invitation_sent: 'Invitation sent to %email%.'
         search: Name or email…
         empty: No user matches.
@@ -796,11 +830,15 @@ admin:
         workspace_key_taken: 'A workspace already uses the key %key%.'
         project_key_taken: 'A project of %workspace% already uses the key %key%.'
         archived_workspace: 'The workspace %workspace% is archived: it takes no new project.'
+        project_not_archived: 'The project %name% is not archived: archive it first.'
+        workspace_not_archived: 'The workspace %name% is not archived: archive it first.'
+        import_running: 'An import is running on the project %name%: wait for it to end, or abandon it.'
         unknown_role: 'The role "%role%" does not exist in the configuration.'
         internal_only_role: '%name% is external: the role "%role%" is for internal users only.'
         not_wider: 'The role "%role%" does not widen the role "%inherited%" inherited from the workspace.'
         email_taken: 'An account already uses %email%.'
         last_admin: At least one active administrator must remain.
+        has_history: '%name% wrote or holds issues, comments or files: deactivate the account instead.'
         holds_internal_roles: '%name% holds roles for internal users only (%where%): revoke them before making this person external.'
         deactivated: '%name% is deactivated: reactivate the account first.'
         already_activated: '%name% already chose a password: they can use "Forgot password?" on the sign-in page.'
@@ -832,7 +870,7 @@ project:
             empty: No tracker yet. Create one so that issues can be filed.
             drag: Drag to reorder
             issue_count: '{0}no issue|{1}1 issue|]1,Inf[ %count% issues'
-            inactive_badge: Deactivated
+            archived_badge: Archived
             private_badge: Internal users only
             order_help: The order is the one of the creation form and the menu.
             moved: Order saved.
@@ -844,8 +882,22 @@ project:
             workflow_fixed: Chosen when the tracker was created, it does not change. Its places, fields and actions are defined in the configuration of the instance.
             private: Internal users only
             private_help: External users neither see its issues nor create any.
-            active: Takes new issues
-            active_help: A deactivated tracker keeps its issues but disappears from the creation form and the menu.
+            archive: Archive
+            unarchive: Unarchive
+            archive_title: Archive this tracker
+            archive_help: No issue can be created in it or moved to it any more. Those it holds stay visible and can still be changed, by clients too. Reversible.
+            archived_title: This tracker is archived
+            archived_help: It takes no new issue. Those it holds stay visible and can still be changed, by clients too.
+            delete: Delete
+            delete_title: Delete this tracker
+            delete_help: It holds no issue, so it can be deleted for good.
+            delete_confirm: Delete this tracker for good?
+            delete_rules: '{1}The automation rule limited to it is deleted with it.|]1,Inf[ The %count% automation rules limited to it are deleted with it.'
+            delete_blocked: '{1}It holds 1 issue: move it to another tracker to delete this one, or archive it.|]1,Inf[ It holds %count% issues: move them to another tracker to delete this one, or archive it.'
+            done:
+                archive: 'Tracker "%name%" archived: it takes no new issue.'
+                unarchive: 'Tracker "%name%" unarchived.'
+                delete: 'Tracker "%name%" deleted.'
         repository:
             intro: "Commits and merge requests of the linked repositories that mention an issue of the project (%prefix%-12) show on its page, for internal users only."
             new: Link a repository
@@ -884,6 +936,7 @@ project:
         refused:
             not_found: Not found.
             unknown_workflow: 'The workflow "%workflow%" does not exist in the configuration.'
+            tracker_has_issues: 'The tracker "%name%" still holds issues (%count%): it can be archived, not deleted.'
     access:
         title: Access
         add: Add someone
@@ -934,6 +987,10 @@ release:
     empty_hint: The releases of the project will show here.
     empty_hint_manager: Create one to gather the issues of a delivery.
     abandon_help: An abandoned release takes no more issues; those it holds stay in it.
+    delete: Delete the release
+    delete_help: '{0}A deleted release is gone for good. It holds no issue.|{1}A deleted release is gone for good: the issue it holds will have no release.|]1,Inf[ A deleted release is gone for good: the %count% issues it holds will have no release.'
+    delete_confirm: Delete this release for good?
+    deleted: 'Release %name% deleted.'
     status:
         open: Open
         delivered: Delivered
@@ -1060,6 +1117,9 @@ permission:
         change_tracker:
             label: Change the tracker of an issue
             help: Move an issue to another tracker of the project, choosing its place in the new workflow.
+        delete:
+            label: Delete an issue
+            help: Erase an issue for good, with its comments, files, links and history. Nobody is told.
         force_place:
             label: Move an issue to any step
             help: Put an issue on any step of its workflow without going through an action, to fix a mistake; the history keeps the move.
@@ -1094,7 +1154,7 @@ permission:
     project:
         configure:
             label: Configure the project
-            help: Change its name and description, create, arrange and deactivate its trackers, link its code repositories and write its automation rules.
+            help: Change its name and description, create, arrange, archive and delete its trackers, link its code repositories and write its automation rules.
         manage_members:
             label: Manage access to the project
             help: Grant, change and revoke the roles held on the project itself, and designate the referent of each role there. Workspace roles stay with the administration.

@@ -34,6 +34,11 @@ final class TrackerException extends \DomainException implements TranslatableInt
         return new self(\sprintf('Workflow "%s" does not exist in the configuration.', $workflowId), 'project.settings.refused.unknown_workflow', ['%workflow%' => $workflowId]);
     }
 
+    public static function hasIssues(string $trackerName, int $issues): self
+    {
+        return new self(\sprintf('Tracker "%s" holds %d issues: it is archived, not deleted.', $trackerName, $issues), 'project.settings.refused.tracker_has_issues', ['%name%' => $trackerName, '%count%' => (string) $issues]);
+    }
+
     public function trans(TranslatorInterface $translator, ?string $locale = null): string
     {
         return $translator->trans($this->reason, $this->parameters, null, $locale);

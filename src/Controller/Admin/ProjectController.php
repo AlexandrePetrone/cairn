@@ -6,13 +6,17 @@ namespace App\Controller\Admin;
 
 use App\Controller\Project\CurrentProject;
 use App\Entity\Project;
+use App\Form\Admin\DeletionData;
+use App\Form\Admin\DeletionType;
 use App\Form\Project\ProjectData;
 use App\Form\Project\ProjectFilters;
 use App\Form\Project\ProjectType;
 use App\Message\Command\Project\CreateProject;
+use App\Message\Command\Project\DeleteProject;
 use App\Message\Command\Project\UpdateProject;
 use App\Message\CommandBus;
 use App\Message\Query\Project\ListProjects;
+use App\Message\Query\Project\ShowProjectContents;
 use App\Message\Query\Workspace\ListWorkspaces;
 use App\Message\QueryBus;
 use App\MessageHandler\Command\Project\ProjectException;
@@ -29,7 +33,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Every project of the instance, grouped by workspace: creating one,
- * archiving it or bringing it back.
+ * archiving it or bringing it back, deleting an archived one for good.
  */
 #[IsGranted('ROLE_ADMIN')]
 final class ProjectController extends AbstractController
@@ -106,6 +110,39 @@ final class ProjectController extends AbstractController
         $this->addFlash('success', $this->translator->trans($archived ? 'admin.project.archived' : 'admin.project.unarchived', ['%name%' => $project->getName()]));
 
         return $this->back($request);
+    }
+
+    /**
+     * What the project holds, and the form that deletes it for good once
+     * its key is typed again: for an archived project only.
+     */
+    #[Route('/admin/projects/{workspaceKey}/{projectKey}/delete', name: 'app_admin_project_delete', methods: ['GET', 'POST'])]
+    public function delete(#[CurrentProject] Project $project, Request $request): Response
+    {
+        if (!$project->isReadOnly()) {
+            throw $this->createNotFoundException('Only an archived project is deleted.');
+        }
+        $data = new DeletionData();
+        $form = $this->createForm(DeletionType::class, $data, ['expected' => $project->getIssuePrefix()]);
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            $name = $project->getName();
+            $workspaceKey = $project->getWorkspace()->getKey();
+            try {
+                $this->commands->dispatch(new DeleteProject((int) $project->getId()));
+                $this->addFlash('success', $this->translator->trans('admin.project.deleted', ['%name%' => $name]));
+
+                return $this->redirectToRoute('app_admin_workspace', ['key' => $workspaceKey]);
+            } catch (ProjectException $e) {
+                $form->addError(new FormError($e->trans($this->translator)));
+            }
+        }
+
+        return $this->render('admin/project_delete.html.twig', [
+            'project' => $project,
+            'contents' => $this->queries->ask(new ShowProjectContents($project)),
+            'form' => $form,
+        ], new Response(null, $form->isSubmitted() ? 422 : 200));
     }
 
     /**

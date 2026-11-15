@@ -198,7 +198,7 @@ final class ImportController extends AbstractController
         }, [
             'manifest' => $manifest,
             'analysis' => $analysis = ImportAnalysis::fromArray($import->getAnalysis()),
-            'assigned' => $analysis->openAssigned($mapping, $this->trackers->findByProject($import->getProject(), includeInactive: true)),
+            'assigned' => $analysis->openAssigned($mapping, $this->trackers->findByProject($import->getProject(), includeArchived: true)),
             'accounts' => $accounts,
             'settled' => $settled,
         ]);
@@ -213,7 +213,7 @@ final class ImportController extends AbstractController
         $analysis = ImportAnalysis::fromArray($import->getAnalysis());
         $mapping = ImportMapping::fromArray($import->getMapping());
         $manifest = ImportManifest::fromArray($import->getManifest());
-        $trackers = $this->trackers->findByProject($import->getProject(), includeInactive: true);
+        $trackers = $this->trackers->findByProject($import->getProject(), includeArchived: true);
 
         // The open issues of the people left without a role arrive assigned to nobody.
         $unassigned = [];

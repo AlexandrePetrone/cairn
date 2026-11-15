@@ -88,6 +88,21 @@ final class ImportsDirectory
     /** Removes the work folder; the zip stays where it is. */
     public function release(Import $import): void
     {
-        $this->filesystem->remove($this->work($import));
+        $this->clear((int) $import->getId());
+    }
+
+    /** The work folder of an import that may be gone with its project. */
+    public function clear(int $importId): void
+    {
+        $this->filesystem->remove($this->directory.'/work/'.$importId);
+    }
+
+    /**
+     * Removes a zip put away after its import, whose project was deleted.
+     * A zip still waiting is left: it may be imported elsewhere.
+     */
+    public function discard(string $name): void
+    {
+        $this->filesystem->remove($this->directory.'/archive/'.basename($name));
     }
 }

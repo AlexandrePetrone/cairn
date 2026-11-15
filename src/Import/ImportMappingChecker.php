@@ -34,7 +34,7 @@ final class ImportMappingChecker
         $definition = $this->config->definition();
         $manifest = ImportManifest::fromArray($import->getManifest());
         $analysis = ImportAnalysis::fromArray($import->getAnalysis());
-        $existing = $this->trackers->findByProject($import->getProject(), includeInactive: true);
+        $existing = $this->trackers->findByProject($import->getProject(), includeArchived: true);
         $existingTargets = array_map(static fn (Tracker $tracker): string => 'tracker:'.$tracker->getId(), $existing);
 
         foreach ($mapping->trackers as $id => $tracker) {

@@ -1,5 +1,6 @@
 admin:
     key_invalid: 2 à 5 lettres majuscules.
+    delete_mismatch: Ce n'est pas le code de ce que vous vous apprêtez à supprimer.
     import:
         tracker_name_required: Nommez la catégorie à créer.
         zip_expected: Envoyez une archive zip.

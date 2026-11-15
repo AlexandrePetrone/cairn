@@ -23,7 +23,7 @@ final readonly class UpdateTracker
         /** An empty string clears it. */
         public ?string $description = null,
         public ?bool $private = null,
-        public ?bool $active = null,
+        public ?bool $archived = null,
         #[Assert\PositiveOrZero]
         public ?int $position = null,
     ) {

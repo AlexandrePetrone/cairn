@@ -24,4 +24,10 @@ what changes without applying anything.
 
 ## Unreleased
 
-No change to the configuration file yet.
+Nothing to change for the file to load. One permission is new and held
+by nobody until you grant it:
+
+- `issue.delete` (`Permission::IssueDelete`): delete an issue for good,
+  with its comments, files, links and history. For internal-only roles;
+  the example grants it to project managers and developers. Add it to
+  `permissions`, then run `app:config:sync`.

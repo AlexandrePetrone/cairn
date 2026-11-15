@@ -32,13 +32,17 @@ final class ProjectNav
     }
 
     /**
-     * Private trackers are hidden from external users.
+     * Private trackers are hidden from external users. Archived ones stay,
+     * after the others: they take no new issue but keep theirs.
      *
      * @return list<Tracker>
      */
     public function getTrackers(): array
     {
-        return $this->queries->ask(new ListTrackers($this->viewer->get(), $this->project));
+        $trackers = $this->queries->ask(new ListTrackers($this->viewer->get(), $this->project, archived: true));
+        usort($trackers, static fn (Tracker $a, Tracker $b): int => [$a->isArchived(), $a->getPosition()] <=> [$b->isArchived(), $b->getPosition()]);
+
+        return $trackers;
     }
 
     /**

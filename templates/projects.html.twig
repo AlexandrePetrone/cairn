@@ -13,7 +13,7 @@
 
         {% for group in groups %}
             {% set workspace = group|first.project.workspace %}
-            <section class="rounded-lg border border-line bg-surface overflow-hidden {{ workspace.archived ? 'opacity-70' }}">
+            <section class="rounded-lg border border-line bg-surface overflow-hidden">
                 <header class="flex items-center gap-2 px-4 py-2.5 bg-subtle border-b border-line-subtle">
                     <h2 class="font-semibold text-strong">{{ workspace.name }}</h2>
                     <twig:Ui:Chip tone="white">{{ workspace.key }}</twig:Ui:Chip>
@@ -26,7 +26,7 @@
                         <li>
                             <a href="{{ path('app_project_issues', { workspaceKey: workspace.key, projectKey: project.key }) }}" class="group flex items-center gap-3 px-4 py-2.5 hover:bg-brand-soft/40">
                                 <twig:Ui:Chip class="w-16 text-center shrink-0">{{ project.issuePrefix }}</twig:Ui:Chip>
-                                <span class="truncate font-medium {{ project.readOnly ? 'text-muted' : 'text-strong' }} group-hover:text-brand">{{ project.name }}</span>
+                                <span class="truncate font-medium text-strong group-hover:text-brand">{{ project.name }}</span>
                                 {% if project.archived %}<twig:Ui:Badge size="sm">{{ 'project.summary.read_only'|trans }}</twig:Ui:Badge>{% endif %}
                                 <span class="ml-auto hidden sm:inline-flex items-center gap-2 text-xs text-muted">
                                     {% if summary.waiting %}<span class="inline-flex items-center gap-1" title="{{ 'project.summary.waiting'|trans }}"><twig:Ui:Status:Dot status="waiting" />{{ summary.waiting }}</span>{% endif %}

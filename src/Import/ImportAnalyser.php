@@ -77,7 +77,7 @@ final class ImportAnalyser
         $import->recordAnalysis($analysis->toArray());
         $import->move('scan', $position, $done, $import->getTotal());
         if ($finished) {
-            $existing = $this->trackers->findByProject($import->getProject(), includeInactive: true);
+            $existing = $this->trackers->findByProject($import->getProject(), includeArchived: true);
             $import->finishAnalysis(ImportMapping::guess($manifest, $analysis, $this->config->definition(), $existing)->toArray());
         }
         $this->entityManager->flush();

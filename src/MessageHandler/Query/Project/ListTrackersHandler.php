@@ -37,8 +37,8 @@ final class ListTrackersHandler
             ->orderBy('t.position')
             ->addOrderBy('t.id');
         $this->visibility->restrictTrackers($queryBuilder, $query->viewer);
-        if (!$query->inactive) {
-            $queryBuilder->andWhere('t.active = true');
+        if (!$query->archived) {
+            $queryBuilder->andWhere('t.archived = false');
         }
 
         return EntityList::of($queryBuilder->getQuery(), Tracker::class);

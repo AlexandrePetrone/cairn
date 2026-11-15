@@ -53,6 +53,13 @@ issue:
             already: 'Déjà liée ainsi à %key%.'
             other_project: '%key% appartient à un autre projet : seuls les internes lient entre projets.'
             read_only: 'Le projet de %key% est archivé.'
+    delete:
+        title: Supprimer la demande
+        help: La demande est effacée définitivement, avec ses commentaires, ses fichiers, ses liens et son historique. Personne n'est prévenu, et son numéro n'est pas réattribué.
+        comments: '{0}Aucun commentaire|{1}1 commentaire|]1,Inf[ %count% commentaires'
+        files: '{0}aucun fichier|{1}1 fichier|]1,Inf[ %count% fichiers'
+        confirm: Supprimer définitivement
+        done: 'Demande %key% supprimée.'
     show:
         path: Parcours
         moved_step: Déplacée sans action
@@ -419,6 +426,19 @@ admin:
     filter:
         state: État
         type: Type
+    delete:
+        confirmation: 'Saisissez %key% pour confirmer'
+        irreversible: Cette action est irréversible, et rien n'est conservé à côté. Pour simplement l'écarter, laissez-le archivé.
+        consequences: "Les webhooks de ses dépôts liés sont retirés de leur forge quand elle répond. Une référence comme #%key%-12 écrite dans un autre projet se lira ensuite comme du texte, et le code redevient disponible."
+        count:
+            issues: '{0}demande|{1}demande|]1,Inf[ demandes'
+            comments: '{0}commentaire|{1}commentaire|]1,Inf[ commentaires'
+            files: '{0}fichier|{1}fichier|]1,Inf[ fichiers'
+            trackers: '{0}catégorie|{1}catégorie|]1,Inf[ catégories'
+            releases: '{0}version|{1}version|]1,Inf[ versions'
+            members: '{0}accès|{1}accès|]1,Inf[ accès'
+            repositories: '{0}dépôt lié|{1}dépôt lié|]1,Inf[ dépôts liés'
+            rules: "{0}règle d'automatisation|{1}règle d'automatisation|]1,Inf[ règles d'automatisation"
     project:
         count: '{0}Aucun projet|{1}1 projet|]1,Inf[ %count% projets'
         new: Nouveau projet
@@ -428,6 +448,10 @@ admin:
         archived: 'Projet « %name% » archivé : il passe en lecture seule.'
         unarchived: 'Projet « %name% » désarchivé.'
         archived_badge: Archivé
+        delete: Supprimer le projet
+        delete_title: 'Supprimer « %name% »'
+        delete_help: 'Tout ce que contient le projet est effacé définitivement, pour tout le monde :'
+        deleted: 'Projet « %name% » supprimé, avec tout ce qu''il contenait.'
         search: Projet, code ou espace…
         empty: Aucun projet ne correspond.
         workspace: Espace
@@ -453,6 +477,11 @@ admin:
         archived_label: Archivé
         archive_help: Tous ses projets passent en lecture seule. Réversible.
         archived_badge: Espace archivé
+        delete: Supprimer l'espace
+        delete_title: 'Supprimer « %name% »'
+        delete_help: Un espace archivé peut être supprimé définitivement, avec tous les projets qu'il contient.
+        delete_contents: "{0}L'espace ne contient aucun projet. Les accès donnés sur l'espace (%members%) partent avec lui.|{1}Son projet est effacé définitivement avec tout ce qu'il contient, ainsi que les accès donnés sur l'espace (%members%) :|]1,Inf[ Ses %count% projets sont effacés définitivement avec tout ce qu'ils contiennent, ainsi que les accès donnés sur l'espace (%members%) :"
+        deleted: 'Espace « %name% » supprimé, avec tout ce qu''il contenait.'
         active_badge: Actif
         column:
             name: Espace
@@ -517,6 +546,11 @@ admin:
         created: 'Compte de %name% créé, une invitation a été envoyée à %email%.'
         invitation_pending: "L'invitation envoyée à %email% n'a pas encore été acceptée : le compte n'a pas de mot de passe et ne peut pas se connecter."
         invitation_resend: Renvoyer l'invitation
+        delete: Supprimer le compte
+        delete_help: Ce compte n'a jamais rien écrit ni reçu de demande, il peut donc être supprimé définitivement, avec ses accès.
+        delete_blocked: Ce compte a écrit ou porte des demandes, des commentaires ou des fichiers, qui gardent son nom. Il ne peut pas être supprimé ; désactivez-le pour fermer son accès.
+        delete_confirm: 'Supprimer définitivement le compte de %name% ?'
+        deleted: 'Compte de %name% supprimé.'
         invitation_sent: 'Invitation envoyée à %email%.'
         search: Nom ou adresse…
         empty: Aucun utilisateur ne correspond.
@@ -796,11 +830,15 @@ admin:
         workspace_key_taken: 'Un espace utilise déjà le code %key%.'
         project_key_taken: 'Un projet de %workspace% utilise déjà le code %key%.'
         archived_workspace: 'L''espace %workspace% est archivé : il ne reçoit pas de nouveau projet.'
+        project_not_archived: "Le projet %name% n'est pas archivé : archivez-le d'abord."
+        workspace_not_archived: "L'espace %name% n'est pas archivé : archivez-le d'abord."
+        import_running: "Un import est en cours sur le projet %name% : attendez sa fin, ou abandonnez-le."
         unknown_role: 'Le rôle « %role% » n''existe pas dans la configuration.'
         internal_only_role: '%name% est externe : le rôle « %role% » est réservé aux internes.'
         not_wider: 'Le rôle « %role% » n''élargit pas le rôle « %inherited% » hérité de l''espace.'
         email_taken: 'Un compte utilise déjà l''adresse %email%.'
         last_admin: Il doit rester au moins un administrateur actif.
+        has_history: '%name% a écrit ou porte des demandes, des commentaires ou des fichiers : désactivez plutôt le compte.'
         holds_internal_roles: '%name% a des rôles réservés aux internes (%where%) : retirez-les avant de passer cette personne en externe.'
         deactivated: "%name% est désactivé : réactivez d'abord le compte."
         already_activated: '%name% a déjà choisi un mot de passe : « Mot de passe oublié ? » sur la page de connexion lui en donne un nouveau.'
@@ -832,7 +870,7 @@ project:
             empty: Aucune catégorie. Créez-en une pour que des demandes puissent être déposées.
             drag: Glisser pour réordonner
             issue_count: '{0}aucune demande|{1}1 demande|]1,Inf[ %count% demandes'
-            inactive_badge: Désactivée
+            archived_badge: Archivée
             private_badge: Réservée aux internes
             order_help: L'ordre est celui du formulaire de création et du menu.
             moved: Ordre enregistré.
@@ -844,8 +882,22 @@ project:
             workflow_fixed: "Choisi à la création de la catégorie, il ne change plus. Ses étapes, ses champs et ses actions sont définis dans la configuration de l'instance."
             private: Réservée aux internes
             private_help: Les externes ne voient pas ses demandes et n'en créent pas.
-            active: Accepte de nouvelles demandes
-            active_help: Une catégorie désactivée garde ses demandes mais disparaît du formulaire de création et du menu.
+            archive: Archiver
+            unarchive: Désarchiver
+            archive_title: Archiver cette catégorie
+            archive_help: Plus aucune demande ne peut y être créée ni déplacée. Celles qu'elle contient restent visibles et modifiables, par les clients aussi. Réversible.
+            archived_title: Cette catégorie est archivée
+            archived_help: Elle n'accepte plus de nouvelle demande. Celles qu'elle contient restent visibles et modifiables, par les clients aussi.
+            delete: Supprimer
+            delete_title: Supprimer cette catégorie
+            delete_help: Elle ne contient aucune demande, elle peut donc être supprimée définitivement.
+            delete_confirm: Supprimer définitivement cette catégorie ?
+            delete_rules: "{1}La règle d'automatisation qui lui est limitée est supprimée avec elle.|]1,Inf[ Les %count% règles d'automatisation qui lui sont limitées sont supprimées avec elle."
+            delete_blocked: '{1}Elle contient 1 demande : déplacez-la dans une autre catégorie pour supprimer celle-ci, ou archivez-la.|]1,Inf[ Elle contient %count% demandes : déplacez-les dans une autre catégorie pour supprimer celle-ci, ou archivez-la.'
+            done:
+                archive: 'Catégorie « %name% » archivée : elle n''accepte plus de nouvelle demande.'
+                unarchive: 'Catégorie « %name% » désarchivée.'
+                delete: 'Catégorie « %name% » supprimée.'
         repository:
             intro: "Les commits et les merge requests des dépôts liés qui citent une demande du projet (%prefix%-12) apparaissent sur sa fiche, pour les utilisateurs internes seulement."
             new: Lier un dépôt
@@ -884,6 +936,7 @@ project:
         refused:
             not_found: Introuvable.
             unknown_workflow: "Le workflow « %workflow% » n'existe pas dans la configuration."
+            tracker_has_issues: 'La catégorie « %name% » contient encore des demandes (%count%) : elle peut être archivée, pas supprimée.'
     access:
         title: Accès
         add: Ajouter une personne
@@ -934,6 +987,10 @@ release:
     empty_hint: Les versions du projet s'afficheront ici.
     empty_hint_manager: Créez-en une pour regrouper les demandes d'une livraison.
     abandon_help: Une version abandonnée ne reçoit plus de demandes ; celles qu'elle contient y restent.
+    delete: Supprimer la version
+    delete_help: "{0}Une version supprimée l'est définitivement. Elle ne contient aucune demande.|{1}Une version supprimée l'est définitivement : la demande qu'elle contient n'aura plus de version.|]1,Inf[ Une version supprimée l'est définitivement : les %count% demandes qu'elle contient n'auront plus de version."
+    delete_confirm: Supprimer définitivement cette version ?
+    deleted: 'Version %name% supprimée.'
     status:
         open: Ouverte
         delivered: Livrée
@@ -1060,6 +1117,9 @@ permission:
         change_tracker:
             label: Changer la catégorie d'une demande
             help: Déplacer une demande vers une autre catégorie du projet, en choisissant son étape dans le nouveau workflow.
+        delete:
+            label: Supprimer une demande
+            help: Effacer définitivement une demande, avec ses commentaires, ses fichiers, ses liens et son historique. Personne n'est prévenu.
         force_place:
             label: Déplacer une demande sur n'importe quelle étape
             help: Placer une demande sur une étape de son workflow sans passer par une action, pour corriger une erreur ; l'historique garde le déplacement.
@@ -1094,7 +1154,7 @@ permission:
     project:
         configure:
             label: Configurer le projet
-            help: Changer son nom et sa description, créer, ordonner et désactiver ses catégories, lier ses dépôts de code et écrire ses règles d'automatisation.
+            help: Changer son nom et sa description, créer, ordonner, archiver et supprimer ses catégories, lier ses dépôts de code et écrire ses règles d'automatisation.
         manage_members:
             label: Gérer les accès du projet
             help: Accorder, changer et retirer les rôles détenus sur le projet lui-même, et y désigner le référent de chaque rôle. Les rôles d'espace restent à l'administration.

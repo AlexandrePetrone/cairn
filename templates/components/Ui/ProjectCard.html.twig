@@ -1,10 +1,7 @@
-{# A project as a card leading to it: its key, name and workspace, the open issues, then those waiting and those blocking when there are any. `archived` mutes it. #}
+{# A project as a card leading to it: its key, name and workspace, the open issues, then those waiting and those blocking when there are any. `archived` adds its badge, nothing else: an archived project is written like the others. #}
 {% props href, code, name, workspace, open = 0, waiting = 0, blocking = 0, archived = false %}
-{% set projectCardClasses = html_cva(
-    base: 'group flex flex-col rounded-lg border border-line bg-surface p-4 hover:border-brand-line hover:shadow-sm',
-    variants: { archived: { true: 'opacity-70' } },
-) %}
-<a href="{{ href }}" class="{{ projectCardClasses.apply({ archived: archived }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
+{% set projectCardClasses = html_cva(base: 'group flex flex-col rounded-lg border border-line bg-surface p-4 hover:border-brand-line hover:shadow-sm') %}
+<a href="{{ href }}" class="{{ projectCardClasses.apply({}, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
     <div class="flex items-center gap-2">
         <twig:Ui:Chip>{{ code }}</twig:Ui:Chip>
         {% if archived %}<twig:Ui:Badge size="sm" class="ml-auto">{{ 'project.summary.archived'|trans }}</twig:Ui:Badge>{% endif %}

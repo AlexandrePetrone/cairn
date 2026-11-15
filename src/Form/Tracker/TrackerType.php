@@ -15,8 +15,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
  * A tracker of a project. Creating one picks its workflow among those of
- * the configuration (`workflows`, labels as content); afterwards it can be
- * deactivated instead, never deleted.
+ * the configuration (`workflows`, labels as content); afterwards it never
+ * changes. Archiving and deleting are buttons of the page.
  *
  * @extends AbstractType<TrackerData>
  */
@@ -49,13 +49,6 @@ final class TrackerType extends AbstractType
             'help' => 'project.settings.tracker.private_help',
             'required' => false,
         ]);
-        if (!$options['creation']) {
-            $builder->add('active', ToggleType::class, [
-                'label' => 'project.settings.tracker.active',
-                'help' => 'project.settings.tracker.active_help',
-                'required' => false,
-            ]);
-        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void

@@ -11,11 +11,13 @@ use App\Entity\User;
 use App\Form\Release\ReleaseData;
 use App\Form\Release\ReleaseType;
 use App\Message\Command\Release\CreateRelease;
+use App\Message\Command\Release\DeleteRelease;
 use App\Message\Command\Release\UpdateRelease;
 use App\Message\CommandBus;
 use App\Message\Query\Release\ListReleases;
 use App\Message\QueryBus;
 use App\MessageHandler\Command\Release\ReleaseException;
+use App\Repository\IssueRepository;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -46,6 +48,7 @@ final class ReleaseController extends AbstractController
     public function __construct(
         private readonly CommandBus $commands,
         private readonly QueryBus $queries,
+        private readonly IssueRepository $issues,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -84,7 +87,7 @@ final class ReleaseController extends AbstractController
 
     /**
      * The releases with the dialog changing one: its name, date and
-     * description, and abandoning it while it is open.
+     * description, abandoning it while it is open, and deleting it.
      */
     #[Route('/{release}', name: 'app_project_release_edit', requirements: ['release' => '\d+'], methods: ['GET', 'POST'])]
     #[IsGranted('release.manage', subject: 'project')]
@@ -136,6 +139,22 @@ final class ReleaseController extends AbstractController
     }
 
     /**
+     * Deletes the release; the issues it held have none any more.
+     */
+    #[Route('/{release}/delete', name: 'app_project_release_delete', requirements: ['release' => '\d+'], methods: ['POST'])]
+    #[IsGranted('release.manage', subject: 'project')]
+    #[IsCsrfTokenValid('submit')]
+    public function delete(#[CurrentProject] Project $project, #[MapEntity(id: 'release')] Release $release, #[CurrentUser] User $actor): RedirectResponse
+    {
+        $this->assertOfProject($release, $project);
+        $name = $release->getName();
+        $this->commands->dispatch(new DeleteRelease((int) $actor->getId(), (int) $release->getId()));
+        $this->addFlash('success', $this->translator->trans('release.deleted', ['%name%' => $name]));
+
+        return $this->redirectToRoute('app_project_releases', self::route($project));
+    }
+
+    /**
      * @param FormInterface<ReleaseData>|null $form    the dialog, when it is open
      * @param Release|null                    $release the release it changes, none when it creates one
      */
@@ -145,6 +164,7 @@ final class ReleaseController extends AbstractController
             'project' => $project,
             'form' => $form,
             'dialogRelease' => $release,
+            'dialogIssueCount' => null === $release ? 0 : $this->issues->count(['release' => $release]),
         ], fn (): array => [
             'summaries' => $this->queries->ask(new ListReleases($viewer, $project)),
         ], $form);

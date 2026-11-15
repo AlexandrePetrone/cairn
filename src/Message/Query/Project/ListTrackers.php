@@ -11,8 +11,9 @@ use App\Message\Query\Query;
 
 /**
  * The trackers of a project as the viewer sees them, in display order:
- * private ones for internal users only, deactivated ones only when asked
- * for, since they keep their issues and the lists filter by them. The one
+ * private ones for internal users only, archived ones only when asked
+ * for: they keep their issues, so the navigation and the lists show them,
+ * but nothing new goes in them. The one
  * read that applies the privacy of trackers; the administration and the
  * commands, which see every tracker of a project, use
  * TrackerRepository::findByProject(). The project is one the viewer may
@@ -25,7 +26,7 @@ final readonly class ListTrackers implements Query
     public function __construct(
         public User $viewer,
         public Project $project,
-        public bool $inactive = false,
+        public bool $archived = false,
     ) {
     }
 }

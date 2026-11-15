@@ -72,6 +72,11 @@ final class UserException extends \DomainException implements TranslatableInterf
         return new self('The current password is not the one typed.', 'account.refused.wrong_password');
     }
 
+    public static function hasHistory(string $userName): self
+    {
+        return new self(\sprintf('%s wrote or holds issues: the account is deactivated, not deleted.', $userName), 'admin.refused.has_history', ['%name%' => $userName]);
+    }
+
     public function trans(TranslatorInterface $translator, ?string $locale = null): string
     {
         return $translator->trans($this->reason, $this->parameters, null, $locale);

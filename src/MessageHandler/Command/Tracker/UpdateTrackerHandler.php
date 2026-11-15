@@ -34,8 +34,8 @@ final class UpdateTrackerHandler
         if (null !== $command->private) {
             $command->private ? $tracker->makePrivate() : $tracker->makePublic();
         }
-        if (null !== $command->active) {
-            $command->active ? $tracker->activate() : $tracker->deactivate();
+        if (null !== $command->archived) {
+            $command->archived ? $tracker->archive() : $tracker->unarchive();
         }
         if (null !== $command->position) {
             $this->move($tracker, $command->position);
@@ -49,7 +49,7 @@ final class UpdateTrackerHandler
     private function move(Tracker $tracker, int $position): void
     {
         $others = array_values(array_filter(
-            $this->trackers->findByProject($tracker->getProject(), includeInactive: true),
+            $this->trackers->findByProject($tracker->getProject(), includeArchived: true),
             static fn (Tracker $other): bool => $other !== $tracker,
         ));
         array_splice($others, min($position, \count($others)), 0, [$tracker]);

@@ -207,7 +207,7 @@ final class ImportRunner
                 return;
             }
             $target = $mapping->trackers[$id];
-            $existing = $this->trackers->findByProject($project, includeInactive: true);
+            $existing = $this->trackers->findByProject($project, includeArchived: true);
             if (str_starts_with($target['target'], 'tracker:')) {
                 $wanted = (int) substr($target['target'], 8);
                 $tracker = array_find($existing, static fn (Tracker $tracker): bool => $tracker->getId() === $wanted);
@@ -266,7 +266,7 @@ final class ImportRunner
         $id = (int) $import->getId();
         $token = (string) $import->getRunToken();
         $phase = (string) $import->getPhase();
-        $existing = $this->trackers->findByProject($import->getProject(), includeInactive: true);
+        $existing = $this->trackers->findByProject($import->getProject(), includeArchived: true);
         $archive = $this->directory->open($import);
         $numbers = array_flip($this->taken($import, $manifest));
         // Nobody gets an account once the issues are being written: read once for the batch.
@@ -446,7 +446,7 @@ final class ImportRunner
         $cache = $this->directory->work($import).'/scan.json';
         if (!is_file($cache)) {
             $mapping = ImportMapping::fromArray($import->getMapping());
-            $existing = $this->trackers->findByProject($import->getProject(), includeInactive: true);
+            $existing = $this->trackers->findByProject($import->getProject(), includeArchived: true);
             $taken = [];
             $versions = [];
             foreach ($this->directory->open($import)->issues($manifest) as $issue) {

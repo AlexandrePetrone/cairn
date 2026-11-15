@@ -39,6 +39,16 @@ final class ProjectException extends \DomainException implements TranslatableInt
         return new self(\sprintf('Workspace "%s" is archived.', $workspaceName), 'admin.refused.archived_workspace', ['%workspace%' => $workspaceName]);
     }
 
+    public static function notArchived(string $projectName): self
+    {
+        return new self(\sprintf('Project "%s" is not archived: it is archived before it is deleted.', $projectName), 'admin.refused.project_not_archived', ['%name%' => $projectName]);
+    }
+
+    public static function importRunning(string $projectName): self
+    {
+        return new self(\sprintf('An import is running on project "%s".', $projectName), 'admin.refused.import_running', ['%name%' => $projectName]);
+    }
+
     public function trans(TranslatorInterface $translator, ?string $locale = null): string
     {
         return $translator->trans($this->reason, $this->parameters, null, $locale);

@@ -1,0 +1,21 @@
+{% extends 'layout/admin.html.twig' %}
+
+{# Deleting an archived project for good: what goes with it, then its key typed again. #}
+{% block page_title %}{{ 'admin.project.delete'|trans }}{% endblock %}
+
+{% block breadcrumb %}
+    <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-ghost shrink-0" />
+    <a href="{{ path('app_admin_workspace', { key: project.workspace.key }) }}" class="hover:text-strong">{{ project.workspace.name }}</a>
+{% endblock %}
+
+{% block content %}
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 py-5 space-y-4">
+        <h1 class="text-xl font-semibold text-strong flex items-center gap-2">{{ 'admin.project.delete_title'|trans({ '%name%': project.name }) }} <twig:Ui:Chip>{{ project.issuePrefix }}</twig:Ui:Chip></h1>
+        <section class="rounded-lg border border-line bg-surface p-4 space-y-2">
+            <p class="text-sm text-body">{{ 'admin.project.delete_help'|trans }}</p>
+            {{ include('admin/_deletion_contents.html.twig') }}
+            <p class="text-xs text-muted">{{ 'admin.delete.consequences'|trans({ '%key%': project.issuePrefix }) }}</p>
+        </section>
+        {{ include('admin/_deletion_form.html.twig', { cancelHref: path('app_admin_workspace', { key: project.workspace.key }), submitLabel: 'admin.project.delete'|trans }) }}
+    </div>
+{% endblock %}

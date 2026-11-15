@@ -7,13 +7,19 @@ namespace App\Twig\Components\Issue;
 use App\Config\Definition\PlaceDefinition;
 use App\Entity\Enum\JournalEntryType;
 use App\Entity\Issue;
+use App\Message\Command\Issue\DeleteIssue;
 use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
+use App\Repository\AttachmentRepository;
+use App\Repository\CommentRepository;
 use App\Repository\JournalEntryRepository;
 use App\Security\AccessControl;
+use App\Security\Permission;
 use App\Security\Viewer;
 use App\Twig\Components\DispatchesCommands;
 use App\Workflow\WorkflowProvider;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
@@ -25,10 +31,13 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 /**
  * The top of the issue page, redrawn when another component of the page
  * changes the issue (`issue:changed`): privacy and the path the issue
- * took follow. The title is edited here by whoever may edit the issue.
+ * took follow. The title is edited here by whoever may edit the issue,
+ * and the issue deleted by whoever holds `issue.delete`: confirmed in a
+ * dialog, then the list of the project, since the page has nothing left
+ * to show.
  */
 #[AsLiveComponent('Issue:Header')]
-final class Header
+final class Header extends AbstractController
 {
     use ComponentToolsTrait;
     use DefaultActionTrait;
@@ -40,6 +49,10 @@ final class Header
     #[LiveProp(writable: true)]
     public bool $editingTitle = false;
 
+    /** Whether the dialog confirming the deletion is open. */
+    #[LiveProp]
+    public bool $deleting = false;
+
     /** The title being written. */
     #[LiveProp(writable: true)]
     public string $title = '';
@@ -50,6 +63,8 @@ final class Header
         private readonly Viewer $viewer,
         private readonly TranslatorInterface $translator,
         private readonly JournalEntryRepository $journal,
+        private readonly CommentRepository $comments,
+        private readonly AttachmentRepository $attachments,
     ) {
     }
 
@@ -107,6 +122,47 @@ final class Header
 
         $this->editingTitle = false;
         $this->announce($this->translator->trans('issue.action.done', ['%key%' => $this->issue->getKey()]));
+    }
+
+    public function canDelete(): bool
+    {
+        return $this->access->isGranted($this->viewer->get(), Permission::IssueDelete, $this->issue->getProject());
+    }
+
+    /**
+     * What goes with the issue, said in the dialog before it is deleted.
+     *
+     * @return array{comments: int, files: int}
+     */
+    public function getContents(): array
+    {
+        return ['comments' => $this->comments->count(['issue' => $this->issue]), 'files' => $this->attachments->count(['issue' => $this->issue])];
+    }
+
+    #[LiveAction]
+    public function confirmDelete(): void
+    {
+        $this->error = null;
+        $this->deleting = $this->canDelete();
+    }
+
+    #[LiveAction]
+    public function cancelDelete(): void
+    {
+        $this->deleting = false;
+    }
+
+    #[LiveAction]
+    public function delete(CommandBus $commands): ?RedirectResponse
+    {
+        $key = $this->issue->getKey();
+        $project = $this->issue->getProject();
+        if (!$this->tryCommand($commands, new DeleteIssue((int) $this->viewer->get()->getId(), $key))) {
+            return null;
+        }
+        $this->addFlash('success', $this->translator->trans('issue.delete.done', ['%key%' => $key]));
+
+        return $this->redirectToRoute('app_project_issues', ['workspaceKey' => $project->getWorkspace()->getKey(), 'projectKey' => $project->getKey()]);
     }
 
     #[LiveListener('issue:changed')]

@@ -54,7 +54,7 @@
             <twig:Ui:Filter:Menu :label="'filter.tracker'|trans" :count="filters.trackers|length">
                 {% for filtersTracker in filtersChoices.trackers(filtersScope) %}
                     <twig:Ui:Filter:Option name="trackers[]" :value="filtersTracker.id" :checked="filtersTracker.id in filters.trackers">
-                        <span class="truncate {{ filtersTracker.active ? '' : 'text-faint line-through' }}" {% if not filtersTracker.active %}title="{{ 'project.settings.tracker.inactive_badge'|trans }}"{% endif %}>{{ filtersTracker.name }}</span>
+                        <span class="truncate {{ filtersTracker.archived ? 'text-faint' : '' }}" {% if filtersTracker.archived %}title="{{ 'project.settings.tracker.archived_badge'|trans }}"{% endif %}>{{ filtersTracker.name }}</span>
                         {% if filtersTracker.private %}<twig:ux:icon name="lucide:lock" class="h-3 w-3 shrink-0 text-faint" />{% endif %}
                     </twig:Ui:Filter:Option>
                 {% endfor %}
