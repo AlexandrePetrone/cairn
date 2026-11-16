@@ -20,7 +20,9 @@ use App\Entity\Enum\MergeRequestState;
 use App\Entity\Enum\ReleaseStatus;
 use App\Entity\Issue;
 use App\Entity\Project;
+use App\Entity\ProjectTemplate;
 use App\Entity\Release;
+use App\Entity\TemplateTracker;
 use App\Entity\Tracker;
 use App\Entity\User;
 use App\Entity\Workspace;
@@ -47,6 +49,9 @@ use App\Message\Command\Issue\UpdateIssue;
 use App\Message\Command\Project\UpdateProject;
 use App\Message\Command\Release\CreateRelease;
 use App\Message\Command\Release\UpdateRelease;
+use App\Message\Command\Template\CreateTemplate;
+use App\Message\Command\Template\CreateTemplateRule;
+use App\Message\Command\Template\CreateTemplateTracker;
 use App\Message\CommandBus;
 use App\Security\AccessControl;
 use App\Workflow\WorkflowProvider;
@@ -121,6 +126,7 @@ final class AppStory extends Story
                     $this->createRules($project, $trackers['bug']);
                 }
             }
+            $this->createTemplate();
             $this->createLinks($now);
             $this->createCode($now);
             $this->entityManager->flush();
@@ -286,30 +292,61 @@ final class AppStory extends Story
      */
     private function createRules(Project $project, Tracker $bugs): void
     {
-        $projectId = (int) $project->getId();
+        foreach (self::rules() as [$name, $onBugs, $definition, $active]) {
+            $this->commands->dispatch(new CreateRule((int) $project->getId(), $name, $onBugs ? (int) $bugs->getId() : null, $definition, $active));
+        }
+    }
+
+    /**
+     * The project template of the instance: the three trackers and the
+     * four rules every project above has, for the next one to start with.
+     */
+    private function createTemplate(): void
+    {
+        $template = $this->commands->dispatch(new CreateTemplate('Web project', 'Bugs, features and internal tasks, issues handed to the referent project manager.'));
+        \assert($template instanceof ProjectTemplate);
+        $templateId = (int) $template->getId();
+
+        $bugs = $this->commands->dispatch(new CreateTemplateTracker($templateId, $this->workflows->definition('bug')->label, 'bug', 'Something no longer works as before.'));
+        \assert($bugs instanceof TemplateTracker);
+        $this->commands->dispatch(new CreateTemplateTracker($templateId, $this->workflows->definition('evolution')->label, 'evolution', 'A new feature or an improvement.'));
+        $this->commands->dispatch(new CreateTemplateTracker($templateId, $this->workflows->definition('task')->label, 'task', 'Technical work without a client request.', private: true));
+
+        foreach (self::rules() as [$name, $onBugs, $definition, $active]) {
+            $this->commands->dispatch(new CreateTemplateRule($templateId, $name, $onBugs ? (int) $bugs->getId() : null, $definition, $active));
+        }
+    }
+
+    /**
+     * @return list<array{string, bool, array<string, mixed>, bool}> the name of each rule, whether it is limited to the bugs, what it says, whether it is switched on
+     */
+    private static function rules(): array
+    {
         $toTheManager = [['type' => 'assign', 'params' => ['target' => 'referent:project_manager']]];
         $leftWithTheClient = [['type' => 'assignee', 'params' => ['is' => 'external']], ['type' => 'code', 'params' => ['is' => 'none']]];
 
-        $this->commands->dispatch(new CreateRule($projectId, 'New issue to the project manager', null, [
-            'trigger' => ['type' => 'issue_created'],
-            'conditions' => [['type' => 'assignee', 'params' => ['is' => 'nobody']]],
-            'actions' => $toTheManager,
-        ]));
-        $this->commands->dispatch(new CreateRule($projectId, 'The client answers: back to the project manager', null, [
-            'trigger' => ['type' => 'comment_added'],
-            'conditions' => [['type' => 'actor', 'params' => ['is' => 'external']], ['type' => 'assignee', 'params' => ['is' => 'external_or_nobody']]],
-            'actions' => $toTheManager,
-        ]));
-        $this->commands->dispatch(new CreateRule($projectId, 'Reminder to the client', null, [
-            'trigger' => ['type' => 'inactive_for', 'params' => ['days' => 30]],
-            'conditions' => $leftWithTheClient,
-            'actions' => [['type' => 'comment', 'params' => ['body' => 'This issue has been waiting for your answer for 30 days. Without news from you, it will be closed in 15 days; it can always be reopened.']]],
-        ]));
-        $this->commands->dispatch(new CreateRule($projectId, 'Closing without an answer', (int) $bugs->getId(), [
-            'trigger' => ['type' => 'inactive_for', 'params' => ['days' => 45]],
-            'conditions' => $leftWithTheClient,
-            'actions' => [['type' => 'move', 'params' => ['place' => 'done']]],
-        ], active: false));
+        return [
+            ['New issue to the project manager', false, [
+                'trigger' => ['type' => 'issue_created'],
+                'conditions' => [['type' => 'assignee', 'params' => ['is' => 'nobody']]],
+                'actions' => $toTheManager,
+            ], true],
+            ['The client answers: back to the project manager', false, [
+                'trigger' => ['type' => 'comment_added'],
+                'conditions' => [['type' => 'actor', 'params' => ['is' => 'external']], ['type' => 'assignee', 'params' => ['is' => 'external_or_nobody']]],
+                'actions' => $toTheManager,
+            ], true],
+            ['Reminder to the client', false, [
+                'trigger' => ['type' => 'inactive_for', 'params' => ['days' => 30]],
+                'conditions' => $leftWithTheClient,
+                'actions' => [['type' => 'comment', 'params' => ['body' => 'This issue has been waiting for your answer for 30 days. Without news from you, it will be closed in 15 days; it can always be reopened.']]],
+            ], true],
+            ['Closing without an answer', true, [
+                'trigger' => ['type' => 'inactive_for', 'params' => ['days' => 45]],
+                'conditions' => $leftWithTheClient,
+                'actions' => [['type' => 'move', 'params' => ['place' => 'done']]],
+            ], false],
+        ];
     }
 
     /**

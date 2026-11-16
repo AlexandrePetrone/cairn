@@ -16,6 +16,7 @@ use App\Entity\Enum\PlaceStatus;
 use App\Repository\ConfigSnapshotRepository;
 use App\Repository\IssueLinkRepository;
 use App\Repository\IssueRepository;
+use App\Repository\TemplateTrackerRepository;
 use App\Repository\TrackerRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Clock\ClockInterface;
@@ -45,6 +46,7 @@ final class ConfigSynchronizer
         private readonly IssueRepository $issues,
         private readonly IssueLinkRepository $links,
         private readonly TrackerRepository $trackers,
+        private readonly TemplateTrackerRepository $templateTrackers,
         private readonly EntityManagerInterface $entityManager,
         private readonly LockFactory $lockFactory,
         private readonly ConfigRegistry $registry,
@@ -106,6 +108,12 @@ final class ConfigSynchronizer
         foreach ($this->trackers->countByWorkflow() as $workflowId => $count) {
             if (!$next->hasWorkflow($workflowId)) {
                 $usedWorkflows[] = \sprintf('workflows.%s: %d tracker(s) still use it', $workflowId, $count);
+            }
+        }
+        // Nor the trackers of the project templates, which the next project would be given.
+        foreach ($this->templateTrackers->templatesByWorkflow() as $workflowId => $templates) {
+            if (!$next->hasWorkflow($workflowId)) {
+                $usedWorkflows[] = \sprintf('workflows.%s: the project template(s) "%s" still use it', $workflowId, implode('", "', $templates));
             }
         }
 

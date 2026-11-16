@@ -60,7 +60,7 @@ final class ConfigurationTest extends WebTestCase
 
         $this->client->request('GET', '/admin/configuration/workflows');
         self::assertSelectorTextContains('#bug', 'Bug');
-        self::assertSelectorTextContains('#bug', '1 tracker');
+        self::assertSelectorTextContains('#bug', '1 category');
         self::assertSelectorExists('#bug a[href="/admin/configuration/workflows/bug"]');
         self::assertSelectorNotExists('[data-controller="workflow-diagram"]', 'the list only leads to the workflows');
 

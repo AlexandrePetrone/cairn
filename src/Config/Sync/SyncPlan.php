@@ -22,7 +22,7 @@ final readonly class SyncPlan
      * @param list<OrphanPlace>     $orphans
      * @param list<string>          $warnings
      * @param list<string>          $usedLinkTypes removed link types that links still use
-     * @param list<string>          $usedWorkflows removed workflows that trackers still use
+     * @param list<string>          $usedWorkflows removed workflows that trackers, of projects or of project templates, still use
      */
     public function __construct(
         public InstanceDefinition $definition,

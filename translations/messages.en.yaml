@@ -423,6 +423,7 @@ admin:
         workspaces: Workspaces
         users: Users
         imports: Imports
+        templates: Templates
         configuration: Configuration
     filter:
         state: State
@@ -435,13 +436,41 @@ admin:
             issues: '{0}issue|{1}issue|]1,Inf[ issues'
             comments: '{0}comment|{1}comment|]1,Inf[ comments'
             files: '{0}file|{1}file|]1,Inf[ files'
-            trackers: '{0}tracker|{1}tracker|]1,Inf[ trackers'
+            trackers: '{0}category|{1}category|]1,Inf[ categories'
             releases: '{0}release|{1}release|]1,Inf[ releases'
             members: '{0}access|{1}access|]1,Inf[ accesses'
             repositories: '{0}linked repository|{1}linked repository|]1,Inf[ linked repositories'
             rules: '{0}automation rule|{1}automation rule|]1,Inf[ automation rules'
             budgets: '{0}budget|{1}budget|]1,Inf[ budgets'
+    template:
+        label: Project template
+        intro: What a new project may start with. A template is copied when the project is created, then the two live apart.
+        new: New template
+        created: 'Template "%name%" created.'
+        deleted: 'Template "%name%" deleted.'
+        empty: No template yet
+        empty_hint: A template gives a new project its categories and its automations.
+        name: Name
+        description: Description
+        description_help: 'For the administrators: what kind of project it is meant for.'
+        delete: Delete the template
+        delete_help: Its categories and its rules go with it. The projects made from it keep what they were given.
+        delete_confirm: Delete this template for good?
+        tab:
+            trackers: Categories
+            automations: Automations
+            settings: Settings
+        tracker:
+            empty: No category yet
+            empty_hint: Add the categories the projects made from this template will start with.
+            delete_help: The category leaves the template. No project is changed.
+        rule:
+            intro: These rules are copied into the projects made from the template, switched on or off as they are here. They aim at roles, never at a person, and run nowhere while they are in the template.
+            empty: This template has no rule yet.
     project:
+        template: Template
+        no_template: No template
+        template_help: The project starts with the categories and the automations of the template. It is a copy, so changing the template later changes nothing here.
         count: '{0}No projects|{1}1 project|]1,Inf[ %count% projects'
         new: New project
         created: 'Project "%name%" created.'
@@ -602,10 +631,10 @@ admin:
             intro: The rights the configuration gives each role. Workflow actions have their own roles, detailed below.
             permission: Right
         workflows:
-            intro: Each tracker picks a workflow when it is created, for good. Open one to read its places (the columns of the kanban), the actions moving an issue from one place to another with the roles that may trigger them, and the fields it asks for. An administrator may trigger every action.
+            intro: Each category picks a workflow when it is created, for good. Open one to read its places (the columns of the kanban), the actions moving an issue from one place to another with the roles that may trigger them, and the fields it asks for. An administrator may trigger every action.
             place_count: '{1}1 place|]1,Inf[ %count% places'
             action_count: '{0}no action|{1}1 action|]1,Inf[ %count% actions'
-            tracker_count: '{0}no tracker|{1}1 tracker|]1,Inf[ %count% trackers'
+            tracker_count: '{0}no category|{1}1 category|]1,Inf[ %count% categories'
         workflow:
             initial: 'A new issue starts on "%place%".'
             fallback: 'Fallback place: "%place%".'
@@ -618,8 +647,8 @@ admin:
             fields: Fields
             no_field: No field.
             usage: Usage
-            unused: No tracker uses this workflow.
-            tracker: Tracker
+            unused: No category uses this workflow.
+            tracker: Category
             total: Total
         fields:
             title: Fields
@@ -733,13 +762,13 @@ admin:
             next: You match all of it with the configuration of Cairn at the next step.
         mapping:
             intro: On the left, what the archive declares; on the right, what it becomes in Cairn. The choices are guessed from the names.
-            trackers: Trackers
-            trackers_help: A tracker to create takes the chosen workflow, for good.
-            tracker_name: Name of the tracker to create
+            trackers: Categories
+            trackers_help: A category to create takes the chosen workflow, for good.
+            tracker_name: Name of the category to create
             steps: Steps
             steps_help: The step each status leads to, for each workflow the imported issues go through. An issue lands on it directly, without going through the actions of the workflow.
             none: The archive declares none.
-            no_step: No tracker is imported.
+            no_step: No category is imported.
             places: '%source%: statuses to the steps of "%workflow%"'
             closed: closed
             fields: Fields
@@ -750,8 +779,8 @@ admin:
             roles: Roles
         choice:
             skip: Not imported
-            tracker: 'Tracker "%tracker%"'
-            new_tracker: 'New tracker, workflow "%workflow%"'
+            tracker: 'Category "%tracker%"'
+            new_tracker: 'New category, workflow "%workflow%"'
             field: 'Field "%field%"'
             append: At the end of the description
             no_role: No role
@@ -783,7 +812,7 @@ admin:
             numbers: Reserving the numbers
             accounts: Accounts
             access: Access
-            structure: Trackers and releases
+            structure: Categories and releases
             issues: Issues, comments and files
             links: Links
             finish: Putting the archive away
@@ -797,11 +826,11 @@ admin:
         kind:
             user: Account
             membership: Access
-            tracker: Tracker
+            tracker: Category
             release: Release
             issue: Issue
         problem:
-            tracker: 'Its tracker "%name%" was not created.'
+            tracker: 'Its category "%name%" was not created.'
             account: 'The account of %name% was not created.'
             duplicate: 'Another issue of the archive has the id %id%: only the first one is imported.'
             hidden_field: 'The workflow "%workflow%" does not use the field "%field%": its values are kept but shown nowhere on these issues.'
@@ -829,6 +858,8 @@ admin:
             number_taken: 'An issue already has the key %key%.'
     refused:
         not_found: Not found.
+        template_name_taken: 'A template is already named %name%.'
+        unknown_workflow: 'The workflow "%workflow%" does not exist in the configuration.'
         workspace_key_taken: 'A workspace already uses the key %key%.'
         project_key_taken: 'A project of %workspace% already uses the key %key%.'
         archived_workspace: 'The workspace %workspace% is archived: it takes no new project.'
@@ -858,7 +889,7 @@ project:
         archived: 'This project is archived: it is read-only, nothing in it can be changed.'
         workspace_archived: 'The workspace %workspace% is archived: this project is read-only, nothing in it can be changed.'
     settings:
-        trackers: Trackers
+        trackers: Categories
         save: Save
         saved: Changes saved.
         name: Project name
@@ -869,10 +900,10 @@ project:
         budget_unit_none: No budget
         key_fixed: 'The key %key% is part of the issue identifiers: it does not change. Archiving the project is done in the administration.'
         tracker:
-            new_title: New tracker
-            create: Create the tracker
-            created: 'Tracker "%name%" created.'
-            empty: No tracker yet. Create one so that issues can be filed.
+            new_title: New category
+            create: Create the category
+            created: 'Category "%name%" created.'
+            empty: No category yet. Create one so that issues can be filed.
             drag: Drag to reorder
             issue_count: '{0}no issue|{1}1 issue|]1,Inf[ %count% issues'
             archived_badge: Archived
@@ -883,26 +914,26 @@ project:
             description: Description for clients
             description_help: Shown on the card clients pick when creating an issue.
             workflow: Workflow
-            workflow_help: It never changes once the tracker is created.
-            workflow_fixed: Chosen when the tracker was created, it does not change. Its places, fields and actions are defined in the configuration of the instance.
+            workflow_help: It never changes once the category is created.
+            workflow_fixed: Chosen when the category was created, it does not change. Its places, fields and actions are defined in the configuration of the instance.
             private: Internal users only
             private_help: External users neither see its issues nor create any.
             archive: Archive
             unarchive: Unarchive
-            archive_title: Archive this tracker
+            archive_title: Archive this category
             archive_help: No issue can be created in it or moved to it any more. Those it holds stay visible and can still be changed, by clients too. Reversible.
-            archived_title: This tracker is archived
+            archived_title: This category is archived
             archived_help: It takes no new issue. Those it holds stay visible and can still be changed, by clients too.
             delete: Delete
-            delete_title: Delete this tracker
+            delete_title: Delete this category
             delete_help: It holds no issue, so it can be deleted for good.
-            delete_confirm: Delete this tracker for good?
+            delete_confirm: Delete this category for good?
             delete_rules: '{1}The automation rule limited to it is deleted with it.|]1,Inf[ The %count% automation rules limited to it are deleted with it.'
-            delete_blocked: '{1}It holds 1 issue: move it to another tracker to delete this one, or archive it.|]1,Inf[ It holds %count% issues: move them to another tracker to delete this one, or archive it.'
+            delete_blocked: '{1}It holds 1 issue: move it to another category to delete this one, or archive it.|]1,Inf[ It holds %count% issues: move them to another category to delete this one, or archive it.'
             done:
-                archive: 'Tracker "%name%" archived: it takes no new issue.'
-                unarchive: 'Tracker "%name%" unarchived.'
-                delete: 'Tracker "%name%" deleted.'
+                archive: 'Category "%name%" archived: it takes no new issue.'
+                unarchive: 'Category "%name%" unarchived.'
+                delete: 'Category "%name%" deleted.'
         repository:
             intro: "Commits and merge requests of the linked repositories that mention an issue of the project (%prefix%-12) show on its page, for internal users only."
             new: Link a repository
@@ -941,7 +972,7 @@ project:
         refused:
             not_found: Not found.
             unknown_workflow: 'The workflow "%workflow%" does not exist in the configuration.'
-            tracker_has_issues: 'The tracker "%name%" still holds issues (%count%): it can be archived, not deleted.'
+            tracker_has_issues: 'The category "%name%" still holds issues (%count%): it can be archived, not deleted.'
     access:
         title: Access
         add: Add someone
@@ -1115,13 +1146,13 @@ permission:
     issue:
         create:
             label: Create issues
-            help: Open an issue in the trackers they can see.
+            help: Open an issue in the categories they can see.
         edit:
             label: Edit the issues of others
             help: Title, description, fields and files of an issue written by someone else. Authors always edit their own.
         change_tracker:
-            label: Change the tracker of an issue
-            help: Move an issue to another tracker of the project, choosing its place in the new workflow.
+            label: Change the category of an issue
+            help: Move an issue to another category of the project, choosing its place in the new workflow.
         delete:
             label: Delete an issue
             help: Erase an issue for good, with its comments, files, links and history. Nobody is told.
@@ -1159,7 +1190,7 @@ permission:
     project:
         configure:
             label: Configure the project
-            help: Change its name and description, create, arrange, archive and delete its trackers, link its code repositories and write its automation rules.
+            help: Change its name and description, create, arrange, archive and delete its categories, link its code repositories and write its automation rules.
         manage_members:
             label: Manage access to the project
             help: Grant, change and revoke the roles held on the project itself, and designate the referent of each role there. Workspace roles stay with the administration.

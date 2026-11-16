@@ -1,0 +1,30 @@
+{# The trackers of a project template in their order, dragged to reorder (`sortable` controller, `move` action). Each row links to the settings of its tracker; the current one is highlighted. #}
+{% set trackerOrderTrackers = this.trackers %}
+{% set trackerOrderWorkflows = this.workflowLabels %}
+<div {{ attributes }} data-loading="addClass(opacity-60)">
+    <twig:Ui:Panel :title="'project.settings.trackers'|trans" :count="trackerOrderTrackers|length">
+        <twig:block name="content">
+            {% if error %}
+                <twig:Ui:Callout tone="danger" size="sm" role="alert" class="m-3">{{ error }}</twig:Ui:Callout>
+            {% endif %}
+            {% if trackerOrderTrackers is empty %}
+                <p class="px-4 py-6 text-center text-sm text-faint">{{ 'admin.template.tracker.empty'|trans }}</p>
+            {% else %}
+                <ul class="divide-y divide-line-subtle" data-controller="sortable" data-sortable-action-value="move">
+                    {% for tracker in trackerOrderTrackers %}
+                        <li id="template-tracker-{{ tracker.id }}" data-sortable-target="item" data-sortable-id="{{ tracker.id }}" draggable="true" data-action="dragstart->sortable#start dragover->sortable#over drop->sortable#drop dragend->sortable#end"
+                            class="flex items-center gap-2 px-2 py-2 {{ tracker.id == current ? 'bg-brand-soft' : 'hover:bg-subtle' }}">
+                            <span class="cursor-grab text-ghost hover:text-muted" title="{{ 'project.settings.tracker.drag'|trans }}"><twig:ux:icon name="lucide:grip-vertical" class="h-4 w-4" /></span>
+                            <a href="{{ path('app_admin_template_tracker', { template: projectTemplate.id, tracker: tracker.id }) }}" class="min-w-0 flex-1 leading-tight" {% if tracker.id == current %}aria-current="page"{% endif %}>
+                                <span class="block text-sm truncate text-strong">{{ tracker.name }}</span>
+                                <span class="block text-xs text-muted truncate">{{ trackerOrderWorkflows[tracker.workflowId] ?? tracker.workflowId }}</span>
+                            </a>
+                            {% if tracker.private %}<twig:ux:icon name="lucide:lock" class="h-3.5 w-3.5 text-faint" aria-label="{{ 'project.settings.tracker.private_badge'|trans }}" />{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </twig:block>
+        <twig:block name="footer">{{ 'project.settings.tracker.order_help'|trans }}</twig:block>
+    </twig:Ui:Panel>
+</div>

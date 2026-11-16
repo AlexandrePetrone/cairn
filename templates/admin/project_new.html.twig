@@ -17,6 +17,7 @@
                 {{ form_row(form.name) }}
                 {{ form_row(form.key) }}
             </div>
+            {% if form.template is defined %}{{ form_row(form.template) }}{% endif %}
             <div class="flex items-center gap-2">
                 <twig:Ui:Button type="submit" variant="primary" size="lg">{{ 'admin.create'|trans }}</twig:Ui:Button>
                 <twig:Ui:Button variant="ghost" size="lg" href="{{ path('app_admin_projects') }}">{{ 'admin.cancel'|trans }}</twig:Ui:Button>

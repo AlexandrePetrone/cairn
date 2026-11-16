@@ -1,0 +1,66 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\MessageHandler\Command\Project;
+
+use App\Automation\AutomationException;
+use App\Entity\AutomationRule;
+use App\Entity\Project;
+use App\Entity\ProjectTemplate;
+use App\Entity\Tracker;
+use App\Repository\TemplateRuleRepository;
+use App\Repository\TemplateTrackerRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+
+/**
+ * Gives a project that is being created what a template holds: its
+ * trackers, in their order, then its automation rules, in the order they
+ * were written, each limited to the tracker that was made from the one it
+ * names. The entities are built here, inside the transaction of
+ * CreateProject, not through CreateTracker and CreateRule: those read the
+ * database, which does not hold the project yet. A rule was checked when
+ * it was written in the template and is copied as it is, switched on or
+ * off as it was; one that stopped meaning something since (a place gone
+ * from the instance file) blocks nothing, as in a project, and one that
+ * cannot be read any more is left out, which the logs say.
+ */
+final class TemplateCopy
+{
+    public function __construct(
+        private readonly TemplateTrackerRepository $trackers,
+        private readonly TemplateRuleRepository $rules,
+        private readonly EntityManagerInterface $entityManager,
+        private readonly LoggerInterface $logger,
+    ) {
+    }
+
+    public function into(Project $project, ProjectTemplate $template): void
+    {
+        $made = [];
+        foreach ($this->trackers->findByTemplate($template) as $position => $source) {
+            $tracker = new Tracker($project, $source->getName(), $source->getWorkflowId(), $position);
+            $tracker->setDescription($source->getDescription());
+            if ($source->isPrivate()) {
+                $tracker->makePrivate();
+            }
+            $this->entityManager->persist($tracker);
+            $made[(int) $source->getId()] = $tracker;
+        }
+
+        foreach ($this->rules->findByTemplate($template) as $source) {
+            try {
+                $definition = $source->getDefinition();
+            } catch (AutomationException $e) {
+                $this->logger->warning('The rule "{rule}" of the template "{template}" can no longer be read: project {project} was created without it.', ['rule' => $source->getName(), 'template' => $template->getName(), 'project' => $project->getIssuePrefix(), 'exception' => $e]);
+                continue;
+            }
+            $rule = new AutomationRule($project, $source->getName(), null === $source->getTracker() ? null : $made[(int) $source->getTracker()->getId()], $definition);
+            if (!$source->isActive()) {
+                $rule->deactivate();
+            }
+            $this->entityManager->persist($rule);
+        }
+    }
+}

@@ -18,7 +18,7 @@ use function Symfony\Component\Clock\now;
  * seen and changed as before. Only a tracker without any issue is deleted.
  */
 #[ORM\Entity(repositoryClass: TrackerRepository::class)]
-class Tracker
+class Tracker implements Positioned
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]

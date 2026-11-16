@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\MessageHandler\Command\Automation;
 
 use App\Automation\AutomationException;
-use App\Automation\Definition\RuleChecker;
-use App\Automation\Definition\RuleDefinition;
 use App\Automation\RuleContexts;
 use App\Entity\AutomationRule;
 use App\Message\Command\Automation\CreateRule;
@@ -24,7 +22,7 @@ final class CreateRuleHandler
         private readonly ProjectRepository $projects,
         private readonly TrackerRepository $trackers,
         private readonly RuleContexts $contexts,
-        private readonly RuleChecker $checker,
+        private readonly RuleWriting $writing,
         private readonly ProjectActor $actor,
         private readonly EntityManagerInterface $entityManager,
     ) {
@@ -39,8 +37,7 @@ final class CreateRuleHandler
         if (null !== $command->trackerId && $tracker?->getProject() !== $project) {
             throw AutomationException::unknownTracker();
         }
-        $definition = RuleDefinition::fromArray($command->definition);
-        $this->checker->check($definition, null === $tracker ? null : (string) $tracker->getId(), $this->contexts->ofProject($project));
+        $definition = $this->writing->written($command->definition, $tracker, $this->contexts->ofProject($project));
 
         $rule = new AutomationRule($project, $command->name, $tracker, $definition);
         if (!$command->active) {

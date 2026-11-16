@@ -1,0 +1,7 @@
+{% extends 'admin/template/base.html.twig' %}
+
+{# The editor of one automation rule of a project template, a new one without `rule`: the live component does the writing. #}
+{% block template_content %}
+    <h2 class="font-semibold text-strong">{{ rule ? rule.name : 'automation.new_title'|trans }}</h2>
+    <twig:Template:RuleForm :projectTemplate="template" :rule="rule" />
+{% endblock %}

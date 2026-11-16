@@ -16,6 +16,8 @@ use App\Config\Sync\PlaceMigration;
 use App\Entity\ConfigSnapshot;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\IssueLink;
+use App\Entity\ProjectTemplate;
+use App\Entity\TemplateTracker;
 use App\Entity\Tracker;
 use App\Entity\User;
 use App\Factory\TrackerFactory;
@@ -366,6 +368,22 @@ final class ConfigSynchronizerTest extends KernelTestCase
         }
 
         return 0;
+    }
+
+    public function testRemovingAWorkflowAProjectTemplateUsesIsBlocked(): void
+    {
+        $this->synchronizer->apply($this->synchronizer->plan(DefinitionFactory::definition()));
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist($template = new ProjectTemplate('Web project'));
+        $entityManager->persist(new TemplateTracker($template, 'Bug', 'bug'));
+        $entityManager->flush();
+        $bug = DefinitionFactory::bugWorkflow();
+        $defect = new WorkflowDefinition(id: 'defect', label: 'Defect', initial: $bug->initial, places: array_values($bug->places), transitions: array_values($bug->transitions), fields: array_values($bug->fields), fallbackPlace: $bug->fallbackPlace);
+
+        $plan = $this->synchronizer->plan(DefinitionFactory::definition(workflows: [$defect]));
+
+        self::assertContains('workflows.bug: the project template(s) "Web project" still use it', $plan->usedWorkflows);
+        self::assertTrue($plan->isBlocked());
     }
 
     private function issuesOn(string $place, int $count): void

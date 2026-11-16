@@ -1,0 +1,30 @@
+{# Base of the pages of a project template: its name, its tabs (one route each). Pages fill `template_content`, and `template_actions` with the main action of their tab. #}
+{% extends 'layout/admin.html.twig' %}
+
+{% block page_title %}{{ template.name }}{% endblock %}
+
+{% block breadcrumb %}
+    <twig:ux:icon name="lucide:chevron-right" class="h-3 w-3 text-ghost shrink-0" />
+    <a href="{{ path('app_admin_templates') }}" class="hover:text-strong">{{ 'admin.nav.templates'|trans }}</a>
+{% endblock %}
+
+{% block content %}
+    {% set templateRoute = { template: template.id } %}
+    {% set templateTab = app.current_route starts with 'app_admin_template_automation' ? 'automations' : (app.current_route == 'app_admin_template_settings' ? 'settings' : 'trackers') %}
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 space-y-4">
+        <div class="flex flex-wrap items-end gap-4">
+            <div>
+                <p class="text-xs text-muted">{{ 'admin.template.label'|trans }}</p>
+                <h1 class="text-xl font-semibold text-strong">{{ template.name }}</h1>
+                {% if template.description %}<p class="text-xs text-muted">{{ template.description }}</p>{% endif %}
+            </div>
+            <div class="ml-auto">{% block template_actions %}{% endblock %}</div>
+        </div>
+        <nav class="flex items-center gap-1 border-b border-line">
+            <twig:Ui:Tab href="{{ path('app_admin_template', templateRoute) }}" :active="templateTab == 'trackers'">{{ 'admin.template.tab.trackers'|trans }}</twig:Ui:Tab>
+            <twig:Ui:Tab href="{{ path('app_admin_template_automations', templateRoute) }}" :active="templateTab == 'automations'">{{ 'admin.template.tab.automations'|trans }}</twig:Ui:Tab>
+            <twig:Ui:Tab href="{{ path('app_admin_template_settings', templateRoute) }}" icon="settings" right :active="templateTab == 'settings'">{{ 'admin.template.tab.settings'|trans }}</twig:Ui:Tab>
+        </nav>
+        {% block template_content %}{% endblock %}
+    </div>
+{% endblock %}

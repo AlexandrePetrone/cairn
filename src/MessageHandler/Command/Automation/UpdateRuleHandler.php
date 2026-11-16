@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace App\MessageHandler\Command\Automation;
 
 use App\Automation\AutomationException;
-use App\Automation\Definition\RuleChecker;
-use App\Automation\Definition\RuleDefinition;
+use App\Automation\Definition\RuleContext;
 use App\Automation\RuleContexts;
 use App\Message\Command\Automation\UpdateRule;
 use App\MessageHandler\Command\ProjectActor;
@@ -28,7 +27,7 @@ final class UpdateRuleHandler
         private readonly AutomationRuleRepository $rules,
         private readonly TrackerRepository $trackers,
         private readonly RuleContexts $contexts,
-        private readonly RuleChecker $checker,
+        private readonly RuleWriting $writing,
         private readonly ProjectActor $actor,
     ) {
     }
@@ -39,19 +38,14 @@ final class UpdateRuleHandler
         $project = $rule->getProject();
         $this->actor->denyUnlessGranted($command->actorId, Permission::ProjectConfigure, $project);
 
-        $redefined = null !== $command->trackerId || null !== $command->definition;
         $tracker = $rule->getTracker();
-        $definition = null;
-        if ($redefined) {
-            if (null !== $command->trackerId) {
-                $tracker = UpdateRule::NO_TRACKER === $command->trackerId ? null : $this->trackers->find($command->trackerId);
-                if (UpdateRule::NO_TRACKER !== $command->trackerId && $tracker?->getProject() !== $project) {
-                    throw AutomationException::unknownTracker();
-                }
+        if (null !== $command->trackerId) {
+            $tracker = UpdateRule::NO_TRACKER === $command->trackerId ? null : $this->trackers->find($command->trackerId);
+            if (UpdateRule::NO_TRACKER !== $command->trackerId && $tracker?->getProject() !== $project) {
+                throw AutomationException::unknownTracker();
             }
-            $definition = null !== $command->definition ? RuleDefinition::fromArray($command->definition) : $rule->getDefinition();
-            $this->checker->check($definition, null === $tracker ? null : (string) $tracker->getId(), $this->contexts->ofProject($project));
         }
+        $definition = $this->writing->rewritten($command->definition, null !== $command->trackerId, $rule->getDefinition(...), $tracker, fn (): RuleContext => $this->contexts->ofProject($project));
 
         if (null !== $command->name) {
             $rule->rename($command->name);

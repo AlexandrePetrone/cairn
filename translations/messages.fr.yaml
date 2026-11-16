@@ -423,6 +423,7 @@ admin:
         workspaces: Espaces
         users: Utilisateurs
         imports: Imports
+        templates: Modèles
         configuration: Configuration
     filter:
         state: État
@@ -441,7 +442,35 @@ admin:
             repositories: '{0}dépôt lié|{1}dépôt lié|]1,Inf[ dépôts liés'
             rules: "{0}règle d'automatisation|{1}règle d'automatisation|]1,Inf[ règles d'automatisation"
             budgets: '{0}budget|{1}budget|]1,Inf[ budgets'
+    template:
+        label: Modèle de projet
+        intro: Ce avec quoi un nouveau projet peut démarrer. Un modèle est copié à la création du projet, puis les deux vivent séparément.
+        new: Nouveau modèle
+        created: 'Modèle « %name% » créé.'
+        deleted: 'Modèle « %name% » supprimé.'
+        empty: Aucun modèle pour l'instant
+        empty_hint: Un modèle donne à un nouveau projet ses catégories et ses automatisations.
+        name: Nom
+        description: Description
+        description_help: 'Pour les administrateurs : à quel genre de projet il est destiné.'
+        delete: Supprimer le modèle
+        delete_help: Ses catégories et ses règles partent avec lui. Les projets qui en viennent gardent ce qu'ils ont reçu.
+        delete_confirm: Supprimer ce modèle définitivement ?
+        tab:
+            trackers: Catégories
+            automations: Automatisations
+            settings: Réglages
+        tracker:
+            empty: Aucune catégorie pour l'instant
+            empty_hint: Ajoutez les catégories avec lesquelles démarreront les projets créés depuis ce modèle.
+            delete_help: La catégorie quitte le modèle. Aucun projet n'est modifié.
+        rule:
+            intro: Ces règles sont copiées dans les projets créés depuis le modèle, actives ou non comme elles le sont ici. Elles visent des rôles, jamais une personne, et ne s'exécutent nulle part tant qu'elles sont dans le modèle.
+            empty: Ce modèle n'a pas encore de règle.
     project:
+        template: Modèle
+        no_template: Aucun modèle
+        template_help: Le projet démarre avec les catégories et les automatisations du modèle. C'est une copie, modifier le modèle ensuite ne change rien ici.
         count: '{0}Aucun projet|{1}1 projet|]1,Inf[ %count% projets'
         new: Nouveau projet
         created: 'Projet « %name% » créé.'
@@ -829,6 +858,8 @@ admin:
             number_taken: 'Une demande porte déjà la clé %key%.'
     refused:
         not_found: Introuvable.
+        template_name_taken: 'Un modèle porte déjà le nom %name%.'
+        unknown_workflow: 'Le workflow « %workflow% » n''existe pas dans la configuration.'
         workspace_key_taken: 'Un espace utilise déjà le code %key%.'
         project_key_taken: 'Un projet de %workspace% utilise déjà le code %key%.'
         archived_workspace: 'L''espace %workspace% est archivé : il ne reçoit pas de nouveau projet.'

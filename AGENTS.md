@@ -35,9 +35,11 @@ Decisions already taken:
     (`PendingNotification`), the picture of an account once replaced, an
     automation rule (`AutomationRule`: what it did stays in the journal
     and in its executions), a release (`DeleteRelease`: its issues
-    are left without one, which their journal says), and a line of a
+    are left without one, which their journal says), a line of a
     budget (`BudgetLine`: written by hand, corrected or deleted by
-    whoever manages the budgets).
+    whoever manages the budgets), and a project template with its
+    trackers and its rules (`DeleteTemplate`: the projects made from it
+    keep what they were given).
   - **What holds history is archived, and deleted only while empty.** A
     tracker is archived (`UpdateTracker::$archived`: nothing new goes in
     it, its issues stay seen and changed as before, by clients too) and
@@ -138,6 +140,7 @@ columns are what the English and the French catalogues show.
 | `AutomationRule` | Rule (Automations) | Règle (Automatisations) | A rule of a project that acts on its issues by itself: a trigger, conditions, actions. |
 | `AutomationRun`  | Execution         | Exécution        | What a rule did on an issue, once: applied, skipped or stopped.  |
 | `referent`       | Referent          | Référent         | The member a role answers through on a project; designated by hand, on an access. |
+| `ProjectTemplate` | Template         | Modèle           | What a new project may start with: trackers (`TemplateTracker`) and automation rules (`TemplateRule`), copied when it is created. |
 | `Budget`         | Budget            | Budget           | An amount of time a client committed to on a project (an open order), optional per project. |
 | `BudgetLine`     | Line              | Ligne            | What a budget is debited of, written by hand: a quantity, a status, an issue or a label. |
 
@@ -924,12 +927,13 @@ src/
   workspace's. The rows of the lists carry neither badge nor button for
   it. Only the administration marks a workspace membership. Two holders of a role on a workspace cannot each be the
   referent of one project: give them their access per project. This is
-  what a project template needs: its rules will be copied as they are.
+  what a project template needs: its rules are copied as they are.
 - **Where a rule is written is a context.** `RuleChecker`, the form and
   `RuleSentence` only know a `RuleContext`: the trackers with their
   workflow, the roles, the people. `RuleContexts::ofProject()` gives the
-  one of a project; a template will give another (trackers by a key of
-  its own, no people) and reuse the three as they are. Rules are written
+  one of a project; `ofTemplate()` gives the one of a project template
+  (its own trackers, no people, so a rule there names roles only), and
+  the three serve both as they are. Rules are written
   under `project.configure` on `/MD/SPT/settings/automations`
   (`Controller/Project/AutomationController`: the list, switched on and
   off in place, the editor, the executions), with `CreateRule`,
@@ -947,7 +951,15 @@ src/
   editor lists private trackers and the members, so it checks
   `project.configure` each time it is drawn (`RuleForm::guard()`), not
   only the page that holds it; every choice is offered by its value,
-  since two members may bear the same name.
+  since two members may bear the same name. What the editor does
+  wherever the rule is written is the trait
+  `Twig/Components/Automation/EditsRule` and the one template
+  `components/Automation/RuleForm.html.twig`; `Template:RuleForm`, the
+  editor of a rule of a project template, adds its guard, its context
+  and its commands. The handlers of both share what they do alike:
+  `MessageHandler/Command/Automation/RuleWriting` reads and checks what
+  a rule says, `MessageHandler/Command/Tracker/ListOrder` numbers the
+  trackers of a project or of a template (`Entity/Positioned`).
 - **A rule acts without an author, through the usual doors.**
   `RuleEngine` listens to the domain events inside the command's
   transaction, after the other listeners (its `#[AsEventListener]`s are
@@ -1219,7 +1231,27 @@ src/
   from its row; `/admin/workspaces/MD/delete`, from its settings), which
   counts what goes with it (`ShowProjectContents`) and asks for its key
   to be typed again (`Form/Admin/DeletionType`); an account that left no
-  trace is deleted from its page, confirmed in place. Project configuration and memberships seen from
+  trace is deleted from its page, confirmed in place.
+  A **project template** (`/admin/templates`,
+  `Controller/Admin/TemplateController`) is what a new project may start
+  with: trackers (`TemplateTracker`: what a tracker says, without a
+  project) and automation rules (`TemplateRule`), written through the
+  commands of `Message/Command/Template/`, one page per tab (Categories,
+  with `Template:TrackerOrder` and `Form/Tracker/TrackerType`;
+  Automations; Settings, where it is deleted, confirmed in place). The
+  form of a new project offers the templates when there are some
+  (`CreateProject::$templateId`), and
+  `MessageHandler/Command/Project/TemplateCopy` builds the trackers and
+  the rules of the project in the transaction of its creation, each rule
+  limited to the tracker made from the one it named, switched on or off
+  as it was. It is a copy and nothing more: the project keeps no trace
+  of its template, changing or deleting the template changes no
+  project, and a template is never applied to a project that exists. A
+  role its rules aim at has no referent on the new project until someone
+  is designated, which the page of its rules says (`MissingReferents`).
+  The live components of the templates check `ROLE_ADMIN` themselves:
+  their endpoint is not under `/admin`.
+  Project configuration and memberships seen from
   a project belong to its manager, in the project zone, not here:
   the Configuration section of the project navigation (`Layout:ProjectNav`),
   one item and one page per subject: General (`/MD/SPT/settings/general`),
@@ -1668,9 +1700,10 @@ file carries no version number, PHP checks it. Two kinds of change:
 For the sync to be the way out, it never needs the snapshot in force:
 the places, link types and workflows in use come from the data
 (`IssueRepository::countByPlace()`, `IssueLinkRepository::countByType()`,
-`TrackerRepository::countByWorkflow()`), compared with the next
-definition, and a link type or a workflow still in use blocks its
-removal; the snapshot in force only feeds the list of changes shown,
+`TrackerRepository::countByWorkflow()`,
+`TemplateTrackerRepository::templatesByWorkflow()`), compared with the
+next definition, and a link type or a workflow still in use, by a
+tracker of a project or of a project template, blocks its removal; the snapshot in force only feeds the list of changes shown,
 which says so when it cannot be read.
 `SnapshotCodec::FORMAT` is bumped when the stored shape changes, as a
 trace of which version wrote a snapshot, never checked.
@@ -1796,7 +1829,9 @@ Castor are the only things needed on the host. Commands run inside the
   (Configuration > Automations) and its manager as referent. Sign in as a
   client and create or comment an issue to see the first two act; `castor
   console app:automations:run` runs those that wait for time at once
-  (`--dry-run` counts what is due).
+  (`--dry-run` counts what is due). Administration > Templates holds
+  "Web project", the same three trackers and four rules, to create a
+  project with.
 - Imports: zip `templates/admin/import/example/` with two files `files/501` and
   `files/502` to get an archive to try, drop it in `var/imports_dev/`
   (`IMPORTS_DIR`) and follow Administration > Imports; the `messenger`

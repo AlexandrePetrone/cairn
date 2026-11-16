@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\Command\Tracker;
 
-use App\Entity\Tracker;
 use App\Message\Command\Tracker\DeleteTracker;
 use App\MessageHandler\Command\ProjectActor;
 use App\Repository\AutomationRuleRepository;
@@ -48,13 +47,7 @@ final class DeleteTrackerHandler
             $this->entityManager->remove($rule);
         }
         $this->views->forget(\sprintf('/%s/%s/issues/tracker/%d', $project->getWorkspace()->getKey(), $project->getKey(), $tracker->getId()));
-        $others = array_filter(
-            $this->trackers->findByProject($project, includeArchived: true),
-            static fn (Tracker $other): bool => $other !== $tracker,
-        );
-        foreach (array_values($others) as $index => $other) {
-            $other->moveTo($index);
-        }
+        ListOrder::close($tracker, $this->trackers->findByProject($project, includeArchived: true));
         $this->entityManager->remove($tracker);
     }
 }

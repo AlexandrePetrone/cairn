@@ -59,16 +59,16 @@ final class SettingsTest extends WebTestCase
         self::assertSelectorNotExists('[role="dialog"]');
         self::assertSelectorExists('turbo-frame#modal', 'where the dialog loads over the page');
 
-        $this->client->clickLink('New tracker');
+        $this->client->clickLink('New category');
         self::assertRouteSame('app_project_settings_tracker_new');
         self::assertSelectorExists('turbo-frame#modal form[name="new_tracker"][action="/MD/SPT/settings/trackers/new"] [role="dialog"]', 'loaded over the page, the form is still sent to the dialog, under a name of its own');
 
-        $this->client->submitForm('Create the tracker', ['new_tracker[name]' => ''], 'POST');
+        $this->client->submitForm('Create the category', ['new_tracker[name]' => ''], 'POST');
         self::assertResponseStatusCodeSame(422);
-        $this->client->submitForm('Create the tracker', ['new_tracker[name]' => '   ', 'new_tracker[workflowId]' => 'task'], 'POST');
+        $this->client->submitForm('Create the category', ['new_tracker[name]' => '   ', 'new_tracker[workflowId]' => 'task'], 'POST');
         self::assertResponseStatusCodeSame(422, 'a blank name is refused by the form, not by the bus');
 
-        $this->client->submitForm('Create the tracker', [
+        $this->client->submitForm('Create the category', [
             'new_tracker[name]' => 'Support',
             'new_tracker[description]' => 'A question about the site.',
             'new_tracker[workflowId]' => 'task',
@@ -91,7 +91,7 @@ final class SettingsTest extends WebTestCase
         self::assertSelectorExists('turbo-frame#modal form[name="new_tracker"]');
         self::assertSelectorNotExists('nav', 'nothing of the page behind the dialog');
 
-        $this->client->submitForm('Create the tracker', ['new_tracker[name]' => ''], 'POST', $frame);
+        $this->client->submitForm('Create the category', ['new_tracker[name]' => ''], 'POST', $frame);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('turbo-frame#modal [role="dialog"]', 'refused, the dialog alone is drawn again');
         self::assertSelectorNotExists('nav');
@@ -138,7 +138,7 @@ final class SettingsTest extends WebTestCase
     {
         $this->signInAs('thomas.girard@cairn.test');
         $this->client->request('GET', '/MD/SPT/settings/trackers/new');
-        $this->client->submitForm('Create the tracker', ['new_tracker[name]' => 'Support', 'new_tracker[workflowId]' => 'bug']);
+        $this->client->submitForm('Create the category', ['new_tracker[name]' => 'Support', 'new_tracker[workflowId]' => 'bug']);
         $crawler = $this->client->followRedirect();
         $url = $this->client->getRequest()->getPathInfo();
 
@@ -146,7 +146,7 @@ final class SettingsTest extends WebTestCase
         self::assertResponseRedirects('/MD/SPT/settings');
         $this->client->followRedirect();
         $this->client->followRedirect();
-        self::assertSelectorTextContains('body', 'Tracker "Support" deleted.');
+        self::assertSelectorTextContains('body', 'Category "Support" deleted.');
 
         $this->client->request('GET', $url);
         self::assertResponseStatusCodeSame(404);

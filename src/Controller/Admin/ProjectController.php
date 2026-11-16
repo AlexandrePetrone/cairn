@@ -20,6 +20,7 @@ use App\Message\Query\Project\ShowProjectContents;
 use App\Message\Query\Workspace\ListWorkspaces;
 use App\Message\QueryBus;
 use App\MessageHandler\Command\Project\ProjectException;
+use App\Repository\ProjectTemplateRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -68,10 +69,12 @@ final class ProjectController extends AbstractController
     }
 
     /**
-     * `?workspace=MD` preselects the workspace, from the page of one.
+     * `?workspace=MD` preselects the workspace, from the page of one. A
+     * template, when the instance has some, gives the project its
+     * trackers and its automation rules.
      */
     #[Route('/admin/projects/new', name: 'app_admin_project_new', methods: ['GET', 'POST'])]
-    public function new(Request $request): Response
+    public function new(Request $request, ProjectTemplateRepository $templates): Response
     {
         $workspaces = $this->queries->ask(new ListWorkspaces(archived: false));
         $data = new ProjectData();
@@ -81,11 +84,11 @@ final class ProjectController extends AbstractController
             }
         }
 
-        $form = $this->createForm(ProjectType::class, $data, ['workspaces' => $workspaces]);
+        $form = $this->createForm(ProjectType::class, $data, ['workspaces' => $workspaces, 'templates' => $templates->findAllByName()]);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid() && null !== $data->workspace) {
             try {
-                $project = $this->commands->dispatch(new CreateProject((int) $data->workspace->getId(), (string) $data->name, (string) $data->key));
+                $project = $this->commands->dispatch(new CreateProject((int) $data->workspace->getId(), (string) $data->name, (string) $data->key, $data->template?->getId()));
                 \assert($project instanceof Project);
                 $this->addFlash('success', $this->translator->trans('admin.project.created', ['%name%' => $project->getName()]));
 

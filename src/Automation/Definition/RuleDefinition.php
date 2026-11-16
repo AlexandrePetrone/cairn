@@ -10,7 +10,7 @@ use App\Automation\AutomationException;
  * What a rule says: when one thing happens (the trigger), if every
  * condition holds, do the actions in their order. Kept on the rule as an
  * array (AutomationRule::$definition), in the shape `toArray()` gives,
- * which is also what a project template will carry. `fromArray()` only
+ * which is also what a project template carries (TemplateRule). `fromArray()` only
  * reads the shape; whether the values mean something on a project is
  * RuleChecker's.
  */

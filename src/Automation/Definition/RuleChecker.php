@@ -11,8 +11,8 @@ use App\Entity\Enum\Criticality;
  * Says whether a rule means something where it is written: every value
  * is one its kind allows in the context, a step that names a place or an
  * action of a workflow comes with a tracker, a rule has something to do.
- * The one place that decides it, for the commands that keep a rule and,
- * later, for a template. A rule that passed may stop meaning something
+ * The one place that decides it, for the commands that keep a rule of a
+ * project and those that keep a rule of a project template. A rule that passed may stop meaning something
  * (a place leaves the configuration, a member the project): the engine
  * then skips what it cannot do and says why, nothing checks again here.
  */

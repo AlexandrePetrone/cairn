@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Form\Project;
 
+use App\Entity\ProjectTemplate;
 use App\Entity\Workspace;
 use App\Form\Type\KeyType;
 use Symfony\Component\Form\AbstractType;
@@ -14,7 +15,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
  * A new project: its workspace among the ones given (the controller leaves
- * out the archived ones), its name and its key.
+ * out the archived ones), its name and its key, and the template it
+ * starts with when the instance has some (`templates`).
  *
  * @extends AbstractType<ProjectData> */
 final class ProjectType extends AbstractType
@@ -38,13 +40,26 @@ final class ProjectType extends AbstractType
                 'label' => 'admin.project.key',
                 'help' => 'admin.project.key_help',
             ]);
+        if ([] !== $options['templates']) {
+            $builder->add('template', ChoiceType::class, [
+                'choices' => $options['templates'],
+                'choice_label' => static fn (ProjectTemplate $template): string => $template->getName(),
+                'choice_value' => static fn (?ProjectTemplate $template): string => (string) $template?->getId(),
+                'choice_translation_domain' => false,
+                'required' => false,
+                'placeholder' => 'admin.project.no_template',
+                'label' => 'admin.project.template',
+                'help' => 'admin.project.template_help',
+            ]);
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver
-            ->setDefaults(['data_class' => ProjectData::class])
+            ->setDefaults(['data_class' => ProjectData::class, 'templates' => []])
             ->setRequired('workspaces')
-            ->setAllowedTypes('workspaces', Workspace::class.'[]');
+            ->setAllowedTypes('workspaces', Workspace::class.'[]')
+            ->setAllowedTypes('templates', ProjectTemplate::class.'[]');
     }
 }

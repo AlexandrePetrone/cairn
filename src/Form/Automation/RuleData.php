@@ -11,6 +11,7 @@ use App\Automation\Definition\RuleChecker;
 use App\Automation\Definition\RuleContext;
 use App\Automation\Definition\TriggerType;
 use App\Entity\AutomationRule;
+use App\Entity\TemplateRule;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -37,7 +38,7 @@ final class RuleData
     /** @var array<int, array{type: string, params: array<string, mixed>}> */
     public array $actions = [['type' => ActionType::Assign->value, 'params' => []]];
 
-    public static function of(?AutomationRule $rule, RuleContext $context): self
+    public static function of(AutomationRule|TemplateRule|null $rule, RuleContext $context): self
     {
         return self::fromValues(null === $rule ? [] : [
             'name' => $rule->getName(),

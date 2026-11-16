@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\Command\Tracker;
 
-use App\Entity\Tracker;
 use App\Message\Command\Tracker\UpdateTracker;
 use App\MessageHandler\Command\ProjectActor;
 use App\Repository\TrackerRepository;
@@ -38,23 +37,7 @@ final class UpdateTrackerHandler
             $command->archived ? $tracker->archive() : $tracker->unarchive();
         }
         if (null !== $command->position) {
-            $this->move($tracker, $command->position);
-        }
-    }
-
-    /**
-     * Puts the tracker at the position asked, within the bounds of the
-     * list, and numbers the whole list again from 0.
-     */
-    private function move(Tracker $tracker, int $position): void
-    {
-        $others = array_values(array_filter(
-            $this->trackers->findByProject($tracker->getProject(), includeArchived: true),
-            static fn (Tracker $other): bool => $other !== $tracker,
-        ));
-        array_splice($others, min($position, \count($others)), 0, [$tracker]);
-        foreach ($others as $index => $each) {
-            $each->moveTo($index);
+            ListOrder::move($tracker, $this->trackers->findByProject($tracker->getProject(), includeArchived: true), $command->position);
         }
     }
 }

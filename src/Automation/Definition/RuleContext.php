@@ -11,9 +11,9 @@ use App\Workflow\PlaceCatalog;
  * Where a rule is written, and so what it may name: the trackers it can
  * be limited to, each with its workflow, the roles whose referent it can
  * aim at, and the people it can name. A project gives one
- * (RuleContexts::ofProject()); a project template will give its own,
- * without people. The checker and the form read nothing else, so a rule
- * is edited the same way in both.
+ * (RuleContexts::ofProject()); a project template gives its own
+ * (ofTemplate()), without people. The checker and the form read nothing
+ * else, so a rule is edited the same way in both.
  */
 final readonly class RuleContext
 {

@@ -4,18 +4,13 @@ declare(strict_types=1);
 
 namespace App\Twig\Components\Automation;
 
-use App\Automation\Definition\ActionType;
-use App\Automation\Definition\ConditionType;
 use App\Automation\Definition\RuleContext;
-use App\Automation\Definition\RuleDefinition;
 use App\Automation\Definition\Target;
-use App\Automation\Definition\TriggerType;
 use App\Automation\RuleContexts;
 use App\Automation\RuleSentence;
 use App\Entity\AutomationRule;
 use App\Entity\Project;
 use App\Form\Automation\RuleData;
-use App\Form\Automation\RuleType;
 use App\Message\Command\Automation\CreateRule;
 use App\Message\Command\Automation\DeleteRule;
 use App\Message\Command\Automation\UpdateRule;
@@ -26,16 +21,13 @@ use App\Security\Viewer;
 use App\Twig\Components\DispatchesCommands;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormFactoryInterface;
-use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
-use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\Attribute\PostHydrate;
 use Symfony\UX\LiveComponent\ComponentToolsTrait;
-use Symfony\UX\LiveComponent\ComponentWithFormTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
@@ -44,9 +36,9 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  * is null: its name, the tracker it is limited to, then the trigger, the
  * conditions and the actions. What a row asks for depends on its type,
  * and what a place or an action of a workflow offers on the tracker, so
- * the form is redrawn at each change and rebuilt from what the page
- * holds (RuleData::fromValues()); rows are added and removed here.
- * Beside it, the rule in one sentence. Nothing is kept until `save`,
+ * the form is redrawn at each change (EditsRule, shared with the editor
+ * of a rule of a project template). Beside it, the rule in one
+ * sentence. Nothing is kept until `save`,
  * which dispatches CreateRule or UpdateRule and leads back to the list;
  * deleting confirms in place.
  */
@@ -54,21 +46,15 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
 final class RuleForm extends AbstractController
 {
     use ComponentToolsTrait;
-    use ComponentWithFormTrait;
     use DefaultActionTrait;
     use DispatchesCommands;
+    use EditsRule;
 
     #[LiveProp]
     public Project $project;
 
     #[LiveProp]
     public ?AutomationRule $rule = null;
-
-    /** Whether the deletion waits for its confirmation. */
-    #[LiveProp]
-    public bool $deleting = false;
-
-    private ?RuleContext $loadedContext = null;
 
     public function __construct(
         private readonly RuleContexts $contexts,
@@ -96,24 +82,6 @@ final class RuleForm extends AbstractController
     }
 
     /**
-     * The rule as the page holds it, in one sentence.
-     */
-    public function getSentence(): string
-    {
-        $draft = $this->draft();
-
-        return $this->sentence->of(RuleDefinition::fromArray($draft->definition()), '' === (string) $draft->tracker ? null : (string) $draft->tracker, $this->context());
-    }
-
-    /**
-     * Whether the trigger chosen waits for time instead of an event.
-     */
-    public function isTimed(): bool
-    {
-        return true === TriggerType::tryFrom((string) ($this->draft()->trigger['type'] ?? ''))?->isTimed();
-    }
-
-    /**
      * Who a target that names a referent leads to today, null for any
      * other target: their `name`, and whether they `answer` (someone may
      * be designated whose account is deactivated, or who holds another
@@ -130,30 +98,6 @@ final class RuleForm extends AbstractController
         $referent = $this->referents->of($this->project, $parsed->argument);
 
         return ['name' => (string) ($referent ?? $this->referents->marked($this->project)[$parsed->argument] ?? null)?->getFullName(), 'answers' => null !== $referent];
-    }
-
-    #[LiveAction]
-    public function addCondition(): void
-    {
-        $this->addRow('conditions', ['type' => ConditionType::Assignee->value, 'params' => []]);
-    }
-
-    #[LiveAction]
-    public function removeCondition(#[LiveArg] int $index): void
-    {
-        $this->removeRow('conditions', $index);
-    }
-
-    #[LiveAction]
-    public function addAction(): void
-    {
-        $this->addRow('actions', ['type' => ActionType::Assign->value, 'params' => []]);
-    }
-
-    #[LiveAction]
-    public function removeAction(#[LiveArg] int $index): void
-    {
-        $this->removeRow('actions', $index);
     }
 
     #[LiveAction]
@@ -176,18 +120,6 @@ final class RuleForm extends AbstractController
     }
 
     #[LiveAction]
-    public function confirmDelete(): void
-    {
-        $this->deleting = true;
-    }
-
-    #[LiveAction]
-    public function cancelDelete(): void
-    {
-        $this->deleting = false;
-    }
-
-    #[LiveAction]
     public function delete(CommandBus $commands): ?Response
     {
         $this->deleting = false;
@@ -200,65 +132,35 @@ final class RuleForm extends AbstractController
     }
 
     /**
-     * The form of the rule as the page stands. The live endpoint requires
-     * a custom header that keeps cross-origin requests out, so the form
-     * carries no CSRF token of its own.
-     *
-     * @return FormInterface<RuleData>
+     * Where Cancel leads: the rules of the project.
      */
-    protected function instantiateForm(): FormInterface
+    public function getCancelUrl(): string
     {
-        $draft = $this->draft();
-        if ([] !== $this->formValues) {
-            // The values follow the rows: those of a type a row no longer has leave, as does a place of another tracker.
-            $this->formValues = $this->values($draft);
-        }
-
-        return $this->forms->createNamed('automation_rule', RuleType::class, $draft, [
-            'context' => $this->context(),
-            'rule' => $draft,
-            'csrf_protection' => false,
-        ]);
+        return $this->generateUrl('app_project_settings_automations', ['workspaceKey' => $this->project->getWorkspace()->getKey(), 'projectKey' => $this->project->getKey()]);
     }
 
-    private function draft(): RuleData
+    protected function ruleContext(): RuleContext
     {
-        return [] === $this->formValues ? RuleData::of($this->rule, $this->context()) : RuleData::fromValues($this->formValues, $this->context());
+        return $this->contexts->ofProject($this->project);
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function values(RuleData $draft): array
+    protected function storedRule(): ?AutomationRule
     {
-        return ['name' => $draft->name, 'tracker' => $draft->tracker, 'trigger' => $draft->trigger, 'conditions' => $draft->conditions, 'actions' => $draft->actions];
+        return $this->rule;
     }
 
-    /**
-     * @param array<string, mixed> $row
-     */
-    private function addRow(string $list, array $row): void
+    protected function ruleSentence(): RuleSentence
     {
-        $values = $this->values($this->draft());
-        $values[$list][] = $row;
-        $this->formValues = $values;
+        return $this->sentence;
     }
 
-    private function removeRow(string $list, int $index): void
+    protected function formFactory(): FormFactoryInterface
     {
-        $values = $this->values($this->draft());
-        unset($values[$list][$index]);
-        $values[$list] = array_values($values[$list]);
-        $this->formValues = $values;
-    }
-
-    private function context(): RuleContext
-    {
-        return $this->loadedContext ??= $this->contexts->ofProject($this->project);
+        return $this->forms;
     }
 
     private function backToTheList(): Response
     {
-        return $this->redirectToRoute('app_project_settings_automations', ['workspaceKey' => $this->project->getWorkspace()->getKey(), 'projectKey' => $this->project->getKey()]);
+        return $this->redirect($this->getCancelUrl());
     }
 }

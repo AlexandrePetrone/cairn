@@ -1,0 +1,61 @@
+{% extends 'admin/template/base.html.twig' %}
+
+{# The trackers of a project template: their order at the left; at the right the settings of one (`tracker`), the form of a new one (`form` alone), or what to do when the template has none. #}
+{% block template_actions %}
+    <twig:Ui:Button variant="primary" icon="plus" href="{{ path('app_admin_template_tracker_new', { template: template.id }) }}">{{ 'project.settings.tracker.new_title'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block template_content %}
+    <div class="grid gap-4 lg:grid-cols-[20rem_1fr] items-start">
+        <twig:Template:TrackerOrder :projectTemplate="template" :current="tracker ? tracker.id : null" />
+        <div class="space-y-4 min-w-0">
+            {% if form is null %}
+                <twig:Ui:EmptyState :title="'admin.template.tracker.empty'|trans" icon="tag" bordered>{{ 'admin.template.tracker.empty_hint'|trans }}</twig:Ui:EmptyState>
+            {% elseif tracker is null %}
+                {{ form_start(form, { attr: { class: 'rounded-lg border border-line bg-surface p-4 space-y-4' } }) }}
+                    <h2 class="font-semibold text-strong">{{ 'project.settings.tracker.new_title'|trans }}</h2>
+                    {{ form_errors(form) }}
+                    {{ form_row(form.name) }}
+                    {{ form_row(form.workflowId) }}
+                    {{ form_row(form.description) }}
+                    {{ form_row(form.private) }}
+                    <div class="flex items-center gap-2">
+                        <twig:Ui:Button type="submit" variant="primary">{{ 'admin.create'|trans }}</twig:Ui:Button>
+                        <twig:Ui:Button variant="ghost" href="{{ path('app_admin_template', { template: template.id }) }}">{{ 'admin.cancel'|trans }}</twig:Ui:Button>
+                    </div>
+                {{ form_end(form) }}
+            {% else %}
+                {{ form_start(form, { attr: { class: 'rounded-lg border border-line bg-surface p-4 space-y-4' } }) }}
+                    <h2 class="font-semibold text-strong">{{ tracker.name }}</h2>
+                    {{ form_errors(form) }}
+                    {{ form_row(form.name) }}
+                    {{ form_row(form.description) }}
+                    {{ form_row(form.private) }}
+                    <twig:Ui:Button type="submit" variant="primary">{{ 'admin.save'|trans }}</twig:Ui:Button>
+                {{ form_end(form) }}
+                <section class="rounded-lg border border-line bg-surface p-4 space-y-3">
+                    <div>
+                        <h2 class="font-semibold text-strong">{{ 'project.settings.tracker.workflow'|trans }} · {{ workflow ? workflow.label : tracker.workflowId }}</h2>
+                        <p class="text-xs text-muted">{{ 'project.settings.tracker.workflow_fixed'|trans }}</p>
+                    </div>
+                    {% if workflow %}
+                        <twig:Workflow:Diagram :workflow="workflow" />
+                    {% endif %}
+                </section>
+                <twig:Ui:Callout tone="danger">
+                    <h2 class="font-semibold text-strong">{{ 'project.settings.tracker.delete_title'|trans }}</h2>
+                    <p class="text-xs text-muted">{{ 'admin.template.tracker.delete_help'|trans }}{% if ruleCount > 0 %} {{ 'project.settings.tracker.delete_rules'|trans({ '%count%': ruleCount }) }}{% endif %}</p>
+                    <twig:Ui:Disclosure :closedLabel="'project.settings.tracker.delete'|trans" :openLabel="'admin.cancel'|trans" class="mt-2">
+                        <div class="mt-2 flex flex-wrap items-center gap-2" role="alertdialog">
+                            <span class="flex-1 text-sm">{{ 'project.settings.tracker.delete_confirm'|trans }}</span>
+                            <form method="post" action="{{ path('app_admin_template_tracker_delete', { template: template.id, tracker: tracker.id }) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('submit') }}" data-controller="csrf-protection">
+                                <twig:Ui:Button type="submit" size="sm" variant="danger" icon="trash-2">{{ 'project.settings.tracker.delete'|trans }}</twig:Ui:Button>
+                            </form>
+                        </div>
+                    </twig:Ui:Disclosure>
+                </twig:Ui:Callout>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

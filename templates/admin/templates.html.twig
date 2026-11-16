@@ -1,0 +1,38 @@
+{% extends 'layout/admin.html.twig' %}
+
+{# The project templates: what each gives a new project. #}
+{% block page_title %}{{ 'admin.nav.templates'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 space-y-4">
+        <div class="flex flex-wrap items-center gap-3">
+            <div>
+                <h1 class="text-xl font-semibold text-strong">{{ 'admin.nav.templates'|trans }}</h1>
+                <p class="text-xs text-muted">{{ 'admin.template.intro'|trans }}</p>
+            </div>
+            <twig:Ui:Button variant="primary" icon="plus" href="{{ path('app_admin_template_new') }}" class="ml-auto">{{ 'admin.template.new'|trans }}</twig:Ui:Button>
+        </div>
+
+        {% if templates is empty %}
+            <twig:Ui:EmptyState :title="'admin.template.empty'|trans" icon="copy" bordered>{{ 'admin.template.empty_hint'|trans }}</twig:Ui:EmptyState>
+        {% else %}
+            <twig:Ui:Table>
+                <twig:block name="head">
+                    <th class="px-4 py-2 text-left font-medium">{{ 'admin.template.name'|trans }}</th>
+                    <th class="px-3 py-2 text-left font-medium w-40">{{ 'admin.template.tab.trackers'|trans }}</th>
+                    <th class="px-3 py-2 text-left font-medium w-40">{{ 'admin.template.tab.automations'|trans }}</th>
+                </twig:block>
+                {% for template in templates %}
+                    <twig:Ui:Table:Row>
+                        <td class="sm:px-4 sm:py-2.5 order-1 basis-full sm:basis-auto">
+                            <a href="{{ path('app_admin_template', { template: template.id }) }}" class="font-medium text-strong hover:text-amber">{{ template.name }}</a>
+                            {% if template.description %}<p class="text-xs text-muted">{{ template.description }}</p>{% endif %}
+                        </td>
+                        <td class="sm:px-3 sm:py-2.5 order-2 text-sm text-body">{{ trackers[template.id] ?? 0 }}</td>
+                        <td class="sm:px-3 sm:py-2.5 order-3 text-sm text-body">{{ rules[template.id] ?? 0 }}</td>
+                    </twig:Ui:Table:Row>
+                {% endfor %}
+            </twig:Ui:Table>
+        {% endif %}
+    </div>
+{% endblock %}

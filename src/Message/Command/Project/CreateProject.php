@@ -8,8 +8,10 @@ use App\Entity\Project;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * Creates a project in a workspace, under a key unique in that workspace.
- * Handled by CreateProjectHandler, which returns the Project.
+ * Creates a project in a workspace, under a key unique in that workspace,
+ * empty or with the trackers and the automation rules of a project
+ * template (`templateId`). Handled by CreateProjectHandler, which returns
+ * the Project.
  */
 final readonly class CreateProject
 {
@@ -20,6 +22,7 @@ final readonly class CreateProject
         public string $name,
         #[Assert\Regex(Project::KEY_PATTERN)]
         public string $key,
+        public ?int $templateId = null,
     ) {
     }
 }

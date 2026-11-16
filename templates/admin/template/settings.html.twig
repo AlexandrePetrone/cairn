@@ -1,0 +1,23 @@
+{% extends 'admin/template/base.html.twig' %}
+
+{% block template_content %}
+    {{ form_start(form, { attr: { class: 'max-w-2xl rounded-lg border border-line bg-surface p-4 space-y-4' } }) }}
+        {{ form_errors(form) }}
+        {{ form_row(form.name) }}
+        {{ form_row(form.description) }}
+        <twig:Ui:Button type="submit" variant="primary" size="lg">{{ 'admin.save'|trans }}</twig:Ui:Button>
+    {{ form_end(form) }}
+    <twig:Ui:Callout tone="danger" class="max-w-2xl">
+        <h2 class="font-semibold text-strong">{{ 'admin.template.delete'|trans }}</h2>
+        <p class="text-xs text-muted">{{ 'admin.template.delete_help'|trans }}</p>
+        <twig:Ui:Disclosure :closedLabel="'admin.template.delete'|trans" :openLabel="'admin.cancel'|trans" class="mt-2">
+            <div class="mt-2 flex flex-wrap items-center gap-2" role="alertdialog">
+                <span class="flex-1 text-sm">{{ 'admin.template.delete_confirm'|trans }}</span>
+                <form method="post" action="{{ path('app_admin_template_delete', { template: template.id }) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('submit') }}" data-controller="csrf-protection">
+                    <twig:Ui:Button type="submit" size="sm" variant="danger" icon="trash-2">{{ 'admin.template.delete'|trans }}</twig:Ui:Button>
+                </form>
+            </div>
+        </twig:Ui:Disclosure>
+    </twig:Ui:Callout>
+{% endblock %}

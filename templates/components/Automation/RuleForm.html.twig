@@ -1,7 +1,8 @@
-{# The editor of an automation rule: its name and where it applies, then When (one trigger), If (the conditions, all true) and Then (the actions, in order); beside it, the rule in one sentence. A row is the choice of its type followed by the fields that type asks for; the form is redrawn at each change.
+{# The editor of an automation rule, of a project (Automation:RuleForm) or of a project template (Template:RuleForm): its name and where it applies, then When (one trigger), If (the conditions, all true) and Then (the actions, in order); beside it, the rule in one sentence. A row is the choice of its type followed by the fields that type asks for; the form is redrawn at each change.
    `this` is read before the nested components, whose blocks see their own `this`. #}
 {% set ruleFormSentence = this.sentence %}
 {% set ruleFormTimed = this.timed %}
+{% set ruleFormCancel = this.cancelUrl %}
 {# One rhythm for every row: controls 2rem high, the type of a step in a column of its own width, its values beside it. #}
 {% set ruleFormRowClasses = 'flex flex-wrap items-center gap-2' %}
 {% set ruleFormStepClasses = 'flex flex-wrap gap-x-4 gap-y-2 px-4 py-3.5' %}
@@ -131,7 +132,7 @@
 
         <div class="flex flex-wrap items-center gap-2">
             <twig:Ui:Button type="submit" variant="primary" data-loading="addAttribute(disabled)">{{ 'automation.form.save'|trans }}</twig:Ui:Button>
-            <twig:Ui:Button variant="secondary" href="{{ path('app_project_settings_automations', { workspaceKey: project.workspace.key, projectKey: project.key }) }}">{{ 'automation.form.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button variant="secondary" href="{{ ruleFormCancel }}">{{ 'automation.form.cancel'|trans }}</twig:Ui:Button>
             {% if rule and not deleting %}
                 <twig:Ui:Button variant="danger" class="ml-auto" data-action="live#action" data-live-action-param="confirmDelete">{{ 'automation.delete'|trans }}</twig:Ui:Button>
             {% endif %}
