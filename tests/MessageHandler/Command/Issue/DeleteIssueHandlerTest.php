@@ -6,6 +6,8 @@ namespace App\Tests\MessageHandler\Command\Issue;
 
 use App\Attachment\AttachmentStorage;
 use App\Entity\Attachment;
+use App\Entity\Budget;
+use App\Entity\BudgetLine;
 use App\Entity\Comment;
 use App\Entity\Issue;
 use App\Entity\IssueLink;
@@ -52,6 +54,11 @@ final class DeleteIssueHandlerTest extends KernelTestCase
         $this->commands->dispatch(new AddComment((int) $this->fixtures->client->getId(), $issue->getKey(), 'First.'));
         $this->commands->dispatch(new AddComment($manager, $other->getKey(), 'Kept.'));
         $this->commands->dispatch(new AddLink($manager, $issue->getKey(), 'related', $other->getKey()));
+        $budget = new Budget($this->fixtures->access->shop, 'Order 2026-01', 4200);
+        $this->entityManager->persist($budget);
+        $this->entityManager->persist(new BudgetLine($budget, $issue, null));
+        $this->entityManager->persist(new BudgetLine($budget, $other, null));
+        $this->entityManager->flush();
         $file = $this->attach($issue);
         $kept = $this->attach($other);
         $storage = self::getContainer()->get(AttachmentStorage::class);
@@ -64,9 +71,10 @@ final class DeleteIssueHandlerTest extends KernelTestCase
         $this->entityManager->clear();
 
         self::assertNull($this->entityManager->getRepository(Issue::class)->find($issueId));
-        foreach ([Comment::class, JournalEntry::class, IssueSubscription::class, Attachment::class] as $class) {
+        foreach ([Comment::class, JournalEntry::class, IssueSubscription::class, Attachment::class, BudgetLine::class] as $class) {
             self::assertSame(0, $this->entityManager->getRepository($class)->count(['issue' => $issueId]), $class);
         }
+        self::assertSame(1, $this->entityManager->getRepository(BudgetLine::class)->count(['issue' => $other->getId()]), 'the budget line of the other issue stays');
         self::assertSame(0, $this->entityManager->getRepository(IssueLink::class)->count([]), 'the link goes with either end');
         self::assertFileDoesNotExist($path, 'the file goes once the transaction committed');
 

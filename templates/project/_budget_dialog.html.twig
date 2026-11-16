@@ -1,0 +1,43 @@
+{# The dialog of the budgets pages, for the `modal` block of both: creating a budget or changing `dialogBudget`, or, when `dialogFor` is `line`, writing a line on `dialogBudget` or changing `dialogLine`. It is answered alone to a request made for the frame, so it reads only `project`, `form`, `dialogFor`, `dialogBudget`, `dialogLine`, `dialogHome` (the page the dialog was opened from, where closing it leads) and `dialogFrom` (what says so in an address, when that page is the one of the budget).
+   The dialog of a line also deletes it, the dialog of a closed budget deletes the budget with its lines: the form doing so sits beside the one of the dialog, in the frame, and its button names it. #}
+{% set dialogRoute = { workspaceKey: project.workspace.key, projectKey: project.key } %}
+{% set dialogDeletion = null %}
+{% if form and dialogLine %}
+    {% set dialogDeletion = { id: 'budget-line-delete', keys: 'budget.line.', action: path('app_project_budget_line_delete', dialogRoute|merge({ budget: dialogBudget.id, line: dialogLine.id, from: dialogFrom })) } %}
+{% elseif form and dialogFor != 'line' and dialogBudget and not dialogBudget.open %}
+    {% set dialogDeletion = { id: 'budget-delete', keys: 'budget.', action: path('app_project_budget_delete', dialogRoute|merge({ budget: dialogBudget.id })) } %}
+{% endif %}
+{% set dialogDeleteForm = '' %}
+{% set dialogDelete = '' %}
+{% if dialogDeletion %}
+    {% set dialogDeleteForm %}
+        <form id="{{ dialogDeletion.id }}" method="post" action="{{ dialogDeletion.action }}" class="hidden">
+            <input type="hidden" name="_token" value="{{ csrf_token('submit') }}" data-controller="csrf-protection">
+        </form>
+    {% endset %}
+    {% set dialogDelete %}
+        <twig:Ui:Callout tone="danger" size="sm" class="mt-4">
+            <p>{{ (dialogDeletion.keys ~ 'delete_help')|trans }}</p>
+            <twig:Ui:Disclosure :closedLabel="(dialogDeletion.keys ~ 'delete')|trans" :openLabel="'issue.edit.cancel'|trans" class="mt-1.5">
+                <div class="mt-2 flex flex-wrap items-center gap-3" role="alertdialog">
+                    <span class="flex-1 basis-48">{{ (dialogDeletion.keys ~ 'delete_confirm')|trans }}</span>
+                    <twig:Ui:Button type="submit" variant="danger" size="sm" icon="trash-2" form="{{ dialogDeletion.id }}">{{ (dialogDeletion.keys ~ 'delete')|trans }}</twig:Ui:Button>
+                </div>
+            </twig:Ui:Disclosure>
+        </twig:Ui:Callout>
+    {% endset %}
+{% endif %}
+{% if dialogFor == 'line' %}
+    {% set dialogTitle = (dialogLine ? 'budget.line.edit' : 'budget.line.new')|trans %}
+    {% set dialogSubmit = (dialogLine ? 'budget.save' : 'budget.line.add')|trans %}
+{% else %}
+    {% set dialogTitle = dialogBudget ? dialogBudget.name : 'budget.new'|trans %}
+    {% set dialogSubmit = (dialogBudget ? 'budget.save' : 'budget.create')|trans %}
+{% endif %}
+{{ include('project/_form_dialog.html.twig', {
+    title: dialogTitle,
+    closeHref: dialogHome,
+    submitLabel: dialogSubmit,
+    before: dialogDeleteForm,
+    after: dialogDelete,
+}) }}

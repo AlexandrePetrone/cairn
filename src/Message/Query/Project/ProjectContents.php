@@ -21,6 +21,7 @@ final readonly class ProjectContents
         public int $members,
         public int $repositories,
         public int $rules,
+        public int $budgets,
     ) {
     }
 }

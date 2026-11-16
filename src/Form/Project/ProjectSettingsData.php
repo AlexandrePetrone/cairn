@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Form\Project;
 
+use App\Entity\Enum\BudgetUnit;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -17,4 +18,7 @@ final class ProjectSettingsData
     public ?string $name = null;
 
     public ?string $description = null;
+
+    /** Null, the project has no budget. */
+    public ?BudgetUnit $budgetUnit = null;
 }

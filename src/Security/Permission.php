@@ -38,6 +38,10 @@ enum Permission: string
     case ProjectManageMembers = 'project.manage_members';
     /** Create the releases of the project, change, deliver and abandon them. */
     case ReleaseManage = 'release.manage';
+    /** Create and close the budgets of the project, delete a closed one, write, change and delete their lines. */
+    case BudgetManage = 'budget.manage';
+    /** Read the budgets of the project and their lines, and those of an issue on its page. */
+    case BudgetView = 'budget.view';
 
     /**
      * Whether the permission opens what external users never see: the

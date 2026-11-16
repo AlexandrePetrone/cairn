@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\Story;
 
+use App\Budget\Quantities;
 use App\Config\ConfigLoader;
 use App\Config\Definition\TransitionDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use App\Config\Sync\ConfigSynchronizer;
 use App\Entity\Attachment;
+use App\Entity\Budget;
 use App\Entity\CodeRepository;
+use App\Entity\Enum\BudgetLineStatus;
+use App\Entity\Enum\BudgetUnit;
 use App\Entity\Enum\Criticality;
 use App\Entity\Enum\Forge;
 use App\Entity\Enum\MergeRequestState;
@@ -30,6 +34,8 @@ use App\Forge\Event\MergeRequestPayload;
 use App\Message\Command\Attachment\AddAttachment;
 use App\Message\Command\Attachment\UploadAttachment;
 use App\Message\Command\Automation\CreateRule;
+use App\Message\Command\Budget\AddBudgetLine;
+use App\Message\Command\Budget\CreateBudget;
 use App\Message\Command\Forge\LinkRepository;
 use App\Message\Command\Forge\RecordCommits;
 use App\Message\Command\Forge\RecordMergeRequest;
@@ -38,6 +44,7 @@ use App\Message\Command\Issue\AddLink;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\Command\Issue\CreateIssue;
 use App\Message\Command\Issue\UpdateIssue;
+use App\Message\Command\Project\UpdateProject;
 use App\Message\Command\Release\CreateRelease;
 use App\Message\Command\Release\UpdateRelease;
 use App\Message\CommandBus;
@@ -84,6 +91,7 @@ final class AppStory extends Story
         private readonly AccessControl $access,
         private readonly WorkflowProvider $workflows,
         private readonly EntityManagerInterface $entityManager,
+        private readonly Quantities $quantities,
     ) {
     }
 
@@ -106,6 +114,7 @@ final class AppStory extends Story
                 foreach ($definition['releases'] ?? [] as $release) {
                     $this->createRelease($project, $this->users[$definition['people']['manager']], $release, $issues, $now);
                 }
+                $this->createBudgets($project, $this->users[$definition['people']['manager']], $definition['budgets'] ?? [], $issues, $now);
                 if ($definition['archived'] ?? false) {
                     $project->archive();
                 } else {
@@ -147,7 +156,7 @@ final class AppStory extends Story
     }
 
     /**
-     * @return iterable<array{project: Project, people: array{manager: string, developers: list<string>, client: ?string}, issues: list<array{0: string, 1: string, 2: string, 3: Criticality, 4?: ?string, 5?: bool}>, releases?: list<array{0: string, 1: int, 2: string, 3: ReleaseStatus, 4: list<int>}>, archived?: bool}>
+     * @return iterable<array{project: Project, people: array{manager: string, developers: list<string>, client: ?string}, issues: list<array{0: string, 1: string, 2: string, 3: Criticality, 4?: ?string, 5?: bool}>, releases?: list<array{0: string, 1: int, 2: string, 3: ReleaseStatus, 4: list<int>}>, budgets?: list<array{0: string, 1: int, 2: list<array{0: ?int, 1: ?string, 2: BudgetLineStatus, 3: float|int|null}>}>, archived?: bool}>
      */
     private function projects(): iterable
     {
@@ -183,6 +192,22 @@ final class AppStory extends Story
             ['2.5.0', 14, 'Checkout and accounting export.', ReleaseStatus::Open, [1, 3, 4, 9, 11, 15]],
             ['2.6.0', 45, 'Payment in three instalments and supplier search.', ReleaseStatus::Open, [8, 10]],
             ['2.3.1', -40, 'Patch cancelled, taken over by 2.4.0.', ReleaseStatus::Abandoned, []],
+        ], 'budgets' => [
+            // [name, volume in days, lines: [index of the issue or null, label, status, days]]: the shop counts in days;
+            // its first order is used up, the second holds a line in each status and one that names no issue
+            ['Open order 2026-01', 10, [
+                [9, null, BudgetLineStatus::Approved, 4],
+                [10, null, BudgetLineStatus::Approved, 3],
+                [13, null, BudgetLineStatus::Approved, 2],
+                [11, null, BudgetLineStatus::Approved, 1],
+            ]],
+            ['Open order 2026-10', 5, [
+                [11, 'Animated version of the banner', BudgetLineStatus::Approved, 1],
+                [null, 'PHP upgrade of the production server', BudgetLineStatus::Approved, 0.5],
+                [12, null, BudgetLineStatus::Pending, 1.5],
+                [8, null, BudgetLineStatus::ToEstimate, null],
+                [14, null, BudgetLineStatus::Refused, 2],
+            ]],
         ]];
         yield ['project' => $this->project($dupont, 'Intranet', 'INT', 'Internal tool of the stores.', developers: ['marc']), 'people' => ['manager' => 'thomas', 'developers' => ['marc'], 'client' => 'claire'], 'issues' => [
             ['bug', 'The schedule does not show public holidays', 'qualified', Criticality::Normal, 'marc'],
@@ -399,6 +424,40 @@ final class AppStory extends Story
         $this->commands->dispatch(new RecordCommits($id, 'MD-SPT-3', 'feat/md-spt-3-filtres', $base.'tree/feat/md-spt-3-filtres', [
             $commit('9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d', 'feat(catalogue): size filters, first draft (MD-SPT-3)', 'Léa Fontaine'),
         ]));
+    }
+
+    /**
+     * Gives the project days as its unit, then creates its budgets and
+     * their lines, the first budget a few weeks ago, the next ones since.
+     *
+     * @param list<array{0: string, 1: int, 2: list<array{0: ?int, 1: ?string, 2: BudgetLineStatus, 3: float|int|null}>}> $definitions
+     * @param list<Issue>                                                                                                 $issues      the issues of the project, in creation order
+     */
+    private function createBudgets(Project $project, User $manager, array $definitions, array $issues, \DateTimeImmutable $now): void
+    {
+        if ([] === $definitions) {
+            return;
+        }
+        $actorId = (int) $manager->getId();
+        $this->commands->dispatch(new UpdateProject((int) $project->getId(), actorId: $actorId, budgetUnit: BudgetUnit::Days));
+
+        foreach ($definitions as $index => [$name, $days, $lines]) {
+            $clock = new MockClock($now->modify(\sprintf('-%d days', 20 * (\count($definitions) - $index))));
+            Clock::set($clock);
+            $budget = $this->commands->dispatch(new CreateBudget($actorId, (int) $project->getId(), $name, $this->quantities->toMinutes($days, BudgetUnit::Days)));
+            \assert($budget instanceof Budget);
+            foreach ($lines as [$issue, $label, $status, $quantity]) {
+                $clock->modify('+2 days');
+                $this->commands->dispatch(new AddBudgetLine(
+                    $actorId,
+                    (int) $budget->getId(),
+                    $status,
+                    null === $quantity ? null : $this->quantities->toMinutes($quantity, BudgetUnit::Days),
+                    null === $issue ? null : $issues[$issue]->getId(),
+                    $label,
+                ));
+            }
+        }
     }
 
     /**

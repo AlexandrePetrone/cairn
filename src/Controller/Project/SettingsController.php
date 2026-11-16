@@ -179,10 +179,11 @@ final class SettingsController extends AbstractController
         $data = new ProjectSettingsData();
         $data->name = $project->getName();
         $data->description = $project->getDescription();
+        $data->budgetUnit = $project->getBudgetUnit();
         $form = $this->createForm(ProjectSettingsType::class, $data);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->commands->dispatch(new UpdateProject((int) $project->getId(), (string) $data->name, (string) $data->description, actorId: (int) $actor->getId()));
+            $this->commands->dispatch(new UpdateProject((int) $project->getId(), (string) $data->name, (string) $data->description, actorId: (int) $actor->getId(), budgetUnit: $data->budgetUnit, withoutBudgets: null === $data->budgetUnit));
             $this->addFlash('success', $this->translator->trans('project.settings.saved'));
 
             return $this->redirectToRoute('app_project_settings_general', self::route($project));

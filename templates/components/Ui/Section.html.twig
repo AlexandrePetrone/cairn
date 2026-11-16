@@ -18,6 +18,11 @@
         },
     },
 ) %}
+{# The chevron takes the free space of the header unless actions did before it: two of them would share it, and leave the actions in the middle. #}
+{% set sectionChevronClasses = html_cva(
+    base: 'h-3.5 w-3.5 shrink-0 text-faint transition group-open/section:rotate-180',
+    variants: { alone: { true: 'ml-auto' } },
+) %}
 {% set sectionTag = foldable ? 'details' : 'section' %}
 {% set sectionHeaderTag = foldable ? 'summary' : 'div' %}
 {% set sectionActions %}{% block actions %}{% endblock %}{% endset %}
@@ -28,7 +33,7 @@
         {% if count is not null %}<span class="text-xs tabular-nums text-faint">{{ count }}</span>{% endif %}
         <span class="flex min-w-0 flex-1 items-center group-open/section:hidden">{% block summary %}{% endblock %}</span>
         {% if sectionActions|trim is not empty %}<span class="ml-auto flex shrink-0 items-center gap-2">{{ sectionActions }}</span>{% endif %}
-        {% if foldable %}<twig:ux:icon name="lucide:chevron-down" class="ml-auto h-3.5 w-3.5 shrink-0 text-faint transition group-open/section:rotate-180" />{% endif %}
+        {% if foldable %}<twig:ux:icon name="lucide:chevron-down" class="{{ sectionChevronClasses.apply({ alone: sectionActions|trim is empty }) }}" />{% endif %}
     </{{ sectionHeaderTag }}>
     <div class="border-t border-line-subtle px-3.5 py-3">{% block content %}{% endblock %}</div>
 </{{ sectionTag }}>

@@ -78,10 +78,16 @@ return new InstanceDefinition(
         Permission::ProjectConfigure->value => $managers,
         Permission::ProjectManageMembers->value => $managers,
         Permission::ReleaseManage->value => $managers,
+        // Budgets are per project, for those that set a unit (days or hours):
+        // managers create them and write their lines, whoever may view them
+        // reads them, on their pages and on the issues their lines name.
+        Permission::BudgetManage->value => $managers,
+        Permission::BudgetView->value => ['project_manager', 'developer', 'client', 'client_readonly'],
     ],
 
-    // Global fields; each workflow picks the ones it uses. Estimates and
-    // quotes are handled outside this tool: no amount is stored here.
+    // Global fields; each workflow picks the ones it uses. An estimate is
+    // not a field: it is a line of a budget of the project, written and
+    // approved on the budgets pages, without any tie to these workflows.
     fields: [
         new FieldDefinition(
             id: 'environment',
@@ -206,7 +212,7 @@ return new InstanceDefinition(
             places: [
                 new PlaceDefinition(id: 'new', label: 'Nouvelle', status: PlaceStatus::Open),
                 new PlaceDefinition(id: 'to_estimate', label: 'À chiffrer', status: PlaceStatus::Open),
-                // Waiting on the client: the estimate was sent, outside this tool.
+                // Waiting on the client: the estimate was sent.
                 new PlaceDefinition(id: 'to_approve', label: 'Chiffrage à valider', status: PlaceStatus::Waiting),
                 new PlaceDefinition(id: 'planned', label: 'Planifiée', status: PlaceStatus::InProgress),
                 new PlaceDefinition(id: 'in_progress', label: 'En cours', status: PlaceStatus::InProgress),
@@ -222,16 +228,6 @@ return new InstanceDefinition(
                 new TransitionDefinition(id: 'decline', label: 'Abandonner', from: ['new', 'to_estimate'], to: 'declined', roles: $internal, style: TransitionStyle::Danger, description: 'L\'évolution ne sera pas réalisée : la demande est fermée.'),
                 new TransitionDefinition(id: 'submit_estimate', label: 'Soumettre le chiffrage', from: ['to_estimate'], to: 'to_approve', roles: $internal, description: 'Le chiffrage a été transmis au client : la demande attend sa décision.'),
                 new TransitionDefinition(id: 'approve', label: 'Accepter le chiffrage', from: ['to_approve'], to: 'planned', roles: $clientFacing, style: TransitionStyle::Primary, description: 'Le chiffrage est accepté : l\'évolution est planifiée.'),
-                new TransitionDefinition(
-                    id: 'revise',
-                    label: 'Demander une révision',
-                    from: ['to_approve'],
-                    to: 'to_estimate',
-                    roles: $clientFacing,
-                    requiresComment: true,
-                    commentPrompt: 'Précisez ce qui doit être revu dans le chiffrage ou le périmètre.',
-                    description: 'Le chiffrage est à revoir : la demande retourne à chiffrer.',
-                ),
                 new TransitionDefinition(
                     id: 'decline_estimate',
                     label: 'Refuser le chiffrage',

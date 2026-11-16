@@ -3,3 +3,4 @@ variants:
     default: { args: { value: 120, max: 400, label: Importing the issues } }
     indeterminate: { args: { label: Starting } }
     done: { args: { value: 400, max: 400, tone: emerald } }
+    with_pending: { args: { value: 120, pending: 80, max: 400, label: Consumed and waiting } }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Command\Project;
 
+use App\Entity\Enum\BudgetUnit;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -25,6 +26,10 @@ final readonly class UpdateProject
         public ?string $description = null,
         public ?bool $archived = null,
         public ?int $actorId = null,
+        /** The unit its budgets show in: setting one is what gives the project budgets. */
+        public ?BudgetUnit $budgetUnit = null,
+        /** The project stops showing budgets, those it has being kept; budgetUnit is then ignored. */
+        public bool $withoutBudgets = false,
     ) {
     }
 }

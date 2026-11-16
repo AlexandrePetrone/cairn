@@ -8,8 +8,11 @@ use App\Attachment\AttachmentStorage;
 use App\Entity\Attachment;
 use App\Entity\AutomationRule;
 use App\Entity\AutomationRun;
+use App\Entity\Budget;
+use App\Entity\BudgetLine;
 use App\Entity\CodeRepository;
 use App\Entity\Comment;
+use App\Entity\Enum\BudgetLineStatus;
 use App\Entity\Enum\Forge;
 use App\Entity\Issue;
 use App\Entity\IssueLink;
@@ -83,6 +86,10 @@ final class DeleteProjectTest extends KernelTestCase
         $shopId = (int) $this->scene->shop->getId();
         $intranetBug = $this->scene->intranetBug();
         $this->scene->release('2.5.0', ['MD-SPT-1']);
+        $budget = $this->scene->budget();
+        $this->scene->line($budget, BudgetLineStatus::Approved, 1, 'MD-SPT-1');
+        $this->scene->line($budget, BudgetLineStatus::Approved, 0.5, label: 'Server upgrade');
+        $budgetId = (int) $budget->getId();
         $this->commands->dispatch(new CreateRule($shopId, 'Greets', null, [
             'trigger' => ['type' => 'issue_created'],
             'actions' => [['type' => 'set_criticality', 'params' => ['criticality' => 'high']]],
@@ -109,9 +116,10 @@ final class DeleteProjectTest extends KernelTestCase
         $this->entityManager->clear();
 
         self::assertNull($this->entityManager->getRepository(Project::class)->find($shopId));
-        foreach ([Issue::class, Tracker::class, Release::class, AutomationRule::class, AutomationRun::class, CodeRepository::class, Membership::class, Attachment::class] as $class) {
+        foreach ([Issue::class, Tracker::class, Release::class, Budget::class, AutomationRule::class, AutomationRun::class, CodeRepository::class, Membership::class, Attachment::class] as $class) {
             self::assertSame(0, $this->entityManager->getRepository($class)->count(['project' => $shopId]), $class);
         }
+        self::assertSame(0, $this->entityManager->getRepository(BudgetLine::class)->count(['budget' => $budgetId]), 'the lines of its budgets, whether they named an issue or not');
         foreach ([Comment::class, JournalEntry::class, IssueSubscription::class, PendingNotification::class] as $class) {
             self::assertSame(0, $this->rowsOf($class, $shopId), $class);
         }

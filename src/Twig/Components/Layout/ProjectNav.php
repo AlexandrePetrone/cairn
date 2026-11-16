@@ -11,6 +11,7 @@ use App\Message\Query\Project\ListTrackers;
 use App\Message\Query\Project\ProjectIssueCounts;
 use App\Message\QueryBus;
 use App\Repository\ReleaseRepository;
+use App\Security\AccessControl;
 use App\Security\Viewer;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 
@@ -28,6 +29,7 @@ final class ProjectNav
         private readonly QueryBus $queries,
         private readonly ReleaseRepository $releases,
         private readonly Viewer $viewer,
+        private readonly AccessControl $access,
     ) {
     }
 
@@ -61,5 +63,14 @@ final class ProjectNav
     public function hasReleases(): bool
     {
         return $this->releases->hasReleases($this->project);
+    }
+
+    /**
+     * Budgets are optional too: the entry is there on a project that has
+     * some, for whoever may read them.
+     */
+    public function readsBudgets(): bool
+    {
+        return $this->access->canReadBudgets($this->viewer->get(), $this->project);
     }
 }

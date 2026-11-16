@@ -19,8 +19,10 @@ export default class extends Controller {
             }
         };
         this.onKeydown = (event) => {
-            if (event.key === 'Escape') {
+            if (event.key === 'Escape' && this.isOpen) {
                 this.close();
+                // so that what holds the menu (a dialog) does not close with it
+                event.preventDefault();
             }
         };
         document.addEventListener('click', this.onDocumentClick);

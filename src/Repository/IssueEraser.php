@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\Attachment;
 use App\Entity\AutomationRun;
+use App\Entity\BudgetLine;
 use App\Entity\CodeReference;
 use App\Entity\Comment;
 use App\Entity\Issue;
@@ -42,6 +43,7 @@ final class IssueEraser
         [IssueLink::class, 'target'],
         [IssueSubscription::class, 'issue'],
         [CodeReference::class, 'issue'],
+        [BudgetLine::class, 'issue'],
         [Comment::class, 'issue'],
     ];
 

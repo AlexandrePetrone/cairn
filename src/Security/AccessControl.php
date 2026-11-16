@@ -81,6 +81,30 @@ final class AccessControl implements ResetInterface
         return $user->isInternal() || null !== $this->roleOn($user, $scope);
     }
 
+    /**
+     * The budgets of a project that has some are read by whoever holds
+     * `budget.view` or `budget.manage` there: the one place that says so,
+     * for the budgets pages, their entry in the navigation and the card of
+     * an issue. Reading outlives the archiving of the project, which
+     * refuses every permission: what a client consumed stays consultable,
+     * as the issues do. Writing does not: `budget.manage` is asked as any
+     * permission.
+     */
+    public function canReadBudgets(User $user, Project $project): bool
+    {
+        if (!$project->hasBudgets()) {
+            return false;
+        }
+        if ($user->isAdmin()) {
+            return true;
+        }
+        $role = $this->roleOn($user, $project);
+        $definition = $this->config->definition();
+
+        return null !== $role
+            && (\in_array($role, $definition->rolesGranted(Permission::BudgetView), true) || \in_array($role, $definition->rolesGranted(Permission::BudgetManage), true));
+    }
+
     public function isGranted(User $user, Permission $permission, Project|Workspace $scope): bool
     {
         if ($scope instanceof Project ? $scope->isReadOnly() : $scope->isArchived()) {

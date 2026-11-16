@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\MessageHandler\Command\Project;
 
 use App\Entity\AutomationRule;
+use App\Entity\Budget;
+use App\Entity\BudgetLine;
 use App\Entity\CodeRepository;
 use App\Entity\Enum\ImportStatus;
 use App\Entity\Import;
@@ -40,7 +42,7 @@ use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 final class ProjectRemoval
 {
     /** What belongs to a project beside its issues, in the order the foreign keys allow. */
-    private const array BELONGINGS = [AutomationRule::class, Release::class, Tracker::class, Import::class, CodeRepository::class, Membership::class];
+    private const array BELONGINGS = [AutomationRule::class, Release::class, Budget::class, Tracker::class, Import::class, CodeRepository::class, Membership::class];
 
     public function __construct(
         private readonly IssueEraser $eraser,
@@ -73,6 +75,8 @@ final class ProjectRemoval
         $scope = ['project' => $project->getId()];
         $attachments = $this->eraser->eraseIssuesOf($project);
         $this->entityManager->createQuery(\sprintf('DELETE FROM %s r WHERE r.import IN (SELECT i.id FROM %s i WHERE i.project = :project)', ImportRecord::class, Import::class))->execute($scope);
+        // the budget lines that named an issue went with the issues; the others go with their budget
+        $this->entityManager->createQuery(\sprintf('DELETE FROM %s l WHERE l.budget IN (SELECT b.id FROM %s b WHERE b.project = :project)', BudgetLine::class, Budget::class))->execute($scope);
         foreach (self::BELONGINGS as $class) {
             $this->entityManager->createQuery(\sprintf('DELETE FROM %s b WHERE b.project = :project', $class))->execute($scope);
         }

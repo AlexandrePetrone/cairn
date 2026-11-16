@@ -1,0 +1,46 @@
+{% extends 'layout/project.html.twig' %}
+
+{% block page_title %}{{ 'budget.title'|trans }}{% endblock %}
+
+{# The budgets of the project, on one screen: what the open ones amount to together (`Budget:Totals`), then each open budget with all of its lines (`Budget:Card`, where whoever manages them marks the status of a line), then the closed ones as a history, one row each, whose name leads to the page of the budget. The totals and the cards are sibling live components: a card that changes a line tells the totals. Budgets and lines are written in a dialog that has its own address (the `modal` block). #}
+{% block content %}
+    {% set budgetsRoute = { workspaceKey: project.workspace.key, projectKey: project.key } %}
+    {% set budgetsManage = is_granted('budget.manage', project) %}
+    {% set budgetsOpen = summaries|filter(summary => summary.budget.open) %}
+    {% set budgetsClosed = summaries|filter(summary => not summary.budget.open)|reverse %}
+    {% set budgetsActions %}
+        {% if budgetsManage %}<twig:Ui:Button variant="primary" icon="plus" href="{{ path('app_project_budget_new', budgetsRoute) }}" data-turbo-frame="modal">{{ 'budget.new'|trans }}</twig:Ui:Button>{% endif %}
+    {% endset %}
+    <twig:Ui:PageHeader :title="'budget.title'|trans" :count="budgetsOpen|length">
+        <twig:block name="actions">{{ budgetsActions }}</twig:block>
+        <twig:block name="description">{{ ('budget.intro.' ~ project.budgetUnit.value)|trans }}</twig:block>
+    </twig:Ui:PageHeader>
+
+    <div class="px-4 sm:px-6 py-5 max-w-5xl space-y-4">
+        {% if budgetsOpen is empty %}
+            <twig:Ui:EmptyState :title="'budget.empty'|trans" icon="hourglass" bordered>{{ (budgetsManage ? 'budget.empty_hint_manager' : 'budget.empty_hint')|trans }}</twig:Ui:EmptyState>
+        {% else %}
+            <twig:Budget:Totals :project="project" />
+            {% for summary in budgetsOpen %}
+                <twig:Budget:Card :budget="summary.budget" id="budget-{{ summary.budget.id }}" />
+            {% endfor %}
+        {% endif %}
+
+        {% if budgetsClosed is not empty %}
+            <twig:Ui:Panel :title="'budget.closed'|trans" :count="budgetsClosed|length">
+                <ul class="divide-y divide-line-subtle text-sm">
+                    {% for summary in budgetsClosed %}
+                        {% set budget = summary.budget %}
+                        <li class="flex flex-wrap items-center gap-3 px-4 py-2.5">
+                            <a href="{{ path('app_project_budget', budgetsRoute|merge({ budget: budget.id })) }}" class="font-medium text-body hover:text-brand hover:underline">{{ budget.name }}</a>
+                            <span class="min-w-0 flex-1 text-xs text-muted">{{ 'budget.closed_summary'|trans({ '%consumed%': summary.consumed|quantity(project), '%volume%': budget.volume|quantity(project) }) }}</span>
+                            {% if budget.closedAt %}<span class="text-xs text-muted">{{ 'budget.closed_on'|trans({ '%date%': budget.closedAt|date('d/m/Y') }) }}</span>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </twig:Ui:Panel>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block modal %}{{ include('project/_budget_dialog.html.twig') }}{% endblock %}

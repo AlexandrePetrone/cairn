@@ -289,6 +289,7 @@ nav:
         issues: Demandes
         trackers: Catégories
         releases: Versions
+        budgets: Budgets
         configuration:
             title: Configuration
             general: Général
@@ -439,6 +440,7 @@ admin:
             members: '{0}accès|{1}accès|]1,Inf[ accès'
             repositories: '{0}dépôt lié|{1}dépôt lié|]1,Inf[ dépôts liés'
             rules: "{0}règle d'automatisation|{1}règle d'automatisation|]1,Inf[ règles d'automatisation"
+            budgets: '{0}budget|{1}budget|]1,Inf[ budgets'
     project:
         count: '{0}Aucun projet|{1}1 projet|]1,Inf[ %count% projets'
         new: Nouveau projet
@@ -862,6 +864,9 @@ project:
         name: Nom du projet
         description: Description pour les clients
         description_help: Affichée aux clients sur les pages du projet.
+        budget_unit: Budgets
+        budget_unit_help: "Avec une unité, le projet a des budgets. L'unité n'est qu'un affichage : elle peut être changée à tout moment."
+        budget_unit_none: Aucun budget
         key_fixed: "Le code %key% fait partie des identifiants des demandes : il ne change pas. L'archivage du projet se fait dans l'administration."
         tracker:
             new_title: Nouvelle catégorie
@@ -1162,6 +1167,111 @@ permission:
         manage:
             label: Gérer les versions
             help: Créer les versions du projet, les modifier, les marquer livrées ou abandonnées.
+    budget:
+        manage:
+            label: Gérer les budgets
+            help: Créer et clore les budgets du projet, supprimer un budget clos, écrire, modifier et supprimer leurs lignes.
+        view:
+            label: Consulter les budgets
+            help: Ouvrir les budgets du projet et leurs lignes, et voir celles d'une demande sur sa fiche.
+
+budget:
+    title: Budgets
+    intro:
+        days: "Les budgets du projet, comptés en jours. Une ligne n'est consommée qu'une fois validée."
+        hours: "Les budgets du projet, comptés en heures. Une ligne n'est consommée qu'une fois validée."
+    new: Nouveau budget
+    create: Créer le budget
+    created: 'Budget %name% créé.'
+    edit: Modifier
+    save: Enregistrer
+    saved: Budget enregistré.
+    delete: Supprimer le budget
+    delete_help: Un budget clos se supprime avec toutes ses lignes, définitivement.
+    delete_confirm: Supprimer définitivement ce budget et toutes ses lignes ?
+    deleted: 'Budget %name% supprimé.'
+    volume: Volume
+    consumed: Consommé
+    remaining: Reste
+    pending: À valider
+    bar: '%consumed% consommés sur %volume%'
+    lines: '{0}aucune ligne|{1}1 ligne|]1,Inf[ %count% lignes'
+    total:
+        volume: Budgets ouverts
+        volume_caption: '{1}1 budget|]1,Inf[ %count% budgets'
+        consumed_caption: lignes validées
+        remaining: Restant
+        remaining_caption: sur les budgets ouverts
+        pending_caption: en attente de validation
+    statement_intro: Toutes les lignes de ce budget. Seules les lignes validées sont consommées.
+    statement_intro_closed: "Ce budget est clos : il garde ses lignes et n'en prend plus."
+    empty: Aucun budget ouvert
+    empty_hint: Les budgets du projet s'afficheront ici.
+    empty_hint_manager: Créez-en un pour suivre ce que consomme le projet.
+    closed: Budgets clos
+    closed_summary: '%consumed% consommés sur %volume%'
+    closed_on: 'clos le %date%'
+    unit:
+        days: Jours
+        hours: Heures
+    quantity:
+        days: '%quantity% j'
+        hours: '%quantity% h'
+        decimal: ','
+    status:
+        to_estimate: À chiffrer
+        pending: À valider
+        approved: Validé
+        refused: Refusé
+    form:
+        name: Nom
+        name_help: 'Unique dans le projet, par exemple la référence de la commande.'
+        volume:
+            days: Volume, en jours
+            hours: Volume, en heures
+        volume_help: Zéro pour un budget qui reste à signer.
+        closed: Clos
+        closed_help: Un budget clos garde ses lignes et n'en prend plus.
+    line:
+        new: Nouvelle ligne
+        add: Ajouter la ligne
+        edit: Ligne
+        added: Ligne ajoutée.
+        saved: Ligne enregistrée.
+        removed: Ligne supprimée.
+        date: Date
+        subject: Objet
+        status: Statut
+        quantity: Quantité
+        private_issue: Demande privée
+        change_status: Changer le statut
+        empty: Aucune ligne pour l'instant
+        delete: Supprimer la ligne
+        delete_help: Une ligne supprimée l'est définitivement.
+        delete_confirm: Supprimer définitivement cette ligne ?
+        form:
+            issue: Demande
+            issue_help: 'Facultative : une des demandes du projet.'
+            no_issue: Aucune demande
+            label: Libellé
+            label_help: Obligatoire sans demande ; avec une demande, il précise ce que la ligne ajoute.
+            status: Statut
+            quantity:
+                days: Quantité, en jours
+                hours: Quantité, en heures
+            quantity_help: Obligatoire pour une ligne à valider ou validée, zéro compris. Négative pour rendre du temps.
+    card:
+        title: Budget
+        total: Validé et à valider
+    refused:
+        not_found: Introuvable.
+        name_taken: 'Le projet a déjà un budget nommé %name%.'
+        no_unit: "Ce projet n'a pas de budget : choisissez une unité dans ses réglages généraux."
+        closed: "Le budget %name% est clos : il ne prend plus de ligne."
+        still_open: "Le budget %name% est ouvert : clôturez-le avant de le supprimer."
+        issue_outside_project: 'La demande %key% appartient à un autre projet.'
+        subject_missing: Choisissez une demande ou saisissez un libellé.
+        quantity_missing: 'Donnez une quantité à la ligne, ou laissez-la à chiffrer.'
 
 code_repository:
     refused:

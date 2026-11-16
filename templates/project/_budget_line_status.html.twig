@@ -1,0 +1,3 @@
+{# Where a budget line stands, as a badge: `status` is a BudgetLineStatus. The one place that gives each status its tone, for the card of a budget and the card of an issue. #}
+{% set budgetLineStatusTones = { to_estimate: 'gray', pending: 'amber', approved: 'emerald', refused: 'red' } %}
+<twig:Ui:Badge :tone="budgetLineStatusTones[status.value]" size="sm">{{ ('budget.status.' ~ status.value)|trans }}</twig:Ui:Badge>

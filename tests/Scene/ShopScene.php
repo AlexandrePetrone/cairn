@@ -11,6 +11,10 @@ use App\Config\Definition\InstanceDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use App\Config\FieldType;
 use App\Config\Sync\ConfigSynchronizer;
+use App\Entity\Budget;
+use App\Entity\BudgetLine;
+use App\Entity\Enum\BudgetLineStatus;
+use App\Entity\Enum\BudgetUnit;
 use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
 use App\Entity\Membership;
@@ -19,10 +23,13 @@ use App\Entity\Release;
 use App\Entity\Tracker;
 use App\Entity\User;
 use App\Entity\Workspace;
+use App\Message\Command\Budget\AddBudgetLine;
+use App\Message\Command\Budget\CreateBudget;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\Command\Issue\CreateIssue;
 use App\Message\Command\Issue\UpdateIssue;
+use App\Message\Command\Project\UpdateProject;
 use App\Message\Command\Release\CreateRelease;
 use App\Message\CommandBus;
 use App\Security\AccessControl;
@@ -191,6 +198,40 @@ final class ShopScene
         }
 
         return $release;
+    }
+
+    /**
+     * An open budget of the shop, which has none until then: the project
+     * takes days as its unit and Thomas, who manages the workspace, creates
+     * the budget.
+     */
+    public function budget(string $name = 'Order 2026-01', float $days = 10): Budget
+    {
+        $thomas = (int) $this->user('thomas.girard@cairn.test')->getId();
+        $this->commands->dispatch(new UpdateProject((int) $this->shop->getId(), actorId: $thomas, budgetUnit: BudgetUnit::Days));
+        $budget = $this->commands->dispatch(new CreateBudget($thomas, (int) $this->shop->getId(), $name, (int) round($days * 420)));
+        \assert($budget instanceof Budget);
+
+        return $budget;
+    }
+
+    /**
+     * Thomas writes a line on a budget of the shop: so many days, for an
+     * issue of the scene, under a label, or both.
+     */
+    public function line(Budget $budget, BudgetLineStatus $status, ?float $days = null, ?string $key = null, ?string $label = null): BudgetLine
+    {
+        $line = $this->commands->dispatch(new AddBudgetLine(
+            (int) $this->user('thomas.girard@cairn.test')->getId(),
+            (int) $budget->getId(),
+            $status,
+            null === $days ? null : (int) round($days * 420),
+            null === $key ? null : $this->issue($key)->getId(),
+            $label,
+        ));
+        \assert($line instanceof BudgetLine);
+
+        return $line;
     }
 
     private function people(): void

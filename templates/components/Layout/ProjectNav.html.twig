@@ -4,6 +4,7 @@
 {% set navCounts = this.counts %}
 {% set navRoute = app.current_route %}
 {% set navReleases = this.hasReleases or is_granted('release.manage', project) %}
+{% set navBudgets = this.readsBudgets %}
 <twig:Ui:Layout:Sidebar :title="project.name">
     <twig:Ui:Layout:Sidebar:Section :label="'nav.project.issues'|trans">
         <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_issues', route) }}" icon="list" :count="navCounts.all" :active="app.current_route == 'app_project_issues'">{{ 'nav.issues.all'|trans }}</twig:Ui:Layout:Sidebar:Item>
@@ -11,6 +12,9 @@
         <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_issues_created', route) }}" icon="pencil" :count="navCounts.created" :active="app.current_route == 'app_project_issues_created'">{{ 'nav.issues.created'|trans }}</twig:Ui:Layout:Sidebar:Item>
         {% if navReleases %}
             <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_releases', route) }}" icon="milestone" :active="app.current_route starts with 'app_project_release'">{{ 'nav.project.releases'|trans }}</twig:Ui:Layout:Sidebar:Item>
+        {% endif %}
+        {% if navBudgets %}
+            <twig:Ui:Layout:Sidebar:Item href="{{ path('app_project_budgets', route) }}" icon="hourglass" :active="app.current_route starts with 'app_project_budget'">{{ 'nav.project.budgets'|trans }}</twig:Ui:Layout:Sidebar:Item>
         {% endif %}
     </twig:Ui:Layout:Sidebar:Section>
     {% if navTrackers is not empty %}

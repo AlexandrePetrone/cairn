@@ -38,5 +38,10 @@ final class UpdateProjectHandler
         if (null !== $command->archived) {
             $command->archived ? $project->archive() : $project->unarchive();
         }
+        if ($command->withoutBudgets) {
+            $project->countBudgetsIn(null);
+        } elseif (null !== $command->budgetUnit) {
+            $project->countBudgetsIn($command->budgetUnit);
+        }
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Entity\Enum\BudgetUnit;
 use App\Repository\ProjectRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -42,6 +43,13 @@ class Project
 
     #[ORM\Column]
     private bool $archived = false;
+
+    /**
+     * The unit the budgets of the project show in; null, the project has
+     * no budget. Only what is shown: quantities are in minutes.
+     */
+    #[ORM\Column(length: 10, nullable: true, enumType: BudgetUnit::class)]
+    private ?BudgetUnit $budgetUnit = null;
 
     /** Last issue number handed out; numbers are never reused. */
     #[ORM\Column]
@@ -128,6 +136,22 @@ class Project
         $this->issueCounter += $count;
 
         return $first;
+    }
+
+    public function getBudgetUnit(): ?BudgetUnit
+    {
+        return $this->budgetUnit;
+    }
+
+    /** Whether the project counts budgets. */
+    public function hasBudgets(): bool
+    {
+        return null !== $this->budgetUnit;
+    }
+
+    public function countBudgetsIn(?BudgetUnit $unit): void
+    {
+        $this->budgetUnit = $unit;
     }
 
     public function isArchived(): bool

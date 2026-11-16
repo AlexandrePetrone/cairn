@@ -8,6 +8,7 @@
         {{ form_row(form.name) }}
         <p class="text-xs text-muted">{{ 'project.settings.key_fixed'|trans({ '%key%': project.issuePrefix }) }}</p>
         {{ form_row(form.description) }}
+        {{ form_row(form.budgetUnit) }}
         <twig:Ui:Button type="submit" variant="primary">{{ 'project.settings.save'|trans }}</twig:Ui:Button>
     {{ form_end(form) }}
 {% endblock %}

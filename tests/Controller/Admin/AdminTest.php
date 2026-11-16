@@ -103,6 +103,8 @@ final class AdminTest extends WebTestCase
 
     public function testAnArchivedProjectIsDeletedOnceItsKeyIsTypedAgain(): void
     {
+        $this->scene->budget('Order 2026-01');
+        $this->scene->budget('Order 2026-10');
         $this->signInAsAdmin();
         $this->client->request('GET', '/admin/projects/MD/SPT/delete');
         self::assertResponseStatusCodeSame(404, 'a project is archived before it is deleted');
@@ -114,6 +116,7 @@ final class AdminTest extends WebTestCase
         $this->client->click($this->client->getCrawler()->filter('a[href="/admin/projects/MD/SPT/delete"]')->link());
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main', '10 issues');
+        self::assertSelectorTextContains('main', '2 budgets', 'the budgets go with the project, and the page says so');
 
         $this->client->submitForm('Delete the project', ['deletion[confirmation]' => 'MD-INT']);
         self::assertResponseStatusCodeSame(422);

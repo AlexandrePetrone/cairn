@@ -1,6 +1,6 @@
 {# What goes with a project, in one line of counts. Expects `contents` (ProjectContents). #}
 <ul class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-    {% for deletionKind, deletionCount in { issues: contents.issues, comments: contents.comments, files: contents.files, trackers: contents.trackers, releases: contents.releases, members: contents.members, repositories: contents.repositories, rules: contents.rules } %}
+    {% for deletionKind, deletionCount in { issues: contents.issues, comments: contents.comments, files: contents.files, trackers: contents.trackers, releases: contents.releases, members: contents.members, repositories: contents.repositories, rules: contents.rules, budgets: contents.budgets } %}
         <li class="{{ deletionCount > 0 ? 'text-body' : 'text-faint' }}"><span class="tabular-nums font-medium">{{ deletionCount }}</span> {{ ('admin.delete.count.' ~ deletionKind)|trans({ '%count%': deletionCount }) }}</li>
     {% endfor %}
 </ul>

@@ -289,6 +289,7 @@ nav:
         issues: Issues
         trackers: Categories
         releases: Releases
+        budgets: Budgets
         configuration:
             title: Configuration
             general: General
@@ -439,6 +440,7 @@ admin:
             members: '{0}access|{1}access|]1,Inf[ accesses'
             repositories: '{0}linked repository|{1}linked repository|]1,Inf[ linked repositories'
             rules: '{0}automation rule|{1}automation rule|]1,Inf[ automation rules'
+            budgets: '{0}budget|{1}budget|]1,Inf[ budgets'
     project:
         count: '{0}No projects|{1}1 project|]1,Inf[ %count% projects'
         new: New project
@@ -862,6 +864,9 @@ project:
         name: Project name
         description: Description for clients
         description_help: Shown to client users on the project pages.
+        budget_unit: Budgets
+        budget_unit_help: 'With a unit, the project has budgets. The unit is only what is shown: it can be changed at any time.'
+        budget_unit_none: No budget
         key_fixed: 'The key %key% is part of the issue identifiers: it does not change. Archiving the project is done in the administration.'
         tracker:
             new_title: New tracker
@@ -1162,6 +1167,111 @@ permission:
         manage:
             label: Manage releases
             help: Create the releases of the project, change them, mark them delivered or abandoned.
+    budget:
+        manage:
+            label: Manage budgets
+            help: Create and close the budgets of the project, delete a closed one, write, change and delete their lines.
+        view:
+            label: Read budgets
+            help: Open the budgets of the project and their lines, and see those of an issue on its page.
+
+budget:
+    title: Budgets
+    intro:
+        days: 'The budgets of the project, counted in days. A line is only consumed once approved.'
+        hours: 'The budgets of the project, counted in hours. A line is only consumed once approved.'
+    new: New budget
+    create: Create the budget
+    created: 'Budget %name% created.'
+    edit: Edit
+    save: Save
+    saved: Budget saved.
+    delete: Delete the budget
+    delete_help: A closed budget is deleted with all of its lines, for good.
+    delete_confirm: Delete this budget and all of its lines for good?
+    deleted: 'Budget %name% deleted.'
+    volume: Volume
+    consumed: Consumed
+    remaining: Left
+    pending: To approve
+    bar: '%consumed% consumed out of %volume%'
+    lines: '{0}no line|{1}1 line|]1,Inf[ %count% lines'
+    total:
+        volume: Open budgets
+        volume_caption: '{1}1 budget|]1,Inf[ %count% budgets'
+        consumed_caption: approved lines
+        remaining: Left
+        remaining_caption: on the open budgets
+        pending_caption: waiting for an approval
+    statement_intro: Every line of this budget. Only the approved ones are consumed.
+    statement_intro_closed: 'This budget is closed: it keeps its lines and takes no new one.'
+    empty: No open budget
+    empty_hint: The budgets of the project will show here.
+    empty_hint_manager: Create one to follow what the project consumes.
+    closed: Closed budgets
+    closed_summary: '%consumed% consumed out of %volume%'
+    closed_on: 'closed on %date%'
+    unit:
+        days: Days
+        hours: Hours
+    quantity:
+        days: '%quantity% d'
+        hours: '%quantity% h'
+        decimal: '.'
+    status:
+        to_estimate: To estimate
+        pending: To approve
+        approved: Approved
+        refused: Refused
+    form:
+        name: Name
+        name_help: 'Unique in the project, such as the reference of the order.'
+        volume:
+            days: Volume, in days
+            hours: Volume, in hours
+        volume_help: Zero for a budget still to be signed.
+        closed: Closed
+        closed_help: A closed budget keeps its lines and takes no new one.
+    line:
+        new: New line
+        add: Add the line
+        edit: Line
+        added: Line added.
+        saved: Line saved.
+        removed: Line deleted.
+        date: Date
+        subject: Subject
+        status: Status
+        quantity: Quantity
+        private_issue: Private issue
+        change_status: Change the status
+        empty: No line yet
+        delete: Delete the line
+        delete_help: A deleted line is gone for good.
+        delete_confirm: Delete this line for good?
+        form:
+            issue: Issue
+            issue_help: 'Optional: one of the issues of the project.'
+            no_issue: No issue
+            label: Label
+            label_help: Required without an issue; with one, it says what the line adds.
+            status: Status
+            quantity:
+                days: Quantity, in days
+                hours: Quantity, in hours
+            quantity_help: Required once the line is to approve or approved, zero included. Negative to give time back.
+    card:
+        title: Budget
+        total: Approved and to approve
+    refused:
+        not_found: Not found.
+        name_taken: 'The project already has a budget named %name%.'
+        no_unit: 'This project has no budget: choose a unit in its general settings.'
+        closed: 'The budget %name% is closed: it takes no new line.'
+        still_open: 'The budget %name% is open: close it before deleting it.'
+        issue_outside_project: 'The issue %key% belongs to another project.'
+        subject_missing: Choose an issue or write a label.
+        quantity_missing: 'Give the line a quantity, or leave it to estimate.'
 
 code_repository:
     refused:

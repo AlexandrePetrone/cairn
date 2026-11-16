@@ -6,6 +6,7 @@ namespace App\MessageHandler\Query\Project;
 
 use App\Entity\Attachment;
 use App\Entity\AutomationRule;
+use App\Entity\Budget;
 use App\Entity\CodeRepository;
 use App\Entity\Comment;
 use App\Entity\Issue;
@@ -46,6 +47,7 @@ final class ShowProjectContentsHandler
             members: $this->count(Membership::class, $query),
             repositories: $this->count(CodeRepository::class, $query),
             rules: $this->count(AutomationRule::class, $query),
+            budgets: $this->count(Budget::class, $query),
         );
     }
 

@@ -160,7 +160,7 @@
 
 {# PickerType: a choice among many, searched in a list; the `picker` controller writes it into the hidden field. #}
 {% block picker_widget %}
-    {% set pickerChosen = null %}
+    {% set pickerChosen = null %}{% set pickerNothing = placeholder is not none and placeholder != '' ? (translation_domain is same as(false) ? placeholder : placeholder|trans({}, translation_domain)) : 'form.choose'|trans %}
     {% for choice in choices %}
         {% for option in choice.choices is defined ? choice.choices : [choice] %}
             {% if option.value == value %}{% set pickerChosen = option.label %}{% endif %}
@@ -168,8 +168,8 @@
     {% endfor %}
     <div data-controller="picker" class="mt-1">
         <input type="hidden" id="{{ id }}" name="{{ full_name }}" value="{{ value }}" data-picker-target="input">
-        <twig:Ui:Picker :label="pickerChosen" :placeholder="placeholder is not none and placeholder != '' ? (translation_domain is same as(false) ? placeholder : placeholder|trans({}, translation_domain)) : 'form.choose'|trans" :searchPlaceholder="'form.search'|trans" :empty="'form.no_match'|trans" :invalid="not valid">
-            {% for choice in choices %}
+        <twig:Ui:Picker :label="pickerChosen" :placeholder="pickerNothing" :searchPlaceholder="'form.search'|trans" :empty="'form.no_match'|trans" :invalid="not valid">
+            {# a field that may stay empty offers to choose nothing again; on the line of the loop, so that a required field renders as before #}{% if not required %}<twig:Ui:Dropdown:Item :active="value is empty" data-list-filter-target="item" data-text="{{ pickerNothing }}" data-action="picker#choose dropdown#close" data-picker-value-param="" data-picker-label-param="{{ pickerNothing }}"><span class="truncate text-muted">{{ pickerNothing }}</span></twig:Ui:Dropdown:Item>{% endif %}{% for choice in choices %}
                 {% if choice.choices is defined %}
                     <twig:Ui:Picker:Group :label="choice.label">
                         {% for option in choice.choices %}

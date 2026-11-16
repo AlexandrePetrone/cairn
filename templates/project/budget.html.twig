@@ -1,0 +1,21 @@
+{% extends 'layout/project.html.twig' %}
+
+{% block page_title %}{{ budget.name }}{% endblock %}
+{% block page_section %}{{ 'budget.title'|trans }}{% endblock %}
+
+{# The page of one budget: its card, the one the budgets page shows for an open budget. It is where a closed budget is read, and where an issue leads from the lines that name it. #}
+{% block content %}
+    {% set budgetBack %}
+        <twig:Ui:Button icon="arrow-left" href="{{ path('app_project_budgets', { workspaceKey: project.workspace.key, projectKey: project.key }) }}">{{ 'budget.title'|trans }}</twig:Ui:Button>
+    {% endset %}
+    <twig:Ui:PageHeader :title="budget.name">
+        <twig:block name="actions">{{ budgetBack }}</twig:block>
+        <twig:block name="description">{{ (budget.open ? 'budget.statement_intro' : 'budget.statement_intro_closed')|trans }}</twig:block>
+    </twig:Ui:PageHeader>
+
+    <div class="px-4 sm:px-6 py-5 max-w-5xl">
+        <twig:Budget:Card :budget="budget" standalone id="budget-{{ budget.id }}" />
+    </div>
+{% endblock %}
+
+{% block modal %}{{ include('project/_budget_dialog.html.twig') }}{% endblock %}

@@ -34,8 +34,10 @@ Decisions already taken:
     (`ListView`), a notification once its mail left
     (`PendingNotification`), the picture of an account once replaced, an
     automation rule (`AutomationRule`: what it did stays in the journal
-    and in its executions), and a release (`DeleteRelease`: its issues
-    are left without one, which their journal says).
+    and in its executions), a release (`DeleteRelease`: its issues
+    are left without one, which their journal says), and a line of a
+    budget (`BudgetLine`: written by hand, corrected or deleted by
+    whoever manages the budgets).
   - **What holds history is archived, and deleted only while empty.** A
     tracker is archived (`UpdateTracker::$archived`: nothing new goes in
     it, its issues stay seen and changed as before, by clients too) and
@@ -46,7 +48,8 @@ Decisions already taken:
     erased with all that hangs from it under `issue.delete`
     (`DeleteIssue`); a project or a workspace, by an administrator and
     only once archived (`DeleteProject`, `DeleteWorkspace`), with
-    everything they hold. `Repository/IssueEraser` is the one place that
+    everything they hold; a budget, by whoever manages the budgets and
+    only once closed (`DeleteBudget`), with its lines. `Repository/IssueEraser` is the one place that
     knows what hangs from an issue and in which order it goes, in a few
     bulk statements whatever the number (measured: two seconds for
     20,000 issues and their 200,000 lines, so no worker and no "being
@@ -135,6 +138,8 @@ columns are what the English and the French catalogues show.
 | `AutomationRule` | Rule (Automations) | Règle (Automatisations) | A rule of a project that acts on its issues by itself: a trigger, conditions, actions. |
 | `AutomationRun`  | Execution         | Exécution        | What a rule did on an issue, once: applied, skipped or stopped.  |
 | `referent`       | Referent          | Référent         | The member a role answers through on a project; designated by hand, on an access. |
+| `Budget`         | Budget            | Budget           | An amount of time a client committed to on a project (an open order), optional per project. |
+| `BudgetLine`     | Line              | Ligne            | What a budget is debited of, written by hand: a quantity, a status, an issue or a label. |
 
 ## Architecture
 
@@ -194,6 +199,8 @@ src/
                      project and acts (RuleEngine, RuleConditions,
                      RuleExecutor, Targets, TimeRuleRunner, RuleContexts,
                      RuleSentence)
+  Budget/            the one place that converts the minutes budgets are
+                     stored in (Quantities)
   Markdown/          rendering of the text users write, references resolved
   Attachment/        where attachment files live (AttachmentStorage)
   Command/           console commands (app:config:sync, app:automations:run, …)
@@ -643,6 +650,99 @@ src/
   The common comment is written in the editor, with the suggestions of
   the project when there is one, and carries no file nor pasted image,
   since a pending file is claimed by one issue only.
+
+### Budgets
+
+- **A budget is an account of a project, and it is optional.** A project
+  has budgets once its general settings give it a unit
+  (`Project::$budgetUnit`, `BudgetUnit`: days or hours); without one it
+  shows none of it, those it had are kept, and every budget command is
+  refused there (`BudgetException::unlessBudgeted()`). A `Budget` is an open
+  order: a name unique in the project and a volume; it is closed
+  (`UpdateBudget::$closed`: it keeps its lines and takes no new one),
+  deleted only once closed, with its lines (`DeleteBudget`, from the
+  dialog that changes it), and may end below zero.
+- **A line is written by hand, and nothing ties it to the workflow.** A
+  `BudgetLine` holds a quantity, a status (`BudgetLineStatus`: to
+  estimate, pending, approved, refused) and what it is for: an issue of
+  the project, a label, or both; an issue may have several lines, on
+  one budget or on several. Whoever manages the budgets writes the line
+  (`AddBudgetLine`), marks its status as the client answers and corrects
+  it (`UpdateBudgetLine`, `BudgetLine::mark()`), or deletes it
+  (`RemoveBudgetLine`): no action
+  of a workflow moves a line, the client clicks nothing, and the issue
+  is left alone: these handlers never call
+  `IssueHandlerSupport::record()`, so there is no journal entry, no
+  event and no mail. Do not bring an estimate back into the issue, its
+  workflow or its history: the budgets pages are the whole of it.
+  `BudgetException::unlessComplete()` is what a line must hold, for both
+  handlers: an issue or a label, and a quantity once it is to approve or
+  approved (`BudgetLineStatus::needsQuantity()`). A line to estimate has
+  none, a refused one may have been refused before anyone estimated it,
+  and zero is a quantity like another: taking a quantity away is said
+  apart (`UpdateBudgetLine::$withoutQuantity`). The issue of a line
+  is chosen when it is written and never changes.
+- **Only an approved line is consumed.** `BudgetLineRepository::totalsByBudget()`
+  is the one place that says what lines count for: approved, they are
+  what the budget consumed; pending, they wait and show apart; to
+  estimate or refused, they count for nothing. What is left is the
+  volume less what was consumed (`BudgetSummary::remaining()`).
+- **Quantities are minutes; the unit is only what is shown.** Volumes
+  and lines are integers of minutes whatever the unit of the project,
+  so a project changes its unit at any time and nothing is written
+  again. `Budget/Quantities` is the one place that converts what is
+  typed in the unit and formats what is read (`quantity(project)` in
+  Twig). A form shows a quantity to two decimals, which does not always
+  read back to itself once the unit changed (30 minutes show as 0.07 d,
+  which is 29): a form that edits a quantity converts it with
+  `fromInput()`, given the quantity the field stood for, so a field left
+  as shown rewrites nothing. A day lasts `CAIRN_HOURS_PER_DAY` hours (7)
+  for the whole instance, and changing it changes every quantity shown
+  in days. A quantity is bounded so that it fits its column, and the two
+  bounds are named there: `MAX_TYPED` for the forms, in the unit, and
+  `Quantities::MAX_MINUTES` for the commands, which is the first in days
+  of twenty-four hours, so that what a form accepts the commands accept
+  whatever a day lasts (more than 0 hours, at most 24, or `Quantities`
+  refuses to start).
+- **Everything is read and marked on one page.** The Budgets page
+  (`/MD/SPT/budgets`, `Project/BudgetController`) shows what the open
+  budgets amount to together (`Budget:Totals`), then each open budget
+  with all of its lines, the latest first (`Budget:Card`), then the
+  closed ones as a history, one row each. A budget also has a page of
+  its own (`/budgets/{id}`), the same card alone: it is where a closed
+  budget is read, and where the card of an issue leads. The bar of a
+  card is the volume: what was consumed, then what waits for an approval
+  in amber (`pending` of `Ui:ProgressBar`), never past its end. Whoever manages
+  the budgets marks the status of a line from its menu, in the card
+  (`Card::mark()`, an `UpdateBudgetLine`): the card redraws and emits
+  `budget:changed`, which the totals listen to. A status that asks for a
+  quantity the line does not have is a link to the dialog of the line
+  instead, that status chosen (`?status=`) and the quantity focused.
+  Everything else is written in the dialogs of the page, which lead back
+  to the page they were opened from: the card of the page of a budget
+  says so in their address (`from=budget`, `Card::$standalone`), without
+  it they lead to the Budgets page. Nothing is
+  paginated nor loaded later: open budgets are few and show every line,
+  the totals come from SQL, and a closed budget costs one row.
+- **Two permissions govern all of it, and nothing is hidden.**
+  `budget.manage` creates and changes the budgets, deletes a closed one
+  and writes their lines; `budget.view` reads. `AccessControl::canReadBudgets()` is the
+  one place that says who reads (either permission, on a project that
+  has budgets), for the pages, their entry in the navigation, the two
+  live components (checked each time they are drawn) and the card of an
+  issue; reading outlives the archiving of the project, which refuses
+  every permission, writing does not. On the page of an issue, the
+  read-only card of the lines that name it (`Issue:Budget`, a plain Twig
+  component, through `ListIssueBudgetLines`) shows the time they amount
+  to, approved and to approve. Every reader gets every line, so the
+  balance is the same for all; the one thing a reader may miss is the
+  issue of a line: a private issue may be named by a line, which then
+  shows to who does not see it with its quantity and "Private issue",
+  without key nor title (`BudgetStatement::hides()`, decided by
+  `AccessControl::canSee()` in `ShowBudgetHandler`). The lines of an
+  erased issue go with it (`IssueEraser`), those of a deleted project
+  with their budgets (`ProjectRemoval`). Outside for now: the API, the
+  automation rules, the issue lists, imports.
 
 ### Notifications
 
@@ -1497,7 +1597,8 @@ src/
   refused, the dialog alone is drawn again (422); accepted, the page it
   redirects to answers the frame its empty self, flash unread, and the
   `modal-frame` controller visits that page, which shows it up to date
-  with its flash. Every page a dialog redirects to must answer the frame
+  with its flash, and from where the reader was when it is the page the
+  dialog was opened over. Every page a dialog redirects to must answer the frame
   that way. Closing (`closeHref`: the backdrop, the cross, Cancel,
   Escape) empties the frame without a request (`dialog#dismiss`), or
   follows the link when the page was opened at the address of the
@@ -1663,7 +1764,9 @@ Castor are the only things needed on the host. Commands run inside the
   nothing drawn at random: two loads give the same database. It applies
   `config/instance.example.php`, whose workflows it is written for.
   Every user's password is `cairn`; `admin@cairn.test` is an
-  administrator. It then loads `src/Story/VolumeStory`, the Natura
+  administrator. The online shop of Maison Dupont (`MD-SPT`) has budgets,
+  in days: two open orders, with lines in every status. It then loads
+  `src/Story/VolumeStory`, the Natura
   catalogue (`NC-CAT`): 200 issues without threads, to try the lists over
   several pages. Tests load `AppStory` only. Factories live in
   `src/Factory/` and are also meant for tests.
