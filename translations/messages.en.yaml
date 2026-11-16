@@ -183,6 +183,7 @@ issue:
         qualification: Qualification
         qualification_hint: 'Optional: everything can be done after creation.'
         submit: Create the issue
+        submit_continue: Create and continue
         cancel: Cancel
         created: '%key% created.'
         refused: The issue could not be created.

@@ -75,6 +75,26 @@ final class CreateFormTest extends KernelTestCase
         self::assertSame('claire.martin@maison-dupont.test', $issue->getAuthor()->getEmail());
     }
 
+    public function testCreateAndContinueLeadsBackToTheNewIssuePage(): void
+    {
+        $component = $this->form('claire.martin@maison-dupont.test');
+        $component->set('trackerId', $this->bugs->getId());
+        self::assertStringContainsString('Create and continue', (string) $component->render());
+
+        $component->submitForm(['issue' => [
+            'title' => 'The cart empties itself',
+            'description' => 'After ten minutes, the cart is empty.',
+            'fields' => ['environment' => 'prod'],
+            'criticality' => 'normal',
+        ]]);
+        $component->call('save', ['continue' => true]);
+
+        $response = $component->response();
+        self::assertSame(302, $response->getStatusCode(), $response->getContent() ?: '');
+        self::assertSame('/MD/SPT/issues/new', $response->headers->get('Location'));
+        self::assertSame('The cart empties itself', $this->issue('MD-SPT-11')->getTitle());
+    }
+
     public function testFilesSentWhileWritingGoToTheNewIssue(): void
     {
         $component = $this->form('claire.martin@maison-dupont.test');

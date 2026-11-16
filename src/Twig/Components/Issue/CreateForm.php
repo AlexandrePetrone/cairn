@@ -40,7 +40,8 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 /**
  * The new issue screen in one page: the tracker first, then the form built
  * for its workflow and for what the viewer may qualify. A valid submission
- * is a CreateIssue command, then a redirect to the new issue.
+ * is a CreateIssue command, then a redirect to the new issue, or back to
+ * this page as it opens for whoever has more to write.
  */
 #[AsLiveComponent('Issue:CreateForm')]
 final class CreateForm extends AbstractController
@@ -140,7 +141,7 @@ final class CreateForm extends AbstractController
     }
 
     #[LiveAction]
-    public function save(CommandBus $commands, TranslatorInterface $translator): ?Response
+    public function save(CommandBus $commands, TranslatorInterface $translator, #[LiveArg] bool $continue = false): ?Response
     {
         $tracker = $this->getTracker();
         if (null === $tracker) {
@@ -173,6 +174,14 @@ final class CreateForm extends AbstractController
         \assert($issue instanceof Issue);
 
         $this->addFlash('success', $translator->trans('issue.create.created', ['%key%' => $issue->getKey()]));
+
+        // "Create and continue": back to the page as it opens, tracker to choose.
+        if ($continue) {
+            return $this->redirectToRoute('app_issue_new', [
+                'workspaceKey' => $this->project->getWorkspace()->getKey(),
+                'projectKey' => $this->project->getKey(),
+            ]);
+        }
 
         return $this->redirectToRoute('app_issue_show', [
             'workspaceKey' => $this->project->getWorkspace()->getKey(),

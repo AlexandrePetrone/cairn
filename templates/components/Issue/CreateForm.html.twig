@@ -83,8 +83,10 @@
             {% endif %}
         </section>
 
-        <div class="sticky bottom-0 border-t border-line bg-surface/95 backdrop-blur py-3 flex items-center gap-3">
+        <div class="sticky bottom-0 border-t border-line bg-surface/95 backdrop-blur py-3 flex flex-wrap items-center gap-3">
             <twig:Ui:Button variant="primary" size="lg" type="submit" form="issue-form" data-loading="addAttribute(disabled)">{{ 'issue.create.submit'|trans }}</twig:Ui:Button>
+            {# Not a submit button: the form would send `save` a second time. #}
+            <twig:Ui:Button variant="secondary" size="lg" type="button" data-action="live#action" data-live-action-param="save" data-live-continue-param="1" data-loading="addAttribute(disabled)">{{ 'issue.create.submit_continue'|trans }}</twig:Ui:Button>
             <twig:Ui:Button variant="ghost" size="lg" href="{{ path('app_project_issues', { workspaceKey: project.workspace.key, projectKey: project.key }) }}">{{ 'issue.create.cancel'|trans }}</twig:Ui:Button>
         </div>
     {% endif %}

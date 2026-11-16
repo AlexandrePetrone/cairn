@@ -183,6 +183,7 @@ issue:
         qualification: Qualification
         qualification_hint: 'Facultatif : tout peut se faire après la création.'
         submit: Créer la demande
+        submit_continue: Créer et continuer
         cancel: Annuler
         created: '%key% créée.'
         refused: La demande n'a pas pu être créée.
