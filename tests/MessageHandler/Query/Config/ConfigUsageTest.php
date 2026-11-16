@@ -34,7 +34,7 @@ final class ConfigUsageTest extends KernelTestCase
         self::assertSame([$this->scene->bugs->getId()], array_map(static fn ($tracker) => $tracker->getId(), $usage->trackers));
         self::assertSame(2, $usage->count($this->scene->bugs, 'new'));
         self::assertSame(1, $usage->count($this->scene->bugs, 'to_test'));
-        self::assertSame(0, $usage->count($this->scene->bugs, 'rejected'));
+        self::assertSame(0, $usage->count($this->scene->bugs, 'declined'));
         self::assertSame(5, $usage->total($this->scene->bugs));
 
         self::assertSame([], self::queryBus()->ask(new ShowWorkflowUsage('nonsense'))->trackers);

@@ -95,7 +95,7 @@ final class RuleHandlersTest extends KernelTestCase
         yield 'a role of no configuration' => [['trigger' => $created, 'actions' => [['type' => 'assign', 'params' => ['target' => 'referent:boss']]]], 'assign', 'target'];
         yield 'someone who is not a member' => [['trigger' => $created, 'actions' => [['type' => 'assign', 'params' => ['target' => 'user:999999999']]]], 'assign', 'target'];
         yield 'nobody cannot follow' => [['trigger' => $created, 'actions' => [['type' => 'subscribe', 'params' => ['target' => 'nobody']]]], 'subscribe', 'target'];
-        yield 'a place among several that is of no workflow' => [['trigger' => $created, 'conditions' => [['type' => 'place', 'params' => ['is' => ['bug:new', 'bug:nowhere']]]], 'actions' => [self::COMMENT]], 'place', 'is'];
+        yield 'a place among several that is of no workflow' => [['trigger' => $created, 'conditions' => [['type' => 'place', 'params' => ['is' => ['new', 'nowhere']]]], 'actions' => [self::COMMENT]], 'place', 'is'];
         yield 'no place at all' => [['trigger' => $created, 'conditions' => [['type' => 'place', 'params' => ['is' => []]]], 'actions' => [self::COMMENT]], 'place', 'is'];
         yield 'a criticality among several that does not exist' => [['trigger' => $created, 'conditions' => [['type' => 'criticality', 'params' => ['is' => ['high', 'urgent']]]], 'actions' => [self::COMMENT]], 'criticality', 'is'];
         yield 'no days' => [['trigger' => ['type' => 'inactive_for', 'params' => ['days' => 0]], 'actions' => [self::COMMENT]], 'inactive_for', 'days'];

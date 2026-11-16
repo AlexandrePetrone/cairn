@@ -108,8 +108,8 @@ final class SearchIssuesHandlerTest extends KernelTestCase
         $this->builder->issue($this->bugs, $this->client, 'In progress', 'in_progress');
         $this->builder->issue($this->bugs, $this->client, 'Finished', 'done');
 
-        self::assertSame(['In progress'], self::titles($this->search(place: ['bug:in_progress'])->items));
-        self::assertSame(['Fresh', 'Finished'], self::titles($this->search(place: ['bug:new', 'bug:done'])->items), 'a closed place chosen is listed');
+        self::assertSame(['In progress'], self::titles($this->search(place: ['in_progress'])->items));
+        self::assertSame(['Fresh', 'Finished'], self::titles($this->search(place: ['new', 'done'])->items), 'a closed place chosen is listed');
     }
 
     public function testAColumnSortsTheListBeforeTheDefaultOrder(): void
@@ -142,7 +142,7 @@ final class SearchIssuesHandlerTest extends KernelTestCase
         $sorted = $this->search(group: IssueGrouping::Assignee, sort: IssueSort::Title);
         self::assertSame(['Nobody', 'For Zoé', 'Again Marc', 'For Marc'], self::titles($sorted->items), 'the sort applies inside each group');
 
-        self::assertSame(['bug:new' => 4], $this->search(group: IssueGrouping::Place)->groupTotals, 'a place is named with its workflow');
+        self::assertSame(['new' => 4], $this->search(group: IssueGrouping::Place)->groupTotals, 'a place is named by its id');
         self::assertSame([], $this->search()->groupTotals, 'nothing counted when not grouped');
     }
 

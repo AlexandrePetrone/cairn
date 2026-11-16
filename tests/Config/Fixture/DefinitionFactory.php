@@ -47,22 +47,54 @@ final class DefinitionFactory
     }
 
     /**
+     * The places the workflows of the tests are made of, in the order of the instance.
+     *
+     * @return list<PlaceDefinition>
+     */
+    public static function places(): array
+    {
+        return [
+            new PlaceDefinition(id: 'new', label: 'New', status: PlaceStatus::Open),
+            new PlaceDefinition(id: 'in_progress', label: 'In progress', status: PlaceStatus::InProgress),
+            new PlaceDefinition(id: 'to_test', label: 'To test', status: PlaceStatus::Waiting),
+            new PlaceDefinition(id: 'done', label: 'Closed', status: PlaceStatus::Closed),
+        ];
+    }
+
+    /**
+     * The places a set of workflows use: those of places() in their order,
+     * then an open place for every other id, so that a test may write a
+     * workflow without declaring its places apart.
+     *
+     * @param list<string> $ids
+     *
+     * @return list<PlaceDefinition>
+     */
+    public static function placesFor(array $ids): array
+    {
+        $known = array_values(array_filter(self::places(), static fn (PlaceDefinition $place): bool => \in_array($place->id, $ids, true)));
+        $others = array_diff(array_unique($ids), array_map(static fn (PlaceDefinition $place): string => $place->id, $known));
+
+        return [...$known, ...array_map(static fn (string $id): PlaceDefinition => new PlaceDefinition(id: $id, label: strtoupper($id), status: PlaceStatus::Open), array_values($others))];
+    }
+
+    public static function place(string $id): PlaceDefinition
+    {
+        return array_find(self::places(), static fn (PlaceDefinition $place): bool => $place->id === $id) ?? throw new \LogicException(\sprintf('No place "%s" in the test definitions.', $id));
+    }
+
+    /**
      * A bug workflow: new → in_progress → to_test → done, with to_test optional.
      *
-     * @param list<string> $migrateInProgressFrom
+     * @param array<string, string> $migrations removed place id => place that takes its issues
      */
-    public static function bugWorkflow(bool $withToTest = true, array $migrateInProgressFrom = [], string $label = 'Bug'): WorkflowDefinition
+    public static function bugWorkflow(bool $withToTest = true, array $migrations = [], string $label = 'Bug'): WorkflowDefinition
     {
-        $places = [
-            new PlaceDefinition(id: 'new', label: 'New', status: PlaceStatus::Open),
-            new PlaceDefinition(id: 'in_progress', label: 'In progress', status: PlaceStatus::InProgress, migrateFrom: $migrateInProgressFrom),
-        ];
         $transitions = [
             new TransitionDefinition(id: 'start', label: 'Start', from: ['new'], to: 'in_progress', roles: ['developer']),
         ];
 
         if ($withToTest) {
-            $places[] = new PlaceDefinition(id: 'to_test', label: 'To test', status: PlaceStatus::Waiting);
             $transitions[] = new TransitionDefinition(id: 'deliver', label: 'Deliver', from: ['in_progress'], to: 'to_test', roles: ['developer']);
             $transitions[] = new TransitionDefinition(id: 'accept', label: 'Accept', from: ['to_test'], to: 'done', roles: ['client', 'project_manager'], style: TransitionStyle::Primary, description: 'The fix is right.');
             $transitions[] = new TransitionDefinition(id: 'refuse', label: 'Refuse', from: ['to_test'], to: 'in_progress', roles: ['client', 'project_manager'], style: TransitionStyle::Danger, requiresComment: true, commentPrompt: 'Why?');
@@ -70,16 +102,15 @@ final class DefinitionFactory
             $transitions[] = new TransitionDefinition(id: 'finish', label: 'Finish', from: ['in_progress'], to: 'done', roles: ['developer']);
         }
 
-        $places[] = new PlaceDefinition(id: 'done', label: 'Closed', status: PlaceStatus::Closed);
-
         return new WorkflowDefinition(
             id: 'bug',
             label: $label,
             initial: 'new',
-            places: $places,
+            places: $withToTest ? ['new', 'in_progress', 'to_test', 'done'] : ['new', 'in_progress', 'done'],
             transitions: $transitions,
             fields: [new FieldUsage('environment', required: true), new FieldUsage('url')],
             fallbackPlace: 'new',
+            migrations: $migrations,
         );
     }
 
@@ -89,6 +120,7 @@ final class DefinitionFactory
      * @param list<FieldDefinition>|null       $fields
      * @param array<string, list<string>>|null $permissions
      * @param list<LinkTypeDefinition>|null    $links
+     * @param list<PlaceDefinition>|null       $places      those the workflows use by default
      */
     public static function definition(
         ?array $workflows = null,
@@ -97,7 +129,11 @@ final class DefinitionFactory
         ?array $permissions = null,
         MigrationPolicy $migrationPolicy = MigrationPolicy::Strict,
         ?array $links = null,
+        ?array $places = null,
     ): InstanceDefinition {
+        $workflows ??= [self::bugWorkflow()];
+        $used = array_merge(...array_map(static fn (WorkflowDefinition $workflow): array => $workflow->places, $workflows));
+
         return new InstanceDefinition(
             migrationPolicy: $migrationPolicy,
             roles: $roles ?? self::roles(),
@@ -125,7 +161,8 @@ final class DefinitionFactory
                 new LinkTypeDefinition(id: 'related', label: 'Related to'),
                 new LinkTypeDefinition(id: 'blocks', label: 'Blocks', inverseLabel: 'Blocked by'),
             ],
-            workflows: $workflows ?? [self::bugWorkflow()],
+            places: $places ?? self::placesFor($used),
+            workflows: $workflows,
         );
     }
 }

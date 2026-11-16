@@ -633,6 +633,8 @@ admin:
             permission: Right
         workflows:
             intro: Each category picks a workflow when it is created, for good. Open one to read its places (the columns of the kanban), the actions moving an issue from one place to another with the roles that may trigger them, and the fields it asks for. An administrator may trigger every action.
+            steps: Places
+            steps_intro: Every place of the instance, in the order the issue lists filter and group by, and the workflows that use it. A place is the same wherever it is used.
             place_count: '{1}1 place|]1,Inf[ %count% places'
             action_count: '{0}no action|{1}1 action|]1,Inf[ %count% actions'
             tracker_count: '{0}no category|{1}1 category|]1,Inf[ %count% categories'
@@ -1329,7 +1331,7 @@ field_type:
 migration_policy:
     strict:
         label: Strict
-        help: when a place disappears without a declared successor (migrate_from), the sync is refused and the previous configuration stays in force.
+        help: when a place disappears without a declared successor (migrations), the sync is refused and the previous configuration stays in force.
     fallback:
         label: Fallback
         help: the issues sitting on a place that disappears move to the fallback place of their workflow.

@@ -34,7 +34,7 @@ use App\Entity\Enum\PlaceStatus;
 final class SnapshotCodec
 {
     /** Bumped whenever the shape of the array changes, as a trace of which version wrote a snapshot. */
-    public const int FORMAT = 10;
+    public const int FORMAT = 11;
 
     /**
      * @return array<string, mixed>
@@ -75,6 +75,10 @@ final class SnapshotCodec
                     'type' => FieldType::from($field['type']),
                 ]), $data['fields']),
                 'links' => array_map(static fn (array $link) => new LinkTypeDefinition(...$link), $data['links']),
+                'places' => array_map(static fn (array $place) => new PlaceDefinition(...[
+                    ...$place,
+                    'status' => PlaceStatus::from($place['status']),
+                ]), $data['places']),
                 'workflows' => array_map(self::decodeWorkflow(...), $data['workflows']),
             ]);
         } catch (InvalidDefinitionException|\Error|\ErrorException $e) {
@@ -89,10 +93,6 @@ final class SnapshotCodec
     {
         return new WorkflowDefinition(...[
             ...$data,
-            'places' => array_map(static fn (array $place) => new PlaceDefinition(...[
-                ...$place,
-                'status' => PlaceStatus::from($place['status']),
-            ]), $data['places']),
             'transitions' => array_map(static fn (array $transition) => new TransitionDefinition(...[
                 ...$transition,
                 'style' => TransitionStyle::from($transition['style']),

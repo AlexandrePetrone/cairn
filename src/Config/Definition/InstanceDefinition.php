@@ -24,6 +24,9 @@ final readonly class InstanceDefinition
     /** @var array<string, LinkTypeDefinition> */
     public array $links;
 
+    /** @var array<string, PlaceDefinition> id => place, in the order lists show them */
+    public array $places;
+
     /** @var array<string, WorkflowDefinition> */
     public array $workflows;
 
@@ -33,6 +36,7 @@ final readonly class InstanceDefinition
      * @param array<string, list<string>> $permissions     Permission value => role ids
      * @param list<FieldDefinition>       $fields
      * @param list<LinkTypeDefinition>    $links
+     * @param list<PlaceDefinition>       $places          every step of the instance; each workflow names those it uses
      * @param list<WorkflowDefinition>    $workflows
      */
     public function __construct(
@@ -41,11 +45,13 @@ final readonly class InstanceDefinition
         public array $permissions,
         array $fields,
         array $links,
+        array $places,
         array $workflows,
     ) {
         $this->roles = Definitions::indexById($roles, RoleDefinition::class, 'roles');
         $this->fields = Definitions::indexById($fields, FieldDefinition::class, 'fields');
         $this->links = Definitions::indexById($links, LinkTypeDefinition::class, 'links');
+        $this->places = Definitions::indexById($places, PlaceDefinition::class, 'places');
         $this->workflows = Definitions::indexById($workflows, WorkflowDefinition::class, 'workflows');
 
         foreach ($permissions as $permission => $roleIds) {
@@ -133,6 +139,53 @@ final readonly class InstanceDefinition
         }
 
         return $fields;
+    }
+
+    public function hasPlace(string $id): bool
+    {
+        return isset($this->places[$id]);
+    }
+
+    /**
+     * The place, or null when it left the configuration (an issue may
+     * still sit on it until the sync migrates it).
+     */
+    public function findPlace(string $id): ?PlaceDefinition
+    {
+        return $this->places[$id] ?? null;
+    }
+
+    public function place(string $id): PlaceDefinition
+    {
+        return $this->places[$id] ?? throw new InvalidDefinitionException(\sprintf('Unknown place "%s".', $id));
+    }
+
+    /**
+     * The places of a workflow, in its order: the columns of its kanban.
+     *
+     * @return list<PlaceDefinition>
+     */
+    public function placesOf(WorkflowDefinition $workflow): array
+    {
+        return array_map($this->place(...), $workflow->places);
+    }
+
+    /**
+     * The places the given workflows use, in the order of the instance:
+     * what a list of their issues offers to filter and group by.
+     *
+     * @param list<string> $workflowIds unknown ids are skipped
+     *
+     * @return list<PlaceDefinition>
+     */
+    public function placesIn(array $workflowIds): array
+    {
+        $used = [];
+        foreach ($workflowIds as $workflowId) {
+            $used += array_flip($this->workflows[$workflowId]->places ?? []);
+        }
+
+        return array_values(array_intersect_key($this->places, $used));
     }
 
     public function hasWorkflow(string $id): bool

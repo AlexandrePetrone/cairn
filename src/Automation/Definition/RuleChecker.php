@@ -88,7 +88,7 @@ final class RuleChecker
         return match ($parameter->kind) {
             ParameterKind::Choice => \is_string($value) && \in_array($value, $parameter->options, true),
             ParameterKind::Days => \is_int($value) && $value >= 1 && $value <= self::MAX_DAYS,
-            ParameterKind::Place => \is_string($value) && isset($context->placeLabels($tracker)[$value]),
+            ParameterKind::Place => \is_string($value) && isset($context->places($tracker)[$value]),
             ParameterKind::ScopedPlace => \is_string($value) && null !== $workflow && $workflow->hasPlace($value),
             ParameterKind::Transition => \is_string($value) && null !== $workflow && isset($workflow->transitions[$value]),
             ParameterKind::Criticality => \is_string($value) && null !== Criticality::tryFrom($value),

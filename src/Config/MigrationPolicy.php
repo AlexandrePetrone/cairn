@@ -6,7 +6,7 @@ namespace App\Config;
 
 /**
  * What the sync does with issues sitting on a place that disappears without
- * a `migrateFrom` rule on one of the new places.
+ * a rule for it in the `migrations` of its workflow.
  */
 enum MigrationPolicy: string
 {

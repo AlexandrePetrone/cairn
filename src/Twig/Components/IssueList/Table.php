@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Twig\Components\IssueList;
 
+use App\Config\Definition\PlaceDefinition;
 use App\Entity\Issue;
 use App\Form\Issue\IssueListFilters;
 use App\Message\Query\Issue\IssueGrouping;
 use App\Message\QueryBus;
 use App\Repository\Pagination;
-use App\Workflow\PlaceChoice;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 
@@ -128,17 +128,11 @@ final class Table
     }
 
     /**
-     * The label of a place of the list, for the header of its group: its
-     * workflow's label first when the list mixes workflows.
+     * The label of a place of the list, for the header of its group.
      */
-    public function placeLabel(string $key): string
+    public function placeLabel(string $id): string
     {
-        $choice = array_find($this->choices->places($this->scope), static fn (PlaceChoice $choice): bool => $choice->key === $key);
-        if (null === $choice) {
-            return $key;
-        }
-
-        return $this->choices->mixesWorkflows($this->scope) ? $choice->workflowLabel.' › '.$choice->label : $choice->label;
+        return array_find($this->choices->places($this->scope), static fn (PlaceDefinition $place): bool => $place->id === $id)->label ?? $id;
     }
 
     /**

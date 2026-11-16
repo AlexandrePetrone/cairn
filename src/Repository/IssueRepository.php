@@ -50,6 +50,61 @@ class IssueRepository extends ServiceEntityRepository
     }
 
     /**
+     * The status the issues of each place carry, with how many, workflow by
+     * workflow: what the configuration sync compares with the status the
+     * file gives the place.
+     *
+     * @return list<array{workflowId: string, placeId: string, status: PlaceStatus, issues: int}>
+     */
+    public function countByPlaceStatus(): array
+    {
+        /** @var list<array{workflowId: string, placeId: string, status: PlaceStatus|string, issues: int|string}> $rows */
+        $rows = $this->createQueryBuilder('i')
+            ->select('t.workflowId AS workflowId', 'i.place AS placeId', 'i.status AS status', 'COUNT(i.id) AS issues')
+            ->join('i.tracker', 't')
+            ->groupBy('t.workflowId', 'i.place', 'i.status')
+            ->orderBy('i.place')
+            ->addOrderBy('i.status')
+            ->addOrderBy('t.workflowId')
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_map(static fn (array $row): array => [
+            'workflowId' => $row['workflowId'],
+            'placeId' => $row['placeId'],
+            'status' => $row['status'] instanceof PlaceStatus ? $row['status'] : PlaceStatus::from($row['status']),
+            'issues' => (int) $row['issues'],
+        ], $rows);
+    }
+
+    /**
+     * Gives the issues of a place the status the place now has, in bulk,
+     * whatever their workflow. Those that become closed are closed at
+     * `$closedAt`, those that no longer are lose their closing date.
+     * Touches nothing else: it is not an activity on the issues.
+     *
+     * @return int number of issues changed
+     */
+    public function alignStatus(string $placeId, PlaceStatus $status, \DateTimeImmutable $closedAt): int
+    {
+        $update = $this->createQueryBuilder('i')
+            ->update()
+            ->set('i.status', ':status')
+            ->andWhere('i.place = :place')
+            ->andWhere('i.status != :status')
+            ->setParameter('place', $placeId)
+            ->setParameter('status', $status);
+
+        if (PlaceStatus::Closed === $status) {
+            $update->set('i.closedAt', ':closedAt')->setParameter('closedAt', $closedAt);
+        } else {
+            $update->set('i.closedAt', 'NULL');
+        }
+
+        return (int) $update->getQuery()->execute();
+    }
+
+    /**
      * Number of issues in each tracker of a project, private ones
      * included: the project configuration is for internal users.
      *

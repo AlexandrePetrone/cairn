@@ -89,7 +89,7 @@ final class SnapshotCodecTest extends TestCase
             return $encoded;
         }, 'Unknown named parameter $colour'];
         yield 'a value an enum refuses' => [static function (array $encoded): array {
-            $encoded['workflows'][0]['places'][0]['status'] = 'nope';
+            $encoded['places'][0]['status'] = 'nope';
 
             return $encoded;
         }, '"nope" is not a valid backing value'];

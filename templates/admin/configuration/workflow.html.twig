@@ -3,13 +3,14 @@
 {% set configurationSubject = 'workflows' %}
 
 {% block configuration_content %}
+    {% set workflowPlaces = definition.placesOf(workflow) %}
     <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <a href="{{ path('app_admin_configuration_workflows', { _fragment: workflow.id }) }}" class="text-xs text-muted hover:text-strong">← {{ 'admin.configuration.nav.workflows'|trans }}</a>
         <h2 class="text-lg font-semibold text-strong">{{ workflow.label }} <span class="font-mono text-xs font-normal text-faint">{{ workflow.id }}</span></h2>
     </div>
     <p class="text-sm text-muted">
-        {{ 'admin.configuration.workflow.initial'|trans({ '%place%': workflow.place(workflow.initial).label }) }}
-        {% if workflow.fallbackPlace %}{{ 'admin.configuration.workflow.fallback'|trans({ '%place%': workflow.place(workflow.fallbackPlace).label }) }}{% endif %}
+        {{ 'admin.configuration.workflow.initial'|trans({ '%place%': definition.place(workflow.initial).label }) }}
+        {% if workflow.fallbackPlace %}{{ 'admin.configuration.workflow.fallback'|trans({ '%place%': definition.place(workflow.fallbackPlace).label }) }}{% endif %}
     </p>
 
     <twig:Workflow:Diagram :workflow="workflow" />
@@ -18,7 +19,7 @@
         <h3 class="font-semibold text-strong">{{ 'admin.configuration.workflow.steps'|trans }}</h3>
         <p class="text-xs text-muted">{{ 'admin.configuration.workflow.steps_intro'|trans }}</p>
         <ol class="space-y-3">
-            {% for place in workflow.places %}
+            {% for place in workflowPlaces %}
                 {% set placeActions = workflow.transitionsFrom(place.id) %}
                 <li class="rounded-lg border border-line bg-surface">
                     <div class="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-line-subtle">
@@ -33,7 +34,7 @@
                             {% for transition in placeActions %}
                                 <li class="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 text-sm">
                                     <span class="font-medium {{ transition.style.value == 'danger' ? 'text-red' : (transition.style.value == 'primary' ? 'text-brand' : 'text-strong') }}">{{ transition.label }}</span>
-                                    <span class="text-muted">→ {{ workflow.place(transition.to).label }}</span>
+                                    <span class="text-muted">→ {{ definition.place(transition.to).label }}</span>
                                     {% if transition.requiresComment %}
                                         <span class="inline-flex items-center gap-1 text-xs text-amber" title="{{ transition.commentPrompt }}"><twig:ux:icon name="lucide:message-square" class="h-3.5 w-3.5" />{{ 'admin.configuration.workflow.comment_required'|trans }}</span>
                                     {% endif %}
@@ -101,7 +102,7 @@
                     <thead class="bg-subtle text-[11px] uppercase tracking-wider text-muted">
                         <tr>
                             <th class="px-4 py-2 text-left font-medium">{{ 'admin.configuration.workflow.tracker'|trans }}</th>
-                            {% for place in workflow.places %}<th class="px-3 py-2 text-right font-medium whitespace-nowrap">{{ place.label }}</th>{% endfor %}
+                            {% for place in workflowPlaces %}<th class="px-3 py-2 text-right font-medium whitespace-nowrap">{{ place.label }}</th>{% endfor %}
                             <th class="px-4 py-2 text-right font-medium">{{ 'admin.configuration.workflow.total'|trans }}</th>
                         </tr>
                     </thead>
@@ -113,7 +114,7 @@
                                     {% if tracker.private %}<twig:ux:icon name="lucide:lock" class="inline h-3 w-3 text-faint" />{% endif %}
                                     <span class="block text-xs text-muted">{{ tracker.project.issuePrefix }} · {{ tracker.project.name }}</span>
                                 </td>
-                                {% for place in workflow.places %}
+                                {% for place in workflowPlaces %}
                                     {% set placeCount = usage.count(tracker, place.id) %}
                                     <td class="px-3 py-2 text-right tabular-nums {{ placeCount ? 'text-strong' : 'text-ghost' }}">{{ placeCount }}</td>
                                 {% endfor %}

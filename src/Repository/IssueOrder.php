@@ -17,9 +17,6 @@ use Doctrine\ORM\QueryBuilder;
  */
 final class IssueOrder
 {
-    /** The key of an issue's place, `workflow:place`, as Workflow/PlaceCatalog::key() writes it. */
-    public const string PLACE_KEY = "CONCAT(t.workflowId, ':', i.place)";
-
     /** Open first, then in progress, waiting, closed. */
     private const string STATUS_RANK = "CASE i.status WHEN 'open' THEN 1 WHEN 'in_progress' THEN 2 WHEN 'waiting' THEN 3 ELSE 4 END";
 
@@ -27,7 +24,7 @@ final class IssueOrder
     private const string CRITICALITY_RANK = "CASE i.criticality WHEN 'blocking' THEN 1 WHEN 'high' THEN 2 WHEN 'normal' THEN 3 ELSE 4 END";
 
     /**
-     * @param array<string, int> $placeRanks place key => rank (Workflow/PlaceCatalog::ranks()), to sort or group by place
+     * @param array<string, int> $placeRanks place id => rank, in the order of the instance (InstanceDefinition::$places), to sort or group by place
      */
     public static function apply(QueryBuilder $queryBuilder, ?IssueGrouping $group = null, ?IssueSort $sort = null, \SortDirection $order = \SortDirection::Ascending, array $placeRanks = []): QueryBuilder
     {
@@ -71,7 +68,7 @@ final class IssueOrder
     public static function groupKey(IssueGrouping $group): string
     {
         return match ($group) {
-            IssueGrouping::Place => self::PLACE_KEY,
+            IssueGrouping::Place => 'i.place',
             IssueGrouping::Criticality => 'i.criticality',
             IssueGrouping::Assignee => 'IDENTITY(i.assignee)',
             IssueGrouping::Project => 'p.id',
@@ -125,14 +122,14 @@ final class IssueOrder
     private static function byPlace(QueryBuilder $queryBuilder, string $role, array $placeRanks, \SortDirection $order): QueryBuilder
     {
         if ([] === $placeRanks) {
-            return $queryBuilder->addOrderBy('t.workflowId', self::sql($order))->addOrderBy('i.place', self::sql($order));
+            return $queryBuilder->addOrderBy('i.place', self::sql($order));
         }
 
         $cases = '';
         $index = 0;
-        foreach ($placeRanks as $placeKey => $rank) {
-            $cases .= \sprintf(' WHEN %s = :placeRank%d THEN %d', self::PLACE_KEY, $index, $rank);
-            $queryBuilder->setParameter('placeRank'.$index, $placeKey);
+        foreach ($placeRanks as $placeId => $rank) {
+            $cases .= \sprintf(' WHEN i.place = :placeRank%d THEN %d', $index, $rank);
+            $queryBuilder->setParameter('placeRank'.$index, $placeId);
             ++$index;
         }
 

@@ -190,7 +190,7 @@ final class ImportControllerTest extends WebTestCase
         self::assertSame(['environment' => 'prod'], $issue?->getFieldValues(), 'matched by its label; the others have no field of their name');
         self::assertStringContainsString('- **Browser**: Firefox', $issue->getDescription());
         self::assertSame('1.1', $issue->getRelease()?->getName());
-        self::assertSame('delivered', $entityManager->getRepository(Issue::class)->findOneBy(['importedRef' => '1002'])?->getPlace());
+        self::assertSame('done', $entityManager->getRepository(Issue::class)->findOneBy(['importedRef' => '1002'])?->getPlace());
         $this->client->request('GET', '/admin/imports/'.$id);
         self::assertSelectorTextNotContains('main', 'was not created', 'everything the archive holds was written');
     }

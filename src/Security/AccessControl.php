@@ -246,7 +246,7 @@ final class AccessControl implements ResetInterface
         $force = $this->isGranted($user, Permission::IssueForcePlace, $issue->getProject());
 
         $moves = [];
-        foreach ($workflow->places as $place) {
+        foreach ($this->config->definition()->placesOf($workflow) as $place) {
             if ($place->id === $issue->getPlace()) {
                 continue;
             }

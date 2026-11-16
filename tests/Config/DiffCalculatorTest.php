@@ -35,6 +35,10 @@ final class DiffCalculatorTest extends TestCase
             '+ fields.environment: "Environment"',
             '+ links.related: "Related to"',
             '+ links.blocks: "Blocks"',
+            '+ places.new: "New"',
+            '+ places.in_progress: "In progress"',
+            '+ places.to_test: "To test"',
+            '+ places.done: "Closed"',
             '+ workflows.bug: "Bug"',
             '+ migrationPolicy: strict',
             '+ permissions.comment.create: [project_manager, developer, client]',
@@ -83,7 +87,8 @@ final class DiffCalculatorTest extends TestCase
         );
 
         self::assertSame([
-            '- workflows.bug.places.to_test: "To test"',
+            '- places.to_test: "To test"',
+            '~ workflows.bug.places: [new, in_progress, to_test, done] → [new, in_progress, done]',
             '+ workflows.bug.transitions.finish: "Finish"',
             '- workflows.bug.transitions.deliver: "Deliver"',
             '- workflows.bug.transitions.accept: "Accept"',
@@ -93,44 +98,44 @@ final class DiffCalculatorTest extends TestCase
 
     public function testChangesInsideAnItemAreReportedKeyByKey(): void
     {
-        $before = new WorkflowDefinition(
-            id: 'w',
-            label: 'W',
-            initial: 'a',
-            places: [
-                new PlaceDefinition(id: 'a', label: 'A', status: PlaceStatus::Open),
-                new PlaceDefinition(id: 'b', label: 'B', status: PlaceStatus::Waiting),
-            ],
-            transitions: [new TransitionDefinition(id: 't', label: 'T', from: ['a'], to: 'b', roles: ['developer'])],
-        );
-        $after = new WorkflowDefinition(
-            id: 'w',
-            label: 'W',
-            initial: 'a',
-            places: [
-                new PlaceDefinition(id: 'a', label: 'A', status: PlaceStatus::Open),
-                new PlaceDefinition(id: 'b', label: 'Done', status: PlaceStatus::Closed),
-            ],
-            transitions: [new TransitionDefinition(id: 't', label: 'T', from: ['a'], to: 'b', roles: ['developer', 'client'], requiresComment: true)],
-        );
+        $workflow = static fn (TransitionDefinition $transition): WorkflowDefinition => new WorkflowDefinition(id: 'w', label: 'W', initial: 'a', places: ['a', 'b'], transitions: [$transition]);
+        $a = new PlaceDefinition(id: 'a', label: 'A', status: PlaceStatus::Open);
 
         $diff = $this->calculator->between(
-            DefinitionFactory::definition(workflows: [$before]),
-            DefinitionFactory::definition(workflows: [$after]),
+            DefinitionFactory::definition(
+                workflows: [$workflow(new TransitionDefinition(id: 't', label: 'T', from: ['a'], to: 'b', roles: ['developer']))],
+                places: [$a, new PlaceDefinition(id: 'b', label: 'B', status: PlaceStatus::Waiting)],
+            ),
+            DefinitionFactory::definition(
+                workflows: [$workflow(new TransitionDefinition(id: 't', label: 'T', from: ['a'], to: 'b', roles: ['developer', 'client'], requiresComment: true))],
+                places: [$a, new PlaceDefinition(id: 'b', label: 'Done', status: PlaceStatus::Closed)],
+            ),
         );
 
         self::assertSame([
-            '~ workflows.w.places.b.label: B → Done',
-            '~ workflows.w.places.b.status: waiting → closed',
+            '~ places.b.label: B → Done',
+            '~ places.b.status: waiting → closed',
             '~ workflows.w.transitions.t.roles: [developer] → [developer, client]',
             '~ workflows.w.transitions.t.requiresComment: no → yes',
         ], $diff);
     }
 
+    public function testTheOrderOfPlacesIsAChangeOfItsOwn(): void
+    {
+        $places = DefinitionFactory::places();
+
+        $diff = $this->calculator->between(
+            DefinitionFactory::definition(places: $places),
+            DefinitionFactory::definition(places: [$places[1], $places[0], $places[2], $places[3]]),
+        );
+
+        self::assertSame(['~ places: order [new, in_progress, to_test, done] → [in_progress, new, to_test, done]'], $diff, 'lists filter and group in that order');
+    }
+
     public function testMapsAndRemovedWorkflows(): void
     {
         $before = DefinitionFactory::definition(
-            workflows: [DefinitionFactory::bugWorkflow(), new WorkflowDefinition(id: 'task', label: 'Task', initial: 'todo', places: [new PlaceDefinition(id: 'todo', label: 'To do', status: PlaceStatus::Open)], transitions: [])],
+            workflows: [DefinitionFactory::bugWorkflow(), new WorkflowDefinition(id: 'task', label: 'Task', initial: 'todo', places: ['todo'], transitions: [])],
             permissions: ['issue.create' => ['client']],
         );
         $after = DefinitionFactory::definition(
@@ -142,6 +147,7 @@ final class DiffCalculatorTest extends TestCase
 
         self::assertSame([
             '+ fields.browser: "Browser"',
+            '- places.todo: "TODO"',
             '- workflows.task: "Task"',
             '+ permissions.issue.assign: [developer]',
             '~ permissions.issue.create: [client] → [client, developer]',

@@ -37,11 +37,11 @@ final class MoveIssueHandler
         $issue = $this->support->visibleIssue($actor, $command->issueKey);
 
         $workflow = $this->workflows->definition($issue->getTracker()->getWorkflowId());
-        $from = $workflow->findPlace($issue->getPlace()) ?? throw IssueException::unknownPlace($issue->getPlace(), $workflow->id);
+        $from = $this->workflows->placeOf($issue) ?? throw IssueException::unknownPlace($issue->getPlace(), $workflow->id);
         if (!$workflow->hasPlace($command->placeId)) {
             throw IssueException::unknownPlace($command->placeId, $workflow->id);
         }
-        $to = $workflow->place($command->placeId);
+        $to = $this->workflows->place($command->placeId);
         if ($to->id === $from->id) {
             throw IssueException::samePlace($to->label);
         }

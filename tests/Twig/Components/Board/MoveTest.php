@@ -38,7 +38,7 @@ final class MoveTest extends KernelTestCase
         $render = $mover->render();
 
         self::assertSame('qualified', $this->reloaded('MD-SPT-1')->getPlace());
-        self::assertSame(['key' => 'MD-SPT-1', 'applied' => true, 'top' => true, 'places' => ['new', 'needs_info', 'in_progress', 'blocked', 'to_test', 'to_release', 'done', 'rejected'], 'forced' => ['new', 'needs_info', 'blocked', 'to_test', 'to_release', 'done']], $mover->getDispatchedBrowserEvent($render, 'board:moved')['payload'] ?? null, 'the card learns where it may go from its new place, and how');
+        self::assertSame(['key' => 'MD-SPT-1', 'applied' => true, 'top' => true, 'places' => ['new', 'needs_info', 'in_progress', 'blocked', 'to_test', 'to_release', 'done', 'declined'], 'forced' => ['new', 'needs_info', 'blocked', 'to_test', 'to_release', 'done']], $mover->getDispatchedBrowserEvent($render, 'board:moved')['payload'] ?? null, 'the card learns where it may go from its new place, and how');
         self::assertSame(JournalEntryType::Transitioned, self::getContainer()->get(EntityManagerInterface::class)->getRepository(JournalEntry::class)->findOneBy(['issue' => $this->reloaded('MD-SPT-1')], ['id' => 'DESC'])?->getType(), 'the action, not a forced move');
         self::assertNotNull($mover->getEmittedEvent($render, 'issue:changed'));
     }
@@ -68,7 +68,7 @@ final class MoveTest extends KernelTestCase
         self::assertContains('in_progress', $moved['places'] ?? [], '"Reopen" leads there');
         self::assertNotContains('in_progress', $moved['forced'] ?? []);
         self::assertContains('qualified', $moved['forced'] ?? [], 'no action leads there from "Closed"');
-        self::assertSame(['message' => 'MD-SPT-1 moved to Closed.'], $mover->getDispatchedBrowserEvent($render, 'toast:show')['payload'] ?? null);
+        self::assertSame(['message' => 'MD-SPT-1 moved to Done.'], $mover->getDispatchedBrowserEvent($render, 'toast:show')['payload'] ?? null);
         self::assertNotNull($mover->getEmittedEvent($render, 'issue:changed'));
     }
 

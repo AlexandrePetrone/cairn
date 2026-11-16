@@ -55,7 +55,7 @@ final class RuleContexts
         }
         asort($people);
 
-        return new RuleContext($trackers, $workflows, $roles, $people);
+        return new RuleContext($trackers, $workflows, $definition->places, $roles, $people);
     }
 
     public function ofTemplate(ProjectTemplate $template): RuleContext
@@ -76,6 +76,6 @@ final class RuleContexts
             $roles[$role->id] = $role->label;
         }
 
-        return new RuleContext($trackers, $workflows, $roles);
+        return new RuleContext($trackers, $workflows, $definition->places, $roles);
     }
 }

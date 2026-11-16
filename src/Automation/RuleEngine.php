@@ -19,7 +19,6 @@ use App\Event\IssueMoved;
 use App\Event\IssueTransitioned;
 use App\Event\IssueUpdated;
 use App\Repository\AutomationRuleRepository;
-use App\Workflow\PlaceCatalog;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Contracts\Service\ResetInterface;
@@ -154,7 +153,7 @@ final class RuleEngine implements ResetInterface
             TriggerType::CommentAdded => $event instanceof CommentAdded || ($event instanceof IssueTransitioned && null !== $event->comment),
             TriggerType::TransitionApplied => $event instanceof IssueTransitioned && $event->transitionId === $trigger->text('transition'),
             TriggerType::PlaceChanged => ($event instanceof IssueTransitioned || $event instanceof IssueMoved)
-                && \in_array($trigger->text('place'), ['', PlaceCatalog::key($event->issue->getTracker()->getWorkflowId(), $event->issue->getPlace())], true),
+                && \in_array($trigger->text('place'), ['', $event->issue->getPlace()], true),
             TriggerType::CriticalityChanged => $event instanceof IssueUpdated
                 && array_any($event->entries, static fn ($entry): bool => 'criticality' === $entry->text('field')),
             TriggerType::InactiveFor => false,

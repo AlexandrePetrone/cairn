@@ -21,4 +21,22 @@
             </li>
         {% endfor %}
     </ul>
+
+    <section class="space-y-2">
+        <h3 class="font-semibold text-strong">{{ 'admin.configuration.workflows.steps'|trans }}</h3>
+        <p class="text-xs text-muted">{{ 'admin.configuration.workflows.steps_intro'|trans }}</p>
+        <ol class="divide-y divide-line-subtle rounded-lg border border-line bg-surface">
+            {% for place in definition.places %}
+                <li class="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 text-sm">
+                    <twig:Ui:Status:Step :status="place.status.value" :label="place.label" withStatus class="font-medium" />
+                    <span class="font-mono text-[11px] text-faint">{{ place.id }}</span>
+                    <span class="ml-auto flex flex-wrap gap-1">
+                        {% for workflow in definition.workflows|filter(workflow => workflow.hasPlace(place.id)) %}
+                            <twig:Ui:Badge size="sm">{{ workflow.label }}</twig:Ui:Badge>
+                        {% endfor %}
+                    </span>
+                </li>
+            {% endfor %}
+        </ol>
+    </section>
 {% endblock %}

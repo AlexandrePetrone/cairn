@@ -91,7 +91,24 @@ final class ConfigSynchronizer
             } elseif (MigrationPolicy::Fallback === $next->migrationPolicy && null !== $workflow->fallbackPlace) {
                 $migrations[] = new PlaceMigration($workflowId, $placeId, $workflow->fallbackPlace, $count, PlaceMigration::BY_FALLBACK);
             } else {
-                $orphans[] = new OrphanPlace($workflowId, $placeId, $count, 'no migrateFrom rule targets it');
+                $orphans[] = new OrphanPlace($workflowId, $placeId, $count, 'no migration of the workflow targets it');
+            }
+        }
+
+        // An issue copies the status of its place: those of a place that stays
+        // and changed status follow it. Read from the data, like the rest.
+        // Those a migration moves get the status of where they go, not counted here.
+        $changing = [];
+        foreach ($this->issues->countByPlaceStatus() as ['workflowId' => $workflowId, 'placeId' => $placeId, 'status' => $status, 'issues' => $count]) {
+            $place = $next->findPlace($placeId);
+            if (null !== $place && $place->status !== $status && $next->hasWorkflow($workflowId) && $next->workflow($workflowId)->hasPlace($placeId)) {
+                $changing[$placeId][$status->value] = ($changing[$placeId][$status->value] ?? 0) + $count;
+            }
+        }
+        $statusChanges = [];
+        foreach ($changing as $placeId => $counts) {
+            foreach ($counts as $status => $count) {
+                $statusChanges[] = new StatusChange($placeId, PlaceStatus::from($status), $next->place($placeId)->status, $count);
             }
         }
 
@@ -118,22 +135,26 @@ final class ConfigSynchronizer
         }
 
         $warnings = [];
+        $usedPlaces = [];
         foreach ($next->workflows as $workflow) {
-            foreach ($workflow->places as $place) {
-                foreach ($place->migrateFrom as $oldPlaceId) {
-                    if (!\in_array($oldPlaceId, $removedPlaces[$workflow->id] ?? [], true)) {
-                        $warnings[] = \sprintf('workflows.%s.places.%s.migrateFrom: no issue sits on "%s", the rule can be removed.', $workflow->id, $place->id, $oldPlaceId);
-                    }
+            $usedPlaces += array_flip($workflow->places);
+            foreach ($workflow->migrations as $oldPlaceId => $target) {
+                if (!\in_array($oldPlaceId, $removedPlaces[$workflow->id] ?? [], true)) {
+                    $warnings[] = \sprintf('workflows.%s.migrations.%s: no issue sits on "%s", the rule can be removed.', $workflow->id, $oldPlaceId, $oldPlaceId);
                 }
             }
         }
+        foreach (array_diff_key($next->places, $usedPlaces) as $place) {
+            $warnings[] = \sprintf('places.%s: no workflow uses it.', $place->id);
+        }
 
-        return new SyncPlan($next, $encoded, $hash, $currentSnapshot?->getHash(), $violations, $diff, $migrations, $orphans, $warnings, $usedLinkTypes, $usedWorkflows);
+        return new SyncPlan($next, $encoded, $hash, $currentSnapshot?->getHash(), $violations, $diff, $migrations, $orphans, $warnings, $usedLinkTypes, $usedWorkflows, $statusChanges);
     }
 
     /**
      * Moves the issues of removed places in bulk (entering a closed place
-     * closes them, leaving one reopens them) and stores the new snapshot.
+     * closes them, leaving one reopens them), gives those of a place that
+     * changed status its new one, and stores the new snapshot.
      *
      * @param string|null $appliedBy who applies it, when known (a future back-office)
      *
@@ -163,9 +184,14 @@ final class ConfigSynchronizer
                 }
 
                 foreach ($plan->migrations as $migration) {
-                    $target = $plan->definition->workflow($migration->workflowId)->place($migration->to);
+                    $target = $plan->definition->place($migration->to);
                     $closedAt = PlaceStatus::Closed === $target->status ? $this->clock->now() : null;
                     $this->issues->moveFromPlace($migration->workflowId, $migration->from, $target->id, $target->status, $closedAt);
+                }
+
+                // After the migrations, which give the status of where they lead.
+                foreach (array_unique(array_map(static fn (StatusChange $change): string => $change->placeId, $plan->statusChanges)) as $placeId) {
+                    $this->issues->alignStatus($placeId, $plan->definition->place($placeId)->status, $this->clock->now());
                 }
 
                 $snapshot = new ConfigSnapshot($plan->hash, $plan->encoded, $plan->summary(), $appliedBy, $this->clock->now());

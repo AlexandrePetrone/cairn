@@ -12,7 +12,6 @@ use App\Config\ConfigRegistry;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\Tracker;
 use App\Security\Viewer;
-use App\Workflow\PlaceCatalog;
 use App\Workflow\WorkflowProvider;
 
 /**
@@ -35,8 +34,8 @@ final class TrackerMapper
         $internal = $this->viewer->get()->isInternal();
 
         $places = [];
-        foreach ($workflow->places as $place) {
-            $places[] = new TrackerPlace($place->id, PlaceCatalog::key($workflow->id, $place->id), $place->label, $place->id === $workflow->initial, PlaceStatus::Closed === $place->status);
+        foreach ($definition->placesOf($workflow) as $place) {
+            $places[] = new TrackerPlace($place->id, $place->label, $place->id === $workflow->initial, PlaceStatus::Closed === $place->status);
         }
         $fields = [];
         foreach ($workflow->fields as $usage) {

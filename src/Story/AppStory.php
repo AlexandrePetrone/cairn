@@ -181,17 +181,17 @@ final class AppStory extends Story
             ['bug', 'Shipping costs are not shown for Corsica', 'in_progress', Criticality::Normal, 'nadia'],
             ['bug', 'Blurry product image on mobile', 'done', Criticality::Low, 'lea'],
             ['bug', 'Error 500 when validating an address without a number', 'done', Criticality::High, 'nadia'],
-            ['bug', 'The size filter ignores sold-out products', 'rejected', Criticality::Normal],
+            ['bug', 'The size filter ignores sold-out products', 'declined', Criticality::Normal],
             ['evolution', 'Add payment in three instalments', 'to_estimate', Criticality::Normal, 'thomas'],
             ['evolution', 'Monthly accounting export in FEC format', 'in_progress', Criticality::High, 'nadia'],
             ['evolution', 'Search by supplier reference', 'planned', Criticality::Normal, 'lea'],
             ['evolution', 'New home page banner', 'to_test', Criticality::Normal, 'lea'],
             ['evolution', 'Loyalty programme', 'new', Criticality::Low],
-            ['evolution', 'Customer reviews on product pages', 'delivered', Criticality::Normal, 'nadia'],
+            ['evolution', 'Customer reviews on product pages', 'done', Criticality::Normal, 'nadia'],
             ['evolution', 'Shared wish list', 'declined', Criticality::Low],
-            ['task', 'Upgrade Symfony to 8.1', 'doing', Criticality::Normal, 'nadia'],
+            ['task', 'Upgrade Symfony to 8.1', 'in_progress', Criticality::Normal, 'nadia'],
             ['task', 'Purge the Varnish cache after deployment', 'done', Criticality::Low, 'lea'],
-            ['task', 'Review the indexes of the orders table', 'todo', Criticality::Normal],
+            ['task', 'Review the indexes of the orders table', 'new', Criticality::Normal],
         ], 'releases' => [
             // [name, planned in days from now, description, status, indexes of its issues]
             ['2.4.0', -10, 'Display fixes and customer reviews.', ReleaseStatus::Delivered, [5, 6, 13]],
@@ -219,7 +219,7 @@ final class AppStory extends Story
             ['bug', 'The schedule does not show public holidays', 'qualified', Criticality::Normal, 'marc'],
             ['bug', 'Cannot log in from the Lyon store', 'in_progress', Criticality::Blocking, 'marc'],
             ['evolution', 'Staff directory', 'to_estimate', Criticality::Low],
-            ['evolution', 'Online leave requests', 'delivered', Criticality::Normal, 'marc'],
+            ['evolution', 'Online leave requests', 'done', Criticality::Normal, 'marc'],
             ['task', 'Renew the TLS certificate', 'done', Criticality::High, 'marc'],
         ]];
         yield ['project' => $this->project($vallier, 'Supplier portal', 'PRT', 'Upload and tracking of supplier invoices.', developers: ['lea', 'marc']), 'people' => ['manager' => 'thomas', 'developers' => ['lea', 'marc'], 'client' => 'ines'], 'issues' => [
@@ -229,7 +229,7 @@ final class AppStory extends Story
             ['evolution', 'Electronic signature of purchase orders', 'planned', Criticality::High, 'lea'],
             ['evolution', 'Payments dashboard', 'in_progress', Criticality::Normal, 'marc'],
             ['evolution', 'Automatic reminders for overdue invoices', 'new', Criticality::Normal],
-            ['task', 'Move the storage to S3', 'doing', Criticality::Normal, 'marc'],
+            ['task', 'Move the storage to S3', 'in_progress', Criticality::Normal, 'marc'],
         ]];
         yield ['project' => $this->project($vallier, 'Mobile app', 'APP', 'App of the field sales team.', developers: ['nadia']), 'people' => ['manager' => 'thomas', 'developers' => ['nadia'], 'client' => 'ines'], 'issues' => [
             ['bug', 'Crash on startup on Android 12', 'qualified', Criticality::Blocking, 'nadia'],
@@ -241,15 +241,15 @@ final class AppStory extends Story
             ['bug', 'Colour variants are duplicated on import', 'in_progress', Criticality::High, 'lea'],
             ['bug', 'Sorting by order date is reversed', 'to_test', Criticality::Normal, 'lea'],
             ['bug', 'Truncated label on the customer page', 'new', Criticality::Low],
-            ['evolution', 'Stock import from a file', 'delivered', Criticality::Normal, 'lea'],
+            ['evolution', 'Stock import from a file', 'done', Criticality::Normal, 'lea'],
             ['evolution', 'Price history', 'to_estimate', Criticality::Normal],
-            ['task', 'Delete the test accounts', 'todo', Criticality::Low, 'lea', true],
+            ['task', 'Delete the test accounts', 'new', Criticality::Low, 'lea', true],
         ], 'releases' => [
             ['1.3.0', 20, 'Catalogue import and order sorting.', ReleaseStatus::Open, [0, 1, 5]],
         ]];
         yield ['project' => $this->project($travelia, 'Booking site', 'RES', 'Holiday booking.', developers: ['marc']), 'people' => ['manager' => 'yann', 'developers' => ['marc'], 'client' => 'sophie'], 'archived' => true, 'issues' => [
             ['bug', 'Double booking possible on the last slot', 'done', Criticality::Blocking, 'marc'],
-            ['evolution', 'Payment in several currencies', 'delivered', Criticality::Normal, 'marc'],
+            ['evolution', 'Payment in several currencies', 'done', Criticality::Normal, 'marc'],
             ['evolution', 'Holiday comparison', 'declined', Criticality::Low],
         ]];
     }

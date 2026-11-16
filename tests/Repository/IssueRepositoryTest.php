@@ -49,7 +49,7 @@ final class IssueRepositoryTest extends KernelTestCase
         // An issue of another workflow on a place with the same id must not move.
         $otherTracker = new Tracker($this->fixtures->access->otherProject, 'Other', 'other_workflow');
         $this->entityManager->persist($otherTracker);
-        $other = new Issue($this->fixtures->access->otherProject, $otherTracker, DefinitionFactory::bugWorkflow()->place('new'), 1, $this->fixtures->client, 'Other', '');
+        $other = new Issue($this->fixtures->access->otherProject, $otherTracker, DefinitionFactory::place('new'), 1, $this->fixtures->client, 'Other', '');
         $other->moveTo(new PlaceDefinition(id: 'new', label: 'New', status: PlaceStatus::Open));
         $this->entityManager->persist($other);
         $this->entityManager->flush();

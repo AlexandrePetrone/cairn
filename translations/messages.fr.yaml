@@ -633,6 +633,8 @@ admin:
             permission: Droit
         workflows:
             intro: Chaque catégorie choisit un workflow à sa création et le garde. Ouvrez-en un pour lire ses étapes (les colonnes du kanban), les actions qui font passer d'une étape à l'autre avec les rôles qui peuvent les déclencher, et les champs qu'il demande. Un administrateur peut déclencher toutes les actions.
+            steps: Étapes
+            steps_intro: Toutes les étapes de l'instance, dans l'ordre des filtres et des regroupements des listes, et les workflows qui les utilisent. Une étape est la même partout où elle sert.
             place_count: '{1}1 étape|]1,Inf[ %count% étapes'
             action_count: '{0}aucune action|{1}1 action|]1,Inf[ %count% actions'
             tracker_count: '{0}aucune catégorie|{1}1 catégorie|]1,Inf[ %count% catégories'
@@ -1329,7 +1331,7 @@ field_type:
 migration_policy:
     strict:
         label: Stricte
-        help: si une étape disparaît sans successeur déclaré (migrate_from), la synchronisation est refusée et la configuration précédente reste en vigueur.
+        help: si une étape disparaît sans successeur déclaré (migrations), la synchronisation est refusée et la configuration précédente reste en vigueur.
     fallback:
         label: Repli
         help: les demandes posées sur une étape qui disparaît vont à l'étape de repli de leur workflow.

@@ -35,6 +35,6 @@ final class Columns
     {
         $tracker = $this->scope->tracker ?? throw new \LogicException('Only the list of a tracker has a kanban.');
 
-        return array_values($this->workflows->definition($tracker->getWorkflowId())->places);
+        return $this->workflows->places($tracker->getWorkflowId());
     }
 }

@@ -135,7 +135,7 @@ final class Selection
      */
     public function placesOf(Tracker $tracker): array
     {
-        return array_values($this->workflows->definition($tracker->getWorkflowId())->places);
+        return $this->workflows->places($tracker->getWorkflowId());
     }
 
     public function getTargetTracker(): ?Tracker
@@ -147,7 +147,7 @@ final class Selection
     {
         $tracker = $this->getTargetTracker();
 
-        return null === $tracker || null === $this->placeId ? null : $this->workflows->definition($tracker->getWorkflowId())->findPlace($this->placeId);
+        return null === $tracker || null === $this->placeId ? null : $this->workflows->findPlace($this->placeId);
     }
 
     /**
@@ -220,7 +220,7 @@ final class Selection
     public function move(#[LiveArg] ?int $tracker = null, #[LiveArg] ?string $place = null): void
     {
         $target = array_find($this->getTrackers(), static fn (Tracker $offered): bool => $offered->getId() === $tracker);
-        $known = null !== $target && null !== $place && null !== $this->workflows->definition($target->getWorkflowId())->findPlace($place);
+        $known = null !== $target && null !== $place && $this->workflows->definition($target->getWorkflowId())->hasPlace($place);
         $this->trackerId = $known ? $tracker : null;
         $this->placeId = $known ? $place : null;
     }

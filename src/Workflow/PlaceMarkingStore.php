@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Workflow;
 
-use App\Config\Definition\WorkflowDefinition;
+use App\Config\Definition\PlaceDefinition;
 use Symfony\Component\Workflow\Marking;
 use Symfony\Component\Workflow\MarkingStore\MarkingStoreInterface;
 
@@ -15,8 +15,11 @@ use Symfony\Component\Workflow\MarkingStore\MarkingStoreInterface;
  */
 final class PlaceMarkingStore implements MarkingStoreInterface
 {
+    /**
+     * @param array<string, PlaceDefinition> $places those of the instance, by id
+     */
     public function __construct(
-        private readonly WorkflowDefinition $definition,
+        private readonly array $places,
     ) {
     }
 
@@ -37,7 +40,7 @@ final class PlaceMarkingStore implements MarkingStoreInterface
             throw new \LogicException(\sprintf('A %s subject sits on exactly one place, %d given.', HasPlace::class, \count($places)));
         }
 
-        self::subject($subject)->moveTo($this->definition->place((string) $places[0]));
+        self::subject($subject)->moveTo($this->places[(string) $places[0]] ?? throw new \LogicException(\sprintf('Unknown place "%s".', $places[0])));
     }
 
     private static function subject(object $subject): HasPlace

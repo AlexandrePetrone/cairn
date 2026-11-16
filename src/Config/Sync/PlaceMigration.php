@@ -9,11 +9,11 @@ namespace App\Config\Sync;
  */
 final readonly class PlaceMigration implements \Stringable
 {
-    public const string BY_RULE = 'migrateFrom rule';
+    public const string BY_RULE = 'migration rule';
     public const string BY_FALLBACK = 'fallback place';
 
     /**
-     * @param string $reason BY_RULE when the target declares the removed place in `migrateFrom`, BY_FALLBACK otherwise
+     * @param string $reason BY_RULE when the workflow names the removed place in its `migrations`, BY_FALLBACK otherwise
      */
     public function __construct(
         public string $workflowId,

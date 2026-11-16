@@ -36,9 +36,9 @@ final class RuleSentence
     public function of(RuleDefinition $definition, ?string $tracker, RuleContext $context): string
     {
         $workflow = $context->workflow($tracker);
-        $places = $context->placeLabels($tracker);
+        $places = $context->places($tracker);
         $conditions = array_map(fn (RuleStep $condition): string => $this->condition($condition, $places), $definition->conditions);
-        $actions = array_map(fn (RuleStep $action): string => $this->action($action, $workflow, $context), $definition->actions);
+        $actions = array_map(fn (RuleStep $action): string => $this->action($action, $tracker, $context), $definition->actions);
 
         return $this->when($definition->trigger, $workflow, $places)
             .([] === $conditions ? '' : $this->join('if').implode($this->join('and'), $conditions))
@@ -49,7 +49,7 @@ final class RuleSentence
 
     /**
      * @param RuleStep<TriggerType> $trigger
-     * @param array<string, string> $places  place key => label
+     * @param array<string, string> $places  place id => label
      */
     private function when(RuleStep $trigger, ?WorkflowDefinition $workflow, array $places): string
     {
@@ -67,7 +67,7 @@ final class RuleSentence
 
     /**
      * @param RuleStep<ConditionType> $condition
-     * @param array<string, string>   $places    place key => label
+     * @param array<string, string>   $places    place id => label
      */
     private function condition(RuleStep $condition, array $places): string
     {
@@ -84,7 +84,7 @@ final class RuleSentence
     /**
      * @param RuleStep<ActionType> $action
      */
-    private function action(RuleStep $action, ?WorkflowDefinition $workflow, RuleContext $context): string
+    private function action(RuleStep $action, ?string $tracker, RuleContext $context): string
     {
         $key = 'automation.sentence.then.'.$action->type->value;
 
@@ -93,7 +93,7 @@ final class RuleSentence
                 ? $this->translator->trans('automation.sentence.then.unassign')
                 : $this->translator->trans($key, ['%target%' => $this->target($action->text('target'), $context)]),
             ActionType::Subscribe => $this->translator->trans($key, ['%target%' => $this->target($action->text('target'), $context)]),
-            ActionType::Move => $this->translator->trans($key, ['%place%' => $workflow?->findPlace($action->text('place'))->label ?? self::BLANK]),
+            ActionType::Move => $this->translator->trans($key, ['%place%' => $context->placesOf($tracker)[$action->text('place')] ?? self::BLANK]),
             ActionType::SetCriticality => $this->translator->trans($key, ['%criticality%' => $this->criticality($action->text('criticality'))]),
             ActionType::Comment => $this->translator->trans($action->flag('private') ? $key.'_private' : $key),
             ActionType::MakePrivate => $this->translator->trans($key),

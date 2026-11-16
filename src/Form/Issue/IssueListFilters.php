@@ -23,7 +23,7 @@ final readonly class IssueListFilters
     public const string VIEW_BOARD = 'board';
 
     /**
-     * @param list<string>      $places      place keys, `workflow:place` (PlaceCatalog::key())
+     * @param list<string>      $places      place ids
      * @param list<int>         $projects
      * @param list<int>         $trackers
      * @param list<int>         $assignees   user ids, 0 for unassigned
@@ -58,7 +58,7 @@ final readonly class IssueListFilters
         $sort = self::enum(IssueSort::class, $query['sort'] ?? null);
 
         return new self(
-            places: array_values(array_unique(array_filter(self::strings($query['places'] ?? null), static fn (string $place): bool => 1 === preg_match('/^[\w.-]+:[\w.-]+$/', $place)))),
+            places: array_values(array_unique(array_filter(self::strings($query['places'] ?? null), static fn (string $place): bool => 1 === preg_match('/^[a-z][a-z0-9_]*$/', $place)))),
             projects: QueryIds::of($query['projects'] ?? null),
             trackers: QueryIds::of($query['trackers'] ?? null),
             assignees: QueryIds::of($query['assignees'] ?? null, withZero: true),

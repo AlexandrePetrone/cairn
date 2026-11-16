@@ -165,7 +165,7 @@ final class RuleEngineTest extends KernelTestCase
         $bugs = $this->fixtures->bugs;
         $this->rule('1 raise', [TriggerType::IssueCreated, []], [], [[ActionType::SetCriticality, ['criticality' => 'high']]]);
         $this->rule('2 start', [TriggerType::CriticalityChanged, []], [[ConditionType::Criticality, ['is' => 'high']]], [[ActionType::Move, ['place' => 'in_progress']]], $bugs);
-        $this->rule('3 say', [TriggerType::PlaceChanged, ['place' => 'bug:in_progress']], [], [[ActionType::Comment, ['body' => 'We are on it.']]]);
+        $this->rule('3 say', [TriggerType::PlaceChanged, ['place' => 'in_progress']], [], [[ActionType::Comment, ['body' => 'We are on it.']]]);
         $fourth = $this->rule('4 hide', [TriggerType::CommentAdded, []], [], [[ActionType::MakePrivate, []]]);
 
         $issue = $this->fixtures->createIssue($this->fixtures->client);
@@ -182,7 +182,7 @@ final class RuleEngineTest extends KernelTestCase
 
     public function testAStepConditionHoldsOnAnyOfItsPlaces(): void
     {
-        $this->rule('Raise what moves', [TriggerType::CommentAdded, []], [[ConditionType::Place, ['is' => ['bug:in_progress', 'bug:to_test']]]], [[ActionType::SetCriticality, ['criticality' => 'high']]]);
+        $this->rule('Raise what moves', [TriggerType::CommentAdded, []], [[ConditionType::Place, ['is' => ['in_progress', 'to_test']]]], [[ActionType::SetCriticality, ['criticality' => 'high']]]);
         $issue = $this->fixtures->createIssue($this->fixtures->client);
         $developer = (int) $this->fixtures->developer->getId();
 

@@ -119,8 +119,8 @@ final class RuleExecutor
         $definition = $this->config->definition();
         $workflowId = $issue->getTracker()->getWorkflowId();
         $workflow = $definition->hasWorkflow($workflowId) ? $definition->workflow($workflowId) : null;
-        $from = $workflow?->findPlace($issue->getPlace());
-        $to = $workflow?->findPlace($action->text('place'));
+        $from = $definition->findPlace($issue->getPlace());
+        $to = true === $workflow?->hasPlace($action->text('place')) ? $definition->findPlace($action->text('place')) : null;
         if (null === $from || null === $to) {
             return StepResult::skipped(ActionType::Move, 'unknown_place', $action->text('place'));
         }

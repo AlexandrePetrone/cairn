@@ -47,6 +47,12 @@ final class DiffCalculator
         if (self::isItemList($before) && self::isItemList($after)) {
             $before = array_column($before, null, self::idKey($before));
             $after = array_column($after, null, self::idKey($after));
+            // The order of roles, places and fields means something: said when what stays changed places.
+            $kept = array_keys(array_intersect_key($before, $after));
+            $keptAfter = array_keys(array_intersect_key($after, $before));
+            if ($kept !== $keptAfter) {
+                $lines[] = \sprintf('~ %s: order %s → %s', $path, self::scalar($kept), self::scalar($keptAfter));
+            }
         } elseif (!self::isMap($before) || !self::isMap($after)) {
             $lines[] = \sprintf('~ %s: %s → %s', $path, self::scalar($before), self::scalar($after));
 

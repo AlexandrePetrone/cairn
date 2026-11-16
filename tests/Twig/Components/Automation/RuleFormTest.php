@@ -85,21 +85,22 @@ final class RuleFormTest extends KernelTestCase
         self::assertStringNotContainsString('automation_rule[actions][1]', $render);
     }
 
-    public function testAStepIsChosenAmongSeveralEachNamedWithItsWorkflow(): void
+    public function testAStepIsChosenAmongSeveralWhateverTheWorkflow(): void
     {
         $component = $this->component();
         $render = (string) $component->call('addCondition')->set('automation_rule.conditions.0.type', 'place')->render();
-        self::assertMatchesRegularExpression('~<legend[^>]*>Bug</legend>.*value="bug:in_progress".*<legend[^>]*>Feature</legend>.*value="evolution:in_progress"~s', $render, 'two workflows have an "In progress": each under its workflow');
+        self::assertSame(1, substr_count($render, 'value="in_progress"'), 'three workflows have "In progress": it is offered once');
+        self::assertStringNotContainsString('<legend', $render, 'no workflow is named');
 
-        $component->set('automation_rule.conditions.0.params.is', ['bug:needs_info', 'evolution:to_approve']);
-        self::assertStringContainsString('if it is at the step “Bug › Info requested” or “Feature › Estimate to approve”', (string) $component->render());
+        $component->set('automation_rule.conditions.0.params.is', ['needs_info', 'to_approve']);
+        self::assertStringContainsString('if it is at the step “Info requested” or “Estimate to approve”', (string) $component->render());
 
         $render = (string) $component->set('automation_rule.tracker', (string) $this->scene->bugs->getId())->render();
-        self::assertStringNotContainsString('value="evolution:', $render, 'limited to a tracker, only its places are offered');
+        self::assertStringNotContainsString('value="to_approve"', $render, 'limited to a tracker, only its places are offered');
         self::assertStringContainsString('if it is at the step “Info requested”:', $render, 'and the place of the other workflow is gone');
 
         $component->set('automation_rule.name', 'Waiting')->set('automation_rule.actions.0.params.target', 'author')->call('save');
-        self::assertSame(['bug:needs_info'], $this->rules()[0]->getDefinition()->conditions[0]->params['is']);
+        self::assertSame(['needs_info'], $this->rules()[0]->getDefinition()->conditions[0]->params['is']);
     }
 
     public function testACriticalityIsChosenAmongSeveral(): void

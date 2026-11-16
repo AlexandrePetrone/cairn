@@ -203,7 +203,7 @@ final class RankIssueHandlerTest extends KernelTestCase
         $issues = self::queryBus()->ask(new SearchIssues(
             viewer: $this->fixtures->manager,
             projectId: (int) $tracker->getProject()->getId(),
-            place: [$tracker->getWorkflowId().':'.$place],
+            place: [$place],
             tracker: [(int) $tracker->getId()],
             sort: IssueSort::Rank,
             order: \SortDirection::Descending,

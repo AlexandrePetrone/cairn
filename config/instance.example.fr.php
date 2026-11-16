@@ -14,7 +14,8 @@ declare(strict_types=1);
  *
  * Every `id` is a stable technical identifier stored in database; labels
  * can change freely. Declaration order matters for roles (broadest first)
- * and for places (kanban columns).
+ * and for places (the filters and groups of the lists; the places of a
+ * workflow are its kanban columns).
  */
 
 use App\Config\Definition\FieldDefinition;
@@ -38,8 +39,8 @@ $managers = ['project_manager'];
 
 return new InstanceDefinition(
     // What the sync does with issues sitting on a place that disappears
-    // without a `migrateFrom` rule: refuse (Strict) or move them to the
-    // workflow's fallback place (Fallback).
+    // without a rule in the `migrations` of its workflow: refuse (Strict) or
+    // move them to the workflow's fallback place (Fallback).
     migrationPolicy: MigrationPolicy::Strict,
 
     // Broadest role first: a direct grant on a project may only widen a role
@@ -136,24 +137,38 @@ return new InstanceDefinition(
         new LinkTypeDefinition(id: 'blocks', label: 'Bloque', inverseLabel: 'Bloqué par'),
     ],
 
+    // Every step an issue may stand on, declared once: each workflow names
+    // the ones it uses, so a step is the same in every category and the issue
+    // lists filter and group by it across them. This order is the order of
+    // those filters and groups; the columns of a kanban follow the workflow.
+    places: [
+        new PlaceDefinition(id: 'new', label: 'Nouvelle', status: PlaceStatus::Open),
+        // Waiting on the client: internal users cannot qualify without more details.
+        new PlaceDefinition(id: 'needs_info', label: 'Info demandée', status: PlaceStatus::Waiting),
+        new PlaceDefinition(id: 'qualified', label: 'Qualifiée', status: PlaceStatus::Open),
+        new PlaceDefinition(id: 'to_estimate', label: 'À chiffrer', status: PlaceStatus::Open),
+        // Waiting on the client: the estimate was sent.
+        new PlaceDefinition(id: 'to_approve', label: 'Chiffrage à valider', status: PlaceStatus::Waiting),
+        new PlaceDefinition(id: 'planned', label: 'Planifiée', status: PlaceStatus::InProgress),
+        new PlaceDefinition(id: 'in_progress', label: 'En cours', status: PlaceStatus::InProgress),
+        // Waiting on a third party or a prerequisite: internal users hold the issue.
+        new PlaceDefinition(id: 'blocked', label: 'Bloquée', status: PlaceStatus::Waiting),
+        new PlaceDefinition(id: 'to_test', label: 'À recetter', status: PlaceStatus::Waiting),
+        new PlaceDefinition(id: 'to_release', label: 'À mettre en production', status: PlaceStatus::InProgress),
+        // One way to close whatever the workflow: lists filter and group by step, across categories.
+        new PlaceDefinition(id: 'done', label: 'Terminée', status: PlaceStatus::Closed),
+        new PlaceDefinition(id: 'declined', label: 'Refusée', status: PlaceStatus::Closed),
+    ],
+
+    // The places of a workflow are ids of the list above, in the order of
+    // its kanban columns. `migrations: ['old' => 'new']` says where the issues
+    // of a place the workflow no longer has go on sync.
     workflows: [
         new WorkflowDefinition(
             id: 'bug',
             label: 'Anomalie',
             initial: 'new',
-            places: [
-                new PlaceDefinition(id: 'new', label: 'Nouvelle', status: PlaceStatus::Open),
-                // Waiting on the client: internal users cannot qualify without more details.
-                new PlaceDefinition(id: 'needs_info', label: 'Info demandée', status: PlaceStatus::Waiting),
-                new PlaceDefinition(id: 'qualified', label: 'Qualifiée', status: PlaceStatus::Open),
-                new PlaceDefinition(id: 'in_progress', label: 'En cours', status: PlaceStatus::InProgress),
-                // Waiting on a third party or a prerequisite: internal users hold the issue.
-                new PlaceDefinition(id: 'blocked', label: 'Bloquée', status: PlaceStatus::Waiting),
-                new PlaceDefinition(id: 'to_test', label: 'À recetter', status: PlaceStatus::Waiting),
-                new PlaceDefinition(id: 'to_release', label: 'À mettre en production', status: PlaceStatus::InProgress),
-                new PlaceDefinition(id: 'done', label: 'Fermée', status: PlaceStatus::Closed),
-                new PlaceDefinition(id: 'rejected', label: 'Rejetée', status: PlaceStatus::Closed),
-            ],
+            places: ['new', 'needs_info', 'qualified', 'in_progress', 'blocked', 'to_test', 'to_release', 'done', 'declined'],
             transitions: [
                 new TransitionDefinition(
                     id: 'ask_info',
@@ -167,7 +182,7 @@ return new InstanceDefinition(
                 ),
                 new TransitionDefinition(id: 'provide_info', label: 'Répondre', from: ['needs_info'], to: 'new', roles: $internalAndClient, style: TransitionStyle::Primary, description: 'Les précisions sont apportées : la demande revient à l\'équipe.'),
                 new TransitionDefinition(id: 'qualify', label: 'Qualifier', from: ['new'], to: 'qualified', roles: $internal, description: 'L\'anomalie est comprise et reproduite : elle entre dans la file de l\'équipe.'),
-                new TransitionDefinition(id: 'reject', label: 'Rejeter', from: ['new', 'needs_info', 'qualified'], to: 'rejected', roles: $internal, style: TransitionStyle::Danger, description: 'Ce n\'est pas une anomalie, ou elle ne sera pas corrigée : la demande est fermée.'),
+                new TransitionDefinition(id: 'reject', label: 'Rejeter', from: ['new', 'needs_info', 'qualified'], to: 'declined', roles: $internal, style: TransitionStyle::Danger, description: 'Ce n\'est pas une anomalie, ou elle ne sera pas corrigée : la demande est fermée.'),
                 new TransitionDefinition(id: 'start', label: 'Démarrer', from: ['new', 'qualified'], to: 'in_progress', roles: $internal, description: 'La correction commence.'),
                 new TransitionDefinition(
                     id: 'block',
@@ -195,7 +210,7 @@ return new InstanceDefinition(
                 ),
                 new TransitionDefinition(id: 'release', label: 'Mettre en production', from: ['to_release'], to: 'done', roles: $internal, style: TransitionStyle::Primary, description: 'La correction est en production : la demande est fermée. Elle pourra être rouverte si le problème revient.'),
                 new TransitionDefinition(id: 'reopen', label: 'Rouvrir', from: ['done'], to: 'in_progress', roles: $clientFacing, description: 'Le problème est revenu : la demande repart en développement.'),
-                new TransitionDefinition(id: 'reopen_rejected', label: 'Rouvrir', from: ['rejected'], to: 'new', roles: $internal, description: 'La demande est réexaminée depuis le début.'),
+                new TransitionDefinition(id: 'reopen_rejected', label: 'Rouvrir', from: ['declined'], to: 'new', roles: $internal, description: 'La demande est réexaminée depuis le début.'),
             ],
             fields: [
                 new FieldUsage('environment', required: true),
@@ -209,20 +224,7 @@ return new InstanceDefinition(
             id: 'evolution',
             label: 'Évolution',
             initial: 'new',
-            places: [
-                new PlaceDefinition(id: 'new', label: 'Nouvelle', status: PlaceStatus::Open),
-                new PlaceDefinition(id: 'to_estimate', label: 'À chiffrer', status: PlaceStatus::Open),
-                // Waiting on the client: the estimate was sent.
-                new PlaceDefinition(id: 'to_approve', label: 'Chiffrage à valider', status: PlaceStatus::Waiting),
-                new PlaceDefinition(id: 'planned', label: 'Planifiée', status: PlaceStatus::InProgress),
-                new PlaceDefinition(id: 'in_progress', label: 'En cours', status: PlaceStatus::InProgress),
-                // Waiting on a third party or a prerequisite: internal users hold the issue.
-                new PlaceDefinition(id: 'blocked', label: 'Bloquée', status: PlaceStatus::Waiting),
-                new PlaceDefinition(id: 'to_test', label: 'À recetter', status: PlaceStatus::Waiting),
-                new PlaceDefinition(id: 'to_release', label: 'À mettre en production', status: PlaceStatus::InProgress),
-                new PlaceDefinition(id: 'delivered', label: 'Livrée', status: PlaceStatus::Closed),
-                new PlaceDefinition(id: 'declined', label: 'Abandonnée', status: PlaceStatus::Closed),
-            ],
+            places: ['new', 'to_estimate', 'to_approve', 'planned', 'in_progress', 'blocked', 'to_test', 'to_release', 'done', 'declined'],
             transitions: [
                 new TransitionDefinition(id: 'estimate', label: 'À chiffrer', from: ['new'], to: 'to_estimate', roles: $internal, description: 'La demande est comprise : elle passe au chiffrage.'),
                 new TransitionDefinition(id: 'decline', label: 'Abandonner', from: ['new', 'to_estimate'], to: 'declined', roles: $internal, style: TransitionStyle::Danger, description: 'L\'évolution ne sera pas réalisée : la demande est fermée.'),
@@ -266,8 +268,8 @@ return new InstanceDefinition(
                     commentPrompt: 'Expliquez ce qui ne correspond pas à la demande : un commentaire est obligatoire pour refuser.',
                     description: 'L\'évolution ne correspond pas à la demande : elle repart en développement, avec le commentaire qui dit pourquoi.',
                 ),
-                new TransitionDefinition(id: 'release', label: 'Mettre en production', from: ['to_release'], to: 'delivered', roles: $internal, style: TransitionStyle::Primary, description: 'L\'évolution est en production : la demande est fermée.'),
-                new TransitionDefinition(id: 'reopen', label: 'Rouvrir', from: ['delivered'], to: 'in_progress', roles: $internal, description: 'L\'évolution livrée demande une reprise.'),
+                new TransitionDefinition(id: 'release', label: 'Mettre en production', from: ['to_release'], to: 'done', roles: $internal, style: TransitionStyle::Primary, description: 'L\'évolution est en production : la demande est fermée.'),
+                new TransitionDefinition(id: 'reopen', label: 'Rouvrir', from: ['done'], to: 'in_progress', roles: $internal, description: 'L\'évolution livrée demande une reprise.'),
                 new TransitionDefinition(id: 'reopen_declined', label: 'Rouvrir', from: ['declined'], to: 'new', roles: $internal, description: 'La demande est réexaminée depuis le début.'),
             ],
             fields: [
@@ -281,36 +283,28 @@ return new InstanceDefinition(
         new WorkflowDefinition(
             id: 'task',
             label: 'Tâche interne',
-            initial: 'todo',
-            places: [
-                new PlaceDefinition(id: 'todo', label: 'À faire', status: PlaceStatus::Open),
-                new PlaceDefinition(id: 'doing', label: 'En cours', status: PlaceStatus::InProgress),
-                new PlaceDefinition(id: 'blocked', label: 'Bloquée', status: PlaceStatus::Waiting),
-                new PlaceDefinition(id: 'to_test', label: 'À recetter', status: PlaceStatus::Waiting),
-                new PlaceDefinition(id: 'to_release', label: 'À mettre en production', status: PlaceStatus::InProgress),
-                new PlaceDefinition(id: 'done', label: 'Faite', status: PlaceStatus::Closed),
-                new PlaceDefinition(id: 'cancelled', label: 'Annulée', status: PlaceStatus::Closed),
-            ],
+            initial: 'new',
+            places: ['new', 'in_progress', 'blocked', 'to_test', 'to_release', 'done', 'declined'],
             transitions: [
-                new TransitionDefinition(id: 'start', label: 'Démarrer', from: ['todo'], to: 'doing', roles: $internal, description: 'La tâche est prise en charge.'),
+                new TransitionDefinition(id: 'start', label: 'Démarrer', from: ['new'], to: 'in_progress', roles: $internal, description: 'La tâche est prise en charge.'),
                 new TransitionDefinition(
                     id: 'block',
                     label: 'Bloquer',
-                    from: ['doing'],
+                    from: ['in_progress'],
                     to: 'blocked',
                     roles: $internal,
                     requiresComment: true,
                     commentPrompt: 'Indiquez ce qui bloque et qui doit le lever.',
                     description: 'La tâche ne peut pas avancer : elle dépend d\'un tiers ou d\'un prérequis.',
                 ),
-                new TransitionDefinition(id: 'resume', label: 'Reprendre', from: ['blocked'], to: 'doing', roles: $internal, description: 'Le blocage est levé : la tâche reprend.'),
-                new TransitionDefinition(id: 'deliver', label: 'Livrer en recette', from: ['doing'], to: 'to_test', roles: $internal, description: 'La tâche est en préproduction, prête à être vérifiée par l\'équipe.'),
+                new TransitionDefinition(id: 'resume', label: 'Reprendre', from: ['blocked'], to: 'in_progress', roles: $internal, description: 'Le blocage est levé : la tâche reprend.'),
+                new TransitionDefinition(id: 'deliver', label: 'Livrer en recette', from: ['in_progress'], to: 'to_test', roles: $internal, description: 'La tâche est en préproduction, prête à être vérifiée par l\'équipe.'),
                 new TransitionDefinition(id: 'accept', label: 'Valider', from: ['to_test'], to: 'to_release', roles: $internal, style: TransitionStyle::Primary, description: 'La recette interne est bonne : la tâche attend sa mise en production.'),
                 new TransitionDefinition(
                     id: 'refuse',
                     label: 'Refuser',
                     from: ['to_test'],
-                    to: 'doing',
+                    to: 'in_progress',
                     roles: $internal,
                     style: TransitionStyle::Danger,
                     requiresComment: true,
@@ -318,9 +312,9 @@ return new InstanceDefinition(
                     description: 'La recette interne échoue : la tâche repart en cours.',
                 ),
                 new TransitionDefinition(id: 'release', label: 'Mettre en production', from: ['to_release'], to: 'done', roles: $internal, style: TransitionStyle::Primary, description: 'La tâche est en production : elle est faite.'),
-                new TransitionDefinition(id: 'cancel', label: 'Annuler', from: ['todo', 'doing', 'blocked'], to: 'cancelled', roles: $internal, style: TransitionStyle::Danger, description: 'La tâche ne sera pas réalisée.'),
-                new TransitionDefinition(id: 'reopen', label: 'Rouvrir', from: ['done'], to: 'todo', roles: $internal, description: 'La tâche repart à faire.'),
-                new TransitionDefinition(id: 'reopen_cancelled', label: 'Rouvrir', from: ['cancelled'], to: 'todo', roles: $internal, description: 'La tâche est de nouveau à faire.'),
+                new TransitionDefinition(id: 'cancel', label: 'Annuler', from: ['new', 'in_progress', 'blocked'], to: 'declined', roles: $internal, style: TransitionStyle::Danger, description: 'La tâche ne sera pas réalisée.'),
+                new TransitionDefinition(id: 'reopen', label: 'Rouvrir', from: ['done'], to: 'new', roles: $internal, description: 'La tâche repart à faire.'),
+                new TransitionDefinition(id: 'reopen_cancelled', label: 'Rouvrir', from: ['declined'], to: 'new', roles: $internal, description: 'La tâche est de nouveau à faire.'),
             ],
             fields: [
                 new FieldUsage('due_date'),

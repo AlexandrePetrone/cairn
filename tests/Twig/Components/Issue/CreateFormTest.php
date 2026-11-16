@@ -148,7 +148,7 @@ final class CreateFormTest extends KernelTestCase
         $issue = $this->issue('MD-SPT-11');
         self::assertSame('lea.fontaine@cairn.test', $issue->getAssignee()?->getEmail());
         self::assertTrue($issue->isPrivate(), 'private through its tracker');
-        self::assertSame('todo', $issue->getPlace());
+        self::assertSame('new', $issue->getPlace());
     }
 
     public function testATrackerTheViewerMayNotUseIsIgnored(): void

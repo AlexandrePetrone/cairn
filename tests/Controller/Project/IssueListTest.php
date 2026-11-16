@@ -55,7 +55,7 @@ final class IssueListTest extends WebTestCase
     {
         $this->signInAs('nadia.benali@cairn.test');
 
-        $this->client->request('GET', '/MD/SPT/issues?places[]=bug:done');
+        $this->client->request('GET', '/MD/SPT/issues?places[]=done');
         self::assertSelectorTextContains('tbody', 'Blurry product image on mobile');
         self::assertSelectorTextNotContains('tbody', 'Endless spinner on the cart page');
 
@@ -137,30 +137,36 @@ final class IssueListTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/MD/SPT/issues');
         $places = $crawler->filter('input[name="places[]"]')->extract(['value']);
-        self::assertContains('bug:in_progress', $places);
-        self::assertContains('task:doing', $places, 'the same label in another workflow is another place');
-        self::assertContains('evolution:to_estimate', $places);
-        self::assertSelectorTextContains('[role="search"]', 'Internal task', 'the places of a list mixing workflows come under their workflow');
+        self::assertSame(
+            ['new', 'needs_info', 'qualified', 'to_estimate', 'to_approve', 'planned', 'in_progress', 'blocked', 'to_test', 'to_release', 'done', 'declined'],
+            $places,
+            'a list mixing workflows offers each place once, in the order of the instance',
+        );
 
         $crawler = $this->client->request('GET', '/MD/SPT/issues/tracker/'.$this->scene->bugs->getId());
-        self::assertSame(['bug:new', 'bug:needs_info', 'bug:qualified', 'bug:in_progress', 'bug:blocked', 'bug:to_test', 'bug:to_release', 'bug:done', 'bug:rejected'], $crawler->filter('input[name="places[]"]')->extract(['value']), 'the bug workflow, in its order');
+        self::assertSame(['new', 'needs_info', 'qualified', 'in_progress', 'blocked', 'to_test', 'to_release', 'done', 'declined'], $crawler->filter('input[name="places[]"]')->extract(['value']), 'the places of the bug workflow only');
 
-        $this->client->request('GET', '/MD/SPT/issues?places[]=evolution:to_estimate&places[]=unknown:place');
+        $this->client->request('GET', '/MD/SPT/issues?places[]=to_estimate&places[]=nowhere');
         self::assertSelectorTextContains('tbody', 'Monthly accounting export in FEC format');
-        self::assertSelectorTextNotContains('tbody', 'Endless spinner on the cart page', 'a place of no workflow of the list is ignored, the others filter');
+        self::assertSelectorTextNotContains('tbody', 'Endless spinner on the cart page', 'a place the instance does not have is ignored, the others filter');
     }
 
-    public function testAGroupPerPlaceOfEachWorkflowWithItsTotal(): void
+    public function testAGroupPerPlaceWhateverTheWorkflowWithItsTotal(): void
     {
         $this->signInAs('nadia.benali@cairn.test');
 
-        $crawler = $this->client->request('GET', '/MD/SPT/issues?places[]=bug:in_progress&places[]=task:doing&group=place');
+        $crawler = $this->client->request('GET', '/MD/SPT/issues?places[]=in_progress&group=place');
 
-        self::assertCount(2, $crawler->filter('th[scope="rowgroup"]'), 'one group per workflow');
-        self::assertSelectorTextContains('tbody', 'Bug › In progress');
-        self::assertSelectorTextContains('tbody', 'Internal task › In progress');
-        self::assertCount(2, $crawler->filter('th[scope="rowgroup"] button[aria-expanded="true"][data-action="fold#toggle"]'), 'groups fold in the browser');
-        self::assertSame(['bug:in_progress', 'task:doing'], $crawler->filter('tr[data-fold-group]')->each(static fn ($row): string => (string) $row->attr('data-fold-group')), 'each row says its group');
+        self::assertCount(1, $crawler->filter('th[scope="rowgroup"]'), 'the bugs and the tasks in progress are one group');
+        self::assertSelectorTextContains('th[scope="rowgroup"]', 'In progress');
+        self::assertSelectorTextNotContains('th[scope="rowgroup"]', '›');
+        self::assertSelectorTextContains('tbody', 'Upgrade Symfony to 8.1', 'a task');
+        self::assertSelectorTextContains('tbody', 'Shipping costs are not shown for Corsica', 'and a bug');
+        self::assertCount(1, $crawler->filter('th[scope="rowgroup"] button[aria-expanded="true"][data-action="fold#toggle"]'), 'groups fold in the browser');
+        self::assertSame(['in_progress', 'in_progress'], $crawler->filter('tr[data-fold-group]')->each(static fn ($row): string => (string) $row->attr('data-fold-group')), 'each row says its group');
+
+        $crawler = $this->client->request('GET', '/MD/SPT/issues?places[]=in_progress&places[]=to_estimate&group=place');
+        self::assertSame(['to_estimate', 'in_progress'], $crawler->filter('th[scope="rowgroup"] button[data-fold-group-param]')->each(static fn ($button): string => (string) $button->attr('data-fold-group-param')), 'groups come in the order of the instance');
 
         $crawler = $this->client->request('GET', '/MD/SPT/issues?group=project');
         self::assertCount(0, $crawler->filter('th[scope="rowgroup"]'), 'no grouping by project inside a project');
@@ -192,11 +198,11 @@ final class IssueListTest extends WebTestCase
     {
         $this->signInAs('nadia.benali@cairn.test');
 
-        $crawler = $this->client->request('GET', '/MD/SPT/issues?places[]=bug:new&q=cart');
+        $crawler = $this->client->request('GET', '/MD/SPT/issues?places[]=new&q=cart');
 
         $form = $crawler->filter('form#issue-selection[method="get"][action="/MD/SPT/issues/selection"]');
         self::assertCount(1, $form, 'the selection page of the project');
-        self::assertSame('/MD/SPT/issues?places%5B%5D=bug%3Anew&q=cart', $form->filter('input[name="from"]')->attr('value'), 'back to the list as it was filtered');
+        self::assertSame('/MD/SPT/issues?places%5B%5D=new&q=cart', $form->filter('input[name="from"]')->attr('value'), 'back to the list as it was filtered');
         self::assertSame([(string) $this->scene->issue('MD-SPT-1')->getId()], $crawler->filter('input[form="issue-selection"][name="ids[]"]')->extract(['value']), 'each row is a box of that form');
 
         $crawler = $this->client->request('GET', '/issues/assigned');

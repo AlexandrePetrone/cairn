@@ -80,9 +80,9 @@ final class IssueHandlerSupport
             $this->claimAttachments($actor, $issue, $attachments, $body, $written);
         }
 
-        $from = $definition->place($issue->getPlace());
+        $from = $this->workflows->place($issue->getPlace());
         $workflow->apply($issue, $transition->id, ['actor' => $actor]);
-        $to = $definition->place($issue->getPlace());
+        $to = $this->workflows->place($issue->getPlace());
         $this->arrive($issue);
 
         $this->record(new IssueTransitioned($issue, $actor, [JournalEntry::transitioned($issue, $actor, $transition->label, $from, $to, $written)], $written, $transition->id));

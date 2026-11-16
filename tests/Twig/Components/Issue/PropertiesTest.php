@@ -83,7 +83,7 @@ final class PropertiesTest extends KernelTestCase
 
         $component->emit('issue:changed');
 
-        self::assertStringContainsString('Closed', (string) $component->render());
+        self::assertStringContainsString('To release', (string) $component->render());
     }
 
     public function testTheReleaseShowsOnceTheProjectHasReleases(): void

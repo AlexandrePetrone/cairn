@@ -115,14 +115,16 @@ final class ShopScene
             permissions: $example->permissions,
             fields: [...array_values($example->fields), new FieldDefinition(id: 'estimate', label: 'Estimate (days)', type: FieldType::Number, internalOnly: true)],
             links: array_values($example->links),
+            places: array_values($example->places),
             workflows: array_map(static fn (WorkflowDefinition $workflow) => new WorkflowDefinition(
                 id: $workflow->id,
                 label: $workflow->label,
                 initial: $workflow->initial,
-                places: array_values($workflow->places),
+                places: $workflow->places,
                 transitions: array_values($workflow->transitions),
                 fields: $fields[$workflow->id] ?? array_values($workflow->fields),
                 fallbackPlace: $workflow->fallbackPlace,
+                migrations: $workflow->migrations,
             ), array_values($example->workflows)),
         );
     }
@@ -290,7 +292,7 @@ final class ShopScene
             [$this->bugs, 'Shipping costs are not shown for Corsica', 'in_progress', Criticality::Normal, 'claire.martin@maison-dupont.test', 'nadia.benali@cairn.test'],
             [$this->bugs, 'The CSV export of orders is empty', 'to_test', Criticality::High, 'claire.martin@maison-dupont.test', 'nadia.benali@cairn.test'],
             [$this->bugs, 'Blurry product image on mobile', 'done', Criticality::Low, 'claire.martin@maison-dupont.test', 'lea.fontaine@cairn.test'],
-            [$this->tasks, 'Upgrade Symfony to 8.1', 'doing', Criticality::Normal, 'thomas.girard@cairn.test', 'nadia.benali@cairn.test'],
+            [$this->tasks, 'Upgrade Symfony to 8.1', 'in_progress', Criticality::Normal, 'thomas.girard@cairn.test', 'nadia.benali@cairn.test'],
             [$this->evolutions, 'Add payment in three instalments', 'new', Criticality::Normal, 'claire.martin@maison-dupont.test', null],
             [$this->evolutions, 'Monthly accounting export in FEC format', 'to_estimate', Criticality::High, 'thomas.girard@cairn.test', null],
             [$this->tasks, 'Purge the Varnish cache after deployment', 'done', Criticality::Low, 'thomas.girard@cairn.test', 'lea.fontaine@cairn.test'],

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\Query\Issue;
 
+use App\Config\ConfigRegistry;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
 use App\Entity\User;
@@ -15,7 +16,6 @@ use App\Repository\IssueOrder;
 use App\Repository\Pagination;
 use App\Repository\SearchText;
 use App\Security\Visibility;
-use App\Workflow\PlaceCatalog;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -36,7 +36,7 @@ final class SearchIssuesHandler
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly Visibility $visibility,
-        private readonly PlaceCatalog $places,
+        private readonly ConfigRegistry $config,
     ) {
     }
 
@@ -52,7 +52,7 @@ final class SearchIssuesHandler
             ->getQuery()
             ->getSingleScalarResult();
 
-        $placeRanks = IssueGrouping::Place === $query->group || IssueSort::Place === $query->sort ? $this->places->ranks() : [];
+        $placeRanks = IssueGrouping::Place === $query->group || IssueSort::Place === $query->sort ? $this->placeRanks() : [];
         $issues = EntityList::of(
             IssueOrder::apply($this->filtered($viewer, $query)->addSelect('t', 'p', 'w', 'a', 'r'), $query->group, $query->sort, $query->order, $placeRanks)
                 ->setFirstResult(($query->page - 1) * $query->perPage)
@@ -62,6 +62,19 @@ final class SearchIssuesHandler
         );
 
         return new Pagination($issues, $total, $query->page, $query->perPage, null === $query->group ? [] : $this->groupTotals($viewer, $query, $query->group));
+    }
+
+    /**
+     * @return array<string, int> place id => rank from 1, in the order of the instance
+     */
+    private function placeRanks(): array
+    {
+        $ranks = [];
+        foreach (array_keys($this->config->definition()->places) as $index => $placeId) {
+            $ranks[$placeId] = $index + 1;
+        }
+
+        return $ranks;
     }
 
     /**
@@ -115,7 +128,7 @@ final class SearchIssuesHandler
             $queryBuilder->andWhere('i.status IN (:status)')->setParameter('status', $query->status);
         }
         if ([] !== $query->place) {
-            $queryBuilder->andWhere(IssueOrder::PLACE_KEY.' IN (:place)')->setParameter('place', $query->place);
+            $queryBuilder->andWhere('i.place IN (:place)')->setParameter('place', $query->place);
         }
         // Closed issues stay out unless asked for: by the flag, by status, or by choosing places.
         if (!$query->closed && [] === $query->place && !\in_array(PlaceStatus::Closed, $query->status, true)) {

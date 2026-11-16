@@ -10,6 +10,7 @@ use ApiPlatform\State\Pagination\TraversablePaginator;
 use ApiPlatform\State\ProviderInterface;
 use App\Api\Mapper\IssueMapper;
 use App\Api\Resource\IssueResource;
+use App\Config\ConfigRegistry;
 use App\Entity\Enum\Criticality;
 use App\Message\Query\Issue\IssueSort;
 use App\Message\Query\Issue\SearchIssues;
@@ -38,6 +39,7 @@ final class IssueCollectionProvider implements ProviderInterface
         private readonly Lookup $lookup,
         private readonly IssueMapper $issues,
         private readonly Pagination $pagination,
+        private readonly ConfigRegistry $config,
     ) {
     }
 
@@ -67,7 +69,7 @@ final class IssueCollectionProvider implements ProviderInterface
             viewer: $viewer,
             projectId: $projectId,
             authorId: $filters->has('author') ? self::id($filters->getString('author'), 'author', [self::ME => (int) $viewer->getId()]) : null,
-            place: self::list($filters, 'place'),
+            place: array_map(fn (string $value): string => $this->config->definition()->hasPlace($value) ? $value : throw new BadRequestHttpException('place: unknown step.'), self::list($filters, 'place')),
             tracker: array_map(static fn (string $value): int => self::id($value, 'tracker'), self::list($filters, 'tracker')),
             assignee: array_map(static fn (string $value): int => self::id($value, 'assignee', [self::ME => (int) $viewer->getId(), self::NONE => 0]), self::list($filters, 'assignee')),
             criticality: array_map(static fn (string $value): Criticality => Criticality::tryFrom($value) ?? throw new BadRequestHttpException('criticality: unknown level.'), self::list($filters, 'criticality')),

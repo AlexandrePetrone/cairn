@@ -93,7 +93,7 @@ final class ImportRunTest extends KernelTestCase
         self::assertSame('tracker:'.$this->scene->evolutions->getId(), $mapping->trackers['feature']['target']);
         self::assertSame('new:bug', $mapping->trackers['support']['target']);
         self::assertSame(['new' => 'new', 'in_progress' => 'in_progress'], $mapping->places['bug']['bugs'], 'by label; the closed status has no issue of these trackers');
-        self::assertSame(['shipped' => 'delivered'], $mapping->places['evolution']['features'], 'a closed status goes to the first closed place');
+        self::assertSame(['shipped' => 'done'], $mapping->places['evolution']['features'], 'a closed status goes to the first closed place');
         self::assertSame(['environment' => 'field:environment', 'browser' => 'field:browser', 'due_date' => 'field:due_date', 'module' => 'append'], $mapping->fields);
         self::assertSame(['low' => 'low', 'normal' => 'normal', 'high' => 'high', 'urgent' => 'blocking'], $mapping->priorities);
         self::assertSame(['relates' => 'related', 'blocks' => 'blocks'], $mapping->links);
@@ -155,7 +155,7 @@ final class ImportRunTest extends KernelTestCase
         self::assertTrue($journal[0]->isPrivate());
 
         $second = $this->issue('MD-SPT-12');
-        self::assertSame('delivered', $second->getPlace());
+        self::assertSame('done', $second->getPlace());
         self::assertSame('2024-02-14T12:00:00+00:00', $second->getClosedAt()?->format(\DATE_ATOM));
         self::assertSame(Criticality::Low, $second->getCriticality());
         self::assertSame($carol->getId(), $second->getAuthor()->getId());
@@ -256,7 +256,7 @@ final class ImportRunTest extends KernelTestCase
         });
         // The bugs go to a workflow that does not use the field their environment is sent to.
         $trackers = ['bug' => ['target' => 'new:task', 'name' => 'Old bugs']] + ImportMapping::fromArray($import->getMapping())->trackers;
-        $this->commands->dispatch(new ConfigureImport((int) $import->getId(), trackers: $trackers, places: ['task' => ['bugs' => ['new' => 'todo']]] + ImportMapping::fromArray($import->getMapping())->places));
+        $this->commands->dispatch(new ConfigureImport((int) $import->getId(), trackers: $trackers, places: ['task' => ['bugs' => ['new' => 'new']]] + ImportMapping::fromArray($import->getMapping())->places));
         $this->launch($import);
 
         $import = $this->reload($import);
@@ -412,7 +412,7 @@ final class ImportRunTest extends KernelTestCase
      */
     public static function provideRefusedChoices(): iterable
     {
-        yield 'a place of another workflow' => [['places' => ['bug' => ['bugs' => ['new' => 'delivered']]]]];
+        yield 'a place of another workflow' => [['places' => ['bug' => ['bugs' => ['new' => 'planned']]]]];
         yield 'a workflow that does not exist' => [['trackers' => ['support' => ['target' => 'new:nothing', 'name' => 'Support']]]];
     }
 

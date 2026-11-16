@@ -21,7 +21,7 @@ final class IssueApiTest extends ApiTestCase
         $all = $this->api('GET', '/api/issues?project=MD-SPT&closed=1', $secret);
         self::assertContains('MD-SPT-5', array_column($all['member'], 'key'));
 
-        $new = $this->api('GET', '/api/issues?project=MD-SPT&place[]=bug:new&sort=key', $secret);
+        $new = $this->api('GET', '/api/issues?project=MD-SPT&place[]=new&tracker[]='.$this->scene->bugs->getId().'&sort=key', $secret);
         self::assertSame(['MD-SPT-1', 'MD-SPT-2'], array_column($new['member'], 'key'));
         self::assertSame(['@type' => 'PlaceRef', 'id' => 'new', 'label' => 'New'], $new['member'][0]['place']);
         self::assertArrayNotHasKey('transitions', $new['member'][0], 'A list does not carry the detail.');
@@ -35,7 +35,7 @@ final class IssueApiTest extends ApiTestCase
     {
         $secret = $this->tokenFor(self::DEVELOPER)->secret;
 
-        foreach (['project=XX-YY', 'criticality[]=urgent', 'sort=color', 'sort=rank', 'tracker[]=bug', 'assignee[]=nobody'] as $filter) {
+        foreach (['project=XX-YY', 'criticality[]=urgent', 'sort=color', 'sort=rank', 'tracker[]=bug', 'assignee[]=nobody', 'place[]=nowhere', 'place[]=bug:new'] as $filter) {
             $this->api('GET', '/api/issues?'.$filter, $secret);
             // 422 when API Platform refuses the value against the schema of the parameter, 400 when the provider does.
             self::assertContains($this->client->getResponse()->getStatusCode(), [400, 422], $filter);

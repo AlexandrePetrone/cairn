@@ -23,6 +23,7 @@ final readonly class SyncPlan
      * @param list<string>          $warnings
      * @param list<string>          $usedLinkTypes removed link types that links still use
      * @param list<string>          $usedWorkflows removed workflows that trackers, of projects or of project templates, still use
+     * @param list<StatusChange>    $statusChanges issues whose place stays and changes status
      */
     public function __construct(
         public InstanceDefinition $definition,
@@ -36,6 +37,7 @@ final readonly class SyncPlan
         public array $warnings,
         public array $usedLinkTypes = [],
         public array $usedWorkflows = [],
+        public array $statusChanges = [],
     ) {
     }
 
@@ -63,6 +65,7 @@ final readonly class SyncPlan
         return implode("\n", [
             ...$this->diff,
             ...array_map(static fn (PlaceMigration $m) => "> $m", $this->migrations),
+            ...array_map(static fn (StatusChange $c) => "> $c", $this->statusChanges),
         ]);
     }
 }

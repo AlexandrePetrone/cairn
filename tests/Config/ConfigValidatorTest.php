@@ -7,11 +7,9 @@ namespace App\Tests\Config;
 use App\Config\ConfigValidator;
 use App\Config\Definition\FieldUsage;
 use App\Config\Definition\InstanceDefinition;
-use App\Config\Definition\PlaceDefinition;
 use App\Config\Definition\TransitionDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use App\Config\MigrationPolicy;
-use App\Entity\Enum\PlaceStatus;
 use App\Tests\Config\Fixture\DefinitionFactory;
 use PHPUnit\Framework\TestCase;
 
@@ -61,7 +59,7 @@ final class ConfigValidatorTest extends TestCase
             id: 'w',
             label: 'W',
             initial: 'nowhere',
-            places: [new PlaceDefinition(id: 'a', label: 'A', status: PlaceStatus::Open)],
+            places: ['a'],
             transitions: [],
             fallbackPlace: 'elsewhere',
         );
@@ -78,7 +76,7 @@ final class ConfigValidatorTest extends TestCase
             id: 'w',
             label: 'W',
             initial: 'a',
-            places: [new PlaceDefinition(id: 'a', label: 'A', status: PlaceStatus::Open)],
+            places: ['a'],
             transitions: [],
         );
         $definition = DefinitionFactory::definition(workflows: [$workflow], migrationPolicy: MigrationPolicy::Fallback);
@@ -92,7 +90,7 @@ final class ConfigValidatorTest extends TestCase
             id: 'w',
             label: 'W',
             initial: 'a',
-            places: [new PlaceDefinition(id: 'a', label: 'A', status: PlaceStatus::Open)],
+            places: ['a'],
             transitions: [new TransitionDefinition(id: 't', label: 'T', from: ['a', 'x'], to: 'y', roles: ['developer', 'ghost'])],
         );
 
@@ -109,10 +107,7 @@ final class ConfigValidatorTest extends TestCase
             id: 'w',
             label: 'W',
             initial: 'a',
-            places: [
-                new PlaceDefinition(id: 'a', label: 'A', status: PlaceStatus::Open),
-                new PlaceDefinition(id: 'b', label: 'B', status: PlaceStatus::Closed),
-            ],
+            places: ['a', 'b'],
             transitions: [
                 new TransitionDefinition(id: 'close', label: 'Close', from: ['a'], to: 'b', roles: ['developer']),
                 new TransitionDefinition(id: 'reject', label: 'Reject', from: ['a'], to: 'b', roles: ['developer']),
@@ -125,22 +120,30 @@ final class ConfigValidatorTest extends TestCase
         );
     }
 
-    public function testMigrateFromCannotNameAnExistingPlaceNorTheSamePlaceTwice(): void
+    public function testAWorkflowNamesPlacesOfTheInstance(): void
+    {
+        $workflow = new WorkflowDefinition(id: 'w', label: 'W', initial: 'new', places: ['new', 'ghost'], transitions: []);
+
+        self::assertSame(
+            ['workflows.w.places: unknown place "ghost".'],
+            $this->messages(DefinitionFactory::definition(workflows: [$workflow], places: DefinitionFactory::places())),
+        );
+    }
+
+    public function testAMigrationLeadsFromARemovedPlaceToAPlaceOfTheWorkflow(): void
     {
         $workflow = new WorkflowDefinition(
             id: 'w',
             label: 'W',
             initial: 'a',
-            places: [
-                new PlaceDefinition(id: 'a', label: 'A', status: PlaceStatus::Open, migrateFrom: ['old', 'b']),
-                new PlaceDefinition(id: 'b', label: 'B', status: PlaceStatus::Closed, migrateFrom: ['old']),
-            ],
+            places: ['a', 'b'],
             transitions: [],
+            migrations: ['old' => 'a', 'b' => 'a', 'gone' => 'nowhere'],
         );
 
         self::assertSame([
-            'workflows.w.places.a.migrateFrom: "b" is still a place of this workflow.',
-            'workflows.w.places.b.migrateFrom: "old" is already migrated to "a".',
+            'workflows.w.migrations.b: is still a place of this workflow.',
+            'workflows.w.migrations.gone: "nowhere" is not a place of this workflow.',
         ], $this->messages(DefinitionFactory::definition(workflows: [$workflow])));
     }
 
@@ -150,7 +153,7 @@ final class ConfigValidatorTest extends TestCase
             id: 'w',
             label: 'W',
             initial: 'a',
-            places: [new PlaceDefinition(id: 'a', label: 'A', status: PlaceStatus::Open)],
+            places: ['a'],
             transitions: [],
             fields: [new FieldUsage('url'), new FieldUsage('ghost')],
         );

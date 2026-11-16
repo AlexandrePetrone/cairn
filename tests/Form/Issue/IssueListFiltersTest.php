@@ -28,7 +28,7 @@ final class IssueListFiltersTest extends TestCase
     public function testItReadsWhatAFormSends(): void
     {
         $filters = IssueListFilters::fromQuery([
-            'places' => ['bug:done', 'task:doing'],
+            'places' => ['done', 'in_progress'],
             'assignees' => ['0', '12'],
             'criticality' => ['high', 'blocking'],
             'q' => ' cart ',
@@ -40,7 +40,7 @@ final class IssueListFiltersTest extends TestCase
             'view' => 'board',
         ]);
 
-        self::assertSame(['bug:done', 'task:doing'], $filters->places);
+        self::assertSame(['done', 'in_progress'], $filters->places);
         self::assertSame([0, 12], $filters->assignees);
         self::assertSame([Criticality::High, Criticality::Blocking], $filters->criticality);
         self::assertSame('cart', $filters->q);
@@ -56,7 +56,7 @@ final class IssueListFiltersTest extends TestCase
     public function testValuesItDoesNotKnowAreDroppedNeverAnError(): void
     {
         $filters = IssueListFilters::fromQuery([
-            'places' => ['bug:done', 'done', 'not a place', ['nested']],
+            'places' => ['done', 'done', 'bug:done', 'not a place', ['nested']],
             'projects' => 'not a list',
             'trackers' => ['4', '4', '0', '-2', 'x'],
             'assignees' => ['0', 'x'],
@@ -70,7 +70,7 @@ final class IssueListFiltersTest extends TestCase
             'view' => 'calendar',
         ]);
 
-        self::assertSame(['bug:done'], $filters->places, 'a place is named with its workflow');
+        self::assertSame(['done'], $filters->places, 'a place is named by its id, once');
         self::assertSame([], $filters->projects);
         self::assertSame([4], $filters->trackers, 'only "none" is zero, where a filter has such a choice');
         self::assertSame([0], $filters->assignees);

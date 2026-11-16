@@ -27,7 +27,7 @@ final class WorkflowProvider
 
     public function get(string $workflowId): WorkflowInterface
     {
-        return $this->workflows[$workflowId] ??= $this->factory->create($this->definition($workflowId));
+        return $this->workflows[$workflowId] ??= $this->factory->create($this->definition($workflowId), $this->registry->definition()->places);
     }
 
     public function definition(string $workflowId): WorkflowDefinition
@@ -36,11 +36,31 @@ final class WorkflowProvider
     }
 
     /**
+     * The places of a workflow, in its order.
+     *
+     * @return list<PlaceDefinition>
+     */
+    public function places(string $workflowId): array
+    {
+        return $this->registry->definition()->placesOf($this->definition($workflowId));
+    }
+
+    public function place(string $placeId): PlaceDefinition
+    {
+        return $this->registry->definition()->place($placeId);
+    }
+
+    public function findPlace(string $placeId): ?PlaceDefinition
+    {
+        return $this->registry->definition()->findPlace($placeId);
+    }
+
+    /**
      * The place an issue sits on, null when the configuration no longer
      * has it.
      */
     public function placeOf(Issue $issue): ?PlaceDefinition
     {
-        return $this->definition($issue->getTracker()->getWorkflowId())->findPlace($issue->getPlace());
+        return $this->findPlace($issue->getPlace());
     }
 }

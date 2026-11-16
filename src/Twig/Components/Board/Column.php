@@ -76,7 +76,7 @@ final class Column
 
     public function getPlace(): PlaceDefinition
     {
-        return $this->workflows->definition($this->tracker->getWorkflowId())->place($this->placeId);
+        return $this->workflows->place($this->placeId);
     }
 
     /**

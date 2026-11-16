@@ -25,15 +25,9 @@
     {% endif %}
     <div role="search" class="flex flex-wrap items-center gap-2 py-3">
         {% if scope.offers('place') %}
-            {% set filtersMixesWorkflows = filtersChoices.mixesWorkflows(scope) %}
             <twig:Ui:Filter:Menu :label="'filter.place'|trans" :count="filters.places|length" class="group-data-[view=board]/filters:hidden">
-                {% set filtersWorkflowLabel = null %}
                 {% for filtersPlace in filtersChoices.places(filtersScope) %}
-                    {% if filtersMixesWorkflows and filtersPlace.workflowLabel != filtersWorkflowLabel %}
-                        <p class="px-2.5 pt-1.5 pb-1 text-[11px] font-medium uppercase tracking-wider text-faint {{ loop.first ? '' : 'mt-1 border-t border-line-subtle' }}">{{ filtersPlace.workflowLabel }}</p>
-                    {% endif %}
-                    {% set filtersWorkflowLabel = filtersPlace.workflowLabel %}
-                    <twig:Ui:Filter:Option name="places[]" :value="filtersPlace.key" :checked="filtersPlace.key in filters.places">
+                    <twig:Ui:Filter:Option name="places[]" :value="filtersPlace.id" :checked="filtersPlace.id in filters.places">
                         <twig:Ui:Status:Dot :status="filtersPlace.status.value" />
                         <span class="truncate">{{ filtersPlace.label }}</span>
                     </twig:Ui:Filter:Option>

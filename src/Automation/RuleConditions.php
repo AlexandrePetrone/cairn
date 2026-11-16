@@ -10,7 +10,6 @@ use App\Automation\Definition\RuleStep;
 use App\Entity\Issue;
 use App\Entity\User;
 use App\Repository\CodeReferenceRepository;
-use App\Workflow\PlaceCatalog;
 
 /**
  * Whether the conditions of a rule hold for an issue, as it stands when
@@ -55,7 +54,7 @@ final class RuleConditions
                 ConditionType::EXTERNAL_OR_NOBODY => true !== $assignee?->isInternal(),
                 default => false,
             },
-            ConditionType::Place => \in_array(PlaceCatalog::key($issue->getTracker()->getWorkflowId(), $issue->getPlace()), $condition->texts('is'), true),
+            ConditionType::Place => \in_array($issue->getPlace(), $condition->texts('is'), true),
             ConditionType::Criticality => \in_array($issue->getCriticality()->value, $condition->texts('is'), true),
             // an issue being created has no id, and no code yet
             ConditionType::Code => (null !== $issue->getId() && $this->codeReferences->hasAny($issue)) === (ConditionType::SOME === $expected),

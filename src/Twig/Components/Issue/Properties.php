@@ -119,7 +119,7 @@ final class Properties
      */
     public function placesOf(?Tracker $tracker = null): array
     {
-        return array_values($this->workflows->definition(($tracker ?? $this->issue->getTracker())->getWorkflowId())->places);
+        return $this->workflows->places(($tracker ?? $this->issue->getTracker())->getWorkflowId());
     }
 
     /**

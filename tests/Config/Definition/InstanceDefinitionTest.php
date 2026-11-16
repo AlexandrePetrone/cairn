@@ -23,7 +23,9 @@ final class InstanceDefinitionTest extends TestCase
         self::assertSame(['project_manager', 'developer', 'client'], $definition->roleIds());
         self::assertSame(0, $definition->roleRank('project_manager'));
         self::assertSame(2, $definition->roleRank('client'));
-        self::assertSame(['new', 'in_progress', 'to_test', 'done'], $definition->workflow('bug')->placeIds());
+        self::assertSame(['new', 'in_progress', 'to_test', 'done'], $definition->workflow('bug')->places);
+        self::assertSame(['new', 'in_progress', 'to_test', 'done'], array_keys($definition->places));
+        self::assertSame('Closed', $definition->place('done')->label);
         self::assertSame(['project_manager'], $definition->rolesGranted(Permission::IssueSetPrivate));
         self::assertSame(['project_manager', 'developer'], $definition->rolesGranted(Permission::IssueAssign));
     }
@@ -61,7 +63,7 @@ final class InstanceDefinitionTest extends TestCase
         self::assertSame(['deliver'], array_map(static fn ($t) => $t->id, $workflow->transitionsFrom('in_progress')));
         self::assertSame(['environment', 'url'], array_keys($workflow->fields));
         self::assertTrue($workflow->fields['environment']->required);
-        self::assertSame('in_progress', DefinitionFactory::bugWorkflow(withToTest: false, migrateInProgressFrom: ['to_test'])->migrationTargetFor('to_test'));
+        self::assertSame('in_progress', DefinitionFactory::bugWorkflow(withToTest: false, migrations: ['to_test' => 'in_progress'])->migrationTargetFor('to_test'));
         self::assertNull($workflow->migrationTargetFor('to_test'));
     }
 
@@ -82,9 +84,22 @@ final class InstanceDefinitionTest extends TestCase
 
     public function testUnknownPlaceLookupThrows(): void
     {
-        $workflow = new WorkflowDefinition(id: 'w', label: 'W', initial: 'a', places: [new PlaceDefinition(id: 'a', label: 'A', status: PlaceStatus::Open)], transitions: []);
+        $definition = DefinitionFactory::definition();
 
+        self::assertNull($definition->findPlace('b'));
         $this->expectException(InvalidDefinitionException::class);
-        $workflow->place('b');
+        $definition->place('b');
+    }
+
+    public function testThePlacesOfAWorkflowFollowItsOrderThoseOfAListTheInstance(): void
+    {
+        $reversed = new WorkflowDefinition(id: 'task', label: 'Task', initial: 'done', places: ['done', 'new'], transitions: []);
+        $definition = DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(withToTest: false), $reversed], places: DefinitionFactory::places());
+
+        $ids = static fn (array $places): array => array_map(static fn (PlaceDefinition $place): string => $place->id, $places);
+
+        self::assertSame(['done', 'new'], $ids($definition->placesOf($reversed)));
+        self::assertSame(['new', 'done'], $ids($definition->placesIn(['task', 'unknown'])));
+        self::assertSame(['new', 'in_progress', 'done'], $ids($definition->placesIn(['task', 'bug'])), 'a place two workflows share is offered once');
     }
 }

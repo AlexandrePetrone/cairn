@@ -45,7 +45,7 @@ final class ProjectApiTest extends ApiTestCase
         self::assertSame([$this->scene->bugs->getId(), $this->scene->evolutions->getId(), $this->scene->tasks->getId()], array_column($trackers['member'], 'id'));
         $bug = $trackers['member'][0];
         self::assertSame(['@type' => 'PlaceRef', 'id' => 'bug', 'label' => 'Bug'], $bug['workflow']);
-        self::assertSame(['@type' => 'TrackerPlace', 'id' => 'new', 'key' => 'bug:new', 'label' => 'New', 'initial' => true, 'closed' => false], $bug['places'][0]);
+        self::assertSame(['@type' => 'TrackerPlace', 'id' => 'new', 'label' => 'New', 'initial' => true, 'closed' => false], $bug['places'][0]);
         $fields = array_column($bug['fields'], null, 'id');
         self::assertTrue($fields['environment']['required']);
         self::assertSame(['prod', 'preprod'], array_keys($fields['environment']['options']));

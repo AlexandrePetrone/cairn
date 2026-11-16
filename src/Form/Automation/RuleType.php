@@ -131,9 +131,8 @@ final class RuleType extends AbstractType
         $workflow = $context->workflow($tracker);
         $choices = match ($parameter->kind) {
             ParameterKind::Choice => array_combine($parameter->options, array_map(fn (string $option): string => $this->translator->trans('automation.option.'.$owner->value.'.'.$option), $parameter->options)),
-            // One place reads on its own, so it says whose it is; several are boxes under their workflow.
-            ParameterKind::Place => $parameter->multiple ? $context->places($tracker) : $context->placeLabels($tracker),
-            ParameterKind::ScopedPlace => array_map(static fn ($place): string => $place->label, $workflow->places ?? []),
+            ParameterKind::Place => $context->places($tracker),
+            ParameterKind::ScopedPlace => $context->placesOf($tracker),
             ParameterKind::Transition => array_map(static fn ($transition): string => $transition->label, $workflow->transitions ?? []),
             ParameterKind::Criticality => array_combine(
                 array_map(static fn (Criticality $criticality): string => $criticality->value, Criticality::cases()),

@@ -6,6 +6,7 @@ namespace App\Tests\Config\Sync;
 
 use App\Config\ConfigException;
 use App\Config\ConfigRegistry;
+use App\Config\Definition\InstanceDefinition;
 use App\Config\Definition\LinkTypeDefinition;
 use App\Config\Definition\PlaceDefinition;
 use App\Config\Definition\RoleDefinition;
@@ -15,6 +16,7 @@ use App\Config\Sync\ConfigSynchronizer;
 use App\Config\Sync\PlaceMigration;
 use App\Entity\ConfigSnapshot;
 use App\Entity\Enum\PlaceStatus;
+use App\Entity\Issue;
 use App\Entity\IssueLink;
 use App\Entity\ProjectTemplate;
 use App\Entity\TemplateTracker;
@@ -107,7 +109,7 @@ final class ConfigSynchronizerTest extends KernelTestCase
 
     public function testInvalidDefinitionCannotBeApplied(): void
     {
-        $workflow = new WorkflowDefinition(id: 'w', label: 'W', initial: 'nowhere', places: [new PlaceDefinition(id: 'a', label: 'A', status: PlaceStatus::Open)], transitions: []);
+        $workflow = new WorkflowDefinition(id: 'w', label: 'W', initial: 'nowhere', places: ['a'], transitions: []);
         $plan = $this->synchronizer->plan(DefinitionFactory::definition(workflows: [$workflow]));
 
         self::assertFalse($plan->isValid());
@@ -172,7 +174,7 @@ final class ConfigSynchronizerTest extends KernelTestCase
         $this->issuesOn('to_test', 3);
         $this->issuesOn('in_progress', 1);
 
-        $next = DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(withToTest: false, migrateInProgressFrom: ['to_test'])]);
+        $next = DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(withToTest: false, migrations: ['to_test' => 'in_progress'])]);
         $plan = $this->synchronizer->plan($next);
 
         self::assertSame([], $plan->orphans);
@@ -186,6 +188,114 @@ final class ConfigSynchronizerTest extends KernelTestCase
         self::assertSame(4, $this->countOn('bug', 'in_progress'));
         self::assertStringContainsString('3 issue(s) from "to_test" to "in_progress"', $snapshot->getSummary());
         self::assertEquals($next, $this->registry->definition());
+    }
+
+    public function testAPlaceLeavesOneWorkflowAndStaysInAnother(): void
+    {
+        $bug = DefinitionFactory::bugWorkflow();
+        $defect = new WorkflowDefinition(id: 'defect', label: 'Defect', initial: $bug->initial, places: $bug->places, transitions: array_values($bug->transitions), fallbackPlace: $bug->fallbackPlace);
+        $this->synchronizer->apply($this->synchronizer->plan(DefinitionFactory::definition(workflows: [$bug, $defect])));
+        $this->issuesOn('to_test', 3);
+        $defects = TrackerFactory::createOne(['workflowId' => 'defect']);
+        $this->builder->issue($defects, $this->author, 'A defect to test', 'to_test');
+
+        $plan = $this->synchronizer->plan(DefinitionFactory::definition(workflows: [
+            DefinitionFactory::bugWorkflow(withToTest: false, migrations: ['to_test' => 'in_progress']),
+            $defect,
+        ]));
+
+        self::assertSame([], $plan->orphans);
+        self::assertSame([], $plan->warnings, 'the place is still one of the instance');
+        self::assertSame(['bug'], array_map(static fn (PlaceMigration $migration): string => $migration->workflowId, $plan->migrations));
+
+        $this->synchronizer->apply($plan);
+
+        self::assertSame(3, $this->countOn('bug', 'in_progress'));
+        self::assertSame(0, $this->countOn('bug', 'to_test'));
+        self::assertSame(1, $this->countOn('defect', 'to_test'), 'the issues of the workflow that keeps the place stay on it');
+    }
+
+    public function testAPlaceNoWorkflowUsesIsAWarning(): void
+    {
+        $plan = $this->synchronizer->plan(DefinitionFactory::definition(
+            workflows: [DefinitionFactory::bugWorkflow(withToTest: false)],
+            places: DefinitionFactory::places(),
+        ));
+
+        self::assertSame(['places.to_test: no workflow uses it.'], $plan->warnings);
+        self::assertTrue($plan->isValid());
+    }
+
+    public function testIssuesFollowTheStatusOfAPlaceThatChangesIt(): void
+    {
+        $this->synchronizer->apply($this->synchronizer->plan(DefinitionFactory::definition()));
+        $this->issuesOn('to_test', 2);
+        $this->issuesOn('done', 1);
+        $this->issuesOn('new', 1);
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+
+        $with = static fn (PlaceStatus $toTest, PlaceStatus $done): InstanceDefinition => DefinitionFactory::definition(places: [
+            DefinitionFactory::place('new'),
+            DefinitionFactory::place('in_progress'),
+            new PlaceDefinition(id: 'to_test', label: 'To test', status: $toTest),
+            new PlaceDefinition(id: 'done', label: 'Closed', status: $done),
+        ]);
+        $statuses = static function () use ($entityManager): array {
+            $entityManager->clear();
+            $statuses = [];
+            foreach ($entityManager->getRepository(Issue::class)->findBy([], ['id' => 'ASC']) as $issue) {
+                $statuses[$issue->getTitle()] = [$issue->getStatus(), null !== $issue->getClosedAt()];
+            }
+
+            return $statuses;
+        };
+
+        $plan = $this->synchronizer->plan($with(PlaceStatus::Closed, PlaceStatus::InProgress));
+
+        self::assertSame(
+            ['places.done: 1 issue(s) from status "closed" to "in_progress"', 'places.to_test: 2 issue(s) from status "waiting" to "closed"'],
+            array_map(strval(...), $plan->statusChanges),
+        );
+
+        $snapshot = $this->synchronizer->apply($plan);
+
+        self::assertSame([
+            'to_test 1' => [PlaceStatus::Closed, true],
+            'to_test 2' => [PlaceStatus::Closed, true],
+            'done 1' => [PlaceStatus::InProgress, false],
+            'new 1' => [PlaceStatus::Open, false],
+        ], $statuses(), 'entering the closed status closes, leaving it reopens, the others are left alone');
+        self::assertStringContainsString('places.to_test: 2 issue(s) from status "waiting" to "closed"', $snapshot->getSummary());
+        self::assertSame([], $this->synchronizer->plan($with(PlaceStatus::Closed, PlaceStatus::InProgress))->statusChanges, 'nothing left to bring in step');
+    }
+
+    public function testIssuesAMigrationMovesAreNotCountedAmongThoseThatChangeStatus(): void
+    {
+        $bug = DefinitionFactory::bugWorkflow();
+        $defect = new WorkflowDefinition(id: 'defect', label: 'Defect', initial: $bug->initial, places: $bug->places, transitions: array_values($bug->transitions), fallbackPlace: $bug->fallbackPlace);
+        $this->synchronizer->apply($this->synchronizer->plan(DefinitionFactory::definition(workflows: [$bug, $defect])));
+        $this->issuesOn('to_test', 3);
+        $this->builder->issue(TrackerFactory::createOne(['workflowId' => 'defect']), $this->author, 'A defect to test', 'to_test');
+
+        $plan = $this->synchronizer->plan(DefinitionFactory::definition(
+            workflows: [DefinitionFactory::bugWorkflow(withToTest: false, migrations: ['to_test' => 'in_progress']), $defect],
+            places: [
+                DefinitionFactory::place('new'),
+                DefinitionFactory::place('in_progress'),
+                new PlaceDefinition(id: 'to_test', label: 'To test', status: PlaceStatus::InProgress),
+                DefinitionFactory::place('done'),
+            ],
+        ));
+
+        self::assertSame(['places.to_test: 1 issue(s) from status "waiting" to "in_progress"'], array_map(strval(...), $plan->statusChanges));
+
+        $this->synchronizer->apply($plan);
+
+        self::assertSame(
+            ['in_progress:in_progress:3', 'to_test:in_progress:1'],
+            array_map(static fn (array $row): string => $row['placeId'].':'.$row['status']->value.':'.$row['issues'], $this->issues->countByPlaceStatus()),
+            'every issue carries the status of its place',
+        );
     }
 
     public function testFallbackPolicyMovesOrphansToTheFallbackPlace(): void
@@ -212,9 +322,9 @@ final class ConfigSynchronizerTest extends KernelTestCase
     {
         $this->synchronizer->apply($this->synchronizer->plan(DefinitionFactory::definition()));
 
-        $plan = $this->synchronizer->plan(DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(migrateInProgressFrom: ['ancient'])]));
+        $plan = $this->synchronizer->plan(DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(migrations: ['ancient' => 'in_progress'])]));
 
-        self::assertSame(['workflows.bug.places.in_progress.migrateFrom: no issue sits on "ancient", the rule can be removed.'], $plan->warnings);
+        self::assertSame(['workflows.bug.migrations.ancient: no issue sits on "ancient", the rule can be removed.'], $plan->warnings);
     }
 
     public function testIssuesOnAPlaceOfAnUnknownWorkflowAreOrphans(): void
@@ -224,7 +334,7 @@ final class ConfigSynchronizerTest extends KernelTestCase
         $this->issuesOn('done', 1);
 
         $bug = DefinitionFactory::bugWorkflow();
-        $defect = new WorkflowDefinition(id: 'defect', label: 'Defect', initial: $bug->initial, places: array_values($bug->places), transitions: array_values($bug->transitions), fields: array_values($bug->fields), fallbackPlace: $bug->fallbackPlace);
+        $defect = new WorkflowDefinition(id: 'defect', label: 'Defect', initial: $bug->initial, places: $bug->places, transitions: array_values($bug->transitions), fields: array_values($bug->fields), fallbackPlace: $bug->fallbackPlace);
         $plan = $this->synchronizer->plan(DefinitionFactory::definition(workflows: [$defect]));
 
         self::assertTrue($plan->isBlocked());
@@ -237,7 +347,7 @@ final class ConfigSynchronizerTest extends KernelTestCase
     {
         $this->synchronizer->apply($this->synchronizer->plan(DefinitionFactory::definition()));
         $bug = DefinitionFactory::bugWorkflow();
-        $defect = new WorkflowDefinition(id: 'defect', label: 'Defect', initial: $bug->initial, places: array_values($bug->places), transitions: array_values($bug->transitions), fields: array_values($bug->fields), fallbackPlace: $bug->fallbackPlace);
+        $defect = new WorkflowDefinition(id: 'defect', label: 'Defect', initial: $bug->initial, places: $bug->places, transitions: array_values($bug->transitions), fields: array_values($bug->fields), fallbackPlace: $bug->fallbackPlace);
 
         $plan = $this->synchronizer->plan(DefinitionFactory::definition(workflows: [$defect]));
 
@@ -277,7 +387,7 @@ final class ConfigSynchronizerTest extends KernelTestCase
         self::assertStringContainsString('cannot be read by this version', $blocked->diff[0]);
         self::assertSame([], $blocked->warnings);
 
-        $next = DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(withToTest: false, migrateInProgressFrom: ['to_test'])]);
+        $next = DefinitionFactory::definition(workflows: [DefinitionFactory::bugWorkflow(withToTest: false, migrations: ['to_test' => 'in_progress'])]);
         $plan = $this->synchronizer->plan($next);
         self::assertFalse($plan->isBlocked());
         self::assertTrue($plan->hasChanges());
@@ -378,7 +488,7 @@ final class ConfigSynchronizerTest extends KernelTestCase
         $entityManager->persist(new TemplateTracker($template, 'Bug', 'bug'));
         $entityManager->flush();
         $bug = DefinitionFactory::bugWorkflow();
-        $defect = new WorkflowDefinition(id: 'defect', label: 'Defect', initial: $bug->initial, places: array_values($bug->places), transitions: array_values($bug->transitions), fields: array_values($bug->fields), fallbackPlace: $bug->fallbackPlace);
+        $defect = new WorkflowDefinition(id: 'defect', label: 'Defect', initial: $bug->initial, places: $bug->places, transitions: array_values($bug->transitions), fields: array_values($bug->fields), fallbackPlace: $bug->fallbackPlace);
 
         $plan = $this->synchronizer->plan(DefinitionFactory::definition(workflows: [$defect]));
 

@@ -114,7 +114,7 @@ final class VolumeStory extends Story
         }
 
         // Every place of the workflow in turn, so that each one has issues.
-        $places = $workflow->placeIds();
+        $places = $workflow->places;
         foreach ($workflow->pathTo($places[intdiv($index, 3) % \count($places)]) as $step => $transition) {
             $clock->modify(\sprintf('+%d hours', 1 + ($index + $step * 5) % 20));
             if ($clock->now() > $now) {

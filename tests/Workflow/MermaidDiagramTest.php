@@ -22,12 +22,7 @@ final class MermaidDiagramTest extends TestCase
             id: 'bug',
             label: 'Bug',
             initial: 'new',
-            places: [
-                new PlaceDefinition(id: 'new', label: 'New', status: PlaceStatus::Open),
-                new PlaceDefinition(id: 'in_progress', label: 'In "progress" #1', status: PlaceStatus::InProgress),
-                new PlaceDefinition(id: 'to_test', label: 'To test', status: PlaceStatus::Waiting),
-                new PlaceDefinition(id: 'rejected', label: 'Rejected', status: PlaceStatus::Closed),
-            ],
+            places: ['new', 'in_progress', 'to_test', 'rejected'],
             transitions: [
                 new TransitionDefinition(id: 'start', label: 'Start', from: ['new'], to: 'in_progress', roles: ['developer']),
                 new TransitionDefinition(id: 'deliver', label: 'Deliver', from: ['in_progress'], to: 'to_test', roles: ['developer']),
@@ -35,7 +30,12 @@ final class MermaidDiagramTest extends TestCase
                 new TransitionDefinition(id: 'reject', label: 'Reject', from: ['new', 'in_progress'], to: 'rejected', roles: ['developer']),
             ],
         );
-        $this->source = (new MermaidDiagram())->render($this->workflow);
+        $this->source = (new MermaidDiagram())->render($this->workflow, [
+            new PlaceDefinition(id: 'new', label: 'New', status: PlaceStatus::Open),
+            new PlaceDefinition(id: 'in_progress', label: 'In "progress" #1', status: PlaceStatus::InProgress),
+            new PlaceDefinition(id: 'to_test', label: 'To test', status: PlaceStatus::Waiting),
+            new PlaceDefinition(id: 'rejected', label: 'Rejected', status: PlaceStatus::Closed),
+        ]);
     }
 
     public function testEachPlaceIsANodeColouredByItsStatus(): void

@@ -157,11 +157,11 @@ final readonly class ImportMapping
                 foreach ($statuses as $statusId) {
                     $status = $manifest->workflows[$source]['statuses'][$statusId];
                     $chosen = $this->places[$workflowId][$source][$statusId] ?? '';
+                    $offered = $definition->placesOf($workflow);
                     $places[$workflowId][$source][$statusId] = $workflow->hasPlace($chosen) ? $chosen : (
-                        array_find($workflow->places, static fn ($place): bool => self::same($place->label, $status['label']) || self::same($place->id, (string) $statusId))
-                        ?? ($status['closed'] ? array_find($workflow->places, static fn ($place): bool => PlaceStatus::Closed === $place->status) : null)
-                        ?? $workflow->place($workflow->initial)
-                    )->id;
+                        array_find($offered, static fn ($place): bool => self::same($place->label, $status['label']) || self::same($place->id, (string) $statusId))
+                        ?? ($status['closed'] ? array_find($offered, static fn ($place): bool => PlaceStatus::Closed === $place->status) : null)
+                    )->id ?? $workflow->initial;
                 }
             }
         }

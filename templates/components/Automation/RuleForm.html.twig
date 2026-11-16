@@ -60,24 +60,13 @@
                                 {% endfor %}
                                 <twig:Ui:IconButton icon="x" :label="'automation.form.remove'|trans" class="ml-auto" data-action="live#action" data-live-action-param="removeCondition" data-live-index-param="{{ index }}" />
                             </div>
-                            {# Several values: one box each under the row, any of them holds; places come grouped under their workflow, other values in one row. #}
+                            {# Several values: one box each under the row, any of them holds. #}
                             {% for field in row.params %}
                                 {% if field.vars.expanded|default(false) %}
-                                    {% set ruleFormBoxes = {} %}
-                                    {% for box in field %}
-                                        {% set ruleFormBoxes = ruleFormBoxes|merge({ (box.vars.value): box }) %}
-                                    {% endfor %}
-                                    {% set ruleFormGrouped = (field.vars.choices|first).choices is defined %}
-                                    <div class="grid gap-x-6 gap-y-3 rounded-md border border-line-subtle bg-subtle/60 px-3 py-2.5 sm:grid-cols-2">
-                                        {% for ruleFormGroup, ruleFormChoices in ruleFormGrouped ? field.vars.choices : { '': { choices: field.vars.choices } } %}
-                                            <fieldset class="{{ ruleFormGrouped ? 'space-y-1.5' : 'flex flex-wrap gap-x-5 gap-y-1.5 sm:col-span-2' }}">
-                                                {% if ruleFormGrouped %}<legend class="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted">{{ ruleFormGroup }}</legend>{% endif %}
-                                                {% for ruleFormChoice in ruleFormChoices.choices %}
-                                                    {% set ruleFormBox = ruleFormBoxes[ruleFormChoice.value] %}
-                                                    <twig:Ui:Form:Checkbox :label="ruleFormBox.vars.label" :checked="ruleFormBox.vars.checked" :id="ruleFormBox.vars.id" :name="ruleFormBox.vars.full_name" :value="ruleFormBox.vars.value" />
-                                                    {% do ruleFormBox.setRendered %}
-                                                {% endfor %}
-                                            </fieldset>
+                                    <div class="flex flex-wrap gap-x-5 gap-y-1.5 rounded-md border border-line-subtle bg-subtle/60 px-3 py-2.5">
+                                        {% for ruleFormBox in field %}
+                                            <twig:Ui:Form:Checkbox :label="ruleFormBox.vars.label" :checked="ruleFormBox.vars.checked" :id="ruleFormBox.vars.id" :name="ruleFormBox.vars.full_name" :value="ruleFormBox.vars.value" />
+                                            {% do ruleFormBox.setRendered %}
                                         {% endfor %}
                                     </div>
                                     {% do field.setRendered %}

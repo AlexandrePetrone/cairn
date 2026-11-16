@@ -34,7 +34,7 @@ final class ColumnTest extends KernelTestCase
         self::assertStringContainsString('data-board-key="MD-SPT-1"', $render);
         self::assertStringContainsString('data-board-key="MD-SPT-2"', $render);
         self::assertStringNotContainsString('MD-SPT-3', $render);
-        self::assertStringContainsString('data-board-places="needs_info qualified in_progress blocked to_test to_release done rejected" data-board-forced="blocked to_test to_release done"', $render, 'an internal user may force the places no action leads to');
+        self::assertStringContainsString('data-board-places="needs_info qualified in_progress blocked to_test to_release done declined" data-board-forced="blocked to_test to_release done"', $render, 'an internal user may force the places no action leads to');
     }
 
     public function testACardTheViewerCannotMoveIsLocked(): void
@@ -60,7 +60,7 @@ final class ColumnTest extends KernelTestCase
 
     public function testTheFiltersOfTheAddressApplyAsTheyDoToTheList(): void
     {
-        $render = (string) $this->column('new', 'thomas.girard@cairn.test', ['query' => ['criticality' => ['blocking'], 'places' => ['bug:done'], 'group' => 'assignee', 'sort' => 'title']])->render();
+        $render = (string) $this->column('new', 'thomas.girard@cairn.test', ['query' => ['criticality' => ['blocking'], 'places' => ['done'], 'group' => 'assignee', 'sort' => 'title']])->render();
 
         self::assertStringContainsString('MD-SPT-1', $render, 'the place filter, the grouping and the sort belong to the list');
         self::assertStringNotContainsString('MD-SPT-2', $render);

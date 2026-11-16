@@ -66,7 +66,7 @@ final class ImportMappingType extends AbstractType
         // The statuses in use and their places are the mapping's: the page gives the one it is drawing.
         foreach ($mapping->places as $workflowId => $sources) {
             $choices = [];
-            foreach ($definition->workflow((string) $workflowId)->places as $place) {
+            foreach ($definition->placesOf($definition->workflow((string) $workflowId)) as $place) {
                 $choices[$place->label] = $place->id;
             }
             $workflow = $builder->create((string) $workflowId, FormType::class, ['label' => false]);

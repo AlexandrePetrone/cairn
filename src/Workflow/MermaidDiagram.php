@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Workflow;
 
+use App\Config\Definition\PlaceDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use App\Entity\Enum\PlaceStatus;
 
@@ -29,12 +30,15 @@ final class MermaidDiagram
         'closed' => 'fill:var(--color-sunken),stroke:var(--color-faint),color:var(--color-body)',
     ];
 
-    public function render(WorkflowDefinition $workflow): string
+    /**
+     * @param list<PlaceDefinition> $places those of the workflow, in its order (InstanceDefinition::placesOf())
+     */
+    public function render(WorkflowDefinition $workflow, array $places): string
     {
-        $order = array_flip($workflow->placeIds());
+        $order = array_flip($workflow->places);
         $lines = ['flowchart TB', '  start(( )):::start --> '.$workflow->initial];
 
-        foreach ($workflow->places as $place) {
+        foreach ($places as $place) {
             $lines[] = \sprintf('  %s("%s"):::%s', $place->id, self::escape($place->label), $place->status->value);
         }
         foreach ($workflow->transitions as $transition) {

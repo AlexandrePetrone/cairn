@@ -40,7 +40,7 @@ final class JournalEntryTest extends KernelTestCase
         $fixtures = new AccessFixtures(self::getContainer()->get(EntityManagerInterface::class));
         $this->claire = $fixtures->user('claire@client.test');
         $this->nadia = $fixtures->user('nadia@agency.test', internal: true);
-        $this->issue = new Issue($fixtures->shop, new Tracker($fixtures->shop, 'Bug', 'bug'), DefinitionFactory::bugWorkflow()->place('new'), 4, $this->claire, 'Empty export', '');
+        $this->issue = new Issue($fixtures->shop, new Tracker($fixtures->shop, 'Bug', 'bug'), DefinitionFactory::place('new'), 4, $this->claire, 'Empty export', '');
     }
 
     #[DataProvider('changes')]
@@ -96,7 +96,7 @@ final class JournalEntryTest extends KernelTestCase
         self::assertSame('added the file capture.png', $this->component->getLabel());
 
         $workflow = DefinitionFactory::bugWorkflow();
-        $this->component->entry = Entry::moved($this->issue, $this->nadia, $workflow->place('new'), $workflow->place('in_progress'));
+        $this->component->entry = Entry::moved($this->issue, $this->nadia, DefinitionFactory::place('new'), DefinitionFactory::place('in_progress'));
         self::assertSame('moved the issue without an action: New → In progress', $this->component->getLabel());
     }
 

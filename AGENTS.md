@@ -119,7 +119,7 @@ columns are what the English and the French catalogues show.
 | `Issue`          | Issue             | Demande          | The tracked object. Key `WORKSPACE-PROJECT-123`.                 |
 | `Tracker`        | Category          | Catégorie        | Type of an issue within a project, bound to one workflow. In DB. |
 | `Workflow`       | Workflow          | Workflow         | Places + transitions. Defined in configuration, not in the UI.   |
-| `Place`          | Step              | Étape            | Position in a workflow (Symfony Workflow term).                  |
+| `Place`          | Step              | Étape            | Where an issue stands (Symfony Workflow term). Declared once for the instance, used by the workflows that name it. |
 | `Transition`     | Action            | Action           | Named button that moves an issue to another place.               |
 | `PlaceStatus`    | (internal)        | (interne)        | Family of a place: Open, InProgress, Waiting, Closed. PHP enum. Never shown to users, who see places: it orders lists, hides finished issues, feeds statistics. Only the configuration pages of the administration show it. |
 | `Criticality`    | Criticality       | Criticité        | Low, Normal, High, Blocking. First-class column, not a field.    |
@@ -528,13 +528,13 @@ src/
   server: rows are checked by the `selection` controller, groups folded
   by `fold` (kept in `sessionStorage` per list and grouping). A filter,
   a sort or a grouping goes back to page 1.
-  Users filter and group by place, never by status. A place is named
-  with its workflow, `workflow:place` (`Workflow/PlaceCatalog::key()`,
-  `Repository/IssueOrder::PLACE_KEY` in SQL): a list mixing workflows
-  keeps their places apart, under their workflow's label in the filter
-  and in the group headers ("Bug › In progress"), with no merging
-  rule. Workflows come in the order of the instance file, places in the
-  order of their workflow. The SQL
+  Users filter and group by place, never by status. Places are those
+  of the instance, named by their id alone: a list mixing workflows
+  offers each place its workflows use once
+  (`InstanceDefinition::placesIn()`), and the issues of two trackers
+  standing on "In progress" are one group. Filters, groups and the sort
+  by place follow the order of the instance file; only a kanban and the
+  step menu follow the order of a workflow. The SQL
   order is `Repository/IssueOrder`: the group first, then the sorted
   column (`IssueSort`), then the default order (status, criticality,
   latest activity). A grouped list (`IssueGrouping`: place, criticality,
@@ -895,16 +895,15 @@ src/
   case, its labels (`automation.trigger|condition|action.<value>`, its
   sentence in `automation.sentence.*`) and its effect in the one class
   that reads the enum (`RuleEngine::triggers()`, `RuleConditions`,
-  `RuleExecutor`), never a form. A step that names a place or an action
-  of a workflow needs the rule limited to a tracker. A place belongs to
-  one workflow (`workflow:place`): the step condition takes several and
-  holds on any of them, which is how one rule covers the "waiting"
-  places of two workflows. The form offers them as boxes grouped under
-  their workflow (`RuleContext::places()`), and a place that reads on
-  its own, in the sentence or in a closed list, says whose it is
-  wherever several workflows are in reach ("Bug › In progress",
-  `placeLabels()`); a rule limited to a tracker is only offered the
-  places of that tracker.
+  `RuleExecutor`), never a form. A step that names an action of a
+  workflow, or moves an issue to a place, needs the rule limited to a
+  tracker. A trigger or a condition names places by their id, and a
+  place is the same in every workflow that uses it: without a tracker
+  the rule holds on every tracker that has the place, and the step
+  condition takes several and holds on any of them. The form offers the
+  places of the workflows in reach, each once
+  (`RuleContext::places()`); a rule limited to a tracker is only
+  offered the places of that tracker.
 - **A rule names roles, not people.** Whoever an action aims at is a
   `Target`: the referent of a role, the author, the last
   internal user who wrote on the issue, nobody, or a named member
@@ -1708,10 +1707,24 @@ which says so when it cannot be read.
 `SnapshotCodec::FORMAT` is bumped when the stored shape changes, as a
 trace of which version wrote a snapshot, never checked.
 
+Places are declared once, at the root of the file (`InstanceDefinition::$places`:
+an id, a label, a `PlaceStatus`), and a workflow lists the ids of those it
+uses, in the order of its kanban: a place has one label and one status
+wherever it is used, never a label of its own per workflow, which is what
+lets a list across trackers filter and group by place. Whoever holds a
+`WorkflowDefinition` asks the instance for what a place says
+(`InstanceDefinition::place()`, `placesOf()`, or `WorkflowProvider`).
 An issue's state is stored as a place identifier string, not a foreign key.
-Places separate a stable technical id from a label; a removed place either
-declares `migrate_from` on its successor or the sync refuses (strict policy
-by default). The journal is never migrated.
+Places separate a stable technical id from a label; a place a workflow no
+longer has either names its successor in the `migrations` of that workflow
+(`['old' => 'new']`: the rule is the workflow's, since the place may stay
+in another) or the sync refuses (strict policy by default). A place no
+workflow uses is a warning of the sync. An issue keeps a copy of the status
+of its place (`Issue::$status`, which the lists sort and filter on): when a
+place changes status in the file, the sync gives it to the issues standing
+there (`StatusChange`, read from the data by `countByPlaceStatus()`), closing
+those that enter the closed status and reopening those that leave it. The
+journal is never migrated.
 
 ## Conventions
 

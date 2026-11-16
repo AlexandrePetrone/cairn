@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Automation\Definition;
 
+use App\Config\Definition\PlaceDefinition;
 use App\Config\Definition\WorkflowDefinition;
-use App\Workflow\PlaceCatalog;
 
 /**
  * Where a rule is written, and so what it may name: the trackers it can
@@ -20,12 +20,14 @@ final readonly class RuleContext
     /**
      * @param array<array-key, string>             $trackers  tracker key => name (a tracker id reads as an integer key)
      * @param array<array-key, WorkflowDefinition> $workflows tracker key => its workflow
+     * @param array<string, PlaceDefinition>       $places    those of the instance, by id, in its order
      * @param array<string, string>                $roles     role id => label
      * @param array<int, string>                   $people    user id => full name; empty where nobody can be named
      */
     public function __construct(
         public array $trackers,
         public array $workflows,
+        public array $places,
         public array $roles,
         public array $people = [],
     ) {
@@ -40,44 +42,40 @@ final readonly class RuleContext
     }
 
     /**
-     * The places a rule may meet, under their workflow: those of the
-     * workflow of the tracker it is limited to, or of every tracker
-     * without one. A place belongs to one workflow, so two workflows
-     * with a place of the same name have two.
+     * The places a rule may meet, in the order of the instance: those of
+     * the workflow of the tracker it is limited to, or of every tracker
+     * without one. A place is the same wherever it is used, so a rule that
+     * names one holds on every tracker that has it.
      *
      * @param string|null $tracker the key of the tracker the rule is limited to
      *
-     * @return array<string, array<string, string>> workflow label => place key (PlaceCatalog::key()) => place label
+     * @return array<string, string> place id => label
      */
     public function places(?string $tracker): array
     {
-        $places = [];
+        $used = [];
         foreach (null === $tracker ? $this->workflows : array_filter([$this->workflow($tracker)]) as $workflow) {
-            foreach ($workflow->places as $place) {
-                $places[$workflow->label][PlaceCatalog::key($workflow->id, $place->id)] = $place->label;
+            $used += array_flip($workflow->places);
+        }
+
+        return array_map(static fn (PlaceDefinition $place): string => $place->label, array_intersect_key($this->places, $used));
+    }
+
+    /**
+     * The places of the workflow of the tracker a rule is limited to, in
+     * the order of that workflow; none without a tracker.
+     *
+     * @return array<string, string> place id => label
+     */
+    public function placesOf(?string $tracker): array
+    {
+        $places = [];
+        foreach ($this->workflow($tracker)->places ?? [] as $placeId) {
+            if (isset($this->places[$placeId])) {
+                $places[$placeId] = $this->places[$placeId]->label;
             }
         }
 
         return $places;
-    }
-
-    /**
-     * The same places, each under a name that says whose it is where
-     * several workflows are in reach ("Bug › In progress"): what a place
-     * reads as on its own, in a sentence or a closed list.
-     *
-     * @return array<string, string> place key => label
-     */
-    public function placeLabels(?string $tracker): array
-    {
-        $groups = $this->places($tracker);
-        $labels = [];
-        foreach ($groups as $workflow => $places) {
-            foreach ($places as $key => $label) {
-                $labels[$key] = 1 === \count($groups) ? $label : $workflow.' › '.$label;
-            }
-        }
-
-        return $labels;
     }
 }

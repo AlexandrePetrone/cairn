@@ -16,7 +16,7 @@ enum ParameterKind
     case Choice;
     /** A number of days, from 1. */
     case Days;
-    /** A place the rule may meet, as `workflow:place` (PlaceCatalog::key()): a place belongs to one workflow, two workflows with a place of the same name have two. */
+    /** A place the rule may meet, by its id: one of the workflow of the tracker it is limited to, or of any tracker without one. */
     case Place;
     /** A place of the workflow of the tracker the rule is limited to, by its id. */
     case ScopedPlace;

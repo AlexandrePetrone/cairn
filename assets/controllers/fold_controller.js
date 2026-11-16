@@ -5,8 +5,8 @@ import { Controller } from '@hotwired/stimulus';
  * under its header, without asking the server.
  *
  * <table data-controller="fold" data-fold-key-value="/MD/SPT/issues#place">
- *   <button data-fold-target="toggle" data-action="fold#toggle" data-fold-group-param="bug:new" aria-expanded="true">
- *   <tr data-fold-target="row" data-fold-group="bug:new">
+ *   <button data-fold-target="toggle" data-action="fold#toggle" data-fold-group-param="new" aria-expanded="true">
+ *   <tr data-fold-target="row" data-fold-group="new">
  *
  * The folded groups are kept for the tab (sessionStorage) under `key`,
  * which names the list and its grouping: they stay folded while the list

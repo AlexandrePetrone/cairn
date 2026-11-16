@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Workflow;
 
-use App\Config\Definition\PlaceDefinition;
 use App\Config\Definition\TransitionDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use App\Entity\Enum\PlaceStatus;
@@ -27,7 +26,7 @@ final class WorkflowFactoryTest extends TestCase
     protected function setUp(): void
     {
         $this->dispatcher = new EventDispatcher();
-        $this->workflow = (new WorkflowFactory($this->dispatcher))->create(DefinitionFactory::bugWorkflow());
+        $this->workflow = (new WorkflowFactory($this->dispatcher))->create(DefinitionFactory::bugWorkflow(), DefinitionFactory::definition()->places);
     }
 
     public function testTheWorkflowIsNamedAfterTheDefinition(): void
@@ -79,15 +78,11 @@ final class WorkflowFactoryTest extends TestCase
             id: 'w',
             label: 'W',
             initial: 'a',
-            places: [
-                new PlaceDefinition(id: 'a', label: 'A', status: PlaceStatus::Open),
-                new PlaceDefinition(id: 'b', label: 'B', status: PlaceStatus::Open),
-                new PlaceDefinition(id: 'c', label: 'C', status: PlaceStatus::Closed),
-            ],
+            places: ['a', 'b', 'c'],
             transitions: [
                 new TransitionDefinition(id: 'close', label: 'Close', from: ['a', 'b'], to: 'c', roles: ['developer']),
             ],
-        ));
+        ), []);
 
         self::assertCount(2, $workflow->getDefinition()->getTransitions(), 'one state machine transition per source');
         self::assertSame(['close'], self::names($workflow->getEnabledTransitions(new Subject('a'))));

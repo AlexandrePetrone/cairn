@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Twig\Components\Workflow;
 
+use App\Config\ConfigRegistry;
 use App\Config\Definition\WorkflowDefinition;
 use App\Workflow\MermaidDiagram;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
@@ -20,11 +21,12 @@ final class Diagram
 
     public function __construct(
         private readonly MermaidDiagram $diagram,
+        private readonly ConfigRegistry $config,
     ) {
     }
 
     public function getSource(): string
     {
-        return $this->diagram->render($this->workflow);
+        return $this->diagram->render($this->workflow, $this->config->definition()->placesOf($this->workflow));
     }
 }

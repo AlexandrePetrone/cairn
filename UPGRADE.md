@@ -24,7 +24,39 @@ what changes without applying anything.
 
 ## Unreleased
 
-Nothing to change for the file to load. Three permissions are new and
+**The file must change for this version**: places are declared once for
+the instance, no longer in each workflow.
+
+- `InstanceDefinition` takes a new required argument `places`: the list
+  of every `PlaceDefinition` (`id`, `label`, `status`), in the order the
+  issue lists filter and group by.
+- `WorkflowDefinition::$places` is now the list of the ids of the places
+  the workflow uses, in the order of its kanban columns:
+  `places: ['new', 'in_progress', 'done']`.
+- A place has one label and one status wherever it is used. Two
+  workflows that gave the same id different labels must agree on one, or
+  use two ids; places that mean the same under different ids (`doing`
+  and `in_progress`) are worth merging, which is what lets a list across
+  categories filter by step.
+- `PlaceDefinition` no longer takes `migrateFrom`. A workflow says where
+  the issues of a place it no longer has go:
+  `migrations: ['doing' => 'in_progress']` on the `WorkflowDefinition`.
+  Renaming the id of a place is such a migration, in each workflow that
+  used it.
+- The `place` filter of `GET /api/issues` takes place ids
+  (`place[]=in_progress`), and a step of `GET /api/projects/{key}/trackers`
+  no longer has a `key`.
+- What named a place with its workflow before (`bug:in_progress`) no
+  longer names anything: a trigger or a condition of an automation rule
+  that did never holds until its steps are chosen again (a "changes
+  step" trigger saved without choosing its step holds on every step),
+  and the place
+  filter of an issue list someone had kept, or of a shared address, is
+  ignored.
+- The sync now gives the issues of a place the status the file gives
+  that place, when it changed: it lists them under "Data migrations".
+
+Three permissions are also new and
 held by nobody until you grant them:
 
 - `budget.manage` (`Permission::BudgetManage`): create and close the

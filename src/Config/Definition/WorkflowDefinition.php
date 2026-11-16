@@ -6,12 +6,16 @@ namespace App\Config\Definition;
 
 /**
  * Places, transitions and fields of one workflow. Trackers (in database)
- * reference a workflow by id.
+ * reference a workflow by id. The places are those of the instance, named
+ * by id: InstanceDefinition::place() gives what one says.
  */
 final readonly class WorkflowDefinition
 {
-    /** @var array<string, PlaceDefinition> id => place, in declaration order */
+    /** @var list<string> ids of places of the instance, in the order of the kanban columns */
     public array $places;
+
+    /** @var array<string, string> place this workflow no longer has => place of it that takes its issues on sync */
+    public array $migrations;
 
     /** @var array<string, TransitionDefinition> id => transition */
     public array $transitions;
@@ -21,10 +25,11 @@ final readonly class WorkflowDefinition
 
     /**
      * @param string                     $initial       place of a newly created issue
-     * @param list<PlaceDefinition>      $places
+     * @param list<string>               $places        ids of places of the instance
      * @param list<TransitionDefinition> $transitions
      * @param list<FieldUsage>           $fields
      * @param string|null                $fallbackPlace where orphaned issues go under the Fallback migration policy
+     * @param array<string, string>      $migrations    removed place id => id of the place that takes its issues
      */
     public function __construct(
         public string $id,
@@ -34,37 +39,25 @@ final readonly class WorkflowDefinition
         array $transitions,
         array $fields = [],
         public ?string $fallbackPlace = null,
+        array $migrations = [],
     ) {
         Definitions::assertId($id, 'workflows');
         Definitions::assertLabel($label, "workflows.$id.label");
-        $this->places = Definitions::indexById($places, PlaceDefinition::class, "workflows.$id.places");
+        $this->places = Definitions::assertIdList($places, "workflows.$id.places");
         $this->transitions = Definitions::indexById($transitions, TransitionDefinition::class, "workflows.$id.transitions");
         $this->fields = Definitions::indexById($fields, FieldUsage::class, "workflows.$id.fields", 'field');
+
+        foreach ($migrations as $from => $to) {
+            if (!\is_string($from) || !\is_string($to)) {
+                throw new InvalidDefinitionException("workflows.$id.migrations: expected a map of removed place id => place id.");
+            }
+        }
+        $this->migrations = $migrations;
     }
 
     public function hasPlace(string $id): bool
     {
-        return isset($this->places[$id]);
-    }
-
-    /**
-     * The place, or null when it left the configuration (an issue may
-     * still sit on it until the sync migrates it).
-     */
-    public function findPlace(string $id): ?PlaceDefinition
-    {
-        return $this->places[$id] ?? null;
-    }
-
-    public function place(string $id): PlaceDefinition
-    {
-        return $this->places[$id] ?? throw new InvalidDefinitionException(\sprintf('workflows.%s: unknown place "%s".', $this->id, $id));
-    }
-
-    /** @return list<string> */
-    public function placeIds(): array
-    {
-        return array_keys($this->places);
+        return \in_array($id, $this->places, true);
     }
 
     public function transition(string $id): TransitionDefinition
@@ -109,16 +102,10 @@ final readonly class WorkflowDefinition
     }
 
     /**
-     * The place that declares a removed place in its `migrateFrom`, if any.
+     * The place that takes the issues of one this workflow no longer has, if any.
      */
     public function migrationTargetFor(string $removedPlaceId): ?string
     {
-        foreach ($this->places as $place) {
-            if (\in_array($removedPlaceId, $place->migrateFrom, true)) {
-                return $place->id;
-            }
-        }
-
-        return null;
+        return $this->migrations[$removedPlaceId] ?? null;
     }
 }

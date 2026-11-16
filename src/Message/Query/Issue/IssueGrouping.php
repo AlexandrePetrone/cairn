@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Message\Query\Issue;
 
 use App\Entity\Issue;
-use App\Workflow\PlaceCatalog;
 
 /**
  * What an issue list can group its issues by (SearchIssues::$group). The
@@ -26,7 +25,7 @@ enum IssueGrouping: string
     public function keyOf(Issue $issue): string
     {
         return match ($this) {
-            self::Place => PlaceCatalog::key($issue->getTracker()->getWorkflowId(), $issue->getPlace()),
+            self::Place => $issue->getPlace(),
             self::Criticality => $issue->getCriticality()->value,
             self::Assignee => null === $issue->getAssignee() ? self::NOBODY : (string) $issue->getAssignee()->getId(),
             self::Project => (string) $issue->getProject()->getId(),

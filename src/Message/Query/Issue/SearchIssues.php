@@ -25,7 +25,7 @@ final readonly class SearchIssues implements Query
 {
     /**
      * @param list<PlaceStatus>  $status
-     * @param list<string>       $place       place keys, `workflow:place` (Workflow/PlaceCatalog::key()); closed issues are then listed when their place is chosen
+     * @param list<string>       $place       place ids; closed issues are then listed when their place is chosen
      * @param list<int>          $project     among the projects of the scope
      * @param list<int>          $tracker
      * @param list<int>          $assignee    user ids, 0 for unassigned

@@ -50,13 +50,13 @@ final class ChangeTrackerHandler
         }
 
         $previous = $this->workflows->definition($current->getWorkflowId());
-        $previousPlace = $previous->findPlace($issue->getPlace()) ?? throw IssueException::unknownPlace($issue->getPlace(), $previous->id);
+        $previousPlace = $this->workflows->placeOf($issue) ?? throw IssueException::unknownPlace($issue->getPlace(), $previous->id);
 
         $workflow = $this->workflows->definition($tracker->getWorkflowId());
         if (!$workflow->hasPlace($command->placeId)) {
             throw IssueException::unknownPlace($command->placeId, $workflow->id);
         }
-        $place = $workflow->place($command->placeId);
+        $place = $this->workflows->place($command->placeId);
 
         $issue->changeTracker($tracker, $place);
         $this->support->arrive($issue);

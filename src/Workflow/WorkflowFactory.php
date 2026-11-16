@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Workflow;
 
+use App\Config\Definition\PlaceDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Workflow\DefinitionBuilder;
@@ -25,10 +26,13 @@ final class WorkflowFactory
     ) {
     }
 
-    public function create(WorkflowDefinition $definition): WorkflowInterface
+    /**
+     * @param array<string, PlaceDefinition> $places those of the instance, by id
+     */
+    public function create(WorkflowDefinition $definition, array $places): WorkflowInterface
     {
         $builder = (new DefinitionBuilder())
-            ->addPlaces($definition->placeIds())
+            ->addPlaces($definition->places)
             ->setInitialPlaces($definition->initial);
 
         // A state machine transition has a single source place: a configured
@@ -42,7 +46,7 @@ final class WorkflowFactory
 
         return new StateMachine(
             $builder->build(),
-            new PlaceMarkingStore($definition),
+            new PlaceMarkingStore($places),
             $this->dispatcher,
             $definition->id,
         );

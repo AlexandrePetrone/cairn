@@ -59,7 +59,7 @@ final class ImportIssueHandler
             throw ImportException::notFound('Tracker', $command->trackerId);
         }
         $workflow = $this->workflows->definition($tracker->getWorkflowId());
-        $place = $workflow->findPlace($command->placeId) ?? throw ImportException::invalidChoice($workflow->label, $command->placeId);
+        $place = ($workflow->hasPlace($command->placeId) ? $this->workflows->findPlace($command->placeId) : null) ?? throw ImportException::invalidChoice($workflow->label, $command->placeId);
         if (null !== $this->issues->findOneBy(['project' => $project, 'number' => $command->number])) {
             throw ImportException::numberTaken($project->getIssuePrefix().'-'.$command->number);
         }

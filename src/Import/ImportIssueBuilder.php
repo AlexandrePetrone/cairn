@@ -71,7 +71,8 @@ final class ImportIssueBuilder
 
         $workflow = $definition->workflow($tracker->getWorkflowId());
         $source = $manifest->workflows[$manifest->trackers[$issue->tracker]['workflow']];
-        $place = $workflow->findPlace($mapping->places[$workflow->id][$manifest->trackers[$issue->tracker]['workflow']][$issue->status] ?? '');
+        $placeId = $mapping->places[$workflow->id][$manifest->trackers[$issue->tracker]['workflow']][$issue->status] ?? '';
+        $place = $workflow->hasPlace($placeId) ? $definition->findPlace($placeId) : null;
         if (null === $place) {
             // Checked before the run: the configuration of Cairn changed since. Never a guess, which would look like a choice.
             return $this->translator->trans('admin.import.problem.place', ['%status%' => $source['statuses'][$issue->status]['label'], '%workflow%' => $workflow->label]);

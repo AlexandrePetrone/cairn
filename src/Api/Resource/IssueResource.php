@@ -44,7 +44,7 @@ use App\Api\State\UpdateIssueProcessor;
             parameters: [
                 'project' => new QueryParameter(schema: ['type' => 'string'], description: 'Key of a project, `MD-SPT`.'),
                 'tracker[]' => new QueryParameter(schema: ['type' => 'array', 'items' => ['type' => 'integer']], description: 'Ids of categories.'),
-                'place[]' => new QueryParameter(schema: ['type' => 'array', 'items' => ['type' => 'string']], description: 'Steps, each named with its workflow: `bug:in_progress`.'),
+                'place[]' => new QueryParameter(schema: ['type' => 'array', 'items' => ['type' => 'string']], description: 'Ids of steps, `in_progress`.'),
                 'criticality[]' => new QueryParameter(schema: ['type' => 'array', 'items' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'blocking']]]),
                 'assignee[]' => new QueryParameter(schema: ['type' => 'array', 'items' => ['type' => 'string']], description: 'Ids of users, `me`, or `none` for the unassigned issues.'),
                 'author' => new QueryParameter(schema: ['type' => 'string'], description: 'Id of a user, or `me`.'),

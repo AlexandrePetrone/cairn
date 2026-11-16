@@ -179,7 +179,7 @@ final class AccessControlTest extends KernelTestCase
         $developer = $this->fixtures->user('nadia@agency.test', internal: true);
         $this->fixtures->grantOnWorkspace($developer, $this->fixtures->workspace, 'developer');
         $tracker = new Tracker($this->fixtures->shop, 'Bug', 'bug');
-        $issue = new Issue($this->fixtures->shop, $tracker, DefinitionFactory::bugWorkflow()->place('to_test'), 1, $client, 'Export', '');
+        $issue = new Issue($this->fixtures->shop, $tracker, DefinitionFactory::place('to_test'), 1, $client, 'Export', '');
 
         $ids = static fn (array $transitions): array => array_map(static fn ($transition): string => $transition->id, $transitions);
         self::assertSame(['accept', 'refuse'], $ids($this->access->transitionsFor($client, $issue)));
@@ -198,7 +198,7 @@ final class AccessControlTest extends KernelTestCase
         $manager = $this->fixtures->user('thomas@agency.test', internal: true);
         $this->fixtures->grantOnWorkspace($manager, $this->fixtures->workspace, 'project_manager');
         $tracker = new Tracker($this->fixtures->shop, 'Bug', 'bug');
-        $issue = new Issue($this->fixtures->shop, $tracker, DefinitionFactory::bugWorkflow()->place('to_test'), 1, $client, 'Export', '');
+        $issue = new Issue($this->fixtures->shop, $tracker, DefinitionFactory::place('to_test'), 1, $client, 'Export', '');
 
         $moves = static fn (array $moves): array => array_map(static fn (PlaceMove $move): string => $move->place->id.':'.($move->transition->id ?? 'forced'), $moves);
         self::assertSame(['in_progress:refuse', 'done:accept'], $moves($this->access->movesFor($client, $issue)), 'the actions of the role, in the order of the places');
@@ -219,14 +219,14 @@ final class AccessControlTest extends KernelTestCase
         $this->fixtures->grantOnWorkspace($client, $this->fixtures->workspace, 'client');
         $developer = $this->fixtures->user('nadia@agency.test', internal: true);
         $tracker = new Tracker($this->fixtures->shop, 'Bug', 'bug');
-        $issue = new Issue($this->fixtures->shop, $tracker, DefinitionFactory::bugWorkflow()->place('new'), 1, $client, 'Export', '');
+        $issue = new Issue($this->fixtures->shop, $tracker, DefinitionFactory::place('new'), 1, $client, 'Export', '');
 
         self::assertTrue($this->access->canSee($client, $issue));
         $issue->makePrivate();
         self::assertFalse($this->access->canSee($client, $issue));
         self::assertTrue($this->access->canSee($developer, $issue));
 
-        $elsewhere = new Issue($this->fixtures->otherProject, new Tracker($this->fixtures->otherProject, 'Bug', 'bug'), DefinitionFactory::bugWorkflow()->place('new'), 1, $client, 'Elsewhere', '');
+        $elsewhere = new Issue($this->fixtures->otherProject, new Tracker($this->fixtures->otherProject, 'Bug', 'bug'), DefinitionFactory::place('new'), 1, $client, 'Elsewhere', '');
         self::assertFalse($this->access->canSee($client, $elsewhere), 'no access to that project');
     }
 
@@ -248,7 +248,7 @@ final class AccessControlTest extends KernelTestCase
         $admin = $this->fixtures->user('admin@agency.test', internal: true, admin: true);
 
         $tracker = new Tracker($this->fixtures->shop, 'Bug', 'bug');
-        $issue = new Issue($this->fixtures->shop, $tracker, DefinitionFactory::bugWorkflow()->place('new'), 1, $client, 'Export', '');
+        $issue = new Issue($this->fixtures->shop, $tracker, DefinitionFactory::place('new'), 1, $client, 'Export', '');
         $comment = new Comment($issue, $developer, 'I am looking into it.');
         $privateComment = new Comment($issue, $developer, 'Estimate.', private: true);
 

@@ -64,7 +64,7 @@ final class ExampleConfigTest extends TestCase
         foreach ($definition->workflows as $workflow) {
             $workflows[$workflow->id] = [
                 'initial' => $workflow->initial,
-                'places' => array_map(static fn ($place) => [$place->id, $place->status], array_values($workflow->places)),
+                'places' => $workflow->places,
                 'transitions' => array_map(
                     static fn ($transition) => [$transition->id, $transition->from, $transition->to, $transition->roles, $transition->requiresComment],
                     array_values($workflow->transitions),
@@ -79,6 +79,7 @@ final class ExampleConfigTest extends TestCase
             'permissions' => $definition->permissions,
             'fields' => array_map(static fn ($field) => [$field->id, $field->type, array_keys($field->options), $field->internalOnly], array_values($definition->fields)),
             'links' => array_map(static fn ($link) => $link->id, array_values($definition->links)),
+            'places' => array_map(static fn ($place) => [$place->id, $place->status], array_values($definition->places)),
             'workflows' => $workflows,
         ];
     }
