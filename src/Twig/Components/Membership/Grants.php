@@ -16,22 +16,28 @@ use App\Message\Command\User\CreateUser;
 use App\Message\Command\User\InviteUser;
 use App\Message\CommandBus;
 use App\Message\Query\Project\ListProjects;
+use App\Message\Query\User\SearchUsers;
 use App\Message\Query\Workspace\ListWorkspaces;
 use App\Message\QueryBus;
 use App\Repository\MembershipRepository;
 use App\Repository\UserRepository;
+use App\Security\Permission;
 use App\Security\Referents;
 use App\Security\RoleReferent;
 use App\Security\Viewer;
 use App\Twig\Components\DispatchesCommands;
+use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\Attribute\PostHydrate;
 use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
+use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
  * The memberships of a workspace (who holds a role on it), of a user
@@ -42,9 +48,15 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * actor and picks the person, or the workspace or project, in a
  * searchable list. On a project, the viewer acts and the roles inherited
  * from the workspace are shown read-only, a direct role only widening
- * them; someone is added by email: an existing account gets a role, an
- * unknown address gets an external account, the role and an invitation,
- * in a dialog the page opens (`adding`, from `?add=1` or its button).
+ * them; someone is added in a dialog the page opens (`adding`, from
+ * `?add=1` or its button), from one field: what is typed searches the
+ * accounts of the instance (`suggestions`: a name, a company, an
+ * address), one of them is chosen and gets a role; an address no account
+ * uses gets an external account, the role and an invitation. Every
+ * account shows there, those that cannot be chosen with the reason, a
+ * deactivated one included, so that nobody creates it again. The
+ * component lists accounts on demand, so it checks who draws it each
+ * time (`guard()`), not only the page that holds it.
  * A member who has not chosen their password yet can be invited again.
  * The referents are managed in one place, a card over the list of a
  * project or a workspace (`referentRows`, SetReferent): who answers for
@@ -59,9 +71,7 @@ final class Grants
     use DefaultActionTrait;
     use DispatchesCommands;
 
-    /** Under the email field, what the address led to. */
-    public const string NONE = 'none';
-    public const string NEW = 'new';
+    /** What an account may be given on the project: a role (`existing`), or the reason why not. */
     public const string EXISTING = 'existing';
     public const string MEMBER = 'member';
     public const string CEILING = 'ceiling';
@@ -95,9 +105,20 @@ final class Grants
     #[LiveProp(writable: true)]
     public bool $adding = false;
 
-    /** On a project: the address of who gets the new role. */
-    #[LiveProp(writable: true, onUpdated: 'onEmailChanged')]
-    public string $email = '';
+    /** How many accounts the search offers at once. */
+    public const int SUGGESTIONS = 6;
+
+    /** On a project: what is typed to find who gets the new role, a name or an address. */
+    #[LiveProp(writable: true, onUpdated: 'onSearchChanged')]
+    public string $search = '';
+
+    /** On a project: the account chosen among those found. */
+    #[LiveProp]
+    public ?int $chosenId = null;
+
+    /** On a project: the address typed, which no account uses, gets an account. */
+    #[LiveProp]
+    public bool $inviting = false;
 
     /** On a project, for an unknown address: the account to create. */
     #[LiveProp(writable: true)]
@@ -119,8 +140,8 @@ final class Grants
     /** @var array<int, Membership>|null read once per render, `align()` forgets it */
     private ?array $loadedInherited = null;
 
-    /** @var array{string, User|null}|null what `email` leads to, read once per render */
-    private ?array $loadedMatch = null;
+    /** @var array{accounts: list<array{user: User, state: string}>, more: int}|null what `search` finds, read once per render */
+    private ?array $loadedSuggestions = null;
 
     /** @var list<array{workspace: Workspace, projects: list<Project>}>|null read once per render */
     private ?array $loadedTargets = null;
@@ -134,6 +155,7 @@ final class Grants
         private readonly Viewer $viewer,
         private readonly ValidatorInterface $validator,
         private readonly Referents $referents,
+        private readonly Security $security,
     ) {
     }
 
@@ -149,11 +171,32 @@ final class Grants
         $this->align();
     }
 
-    public function onEmailChanged(): void
+    /**
+     * Who draws the component, and calls its actions, each time: on a
+     * project whoever manages its members, the administration otherwise.
+     * It lists the accounts of the instance, which the address of the
+     * page alone must not give.
+     */
+    #[PostMount]
+    #[PostHydrate]
+    public function guard(): void
     {
-        $this->loadedMatch = null;
+        $granted = null !== $this->project
+            ? $this->security->isGranted(Permission::ProjectManageMembers->value, $this->project)
+            : $this->security->isGranted('ROLE_ADMIN');
+        if (!$granted) {
+            throw new AccessDeniedException('Managing these accesses needs project.manage_members on the project, or the administration.');
+        }
+    }
+
+    public function onSearchChanged(): void
+    {
+        $this->loadedSuggestions = null;
+        $this->chosenId = null;
+        $this->inviting = false;
         $this->newRole = '';
-        [$this->firstName, $this->lastName] = self::guessName($this->email);
+        $this->firstName = '';
+        $this->lastName = '';
         $this->company = '';
         $this->error = null;
     }
@@ -416,45 +459,83 @@ final class Grants
     }
 
     /**
-     * On a project: the account behind the address typed, if any.
+     * On a project: the accounts matching what is typed (names, company,
+     * address), the one whose address it is first, each with what it may
+     * be given (`stateOf()`), and how many more match. Nothing until two
+     * characters are typed, nor once someone is chosen.
+     *
+     * @return array{accounts: list<array{user: User, state: string}>, more: int}
      */
-    public function getMatch(): ?User
+    public function getSuggestions(): array
     {
-        return ($this->loadedMatch ??= $this->match())[1];
+        return $this->loadedSuggestions ??= $this->suggestions();
     }
 
     /**
-     * On a project: what the address typed leads to, one of the constants.
+     * @return array{accounts: list<array{user: User, state: string}>, more: int}
      */
-    public function getMatchState(): string
+    private function suggestions(): array
     {
-        return ($this->loadedMatch ??= $this->match())[0];
+        $text = trim($this->search);
+        if (null === $this->project || !$this->adding || null !== $this->chosenId || $this->inviting || mb_strlen($text) < 2) {
+            return ['accounts' => [], 'more' => 0];
+        }
+        $page = $this->queries->ask(new SearchUsers($text));
+        $found = [];
+        foreach ([$this->users->loadUserByIdentifier($text), ...$page->items] as $user) {
+            if (null !== $user) {
+                $found[(int) $user->getId()] ??= $user;
+            }
+        }
+        $shown = \array_slice(array_values($found), 0, self::SUGGESTIONS);
+
+        return [
+            'accounts' => array_map(fn (User $user): array => ['user' => $user, 'state' => $this->stateOf($user)], $shown),
+            'more' => max(0, $page->total - \count($shown)),
+        ];
     }
 
     /**
-     * @return array{string, User|null} the state and the account
+     * On a project: what an account may be given there, one of the
+     * constants. Only `existing` is chosen.
      */
-    private function match(): array
+    public function stateOf(User $user): string
     {
-        $email = trim($this->email);
-        // what `CreateUser` would refuse is not looked up: one rule says what an address is
-        if ('' === $email || 0 < \count($this->validator->validatePropertyValue(CreateUser::class, 'email', $email))) {
-            return [self::NONE, null];
-        }
-        $match = $this->users->loadUserByIdentifier($email);
-        if (null === $match) {
-            return [self::NEW, null];
-        }
-        if (!$match->isActive()) {
-            return [self::DEACTIVATED, $match];
+        if (!$user->isActive()) {
+            return self::DEACTIVATED;
         }
         foreach ($this->getMemberships() as $membership) {
-            if ($membership->getUser()->getId() === $match->getId()) {
-                return [self::MEMBER, $match];
+            if ($membership->getUser()->getId() === $user->getId()) {
+                return self::MEMBER;
             }
         }
 
-        return [[] === $this->rolesFor($match) ? self::CEILING : self::EXISTING, $match];
+        return [] === $this->rolesFor($user) ? self::CEILING : self::EXISTING;
+    }
+
+    /**
+     * On a project: the account chosen, as long as it may still be given a role.
+     */
+    public function getChosen(): ?User
+    {
+        $chosen = null !== $this->chosenId && null !== $this->project ? $this->users->find($this->chosenId) : null;
+
+        return null !== $chosen && self::EXISTING === $this->stateOf($chosen) ? $chosen : null;
+    }
+
+    /**
+     * On a project: whether what is typed is an address that may get an
+     * account, one no account uses yet.
+     */
+    public function canInvite(): bool
+    {
+        $email = trim($this->search);
+
+        // what `CreateUser` would refuse is not offered: one rule says what an address is
+        return null !== $this->project
+            && '' !== $email
+            && 0 === \count($this->validator->validatePropertyValue(CreateUser::class, 'email', $email))
+            && null === $this->users->loadUserByIdentifier($email);
     }
 
     #[LiveAction]
@@ -469,6 +550,55 @@ final class Grants
         $this->newUserId = $user;
     }
 
+    /**
+     * On a project: chooses one of the accounts found, which then gets a role.
+     */
+    #[LiveAction]
+    public function choose(#[LiveArg] int $user): void
+    {
+        $this->error = null;
+        $account = null !== $this->project ? $this->users->find($user) : null;
+        if (null === $account || self::EXISTING !== $this->stateOf($account)) {
+            return;
+        }
+        $this->chosenId = $user;
+        $this->inviting = false;
+        $this->newRole = '';
+        $this->loadedSuggestions = null;
+    }
+
+    /**
+     * On a project: takes the address typed as that of a new account,
+     * whose name it may give.
+     */
+    #[LiveAction]
+    public function startInvite(): void
+    {
+        $this->error = null;
+        if (!$this->canInvite()) {
+            return;
+        }
+        $this->inviting = true;
+        $this->chosenId = null;
+        $this->newRole = '';
+        [$this->firstName, $this->lastName] = self::guessName($this->search);
+        $this->company = '';
+        $this->loadedSuggestions = null;
+    }
+
+    /**
+     * On a project: back to the search, what was typed kept.
+     */
+    #[LiveAction]
+    public function unchoose(): void
+    {
+        $this->error = null;
+        $this->chosenId = null;
+        $this->inviting = false;
+        $this->newRole = '';
+        $this->loadedSuggestions = null;
+    }
+
     #[LiveAction]
     public function grant(CommandBus $commands): void
     {
@@ -476,8 +606,8 @@ final class Grants
         if (null !== $this->workspace) {
             $command = null !== $this->newUserId ? new GrantMembership($this->newUserId, $this->workspace->getId(), null, $this->newRole) : null;
         } elseif (null !== $this->project) {
-            $match = self::EXISTING === $this->getMatchState() ? $this->getMatch() : null;
-            $command = null !== $match ? new GrantMembership((int) $match->getId(), null, $this->project->getId(), $this->newRole, $this->actorId()) : null;
+            $chosen = $this->getChosen();
+            $command = null !== $chosen ? new GrantMembership((int) $chosen->getId(), null, $this->project->getId(), $this->newRole, $this->actorId()) : null;
         } else {
             [$kind, $id] = explode('-', $this->newTarget.'-', 3) + [1 => ''];
             $command = match ($kind) {
@@ -501,7 +631,7 @@ final class Grants
     }
 
     /**
-     * On a project, for an unknown address: the external account, its
+     * On a project, for an address no account uses: the external account, its
      * role, then its invitation, each its own command. A refusal stops
      * there and is shown; what went through stays.
      */
@@ -509,18 +639,20 @@ final class Grants
     public function invite(CommandBus $commands): void
     {
         $this->error = null;
-        if (null === $this->project || self::NEW !== $this->getMatchState() || '' === $this->newRole) {
+        if (null === $this->project || !$this->inviting || !$this->canInvite() || '' === $this->newRole) {
             $this->error = $this->translator->trans('admin.access.incomplete');
 
             return;
         }
 
-        $create = new CreateUser(trim($this->email), $this->firstName, $this->lastName, company: $this->company, actorId: $this->actorId(), projectId: $this->project->getId());
+        $email = trim($this->search);
+        $create = new CreateUser($email, $this->firstName, $this->lastName, company: $this->company, actorId: $this->actorId(), projectId: $this->project->getId());
         if (!$this->tryCommand($commands, $create, $this->translator->trans('project.access.invalid_account'))) {
             return;
         }
-        $this->loadedMatch = null;
-        $userId = (int) $this->getMatch()?->getId();
+        // the account exists from here on: refused further, it is found by the search like any other
+        $this->inviting = false;
+        $userId = (int) $this->users->loadUserByIdentifier($email)?->getId();
 
         if (!$this->tryCommand($commands, new GrantMembership($userId, null, $this->project->getId(), $this->newRole, $this->actorId()))) {
             return;
@@ -640,11 +772,13 @@ final class Grants
         $this->newUserId = null;
         $this->newTarget = '';
         $this->newRole = '';
-        $this->email = '';
+        $this->search = '';
+        $this->chosenId = null;
+        $this->inviting = false;
         $this->firstName = '';
         $this->lastName = '';
         $this->company = '';
-        $this->loadedMatch = null;
+        $this->loadedSuggestions = null;
     }
 
     private function done(string $message): void

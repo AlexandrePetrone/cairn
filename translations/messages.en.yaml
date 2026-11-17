@@ -990,13 +990,19 @@ project:
         direct_help: granted or widened here, valid on this project only
         empty: Nobody holds a role on this project directly.
         inherits: 'inherits "%role%" from the workspace'
-        email: Email address
-        email_help: 'An existing account gets a role; a new address gets an account, a role and an invitation by mail.'
-        email_placeholder: name@company.com
-        already_member: '%name% already holds a role on this project.'
-        inherits_broadest: '%name% already inherits the broadest role from the workspace.'
-        deactivated: '%name% is deactivated: an administrator can reactivate the account.'
-        new_account: 'No account uses this address: an external account will be created and invited by mail.'
+        search: Name or email address
+        search_help: 'Choose an existing account to give it a role; type the address of someone new to create their account and invite them by mail.'
+        search_placeholder: Claire Martin, Maison Dupont, name@company.com…
+        state:
+            member: Already has a role here
+            ceiling: Inherits the broadest role
+            deactivated: Deactivated account
+            new: New account
+        more_accounts: 'One more account matches: narrow the search.|%count% more accounts match: narrow the search.'
+        no_match: No account matches. Type an email address to invite someone.
+        invite_address: 'Invite %email%'
+        choose_another: Choose someone else
+        new_account: 'No account uses %email%: an external account will be created and invited by mail.'
         invalid_account: Give the person a first name and a last name.
         invite: Create and invite
         invited: Account created, invitation sent.

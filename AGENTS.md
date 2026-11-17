@@ -1341,18 +1341,26 @@ src/
   `MessageHandler/Command/ProjectActor` (one call per handler), may
   act on that project only (never on a workspace membership) and never
   archives, since an archived project grants nobody the right to bring
-  it back. On the Access page someone is added by email
+  it back. On the Access page someone is added from one field
   (`Membership:Grants` in project mode, in a dialog its `adding` opens:
   the button of the page header calls `open`, and `?add=1` opens the
-  page with it; an
-  address shaped `first.last@…` fills in the name of a new account,
-  which the person adding only checks): an existing account gets a
-  role, an unknown address gets an account, the role and an invitation,
-  three ordinary commands in a row (`CreateUser` with `actorId` and
+  page with it). What is typed searches every account of the instance
+  (`SearchUsers`: names, company, address; `Grants::SUGGESTIONS` shown,
+  and how many more match), the arrows and Enter moving among them (the
+  `suggestions` controller); each says what it may be given
+  (`Grants::stateOf()`), and one that cannot be chosen shows with the
+  reason, a deactivated account included, so that nobody creates it
+  again. An account chosen gets a role; an address no account uses is
+  offered as a new account (an address shaped `first.last@…` fills in
+  its name, which the person adding only checks) and gets an account,
+  the role and an invitation, three ordinary commands in a row (`CreateUser` with `actorId` and
   `projectId`, which refuses an internal or administrator account,
   `GrantMembership`, `InviteUser` to a direct member of that project),
   a refusal stopping the chain where it is. The administration picks the
-  person, or the workspace or project, in a `Ui:Picker`. Both permissions show what external users never see (private
+  person, or the workspace or project, in a `Ui:Picker`. The component
+  gives the accounts of the instance to whoever asks its endpoint, so it
+  checks who draws it each time (`Grants::guard()`:
+  `project.manage_members` on a project, `ROLE_ADMIN` otherwise). Both permissions show what external users never see (private
   trackers, every account of the instance), and `issue.force_place` and
   `issue.change_tracker` leave the workflow clients are shown, so the
   configuration grants
@@ -1734,7 +1742,7 @@ src/
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`, `dialog`,
   `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`,
   `workflow-diagram`, `sortable`, `list-filter`, `combobox`, `board`,
-  `load-more`, `clipboard`, `picker`, `filters`, `selection`, `fold`, `list-view`, `live-updates`, `theme`, `panels`, `avatar`, `live-trigger`, `modal-frame`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
+  `load-more`, `clipboard`, `picker`, `filters`, `selection`, `fold`, `list-view`, `live-updates`, `theme`, `panels`, `avatar`, `live-trigger`, `modal-frame`, `suggestions`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
   (`editor` with TipTap, `workflow-diagram` with Mermaid, `board` with
   SortableJS) so that Vite
   splits its imports into chunks only fetched on a page that uses it; write a new one when a component needs it, not before. No

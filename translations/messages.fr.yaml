@@ -990,13 +990,19 @@ project:
         direct_help: ajoutés ou élargis ici, valables sur ce projet seulement
         empty: "Personne n'a de rôle directement sur ce projet."
         inherits: "hérite « %role% » de l'espace"
-        email: Adresse e-mail
-        email_help: 'Un compte existant reçoit un rôle ; une adresse inconnue reçoit un compte, un rôle et une invitation par e-mail.'
-        email_placeholder: nom@societe.fr
-        already_member: '%name% a déjà un rôle sur ce projet.'
-        inherits_broadest: "%name% hérite déjà du rôle le plus large depuis l'espace."
-        deactivated: '%name% est désactivé : un administrateur peut réactiver le compte.'
-        new_account: "Aucun compte n'utilise cette adresse : un compte externe sera créé et invité par e-mail."
+        search: Nom ou adresse e-mail
+        search_help: "Choisissez un compte existant pour lui donner un rôle ; saisissez l'adresse d'une nouvelle personne pour créer son compte et l'inviter par e-mail."
+        search_placeholder: Claire Martin, Maison Dupont, nom@societe.fr…
+        state:
+            member: A déjà un rôle ici
+            ceiling: Hérite du rôle le plus large
+            deactivated: Compte désactivé
+            new: Nouveau compte
+        more_accounts: 'Un autre compte correspond : précisez la recherche.|%count% autres comptes correspondent : précisez la recherche.'
+        no_match: "Aucun compte ne correspond. Saisissez une adresse e-mail pour inviter quelqu'un."
+        invite_address: 'Inviter %email%'
+        choose_another: Choisir une autre personne
+        new_account: "Aucun compte n'utilise %email% : un compte externe sera créé et invité par e-mail."
         invalid_account: Donnez un prénom et un nom à la personne.
         invite: Créer et inviter
         invited: Compte créé, invitation envoyée.
