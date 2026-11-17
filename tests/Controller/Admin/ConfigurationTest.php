@@ -137,13 +137,13 @@ final class ConfigurationTest extends WebTestCase
         self::assertSelectorTextContains('body', 'Role "Auditor" created.');
         self::assertSelectorTextContains('#config-roles-auditor', 'Subscribed to every new issue');
 
-        $this->client->request('GET', '/admin/configuration/roles/auditor');
+        $this->client->request('GET', '/admin/configuration/role/auditor');
         $this->client->submitForm('Save', ['role[label]' => 'External auditor', 'role[internalOnly]' => true]);
         $this->client->followRedirect();
         self::assertSame('External auditor', $this->definition()->role('auditor')->label);
         self::assertTrue($this->definition()->role('auditor')->internalOnly);
 
-        $this->client->request('GET', '/admin/configuration/roles/auditor');
+        $this->client->request('GET', '/admin/configuration/role/auditor');
         $this->client->submitForm('Delete');
         $this->client->followRedirect();
         self::assertSelectorTextContains('body', 'Role "External auditor" deleted.');
@@ -155,18 +155,18 @@ final class ConfigurationTest extends WebTestCase
         $this->signInAsAdmin();
 
         // Claire and Sophie, external, hold the role of client.
-        $this->client->request('GET', '/admin/configuration/roles/client');
+        $this->client->request('GET', '/admin/configuration/role/client');
         $this->client->submitForm('Save', ['role[internalOnly]' => true]);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('turbo-frame#modal', 'accesses of external users carry the role "Client"');
 
         // What cannot be deleted says why, beside a button that cannot be pressed.
-        $this->client->request('GET', '/admin/configuration/roles/client');
+        $this->client->request('GET', '/admin/configuration/role/client');
         self::assertSelectorTextContains('turbo-frame#modal', 'accesses carry the role "Client"');
         self::assertSelectorExists('turbo-frame#modal button[disabled]', 'the deletion is not offered');
         self::assertSelectorNotExists('#configuration-delete');
 
-        $this->client->request('GET', '/admin/configuration/roles/nobody');
+        $this->client->request('GET', '/admin/configuration/role/nobody');
         self::assertResponseStatusCodeSame(404);
     }
 
@@ -185,7 +185,7 @@ final class ConfigurationTest extends WebTestCase
         $this->client->followRedirect();
         self::assertSelectorTextContains('#config-places-on_hold', 'Used by no workflow');
 
-        $this->client->request('GET', '/admin/configuration/places/to_test');
+        $this->client->request('GET', '/admin/configuration/place/to_test');
         $this->client->submitForm('Save', ['place[label]' => 'Acceptance', 'place[status]' => 'closed']);
         $this->client->followRedirect();
 
@@ -197,15 +197,35 @@ final class ConfigurationTest extends WebTestCase
         self::assertNull($tested->getClosedAt(), 'and was not touched');
 
         // A step workflows use stays; one nothing uses goes.
-        $this->client->request('GET', '/admin/configuration/places/to_test');
+        $this->client->request('GET', '/admin/configuration/place/to_test');
         self::assertSelectorTextContains('turbo-frame#modal', 'is used by: Bug, Feature, Internal task');
         self::assertSelectorExists('turbo-frame#modal button[disabled]', 'the deletion is not offered');
         self::assertSelectorNotExists('#configuration-delete');
 
-        $this->client->request('GET', '/admin/configuration/places/on_hold');
+        $this->client->request('GET', '/admin/configuration/place/on_hold');
         $this->client->submitForm('Delete');
         $this->client->followRedirect();
         self::assertFalse($this->definition()->hasPlace('on_hold'));
+    }
+
+    /**
+     * A key may be any word: the first step of the starter configuration is
+     * `new`, and its address is not the one that creates a step.
+     */
+    public function testAStepWhoseKeyIsNewHasItsOwnDialog(): void
+    {
+        $this->signInAsAdmin();
+        $steps = \count($this->definition()->places);
+
+        $this->client->request('GET', '/admin/configuration/places');
+        self::assertSelectorExists('#config-places-new a[href="/admin/configuration/place/new"]');
+
+        $this->client->request('GET', '/admin/configuration/place/new');
+        $this->client->submitForm('Save', ['place[label]' => 'Received']);
+        $this->client->followRedirect();
+
+        self::assertSame('Received', $this->definition()->place('new')->label);
+        self::assertCount($steps, $this->definition()->places, 'no step was created');
     }
 
     public function testFieldsAndLinkTypesAreManagedOnOnePage(): void
@@ -231,21 +251,21 @@ final class ConfigurationTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('turbo-frame#modal', 'Only a list or a single choice has choices');
         self::assertFalse($this->definition()->hasField('reference'));
-        $this->client->request('GET', '/admin/configuration/fields/url');
+        $this->client->request('GET', '/admin/configuration/field/url');
         self::assertSelectorNotExists('[name="field_settings[choices]"]');
         $this->client->submitForm('Save', ['field_settings[help]' => 'The page.']);
         $this->client->followRedirect();
         self::assertSame('The page.', $this->definition()->field('url')->help);
 
         // A choice keeps its value when its label changes; a new line gets one.
-        $this->client->request('GET', '/admin/configuration/fields/environment');
+        $this->client->request('GET', '/admin/configuration/field/environment');
         self::assertSelectorNotExists('[name="field_settings[type]"]', 'the type is chosen once');
         $this->client->submitForm('Save', ['field_settings[choices]' => "prod = Live\npreprod = Pre-production\nLocal", 'field_settings[help]' => 'Where it happens.']);
         $this->client->followRedirect();
         self::assertSame(['prod' => 'Live', 'preprod' => 'Pre-production', 'local' => 'Local'], $this->definition()->field('environment')->options);
         self::assertSame('Where it happens.', $this->definition()->field('environment')->help);
 
-        $this->client->request('GET', '/admin/configuration/fields/environment');
+        $this->client->request('GET', '/admin/configuration/field/environment');
         $this->client->submitForm('Save', ['field_settings[choices]' => '']);
         self::assertResponseStatusCodeSame(422);
 
@@ -254,12 +274,12 @@ final class ConfigurationTest extends WebTestCase
         $this->client->followRedirect();
         self::assertSame('Followed by', $this->definition()->link('follows')->inverseLabel);
 
-        $this->client->request('GET', '/admin/configuration/links/follows');
+        $this->client->request('GET', '/admin/configuration/link/follows');
         $this->client->submitForm('Save', ['link_type[inverseLabel]' => '']);
         $this->client->followRedirect();
         self::assertTrue($this->definition()->link('follows')->isSymmetric());
 
-        $this->client->request('GET', '/admin/configuration/links/follows');
+        $this->client->request('GET', '/admin/configuration/link/follows');
         $this->client->submitForm('Delete');
         $this->client->followRedirect();
         self::assertFalse($this->definition()->hasLink('follows'));
@@ -272,9 +292,9 @@ final class ConfigurationTest extends WebTestCase
         $this->client->request('GET', '/admin/configuration/workflows');
         self::assertSelectorTextContains('#bug', 'Bug');
         self::assertSelectorTextContains('#bug', '1 category');
-        self::assertSelectorExists('#bug a[href="/admin/configuration/workflows/bug"]');
+        self::assertSelectorExists('#bug a[href="/admin/configuration/workflow/bug"]');
 
-        $crawler = $this->client->request('GET', '/admin/configuration/workflows/bug');
+        $crawler = $this->client->request('GET', '/admin/configuration/workflow/bug');
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('main a[href="/admin/configuration/workflows"]', 'back to the list');
         self::assertSelectorNotExists('[data-controller="workflow-diagram"]', 'the diagram has a page of its own');
@@ -289,25 +309,25 @@ final class ConfigurationTest extends WebTestCase
 
         $crawler = $this->client->clickLink('Diagram');
         self::assertStringContainsString('to_test -.->|"Refuse 💬"| in_progress', $crawler->filter('[data-workflow-diagram-target="source"]')->text(), 'the graph, drawn by the browser');
-        self::assertSelectorExists('main a[href="/admin/configuration/workflows/bug"]');
+        self::assertSelectorExists('main a[href="/admin/configuration/workflow/bug"]');
 
-        $this->client->request('GET', '/admin/configuration/workflows/bug/usage');
+        $this->client->request('GET', '/admin/configuration/workflow/bug/usage');
         self::assertSelectorTextContains('main', 'Online shop');
         self::assertSelectorTextContains('main', 'MD-SPT');
 
         // A workflow that uses every step of the instance is not offered more.
-        $this->client->request('GET', '/admin/configuration/workflows/bug');
-        self::assertSelectorExists('main a[href="/admin/configuration/workflows/bug/places/add"]');
+        $this->client->request('GET', '/admin/configuration/workflow/bug');
+        self::assertSelectorExists('main a[href="/admin/configuration/workflow/bug/places/add"]');
         self::getContainer()->get(CommandBus::class)->dispatch(new CreateWorkflow('Everything', 'new'));
         foreach (array_diff(array_keys($this->definition()->places), ['new']) as $place) {
             self::getContainer()->get(CommandBus::class)->dispatch(new AddWorkflowPlace('everything', $place));
         }
-        $this->client->request('GET', '/admin/configuration/workflows/everything');
-        self::assertSelectorNotExists('main a[href="/admin/configuration/workflows/everything/places/add"]');
-        $this->client->request('GET', '/admin/configuration/workflows/everything/places/add');
+        $this->client->request('GET', '/admin/configuration/workflow/everything');
+        self::assertSelectorNotExists('main a[href="/admin/configuration/workflow/everything/places/add"]');
+        $this->client->request('GET', '/admin/configuration/workflow/everything/places/add');
         self::assertResponseStatusCodeSame(404);
 
-        $this->client->request('GET', '/admin/configuration/workflows/nonsense');
+        $this->client->request('GET', '/admin/configuration/workflow/nonsense');
         self::assertResponseStatusCodeSame(404);
     }
 
@@ -317,9 +337,9 @@ final class ConfigurationTest extends WebTestCase
 
         $this->client->request('GET', '/admin/configuration/workflows/new');
         $this->client->submitForm('Create', ['workflow[label]' => 'Support request', 'workflow[initial]' => 'new']);
-        self::assertResponseRedirects('/admin/configuration/workflows/support_request');
+        self::assertResponseRedirects('/admin/configuration/workflow/support_request');
 
-        $this->client->request('GET', '/admin/configuration/workflows/support_request/places/add');
+        $this->client->request('GET', '/admin/configuration/workflow/support_request/places/add');
         self::assertSelectorNotExists('[name="add_places[places][]"][value="new"]', 'the steps it has are not offered again');
         $this->client->submitForm('Add the steps');
         self::assertResponseStatusCodeSame(422);
@@ -330,7 +350,7 @@ final class ConfigurationTest extends WebTestCase
         $this->client->followRedirect();
         self::assertSame(['new', 'in_progress', 'done'], $this->definition()->workflow('support_request')->places);
 
-        $this->client->request('GET', '/admin/configuration/workflows/support_request/actions/new');
+        $this->client->request('GET', '/admin/configuration/workflow/support_request/actions/new');
         $this->client->submitForm('Create', ['transition[label]' => 'Answer', 'transition[to]' => 'done']);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('turbo-frame#modal', 'An action starts from at least one step.');
@@ -344,14 +364,14 @@ final class ConfigurationTest extends WebTestCase
             'transition[requiresComment]' => true,
             'transition[commentPrompt]' => 'What was done?',
         ]);
-        self::assertResponseRedirects('/admin/configuration/workflows/support_request');
+        self::assertResponseRedirects('/admin/configuration/workflow/support_request');
 
         $answer = $this->definition()->workflow('support_request')->transition('answer');
         self::assertSame(['new'], $answer->from);
         self::assertSame('done', $answer->to);
         self::assertSame('What was done?', $answer->commentPrompt);
 
-        $this->client->request('GET', '/admin/configuration/workflows/support_request/actions/answer');
+        $this->client->request('GET', '/admin/configuration/workflow/support_request/action/answer');
         $this->client->submitForm('Save', ['transition[label]' => 'Reply', 'transition[requiresComment]' => false, 'transition[description]' => 'The request is answered.']);
         $this->client->followRedirect();
         $answer = $this->definition()->workflow('support_request')->transition('answer');
@@ -359,23 +379,23 @@ final class ConfigurationTest extends WebTestCase
         self::assertNull($answer->commentPrompt);
         self::assertSame('The request is answered.', $answer->description);
 
-        $this->client->request('GET', '/admin/configuration/workflows/support_request/edit');
+        $this->client->request('GET', '/admin/configuration/workflow/support_request/edit');
         $this->client->submitForm('Save', ['workflow[label]' => 'Support', 'workflow[initial]' => 'done']);
         $this->client->followRedirect();
         self::assertSame('done', $this->definition()->workflow('support_request')->initial);
 
-        $this->client->request('GET', '/admin/configuration/workflows/support_request/actions/answer');
+        $this->client->request('GET', '/admin/configuration/workflow/support_request/action/answer');
         $this->client->submitForm('Delete');
         $this->client->followRedirect();
         self::assertSame([], $this->definition()->workflow('support_request')->transitions);
 
-        $this->client->request('GET', '/admin/configuration/workflows/support_request/edit');
+        $this->client->request('GET', '/admin/configuration/workflow/support_request/edit');
         $this->client->submitForm('Delete');
         self::assertResponseRedirects('/admin/configuration/workflows');
         self::assertFalse($this->definition()->hasWorkflow('support_request'));
 
         // A workflow categories follow stays, and says so on its page.
-        $this->client->request('GET', '/admin/configuration/workflows/bug/edit');
+        $this->client->request('GET', '/admin/configuration/workflow/bug/edit');
         self::assertSelectorTextContains('turbo-frame#modal', 'A category follows the workflow "Bug"');
         self::assertSelectorExists('turbo-frame#modal button[disabled]', 'the deletion is not offered');
         self::assertSelectorNotExists('#configuration-delete');
@@ -391,7 +411,7 @@ final class ConfigurationTest extends WebTestCase
             'actions' => [['type' => 'comment', 'params' => ['body' => 'Any news?']]],
         ]));
 
-        $this->client->request('GET', '/admin/configuration/workflows/bug/places/needs_info/remove');
+        $this->client->request('GET', '/admin/configuration/workflow/bug/place/needs_info/remove');
         self::assertSelectorTextContains('turbo-frame#modal', 'An automation rule names this step');
         self::assertSelectorTextContains('turbo-frame#modal', 'Remind who was asked (Online shop)');
         self::assertSelectorTextContains('turbo-frame#modal', 'Deleted · Ask for details');
@@ -399,10 +419,10 @@ final class ConfigurationTest extends WebTestCase
         self::assertSelectorTextContains('turbo-frame#modal', 'No longer starts from there · Reject');
         self::assertSelectorTextNotContains('turbo-frame#modal', 'must go elsewhere');
 
-        $this->client->request('GET', '/admin/configuration/workflows/bug/places/to_test/remove');
+        $this->client->request('GET', '/admin/configuration/workflow/bug/place/to_test/remove');
         self::assertSelectorTextContains('turbo-frame#modal', 'An issue stands on this step');
         $this->client->submitForm('Remove the step and move 1 issue', ['workflow_place[place]' => 'in_progress']);
-        self::assertResponseRedirects('/admin/configuration/workflows/bug');
+        self::assertResponseRedirects('/admin/configuration/workflow/bug');
         $this->client->followRedirect();
         self::assertSelectorTextContains('body', '"To test" left the workflow, and its issue moved.');
 
@@ -417,7 +437,7 @@ final class ConfigurationTest extends WebTestCase
         self::assertInstanceOf(Issue::class, $moved);
         self::assertSame('in_progress', $moved->getPlace());
 
-        $this->client->request('GET', '/admin/configuration/workflows/bug/places/new/remove');
+        $this->client->request('GET', '/admin/configuration/workflow/bug/place/new/remove');
         self::assertResponseStatusCodeSame(404);
     }
 
@@ -445,12 +465,12 @@ final class ConfigurationTest extends WebTestCase
     {
         $this->signInAsAdmin();
 
-        $this->client->request('GET', '/admin/configuration/places/to_test');
+        $this->client->request('GET', '/admin/configuration/place/to_test');
         $this->client->submitForm('Save', ['place[status]' => 'closed']);
-        $this->client->request('GET', '/admin/configuration/workflows/bug/places/needs_info/remove');
+        $this->client->request('GET', '/admin/configuration/workflow/bug/place/needs_info/remove');
         $this->client->submitForm('Remove the step');
         // A refusal writes nothing.
-        $this->client->request('GET', '/admin/configuration/roles/client');
+        $this->client->request('GET', '/admin/configuration/role/client');
         $this->client->submitForm('Save', ['role[internalOnly]' => true]);
 
         $crawler = $this->client->request('GET', '/admin/configuration/history');

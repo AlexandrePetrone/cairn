@@ -53,7 +53,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * go and lists the actions that go or change with the step.
  */
 #[IsGranted('ROLE_ADMIN')]
-#[Route('/admin/configuration/workflows')]
+#[Route('/admin/configuration')]
 final class WorkflowController extends AbstractController
 {
     use EditsConfiguration;
@@ -72,13 +72,13 @@ final class WorkflowController extends AbstractController
     ) {
     }
 
-    #[Route('', name: 'app_admin_configuration_workflows', methods: ['GET'])]
+    #[Route('/workflows', name: 'app_admin_configuration_workflows', methods: ['GET'])]
     public function list(Request $request, TrackerRepository $trackers): Response
     {
         return $this->index($request, $trackers, null);
     }
 
-    #[Route('/new', name: 'app_admin_configuration_workflow_new', methods: ['GET', 'POST'])]
+    #[Route('/workflows/new', name: 'app_admin_configuration_workflow_new', methods: ['GET', 'POST'])]
     public function new(Request $request, TrackerRepository $trackers): Response
     {
         $data = new WorkflowData();
@@ -94,7 +94,7 @@ final class WorkflowController extends AbstractController
         return $this->index($request, $trackers, $form);
     }
 
-    #[Route('/{id}', name: 'app_admin_configuration_workflow', requirements: self::ID, methods: ['GET'])]
+    #[Route('/workflow/{id}', name: 'app_admin_configuration_workflow', requirements: self::ID, methods: ['GET'])]
     public function show(string $id, Request $request): Response
     {
         return $this->page($request, $this->workflow($id), null, 'none');
@@ -103,7 +103,7 @@ final class WorkflowController extends AbstractController
     /**
      * The diagram of the workflow, on a page of its own.
      */
-    #[Route('/{id}/diagram', name: 'app_admin_configuration_workflow_diagram', requirements: self::ID, methods: ['GET'])]
+    #[Route('/workflow/{id}/diagram', name: 'app_admin_configuration_workflow_diagram', requirements: self::ID, methods: ['GET'])]
     public function diagram(string $id): Response
     {
         return $this->render('admin/configuration/workflow_diagram.html.twig', ['definition' => $this->config->definition(), 'workflow' => $this->workflow($id)]);
@@ -112,7 +112,7 @@ final class WorkflowController extends AbstractController
     /**
      * The categories that follow the workflow, with their issues step by step.
      */
-    #[Route('/{id}/usage', name: 'app_admin_configuration_workflow_usage', requirements: self::ID, methods: ['GET'])]
+    #[Route('/workflow/{id}/usage', name: 'app_admin_configuration_workflow_usage', requirements: self::ID, methods: ['GET'])]
     public function usage(string $id): Response
     {
         return $this->render('admin/configuration/workflow_usage.html.twig', [
@@ -125,7 +125,7 @@ final class WorkflowController extends AbstractController
     /**
      * The dialog of the workflow itself: its name, its initial step, and its deletion.
      */
-    #[Route('/{id}/edit', name: 'app_admin_configuration_workflow_edit', requirements: self::ID, methods: ['GET', 'POST'])]
+    #[Route('/workflow/{id}/edit', name: 'app_admin_configuration_workflow_edit', requirements: self::ID, methods: ['GET', 'POST'])]
     public function edit(string $id, Request $request): Response
     {
         $workflow = $this->workflow($id);
@@ -142,7 +142,7 @@ final class WorkflowController extends AbstractController
         return $this->page($request, $workflow, $form, 'workflow', ['dialogRefusal' => $this->deletions->workflow($id)?->trans($this->translator)]);
     }
 
-    #[Route('/{id}/delete', name: 'app_admin_configuration_workflow_delete', requirements: self::ID, methods: ['POST'])]
+    #[Route('/workflow/{id}/delete', name: 'app_admin_configuration_workflow_delete', requirements: self::ID, methods: ['POST'])]
     #[IsCsrfTokenValid('submit')]
     public function delete(string $id): RedirectResponse
     {
@@ -156,7 +156,7 @@ final class WorkflowController extends AbstractController
     /**
      * The dialog that adds steps of the instance to the workflow, several at once.
      */
-    #[Route('/{id}/places/add', name: 'app_admin_configuration_workflow_place_add', requirements: self::ID, methods: ['GET', 'POST'])]
+    #[Route('/workflow/{id}/places/add', name: 'app_admin_configuration_workflow_place_add', requirements: self::ID, methods: ['GET', 'POST'])]
     public function addPlace(string $id, Request $request): Response
     {
         $workflow = $this->workflow($id);
@@ -180,7 +180,7 @@ final class WorkflowController extends AbstractController
     /**
      * The dialog that takes a step out of the workflow, saying what goes with it.
      */
-    #[Route('/{id}/places/{place}/remove', name: 'app_admin_configuration_workflow_place_remove', requirements: self::ID + ['place' => '[a-z][a-z0-9_]*'], methods: ['GET', 'POST'])]
+    #[Route('/workflow/{id}/place/{place}/remove', name: 'app_admin_configuration_workflow_place_remove', requirements: self::ID + ['place' => '[a-z][a-z0-9_]*'], methods: ['GET', 'POST'])]
     public function removePlace(string $id, string $place, Request $request): Response
     {
         $definition = $this->config->definition();
@@ -226,7 +226,7 @@ final class WorkflowController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}/actions/new', name: 'app_admin_configuration_transition_new', requirements: self::ID, methods: ['GET', 'POST'])]
+    #[Route('/workflow/{id}/actions/new', name: 'app_admin_configuration_transition_new', requirements: self::ID, methods: ['GET', 'POST'])]
     public function newTransition(string $id, Request $request): Response
     {
         $workflow = $this->workflow($id);
@@ -239,7 +239,7 @@ final class WorkflowController extends AbstractController
         return $this->page($request, $workflow, $form, 'transition');
     }
 
-    #[Route('/{id}/actions/{key}', name: 'app_admin_configuration_transition', requirements: self::KEYS, methods: ['GET', 'POST'])]
+    #[Route('/workflow/{id}/action/{key}', name: 'app_admin_configuration_transition', requirements: self::KEYS, methods: ['GET', 'POST'])]
     public function editTransition(string $id, string $key, Request $request): Response
     {
         $workflow = $this->workflow($id);
@@ -263,7 +263,7 @@ final class WorkflowController extends AbstractController
         return $this->page($request, $workflow, $form, 'transition', ['dialogTransition' => $transition, 'dialogRules' => $this->rules->toTransition($id, $key)]);
     }
 
-    #[Route('/{id}/actions/{key}/delete', name: 'app_admin_configuration_transition_delete', requirements: self::KEYS, methods: ['POST'])]
+    #[Route('/workflow/{id}/action/{key}/delete', name: 'app_admin_configuration_transition_delete', requirements: self::KEYS, methods: ['POST'])]
     #[IsCsrfTokenValid('submit')]
     public function deleteTransition(string $id, string $key): RedirectResponse
     {

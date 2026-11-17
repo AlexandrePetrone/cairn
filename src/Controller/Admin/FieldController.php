@@ -71,7 +71,7 @@ final class FieldController extends AbstractController
         return $this->page($request, $form);
     }
 
-    #[Route('/fields/{id}', name: 'app_admin_configuration_field', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['GET', 'POST'])]
+    #[Route('/field/{id}', name: 'app_admin_configuration_field', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['GET', 'POST'])]
     public function editField(string $id, Request $request): Response
     {
         $definition = $this->config->definition();
@@ -96,7 +96,7 @@ final class FieldController extends AbstractController
         return $this->page($request, $form, $field);
     }
 
-    #[Route('/fields/{id}/delete', name: 'app_admin_configuration_field_delete', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['POST'])]
+    #[Route('/field/{id}/delete', name: 'app_admin_configuration_field_delete', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['POST'])]
     #[IsCsrfTokenValid('submit')]
     public function deleteField(string $id): RedirectResponse
     {
@@ -120,7 +120,7 @@ final class FieldController extends AbstractController
         return $this->page($request, $form, link: true);
     }
 
-    #[Route('/links/{id}', name: 'app_admin_configuration_link', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['GET', 'POST'])]
+    #[Route('/link/{id}', name: 'app_admin_configuration_link', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['GET', 'POST'])]
     public function editLink(string $id, Request $request): Response
     {
         $definition = $this->config->definition();
@@ -141,7 +141,7 @@ final class FieldController extends AbstractController
         return $this->page($request, $form, $link, true);
     }
 
-    #[Route('/links/{id}/delete', name: 'app_admin_configuration_link_delete', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['POST'])]
+    #[Route('/link/{id}/delete', name: 'app_admin_configuration_link_delete', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['POST'])]
     #[IsCsrfTokenValid('submit')]
     public function deleteLink(string $id): RedirectResponse
     {

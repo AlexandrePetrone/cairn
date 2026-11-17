@@ -1903,7 +1903,11 @@ database.
   The three check `ROLE_ADMIN` themselves: their endpoint is not under
   `/admin`. Dialogs have an address of their own and load in the
   `modal` frame of the administration layout
-  (`admin/configuration/_dialog.html.twig`). The page of a workflow
+  (`admin/configuration/_dialog.html.twig`). An address names the list,
+  and what creates in it, in the plural (`/places`, `/places/new`) and
+  one element in the singular, followed by its key (`/place/to_test`,
+  `/workflow/bug/action/start`): a key never stands where a word of the
+  address may, so any key is allowed, `new` included. The page of a workflow
   holds its steps, its actions, its fields, its diagram
   (`Workflow/MermaidDiagram`, `Workflow:Diagram`) and the trackers that
   follow it; the dialog that takes a step out says how many issues stand

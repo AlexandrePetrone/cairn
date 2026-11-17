@@ -17,6 +17,11 @@ use Symfony\Component\Messenger\Exception\ValidationFailedException;
  * of the dialog, in its own words; the refusal of a deletion, which has no
  * form, is said when the page shows again.
  *
+ * Their addresses name the list, and what creates in it, in the plural
+ * (`/places`, `/places/new`) and one element in the singular, followed
+ * by its key (`/place/to_test`): a key never stands where a word of the
+ * address may, so any key is allowed, `new` included.
+ *
  * The class that uses it has `$commands` (CommandBus) and `$translator`.
  */
 trait EditsConfiguration

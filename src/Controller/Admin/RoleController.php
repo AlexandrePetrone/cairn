@@ -65,7 +65,7 @@ final class RoleController extends AbstractController
         return $this->page($request, $form, null);
     }
 
-    #[Route('/roles/{id}', name: 'app_admin_configuration_role', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['GET', 'POST'])]
+    #[Route('/role/{id}', name: 'app_admin_configuration_role', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['GET', 'POST'])]
     public function edit(string $id, Request $request): Response
     {
         $role = $this->role($id);
@@ -85,7 +85,7 @@ final class RoleController extends AbstractController
         return $this->page($request, $form, $role);
     }
 
-    #[Route('/roles/{id}/delete', name: 'app_admin_configuration_role_delete', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['POST'])]
+    #[Route('/role/{id}/delete', name: 'app_admin_configuration_role_delete', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['POST'])]
     #[IsCsrfTokenValid('submit')]
     public function delete(string $id): RedirectResponse
     {

@@ -65,7 +65,7 @@ final class PlaceController extends AbstractController
         return $this->page($request, $form, null);
     }
 
-    #[Route('/places/{id}', name: 'app_admin_configuration_place', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['GET', 'POST'])]
+    #[Route('/place/{id}', name: 'app_admin_configuration_place', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['GET', 'POST'])]
     public function edit(string $id, Request $request): Response
     {
         $place = $this->place($id);
@@ -84,7 +84,7 @@ final class PlaceController extends AbstractController
         return $this->page($request, $form, $place);
     }
 
-    #[Route('/places/{id}/delete', name: 'app_admin_configuration_place_delete', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['POST'])]
+    #[Route('/place/{id}/delete', name: 'app_admin_configuration_place_delete', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['POST'])]
     #[IsCsrfTokenValid('submit')]
     public function delete(string $id): RedirectResponse
     {
