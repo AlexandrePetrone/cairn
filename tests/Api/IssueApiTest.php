@@ -20,6 +20,12 @@ final class IssueApiTest extends ApiTestCase
 
         $all = $this->api('GET', '/api/issues?project=MD-SPT&closed=1', $secret);
         self::assertContains('MD-SPT-5', array_column($all['member'], 'key'));
+        foreach (['closed', 'closed=TRUE', 'closed=on'] as $closed) {
+            self::assertSame($all['totalItems'], $this->api('GET', '/api/issues?project=MD-SPT&'.$closed, $secret)['totalItems'], $closed);
+        }
+        self::assertSame($open['totalItems'], $this->api('GET', '/api/issues?project=MD-SPT&closed=0', $secret)['totalItems']);
+        $this->api('GET', '/api/issues?project=MD-SPT&closed[]=1', $secret);
+        self::assertResponseStatusCodeSame(400);
 
         $new = $this->api('GET', '/api/issues?project=MD-SPT&place[]=new&tracker[]='.$this->scene->bugs->getId().'&sort=key', $secret);
         self::assertSame(['MD-SPT-1', 'MD-SPT-2'], array_column($new['member'], 'key'));

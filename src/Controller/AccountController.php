@@ -15,6 +15,7 @@ use App\Message\Command\User\ChangePassword;
 use App\Message\Command\User\UpdateUser;
 use App\Message\CommandBus;
 use App\MessageHandler\Command\User\UserException;
+use App\Security\AccessControl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Target;
@@ -43,6 +44,7 @@ final class AccountController extends AbstractController
     public function __construct(
         private readonly CommandBus $commands,
         private readonly TranslatorInterface $translator,
+        private readonly AccessControl $access,
     ) {
     }
 
@@ -116,6 +118,20 @@ final class AccountController extends AbstractController
         }
 
         return $this->render('account/security.html.twig', ['form' => $form], new Response(null, $form->isSubmitted() ? 422 : 200));
+    }
+
+    /**
+     * How to plug an assistant on the MCP server: for whoever may use the
+     * API, since it is signed in with the same tokens.
+     */
+    #[Route('/account/mcp', name: 'app_account_mcp', methods: ['GET'])]
+    public function mcp(#[CurrentUser] User $user): Response
+    {
+        if (!$this->access->canUseApi($user)) {
+            throw $this->createAccessDeniedException('The MCP server is for internal users.');
+        }
+
+        return $this->render('account/mcp.html.twig');
     }
 
     #[Route('/avatars/{name}', name: 'app_avatar', requirements: ['name' => AvatarStorage::NAME_PATTERN], methods: ['GET'])]

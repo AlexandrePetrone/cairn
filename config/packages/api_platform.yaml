@@ -8,7 +8,7 @@ api_platform:
     # the commands (src/Api/State).
     doctrine: false
     mapping:
-        paths: ['%kernel.project_dir%/src/Api/Resource']
+        paths: ['%kernel.project_dir%/src/Api/Resource', '%kernel.project_dir%/src/Api/Mcp']
     defaults:
         stateless: true
         # The values nested in a resource (a person, a place, a file) are
@@ -17,6 +17,15 @@ api_platform:
             gen_id: false
         cache_headers:
             vary: ['Content-Type', 'Authorization', 'Origin']
+    # The defaults, and a right a handler refuses: a page turns it into a
+    # 403 by itself, the MCP server needs it named to answer with the reason
+    # instead of an internal error.
+    exception_to_status:
+        Symfony\Component\Serializer\Exception\ExceptionInterface: 400
+        ApiPlatform\Metadata\Exception\InvalidArgumentException: 400
+        Doctrine\ORM\OptimisticLockException: 409
+        Doctrine\DBAL\Exception\UniqueConstraintViolationException: 422
+        Symfony\Component\Security\Core\Exception\AccessDeniedException: 403
     swagger:
         http_auth:
             token:

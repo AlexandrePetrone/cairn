@@ -1060,6 +1060,7 @@ account:
         security: Sécurité
         integrations: Intégrations
         api: API
+        mcp: Serveur MCP
     profile:
         picture:
             title: Photo
@@ -1100,6 +1101,17 @@ account:
         too_many_attempts: Trop de tentatives. Réessayez dans quelques minutes.
     refused:
         wrong_password: Le mot de passe actuel est incorrect.
+
+mcp:
+    title: Serveur MCP
+    intro: Branchez un assistant comme Claude Code sur Cairn pour lire et faire avancer les demandes sans quitter votre terminal. Il agit en votre nom, avec l'un de vos jetons d'API ; il voit et fait ce que vous pouvez voir et faire, jamais plus.
+    tokens: Jetons d'API
+    connect:
+        title: Connecter Claude Code
+        hint: Créez un jeton, puis lancez cette commande en le mettant à la place de cairn_…
+        scope: Un jeton en lecture ne laisse l'assistant que lire ; un jeton en lecture et écriture lui permet aussi de créer, modifier et commenter des demandes.
+        private: Un commentaire écrit par l'assistant est privé, sauf si vous lui demandez de répondre au client.
+
 api_token:
     title: Jetons d'API
     intro: Un jeton permet à un programme d'appeler l'API de Cairn en votre nom ; il voit et fait ce que vous pouvez voir et faire, jamais plus. Donnez à chaque programme son propre jeton, et révoquez-le quand il n'en a plus besoin.

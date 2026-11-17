@@ -16,4 +16,14 @@ enum Criticality: string
     case Blocking = 'blocking';
 
     public const self DEFAULT = self::Normal;
+
+    /**
+     * The levels as they are written, for what takes one as a string.
+     *
+     * @return list<string>
+     */
+    public static function values(): array
+    {
+        return array_column(self::cases(), 'value');
+    }
 }

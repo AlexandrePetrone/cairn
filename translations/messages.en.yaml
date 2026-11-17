@@ -1060,6 +1060,7 @@ account:
         security: Security
         integrations: Integrations
         api: API
+        mcp: MCP server
     profile:
         picture:
             title: Picture
@@ -1100,6 +1101,17 @@ account:
         too_many_attempts: Too many attempts. Try again in a few minutes.
     refused:
         wrong_password: The current password is incorrect.
+
+mcp:
+    title: MCP server
+    intro: Plug an assistant such as Claude Code on Cairn to read and move issues along without leaving your terminal. It acts in your name, with one of your API tokens; it sees and does what you may, never more.
+    tokens: API tokens
+    connect:
+        title: Connect Claude Code
+        hint: Create a token, then run this command with it in place of cairn_…
+        scope: A read token lets the assistant read only; a read and write token lets it create, change and comment issues too.
+        private: A comment the assistant writes is private unless you ask it to answer the client.
+
 api_token:
     title: API tokens
     intro: A token lets a program call the Cairn API in your name; it sees and does what you may, never more. Give each program its own token, and revoke it when the program no longer needs it.

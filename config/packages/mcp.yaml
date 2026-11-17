@@ -1,0 +1,18 @@
+mcp:
+    servers:
+        # The MCP server of the internal users: the tools of src/Api/Mcp,
+        # declared as API Platform operations (its loader fills the
+        # registry), signed in with the personal tokens of the REST API.
+        cairn:
+            name: Cairn
+            version: 1.0.0
+            instructions: |
+                Cairn is the issue tracker of the team and its clients. You act as the user of the token: you see and change what they may.
+                A project is named by its key (MD-SPT), an issue by its key (MD-SPT-12). Texts are markdown: #MD-SPT-12 links an issue.
+                A category is named by its id, a step by its id (in_progress); get_project lists the categories of a project and the steps of each.
+                Clients read the issues too: a comment is private (internal users only) unless you are asked to answer the client.
+            registry: '*'
+            http:
+                path: /mcp
+                # The bundle only answers the hosts listed: the one of the instance.
+                allowed_hosts: ['%env(key:host:url:DEFAULT_URI)%']

@@ -11,6 +11,7 @@
     {% if accountNavCanUseApi %}
         <twig:Ui:Layout:Sidebar:Section :label="'account.nav.integrations'|trans">
             <twig:Ui:Layout:Sidebar:Item href="{{ path('app_api_tokens') }}" icon="key-round" :active="accountNavRoute starts with 'app_api_token'">{{ 'account.nav.api'|trans }}</twig:Ui:Layout:Sidebar:Item>
+            <twig:Ui:Layout:Sidebar:Item href="{{ path('app_account_mcp') }}" icon="plug" :active="accountNavRoute == 'app_account_mcp'">{{ 'account.nav.mcp'|trans }}</twig:Ui:Layout:Sidebar:Item>
         </twig:Ui:Layout:Sidebar:Section>
     {% endif %}
 </twig:Ui:Layout:Sidebar>

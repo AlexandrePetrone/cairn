@@ -15,8 +15,8 @@ use App\Entity\Enum\Criticality;
 use App\Message\Query\Issue\IssueSort;
 use App\Message\Query\Issue\SearchIssues;
 use App\Message\QueryBus;
+use App\Repository\Pagination as Page;
 use App\Security\Viewer;
-use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
@@ -50,51 +50,86 @@ final class IssueCollectionProvider implements ProviderInterface
     {
         $request = $context['request'] ?? null;
         \assert($request instanceof Request);
-        $filters = $request->query;
+        $page = $this->search($request->query->all(), $this->pagination->getPage($context), $this->pagination->getLimit($operation, $context));
+
+        return new TraversablePaginator(new \ArrayIterator($page->items), $page->page, $page->perPage, $page->total);
+    }
+
+    /**
+     * The page of the list the filters ask for, as a query string names
+     * them: the one place that reads them, for the MCP server too.
+     *
+     * @param array<array-key, mixed> $filters
+     *
+     * @return Page<IssueResource>
+     */
+    public function search(array $filters, int $page, int $perPage): Page
+    {
         $viewer = $this->viewer->get();
 
         $projectId = null;
-        if ($filters->has('project')) {
-            $project = $this->lookup->findProject($filters->getString('project')) ?? throw new BadRequestHttpException('project: no such project.');
+        if (isset($filters['project'])) {
+            $project = $this->lookup->findProject(self::text($filters, 'project')) ?? throw new BadRequestHttpException('project: no such project.');
             $projectId = (int) $project->getId();
         }
-        $sort = $filters->has('sort') ? (self::sort($filters->getString('sort')) ?? throw new BadRequestHttpException('sort: unknown column.')) : null;
-        $order = match ($filters->getString('order', 'asc')) {
+
+        $sort = isset($filters['sort']) ? (self::sort(self::text($filters, 'sort')) ?? throw new BadRequestHttpException('sort: unknown column.')) : null;
+        $order = match (isset($filters['order']) ? self::text($filters, 'order') : 'asc') {
             'asc' => \SortDirection::Ascending,
             'desc' => \SortDirection::Descending,
             default => throw new BadRequestHttpException('order: asc or desc.'),
         };
 
-        $page = $this->queries->ask(new SearchIssues(
+        $found = $this->queries->ask(new SearchIssues(
             viewer: $viewer,
             projectId: $projectId,
-            authorId: $filters->has('author') ? self::id($filters->getString('author'), 'author', [self::ME => (int) $viewer->getId()]) : null,
+            authorId: isset($filters['author']) ? self::id(self::text($filters, 'author'), 'author', [self::ME => (int) $viewer->getId()]) : null,
             place: array_map(fn (string $value): string => $this->config->definition()->hasPlace($value) ? $value : throw new BadRequestHttpException('place: unknown step.'), self::list($filters, 'place')),
             tracker: array_map(static fn (string $value): int => self::id($value, 'tracker'), self::list($filters, 'tracker')),
             assignee: array_map(static fn (string $value): int => self::id($value, 'assignee', [self::ME => (int) $viewer->getId(), self::NONE => 0]), self::list($filters, 'assignee')),
             criticality: array_map(static fn (string $value): Criticality => Criticality::tryFrom($value) ?? throw new BadRequestHttpException('criticality: unknown level.'), self::list($filters, 'criticality')),
             release: array_map(static fn (string $value): int => self::id($value, 'release', [self::NONE => 0]), self::list($filters, 'release')),
-            q: $filters->has('q') ? $filters->getString('q') : null,
-            closed: $filters->has('closed') && ($filters->getBoolean('closed') || '' === $filters->getString('closed')),
-            page: $this->pagination->getPage($context),
+            q: isset($filters['q']) ? self::text($filters, 'q') : null,
+            closed: isset($filters['closed']) && self::flag($filters['closed']),
+            page: $page,
             sort: $sort,
             order: $order,
-            perPage: $this->pagination->getLimit($operation, $context),
+            perPage: $perPage,
         ));
 
-        return new TraversablePaginator(new \ArrayIterator(array_map($this->issues->summary(...), $page->items)), $page->page, $page->perPage, $page->total);
+        return new Page(array_map($this->issues->summary(...), $found->items), $found->total, $found->page, $found->perPage);
+    }
+
+    /**
+     * @param array<array-key, mixed> $filters
+     */
+    private static function text(array $filters, string $name): string
+    {
+        return \is_string($filters[$name]) ? $filters[$name] : throw new BadRequestHttpException($name.': a value.');
+    }
+
+    /**
+     * A flag as a query string gives it (`closed`, `closed=1`, `closed=true`) or as a boolean.
+     */
+    private static function flag(mixed $value): bool
+    {
+        if (!\is_scalar($value)) {
+            throw new BadRequestHttpException('closed: a boolean.');
+        }
+
+        return '' === $value || filter_var($value, \FILTER_VALIDATE_BOOL);
     }
 
     /**
      * The values of a filter given once (`tracker=3`) or several times (`tracker[]=3&tracker[]=4`).
      *
-     * @param InputBag<string> $filters
+     * @param array<array-key, mixed> $filters
      *
      * @return list<string>
      */
-    private static function list(InputBag $filters, string $name): array
+    private static function list(array $filters, string $name): array
     {
-        $values = $filters->all()[$name] ?? [];
+        $values = $filters[$name] ?? [];
         $values = \is_array($values) ? array_values($values) : [$values];
         foreach ($values as $value) {
             if (!\is_string($value)) {

@@ -96,8 +96,8 @@ Decisions already taken:
   internal users comes later.
 - API: a REST API under `/api` for internal users, served by
   API Platform over the same commands and queries as the pages, signed in
-  with personal tokens (see [API](#api)). An MCP server comes next, on the
-  same tokens and the same resources.
+  with personal tokens (see [API](#api)), and an MCP server on `/mcp`, on
+  the same tokens and the same resources, for their assistants.
 - Workflow engine: the Symfony Workflow component, with state machines
   built at runtime from the configuration snapshot stored in database, not
   from YAML (`framework.workflows` stays empty). They enforce structure and
@@ -186,7 +186,8 @@ src/
   Api/               the REST API, self-contained: Resource/ the classes API
                      Platform exposes and their inputs, State/ the providers
                      and processors that ask the buses, Mapper/ what turns
-                     entities into resources (see API)
+                     entities into resources, Mcp/ the tools of the MCP
+                     server (see API)
   Forge/             the forges (GitLab, GitHub later): ForgeApi and its
                      locator, IssueKeyParser, the neutral remote events in
                      Event/, CodeReferenceConsumer; one folder per forge
@@ -1150,6 +1151,48 @@ src/
   (`config/packages/rate_limiter.yaml`), 429 beyond. Even so, nothing
   in `Api/` assumes an internal viewer: opening the API to clients
   would be a change of `canUseApi()` alone.
+- **The MCP server is a few tools over the same code.** `/mcp`
+  (`symfony/mcp-bundle`, the `cairn` server of `config/packages/mcp.yaml`,
+  HTTP only) lets the assistant of an internal user, Claude Code first,
+  read and move issues along. A tool is an API Platform operation
+  (`api-platform/mcp`, experimental): a class of `Api/Mcp/` (`…Tool`)
+  carries `#[McpTool]`, its properties are the arguments, and its
+  processor in `Api/Mcp/State/` hands them to what the REST API already
+  has: the processors of `Api/State/` (`create_issue`, `update_issue`,
+  `add_comment`, `move_issue`, `change_tracker`: a tool of its own, so
+  that an assistant leaves the workflow of an issue only when asked to),
+  `IssueCollectionProvider::search()`
+  (`search_issues`: the filters of `GET /api/issues`), `Lookup` and the
+  mappers. What a tool answers is a resource of the API, or one of the
+  classes that put several together so that one call is enough:
+  `IssueView` (the issue, its comments with their files, its links:
+  `get_issue`), `ProjectView` (the project, its trackers, members and
+  releases: `get_project`) and `IssueList`. `get_attachment` hands the file
+  itself over, since its address needs a session or a token the
+  assistant's shell does not have: an image as an image (a screenshot is
+  seen), a short text in UTF-8 as text, anything else as its bytes (an
+  embedded resource), whatever its size or encoding, one file per answer. It
+  is the same door as the API: the `api` firewall and its tokens,
+  `canUseApi()`, the rate limiter. Every request being a POST, the scope
+  is asked by each tool (`security: "is_granted('api.read')"` or
+  `api.write`), which also hides from a `read` token the tools that
+  write. Each tool sets `validate: true` (the constraints of its class;
+  off by default for a tool), answers plain JSON as text only
+  (`structuredContent: false`: an assistant pays for every character,
+  and for the schema of every answer otherwise) and a refusal comes back
+  as the sentence the REST API gives (`exception_to_status` names the
+  handlers' `AccessDeniedException` for that). A comment written through
+  a tool is private unless the call says otherwise
+  (`AddCommentTool::$private`): what an assistant writes is for the team
+  first. An assistant fills the arguments it does not use with
+  nulls and empty strings, so neither means anything: `update_issue`
+  unassigns with the word `none` (`UpdateIssueTool::NONE`), never with a
+  null, and `search_issues` drops an empty filter. `allowed_hosts` is the host of `DEFAULT_URI`, the bundle
+  refusing any other; sessions are the bundle's files in the cache
+  directory, bound to the user, so several application servers need its
+  `cache` store. Links, files to send, subscriptions and deletion are left to the API: add a tool when an assistant
+  needs it. `/account/mcp` (`AccountController::mcp()`) gives the command
+  that plugs Claude Code.
 - **Tokens are managed by their owner** on `/account/tokens`
   (`Controller/ApiTokenController`, in the sidebar of the account of
   those who may use the API): `CreateApiToken` returns a `NewApiToken`, the token and
@@ -1178,7 +1221,8 @@ src/
   user menu: Profile (`/account`), Notifications, Security
   (`Controller/AccountController`) and, under Integrations for whoever
   may use the API, the tokens (`/account/tokens`,
-  `ApiTokenController`); the MCP server will be one more entry there. A
+  `ApiTokenController`) and how to plug an assistant on the MCP server
+  (`/account/mcp`). A
   new subject is a route, a template extending the layout (`page_title`,
   `content`, and `page_intro`, `page_actions`, `page_width` when
   needed) and an item of the sidebar, never a card added to another
@@ -1834,6 +1878,10 @@ Castor are the only things needed on the host. Commands run inside the
   http://localhost:8000/api/issues?assignee[]=me`; the operations are
   listed on <http://localhost:8000/api/docs>, signed in as an internal
   user.
+- MCP: with a token, `claude mcp add --transport http cairn
+  http://localhost:8000/mcp --header "Authorization: Bearer cairn_…"`
+  (the command is on <http://localhost:8000/account/mcp>), then ask
+  Claude Code for an issue by its key.
 - Forges: `FORGE_GITLAB_TOKEN` is empty by default, so a linked
   repository shows the URL and secret to paste in GitLab by hand; a token
   in `.env.local` (with `FORGE_GITLAB_URL`) makes the page install the
@@ -1875,7 +1923,8 @@ their data: handler tests build what they check with `AccessFixtures` and
 shop, its people and ten issues under the test configuration,
 `tests/Config/Fixture/`). API tests extend `tests/Api/ApiTestCase`: the
 same scene, a token created through `CreateApiToken`, requests sent with
-it as a program would. The development story is loaded only by the tests
+it as a program would; those of the MCP server extend
+`tests/Api/Mcp/McpTestCase`, which sends JSON-RPC messages to `/mcp`. The development story is loaded only by the tests
 that compare a PHP rule with its SQL over a rich dataset
 (`SearchIssuesVisibilityTest`, `ShowIssueVisibilityTest`,
 `ListProjectMembersTest`, `ListVisibleProjectsTest`) and by `AppStoryTest`.

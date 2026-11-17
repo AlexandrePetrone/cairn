@@ -36,9 +36,15 @@ final class UpdateIssueProcessor implements ProcessorInterface
         \assert($data instanceof UpdateIssueInput);
         $request = $context['request'] ?? null;
         \assert($request instanceof Request);
-        $sent = $request->toArray();
-        $key = (string) $uriVariables['key'];
 
+        return $this->update((string) $uriVariables['key'], $data, $request->toArray());
+    }
+
+    /**
+     * @param array<array-key, mixed> $sent what the caller named: the body of the PATCH, the arguments of the MCP tool
+     */
+    public function update(string $key, UpdateIssueInput $data, array $sent): IssueResource
+    {
         $this->commands->dispatch(new UpdateIssue(
             actorId: (int) $this->viewer->get()->getId(),
             issueKey: $key,

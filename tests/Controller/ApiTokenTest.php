@@ -82,4 +82,20 @@ final class ApiTokenTest extends WebTestCase
         $this->client->request('GET', '/account/tokens');
         self::assertResponseStatusCodeSame(403);
     }
+
+    public function testTheMcpPageGivesTheCommandToInternalUsers(): void
+    {
+        $this->client->loginUser($this->scene->user('nadia.benali@cairn.test'));
+
+        $crawler = $this->client->request('GET', '/account/mcp');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('a[href="/account/mcp"]');
+        self::assertStringContainsString('claude mcp add --transport http cairn http://localhost/mcp --header "Authorization: Bearer', $crawler->filter('[data-test="mcp-command"]')->text());
+
+        $this->client->loginUser($this->scene->user('claire.martin@maison-dupont.test'));
+        $this->client->request('GET', '/account');
+        self::assertSelectorNotExists('a[href="/account/mcp"]');
+        $this->client->request('GET', '/account/mcp');
+        self::assertResponseStatusCodeSame(403);
+    }
 }
