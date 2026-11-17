@@ -34,7 +34,7 @@ final class IssueMapper
     }
 
     /**
-     * An issue as a list shows it.
+     * An issue as a list shows it: without its description.
      */
     public function summary(Issue $issue): IssueResource
     {
@@ -42,7 +42,7 @@ final class IssueMapper
     }
 
     /**
-     * An issue as its page shows it: its fields, its own files and the
+     * An issue as its page shows it: its description, its fields, its own files and the
      * actions the viewer may apply from its place.
      */
     public function detail(IssueDetail $detail): IssueResource
@@ -67,7 +67,7 @@ final class IssueMapper
             );
         }
 
-        return $this->map($issue, $fields, array_map($this->refs->file(...), $detail->issueAttachments()), $transitions);
+        return $this->map($issue, $issue->getDescription(), $fields, array_map($this->refs->file(...), $detail->issueAttachments()), $transitions);
     }
 
     /**
@@ -75,14 +75,14 @@ final class IssueMapper
      * @param list<\App\Api\Resource\Value\FileRef>|null $attachments
      * @param list<OfferedTransition>|null               $transitions
      */
-    private function map(Issue $issue, ?array $fields = null, ?array $attachments = null, ?array $transitions = null): IssueResource
+    private function map(Issue $issue, ?string $description = null, ?array $fields = null, ?array $attachments = null, ?array $transitions = null): IssueResource
     {
         $release = $issue->getRelease();
 
         return new IssueResource(
             key: $issue->getKey(),
             title: $issue->getTitle(),
-            description: $issue->getDescription(),
+            description: $description,
             project: $issue->getProject()->getIssuePrefix(),
             tracker: new NamedRef((int) $issue->getTracker()->getId(), $issue->getTracker()->getName()),
             place: new PlaceRef($issue->getPlace(), $this->workflows->placeOf($issue)->label ?? $issue->getPlace()),
@@ -96,6 +96,7 @@ final class IssueMapper
             updatedAt: $issue->getUpdatedAt(),
             closedAt: $issue->getClosedAt(),
             url: $this->refs->issueUrl($issue),
+            importedRef: $issue->getImportedRef(),
             fields: $fields,
             attachments: $attachments,
             transitions: $transitions,

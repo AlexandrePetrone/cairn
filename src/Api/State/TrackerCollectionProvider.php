@@ -32,6 +32,6 @@ final class TrackerCollectionProvider implements ProviderInterface
     {
         $project = $this->lookup->project((string) $uriVariables['key']);
 
-        return array_map($this->trackers->map(...), $this->queries->ask(new ListTrackers($this->viewer->get(), $project)));
+        return array_map($this->trackers->map(...), $this->queries->ask(new ListTrackers($this->viewer->get(), $project, archived: true)));
     }
 }

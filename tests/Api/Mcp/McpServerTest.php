@@ -55,6 +55,7 @@ final class McpServerTest extends McpTestCase
         $view = $this->read('get_issue', ['key' => 'MD-SPT-1'], $secret);
 
         self::assertSame('MD-SPT-1', $view['issue']['key']);
+        self::assertNotEmpty($view['issue']['description']);
         self::assertNotEmpty($view['issue']['transitions']);
         self::assertSame(['See the capture.'], array_column($view['comments'], 'body'));
         self::assertSame('capture.png', $view['comments'][0]['attachments'][0]['name']);
@@ -141,6 +142,7 @@ final class McpServerTest extends McpTestCase
         $new = $this->read('search_issues', ['project' => 'MD-SPT', 'place' => ['new'], 'tracker' => [$this->scene->bugs->getId()], 'sort' => 'key'], $secret);
         self::assertSame(['MD-SPT-1', 'MD-SPT-2'], array_column($new['issues'], 'key'));
         self::assertSame('new', $new['issues'][0]['place']['id']);
+        self::assertArrayNotHasKey('description', $new['issues'][0], 'A list leaves the descriptions out.');
 
         foreach (['nowhere', 'bug:new'] as $place) {
             $refused = $this->rpc('tools/call', ['name' => 'search_issues', 'arguments' => ['place' => [$place]]], $secret);

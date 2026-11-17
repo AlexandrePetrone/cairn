@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Api;
 
+use App\Entity\Issue;
+use Doctrine\ORM\EntityManagerInterface;
+
 final class IssueApiTest extends ApiTestCase
 {
     public function testTheListIsFilteredLikeTheApplication(): void
@@ -31,6 +34,7 @@ final class IssueApiTest extends ApiTestCase
         self::assertSame(['MD-SPT-1', 'MD-SPT-2'], array_column($new['member'], 'key'));
         self::assertSame(['@type' => 'PlaceRef', 'id' => 'new', 'label' => 'New'], $new['member'][0]['place']);
         self::assertArrayNotHasKey('transitions', $new['member'][0], 'A list does not carry the detail.');
+        self::assertArrayNotHasKey('description', $new['member'][0], 'Nor the description.');
 
         $paged = $this->api('GET', '/api/issues?project=MD-SPT&closed=1&sort=key&itemsPerPage=3&page=2', $secret);
         self::assertSame(['MD-SPT-4', 'MD-SPT-5', 'MD-SPT-6'], array_column($paged['member'], 'key'));
@@ -60,6 +64,21 @@ final class IssueApiTest extends ApiTestCase
         self::assertContains('environment', array_column($issue['fields'], 'id'));
         self::assertSame(['ask_info', 'qualify', 'reject', 'start'], array_column($issue['transitions'], 'id'));
         self::assertSame(['@type' => 'PlaceRef', 'id' => 'qualified', 'label' => 'Qualified'], $issue['transitions'][1]['to']);
+        self::assertSame($this->issue('MD-SPT-1')->getDescription(), $issue['description']);
+        self::assertArrayNotHasKey('importedRef', $issue);
+    }
+
+    public function testAnImportedIssueSaysWhatNamedItBefore(): void
+    {
+        $secret = $this->tokenFor(self::DEVELOPER)->secret;
+        $issue = $this->issue('MD-SPT-1');
+        new \ReflectionProperty(Issue::class, 'importedRef')->setValue($issue, '4812');
+        self::getContainer()->get(EntityManagerInterface::class)->flush();
+
+        self::assertSame('4812', $this->api('GET', '/api/issues/MD-SPT-1', $secret)['importedRef']);
+        $found = $this->api('GET', '/api/issues?q=4812', $secret)['member'];
+        self::assertSame(['MD-SPT-1'], array_column($found, 'key'));
+        self::assertSame('4812', $found[0]['importedRef']);
     }
 
     public function testWhatDoesNotExistIsNotFound(): void

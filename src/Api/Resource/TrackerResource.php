@@ -8,9 +8,9 @@ use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Link;
-use App\Api\Resource\Value\PlaceRef;
 use App\Api\Resource\Value\TrackerField;
 use App\Api\Resource\Value\TrackerPlace;
+use App\Api\Resource\Value\WorkflowRef;
 use App\Api\State\TrackerCollectionProvider;
 
 /**
@@ -24,7 +24,7 @@ use App\Api\State\TrackerCollectionProvider;
         new GetCollection(
             uriTemplate: '/projects/{key}/trackers',
             uriVariables: ['key' => new Link(fromClass: ProjectResource::class)],
-            description: 'The categories of the project that take new issues, in display order.',
+            description: 'The categories of the project in display order, the archived ones among them: they take no new issue, those they hold are read and changed as before.',
             paginationEnabled: false,
             provider: TrackerCollectionProvider::class,
         ),
@@ -43,7 +43,9 @@ final readonly class TrackerResource
         public ?string $description,
         /** Its issues are for internal users. */
         public bool $private,
-        public PlaceRef $workflow,
+        /** Takes no new issue; its issues are read and changed as before. */
+        public bool $archived,
+        public WorkflowRef $workflow,
         public array $places,
         public array $fields,
     ) {

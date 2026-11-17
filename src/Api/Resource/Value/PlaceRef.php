@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Api\Resource\Value;
 
 /**
- * A step of a workflow, where a resource names one.
+ * A step, where a resource names one.
  */
 final readonly class PlaceRef
 {

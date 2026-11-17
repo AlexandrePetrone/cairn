@@ -39,8 +39,18 @@ final class ProjectProvider implements ProviderInterface
             return $this->projects($request instanceof Request ? $request->query->getString('q') : '');
         }
 
-        $key = (string) $uriVariables['key'];
-        foreach ($this->projects('') as $project) {
+        return $this->one((string) $uriVariables['key']);
+    }
+
+    /**
+     * The project named by its key (`MD-SPT`), with its counts: the list
+     * narrowed to the projects bearing the key of the project, for the
+     * MCP server too.
+     */
+    public function one(string $key): ProjectResource
+    {
+        $dash = strrpos($key, '-');
+        foreach ($this->projects(false === $dash ? $key : substr($key, $dash + 1)) as $project) {
             if ($project->key === $key) {
                 return $project;
             }

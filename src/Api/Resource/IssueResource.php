@@ -28,8 +28,8 @@ use App\Api\State\UpdateIssueProcessor;
 
 /**
  * An issue, named by its key (`MD-SPT-12`). A list gives its properties;
- * the issue itself adds its fields, its files and the actions the token's
- * user may apply from its place.
+ * the issue itself adds its description, its fields, its files and the
+ * actions the token's user may apply from its place.
  */
 #[ApiResource(
     shortName: 'Issue',
@@ -44,7 +44,7 @@ use App\Api\State\UpdateIssueProcessor;
             parameters: [
                 'project' => new QueryParameter(schema: ['type' => 'string'], description: 'Key of a project, `MD-SPT`.'),
                 'tracker[]' => new QueryParameter(schema: ['type' => 'array', 'items' => ['type' => 'integer']], description: 'Ids of categories.'),
-                'place[]' => new QueryParameter(schema: ['type' => 'array', 'items' => ['type' => 'string']], description: 'Ids of steps, `in_progress`.'),
+                'place[]' => new QueryParameter(schema: ['type' => 'array', 'items' => ['type' => 'string']], description: 'Ids of steps, `in_progress`. A step is the same in every category that uses it: add `tracker[]` to keep to the issues of some categories.'),
                 'criticality[]' => new QueryParameter(schema: ['type' => 'array', 'items' => ['type' => 'string', 'enum' => ['low', 'normal', 'high', 'blocking']]]),
                 'assignee[]' => new QueryParameter(schema: ['type' => 'array', 'items' => ['type' => 'string']], description: 'Ids of users, `me`, or `none` for the unassigned issues.'),
                 'author' => new QueryParameter(schema: ['type' => 'string'], description: 'Id of a user, or `me`.'),
@@ -102,8 +102,8 @@ final readonly class IssueResource
         #[ApiProperty(identifier: true)]
         public string $key,
         public string $title,
-        /** Markdown. */
-        public string $description,
+        /** Markdown. On the issue itself only: a list leaves it out. */
+        public ?string $description,
         /** Key of the project, `MD-SPT`. */
         public string $project,
         public NamedRef $tracker,
@@ -119,6 +119,8 @@ final readonly class IssueResource
         public ?\DateTimeImmutable $closedAt,
         /** The page of the issue in the application. */
         public string $url,
+        /** What named the issue in the tracker it was imported from, which `q` finds too. */
+        public ?string $importedRef = null,
         public ?array $fields = null,
         public ?array $attachments = null,
         public ?array $transitions = null,

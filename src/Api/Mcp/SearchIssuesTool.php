@@ -13,7 +13,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 #[McpTool(
     name: 'search_issues',
-    description: 'Lists the issues the user may see, 50 a page, filtered and sorted like the lists of the application. Without `closed`, the finished issues are left out.',
+    description: 'Lists the issues the user may see, 50 a page, filtered and sorted like the lists of the application. Without `closed`, the finished issues are left out. The description of an issue is read with get_issue.',
     structuredContent: false,
     outputFormats: ['json' => ['application/json']],
     security: "is_granted('api.read')",

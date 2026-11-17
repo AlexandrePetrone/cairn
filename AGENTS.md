@@ -1102,8 +1102,10 @@ src/
   `GET /api/issues`, whose filters become a `SearchIssues` (a filter
   the API does not understand is a 400 or a 422, never ignored as in
   the pages), the projects (`ListVisibleProjects`) and, under a project,
-  its trackers with what their workflow asks of an issue, its members
-  and its releases. An issue comes with its fields, its files and the
+  its trackers with what their workflow asks of an issue (the archived
+  ones too, marked: their issues are still read and moved), its
+  members and its releases. A list leaves the description out; an issue
+  comes with it, its fields, its files and the
   transitions `AccessControl::transitionsFor()` offers; its comments,
   links, history and the viewer's subscription are sub-resources.
 - **Writes are the commands, one operation each.** `POST /issues`
@@ -1338,7 +1340,7 @@ src/
   undone, is internal-only too. A tracker is archived
   (`UpdateTracker::$archived`: no new issue, out of the creation form and
   of the trackers an issue may change to, but still in the navigation,
-  after the others, with its list and its kanban), moved (`position`), or
+  at its place, with its list and its kanban), moved (`position`), or
   deleted while it holds no issue (`DeleteTracker`, with the rules
   limited to it): the buttons under its settings, each saying what it
   does.

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Api;
 
+use App\Message\Command\Tracker\UpdateTracker;
+use App\Message\CommandBus;
+
 final class ProjectApiTest extends ApiTestCase
 {
     public function testTheProjectsOfTheUserAreListed(): void
@@ -44,7 +47,8 @@ final class ProjectApiTest extends ApiTestCase
         self::assertResponseIsSuccessful();
         self::assertSame([$this->scene->bugs->getId(), $this->scene->evolutions->getId(), $this->scene->tasks->getId()], array_column($trackers['member'], 'id'));
         $bug = $trackers['member'][0];
-        self::assertSame(['@type' => 'PlaceRef', 'id' => 'bug', 'label' => 'Bug'], $bug['workflow']);
+        self::assertSame(['@type' => 'WorkflowRef', 'id' => 'bug', 'label' => 'Bug'], $bug['workflow']);
+        self::assertFalse($bug['archived']);
         self::assertSame(['@type' => 'TrackerPlace', 'id' => 'new', 'label' => 'New', 'initial' => true, 'closed' => false], $bug['places'][0]);
         $fields = array_column($bug['fields'], null, 'id');
         self::assertTrue($fields['environment']['required']);
@@ -53,6 +57,18 @@ final class ProjectApiTest extends ApiTestCase
 
         $this->api('GET', '/api/projects/XX-YY/trackers', $this->tokenFor(self::DEVELOPER)->secret);
         self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testAnArchivedTrackerIsListedAndSaysSo(): void
+    {
+        $secret = $this->tokenFor(self::DEVELOPER)->secret;
+        self::getContainer()->get(CommandBus::class)->dispatch(new UpdateTracker((int) $this->scene->user(self::MANAGER)->getId(), (int) $this->scene->bugs->getId(), archived: true));
+
+        $trackers = $this->api('GET', '/api/projects/MD-SPT/trackers', $secret)['member'];
+
+        self::assertSame([$this->scene->bugs->getId(), $this->scene->evolutions->getId(), $this->scene->tasks->getId()], array_column($trackers, 'id'), 'In the order the project gives them.');
+        self::assertSame([true, false, false], array_column($trackers, 'archived'));
+        self::assertNotEmpty($trackers[0]['places'], 'Its issues are still moved along its steps.');
     }
 
     public function testTheMembersAreWhoAnIssueMayBeAssignedTo(): void

@@ -1,4 +1,4 @@
-{# Project level: the issue lists and the releases, the trackers the viewer may see (archived ones last, under the archive icon), each list with its count of open issues, then the configuration of the project, one item per subject, for those who manage it (the access under `project.manage_members`, the rest under `project.configure`). #}
+{# Project level: the issue lists and the releases, the trackers the viewer may see (archived ones at their place, under the archive icon), each list with its count of open issues, then the configuration of the project, one item per subject, for those who manage it (the access under `project.manage_members`, the rest under `project.configure`). #}
 {% set route = { workspaceKey: project.workspace.key, projectKey: project.key } %}
 {% set navTrackers = this.trackers %}
 {% set navCounts = this.counts %}

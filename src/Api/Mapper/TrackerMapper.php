@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Api\Mapper;
 
 use App\Api\Resource\TrackerResource;
-use App\Api\Resource\Value\PlaceRef;
 use App\Api\Resource\Value\TrackerField;
 use App\Api\Resource\Value\TrackerPlace;
+use App\Api\Resource\Value\WorkflowRef;
 use App\Config\ConfigRegistry;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\Tracker;
@@ -45,6 +45,6 @@ final class TrackerMapper
             }
         }
 
-        return new TrackerResource((int) $tracker->getId(), $tracker->getName(), $tracker->getDescription(), $tracker->isPrivate(), new PlaceRef($workflow->id, $workflow->label), $places, $fields);
+        return new TrackerResource((int) $tracker->getId(), $tracker->getName(), $tracker->getDescription(), $tracker->isPrivate(), $tracker->isArchived(), new WorkflowRef($workflow->id, $workflow->label), $places, $fields);
     }
 }
