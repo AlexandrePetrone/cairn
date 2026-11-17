@@ -54,25 +54,9 @@ final class ConfigValidator
         if (!$workflow->hasPlace($workflow->initial)) {
             $violations[] = new ConfigViolation("$path.initial", \sprintf('unknown place "%s".', $workflow->initial));
         }
-        if (null !== $workflow->fallbackPlace && !$workflow->hasPlace($workflow->fallbackPlace)) {
-            $violations[] = new ConfigViolation("$path.fallbackPlace", \sprintf('unknown place "%s".', $workflow->fallbackPlace));
-        }
-        if (MigrationPolicy::Fallback === $definition->migrationPolicy && null === $workflow->fallbackPlace) {
-            $violations[] = new ConfigViolation("$path.fallbackPlace", 'required under the Fallback migration policy.');
-        }
-
         foreach ($workflow->places as $placeId) {
             if (!$definition->hasPlace($placeId)) {
                 $violations[] = new ConfigViolation("$path.places", \sprintf('unknown place "%s".', $placeId));
-            }
-        }
-
-        foreach ($workflow->migrations as $from => $to) {
-            if ($workflow->hasPlace($from)) {
-                $violations[] = new ConfigViolation("$path.migrations.$from", 'is still a place of this workflow.');
-            }
-            if (!$workflow->hasPlace($to)) {
-                $violations[] = new ConfigViolation("$path.migrations.$from", \sprintf('"%s" is not a place of this workflow.', $to));
             }
         }
 

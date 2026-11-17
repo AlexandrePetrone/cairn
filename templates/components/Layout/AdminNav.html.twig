@@ -1,4 +1,4 @@
-{# Administration level: projects, workspaces, project templates, users, imports; then the configuration (read-only), one entry per subject. The entry is active on its own pages and on the pages under it.
+{# Administration level: projects, workspaces, project templates, users, imports; then the configuration, one entry per subject. The entry is active on its own pages and on the pages under it.
    `this` is read before the nested components, whose blocks see their own `this`. #}
 {% set adminNavRoute = app.current_route ?? '' %}
 {% set adminNavCounts = { projects: this.projectCount, workspaces: this.workspaceCount, users: this.userCount, templates: this.templateCount } %}
@@ -11,9 +11,10 @@
         <twig:Ui:Layout:Sidebar:Item href="{{ path('app_admin_imports') }}" icon="archive-restore" :active="adminNavRoute starts with 'app_admin_import'">{{ 'admin.nav.imports'|trans }}</twig:Ui:Layout:Sidebar:Item>
     </twig:Ui:Layout:Sidebar:Section>
     <twig:Ui:Layout:Sidebar:Section :label="'admin.nav.configuration'|trans">
-        <twig:Ui:Layout:Sidebar:Item href="{{ path('app_admin_configuration_roles') }}" icon="shield" :active="adminNavRoute == 'app_admin_configuration_roles'">{{ 'admin.configuration.nav.roles'|trans }}</twig:Ui:Layout:Sidebar:Item>
-        <twig:Ui:Layout:Sidebar:Item href="{{ path('app_admin_configuration_workflows') }}" icon="workflow" :active="adminNavRoute starts with 'app_admin_configuration_workflow'">{{ 'admin.configuration.nav.workflows'|trans }}</twig:Ui:Layout:Sidebar:Item>
-        <twig:Ui:Layout:Sidebar:Item href="{{ path('app_admin_configuration_fields') }}" icon="text-cursor-input" :active="adminNavRoute == 'app_admin_configuration_fields'">{{ 'admin.configuration.nav.fields'|trans }}</twig:Ui:Layout:Sidebar:Item>
+        <twig:Ui:Layout:Sidebar:Item href="{{ path('app_admin_configuration_roles') }}" icon="shield" :active="adminNavRoute starts with 'app_admin_configuration_role'">{{ 'admin.configuration.nav.roles'|trans }}</twig:Ui:Layout:Sidebar:Item>
+        <twig:Ui:Layout:Sidebar:Item href="{{ path('app_admin_configuration_workflows') }}" icon="workflow" :active="adminNavRoute starts with 'app_admin_configuration_workflow' or adminNavRoute starts with 'app_admin_configuration_transition'">{{ 'admin.configuration.nav.workflows'|trans }}</twig:Ui:Layout:Sidebar:Item>
+        <twig:Ui:Layout:Sidebar:Item href="{{ path('app_admin_configuration_places') }}" icon="milestone" :active="adminNavRoute starts with 'app_admin_configuration_place'">{{ 'admin.configuration.nav.places'|trans }}</twig:Ui:Layout:Sidebar:Item>
+        <twig:Ui:Layout:Sidebar:Item href="{{ path('app_admin_configuration_fields') }}" icon="text-cursor-input" :active="adminNavRoute starts with 'app_admin_configuration_field' or adminNavRoute starts with 'app_admin_configuration_link'">{{ 'admin.configuration.nav.fields'|trans }}</twig:Ui:Layout:Sidebar:Item>
         <twig:Ui:Layout:Sidebar:Item href="{{ path('app_admin_configuration_history') }}" icon="history" :active="adminNavRoute == 'app_admin_configuration_history'">{{ 'admin.configuration.nav.history'|trans }}</twig:Ui:Layout:Sidebar:Item>
     </twig:Ui:Layout:Sidebar:Section>
 </twig:Ui:Layout:Sidebar>

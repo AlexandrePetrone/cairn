@@ -609,77 +609,205 @@ admin:
             invited: Invité
             deactivated: Désactivé
     configuration:
-        intro: 'Lecture seule : la configuration se change dans le fichier d''instance, puis s''applique avec app:config:sync.'
+        intro:
+            roles: 'Qui peut faire quoi : un rôle se donne à quelqu''un sur un projet ou un espace, et porte des droits.'
+            workflows: 'Chaque catégorie d''un projet suit un workflow : ses étapes, les actions qui mènent de l''une à l''autre, et les champs demandés.'
+            places: 'Une étape a un nom et un statut, les mêmes dans tous les workflows qui l''utilisent.'
+            fields: 'Les champs sont déclarés une fois pour l''instance et chaque workflow choisit ceux qu''il demande. Les types de lien relient deux demandes.'
+            history: 'Qui a changé quoi dans la configuration, et ce que cela a fait aux demandes. Une trace à lire : rien ici ne revient à une configuration antérieure.'
         nav:
-            roles: Rôles et droits
-            workflows: Workflows
-            fields: Champs et liens
-            history: Historique
+            roles: 'Rôles et droits'
+            workflows: 'Workflows'
+            places: 'Étapes'
+            fields: 'Champs et liens'
+            history: 'Historique'
+        moved: 'Ordre enregistré.'
+        drag: 'Glisser pour réordonner'
+        edit: 'Modifier'
+        save: 'Enregistrer'
+        create: 'Créer'
+        saved: 'Configuration enregistrée.'
+        delete: 'Supprimer'
+        delete_confirm: 'Supprimer définitivement ?'
+        issue_count: '{0}aucune demande|{1}1 demande|]1,Inf[ %count% demandes'
+        form:
+            label: 'Nom'
+        starter:
+            title: 'Cette instance n''a pas encore de configuration'
+            help: 'Installez la configuration de départ pour commencer avec les rôles, les workflows, les étapes et les champs d''une équipe qui travaille avec ses clients. Vous changez tout ensuite, ici.'
+            install: 'Installer la configuration de départ'
+            installed: 'Configuration de départ installée.'
+            already: 'L''instance a déjà une configuration : rien n''a changé.'
         roles:
-            title: Rôles
-            intro: Du plus large au plus étroit. Un accès direct sur un projet ne peut qu'élargir le rôle hérité de l'espace.
-            role: Rôle
-            who: Pour qui
-            memberships: Accès
-            anyone: Internes et externes
-            internal_only: Internes seulement
-            follows_new_issues: Nouvelles demandes
-            follows_new_issues_help: Abonné d'office à chaque nouvelle demande du projet
+            title: 'Rôles'
+            intro: 'Du plus large au plus étroit. Un accès direct sur un projet ne peut qu''élargir le rôle hérité de l''espace.'
+            anyone: 'Internes et externes'
+            internal_only: 'Internes seulement'
+            follows_new_issues_help: 'Abonné d''office à chaque nouvelle demande du projet'
             membership_count: '{0}aucun accès|{1}1 accès|]1,Inf[ %count% accès'
-            orphan: '%count% accès portent le rôle « %role% », absent de la configuration : ils ne donnent plus aucun droit.'
+            new: 'Nouveau rôle'
+            created: 'Rôle « %name% » créé. Il n''a encore aucun droit.'
+            deleted: 'Rôle « %name% » supprimé.'
+            delete_help: 'Un rôle se supprime quand plus personne ne le porte et qu''aucune action d''un workflow ne le nomme.'
+            form:
+                internal_only: 'Réservé aux internes'
+                internal_only_help: 'Il peut alors porter les droits qui ouvrent ce que les externes ne voient jamais.'
+                follows_new_issues: 'Suit les nouvelles demandes'
+                follows_new_issues_help: 'Qui le porte sur un projet est abonné à chaque nouvelle demande du projet, et peut se désabonner demande par demande.'
         permissions:
-            title: Droits hors workflow
-            intro: Les droits que la configuration donne à chaque rôle. Les actions des workflows ont leurs propres rôles, détaillés plus bas.
-            permission: Droit
+            title: 'Droits hors workflow'
+            intro: 'Une case cochée donne le droit tout de suite. Qui déclenche une action se règle sur l''action, dans son workflow.'
+            permission: 'Droit'
+            internal_only: 'Rôles internes'
+            internal_only_help: 'Ce droit ouvre ce que les externes ne voient jamais : il ne va qu''à un rôle réservé aux internes.'
+        places:
+            title: 'Étapes'
+            new: 'Nouvelle étape'
+            empty: 'Aucune étape pour l''instant.'
+            unused: 'Utilisée par aucun workflow'
+            order_help: 'Cet ordre est celui des filtres et des regroupements des listes. Les colonnes d''un kanban suivent son workflow.'
+            created: 'Étape « %name% » créée. Ajoutez-la aux workflows qui l''utilisent.'
+            deleted: 'Étape « %name% » supprimée.'
+            delete_help: 'Une étape se supprime quand plus aucun workflow ne l''utilise.'
+            status_note: '{1}Une demande est à cette étape : donner à l''étape le statut fermé la ferme, le lui retirer la rouvre.|]1,Inf[ %count% demandes sont à cette étape : donner à l''étape le statut fermé les ferme, le lui retirer les rouvre.'
+            form:
+                status: 'Statut'
+                status_help: 'La famille de l''étape : elle ordonne les listes, masque les demandes terminées et alimente les statistiques. Les utilisateurs voient l''étape, jamais son statut.'
+        fields:
+            title: 'Champs'
+            intro: 'Chaque workflow choisit les champs qu''il demande, sur sa page.'
+            new: 'Nouveau champ'
+            empty: 'Aucun champ pour l''instant.'
+            unused: 'Demandé par aucun workflow'
+            internal_only: 'Internes seulement'
+            required: 'Obligatoire'
+            type: 'Type'
+            created: 'Champ « %name% » créé. Ajoutez-le aux workflows qui le demandent.'
+            deleted: 'Champ supprimé.'
+            delete_help: 'Un champ se supprime quand plus aucun workflow ne le demande. Les valeurs que les demandes en portent sont gardées, et ne s''affichent plus.'
+            form:
+                type_help: 'Choisi une fois pour toutes : les valeurs que portent les demandes sont de ce type.'
+                choices: 'Choix'
+                choices_help: 'Pour une liste ou un choix unique : un par ligne. Une nouvelle ligne est son libellé seul ; un choix déjà là se lit « valeur = Libellé », et garde sa valeur quand vous changez son libellé. Un choix retiré reste affiché tel qu''il est stocké sur les demandes qui le portent.'
+                placeholder: 'Texte indicatif'
+                help: 'Texte d''aide'
+                internal_only: 'Jamais montré aux externes'
+        links:
+            title: 'Types de liens'
+            intro: 'Les liens possibles entre deux demandes.'
+            new: 'Nouveau type de lien'
+            empty: 'Aucun type de lien pour l''instant.'
+            inverse: 'vu depuis l''autre demande : « %label% »'
+            symmetric: 'symétrique'
+            link_count: '{0}aucun lien|{1}1 lien|]1,Inf[ %count% liens'
+            created: 'Type de lien « %name% » créé.'
+            deleted: 'Type de lien supprimé.'
+            delete_help: 'Un type de lien se supprime quand plus aucun lien n''est de ce type.'
+            form:
+                inverse: 'Vu depuis l''autre demande'
+                inverse_help: '« Bloque » se lit « Bloqué par » depuis l''autre demande. Laissé vide, le lien se lit de la même façon des deux côtés.'
         workflows:
-            intro: Chaque catégorie choisit un workflow à sa création et le garde. Ouvrez-en un pour lire ses étapes (les colonnes du kanban), les actions qui font passer d'une étape à l'autre avec les rôles qui peuvent les déclencher, et les champs qu'il demande. Un administrateur peut déclencher toutes les actions.
-            steps: Étapes
-            steps_intro: Toutes les étapes de l'instance, dans l'ordre des filtres et des regroupements des listes, et les workflows qui les utilisent. Une étape est la même partout où elle sert.
+            new: 'Nouveau workflow'
+            empty: 'Aucun workflow pour l''instant'
+            created: 'Workflow « %name% » créé. Ajoutez ses étapes et ses actions.'
+            deleted: 'Workflow « %name% » supprimé.'
+            delete_help: 'Un workflow se supprime, avec ses actions, quand plus aucune catégorie ne le suit, d''un projet ou d''un modèle de projet.'
             place_count: '{1}1 étape|]1,Inf[ %count% étapes'
             action_count: '{0}aucune action|{1}1 action|]1,Inf[ %count% actions'
             tracker_count: '{0}aucune catégorie|{1}1 catégorie|]1,Inf[ %count% catégories'
         workflow:
             initial: 'Une nouvelle demande commence à l''étape « %place% ».'
-            fallback: 'Étape de repli : « %place% ».'
-            steps: Étapes et actions
-            steps_intro: 'Dans l''ordre du kanban. Sous chaque étape, les actions qui en partent et les rôles qui peuvent les déclencher.'
-            initial_badge: Initiale
-            final_badge: Finale
-            comment_required: Commentaire obligatoire (externes)
-            comment_prompt: '« %prompt% »'
-            fields: Champs
-            no_field: Aucun champ.
-            usage: Utilisation
-            unused: Aucune catégorie n'utilise ce workflow.
-            tracker: Catégorie
-            total: Total
-        fields:
-            title: Champs
-            intro: Les champs sont communs à toute l'instance ; chaque workflow choisit ceux qu'il utilise.
-            field: Champ
-            type: Type
-            filling: Saisie
-            visibility: Visibilité
-            required: Obligatoire
-            optional: Facultatif
-            everyone: Tous
-            internal_only: Internes seulement
-            used_by: 'Utilisé par :'
-            unused: Utilisé par aucun workflow.
-        links:
-            title: Types de liens
-            intro: Les liens possibles entre deux demandes.
-            inverse: 'vu depuis l''autre demande : « %label% »'
-            symmetric: symétrique
+            settings: 'Nom et étape initiale'
+            steps: 'Étapes'
+            steps_intro: 'Dans l''ordre des colonnes du kanban. On ajoute une étape de l''instance ; celle qui part envoie ses demandes ailleurs.'
+            fields: 'Champs'
+            fields_intro: 'Dans l''ordre du formulaire d''une demande.'
+            actions: 'Actions'
+            actions_intro: 'Les boutons qui font passer une demande d''une étape à une autre, pour les rôles nommés. Un administrateur les déclenche toutes.'
+            no_action: 'Aucune action : une demande de ce workflow reste à son étape initiale.'
+            no_field: 'Aucun champ.'
+            initial_badge: 'Initiale'
+            comment_required: 'commentaire exigé des externes'
+            remove_place: 'Retirer'
+            add_place: 'Ajouter une étape'
+            add: 'Ajouter l''étape'
+            remove_field: 'Retirer'
+            add_field: 'Ajouter'
+            choose_field: 'Ajouter un champ…'
+            place_removed: '{0}« %place% » a quitté le workflow.|{1}« %place% » a quitté le workflow, et sa demande a été déplacée.|]1,Inf[ « %place% » a quitté le workflow, et ses %count% demandes ont été déplacées.'
+            usage: 'Utilisation'
+            unused: 'Aucune catégorie n''utilise ce workflow.'
+            tracker: 'Catégorie'
+            total: 'Total'
+            form:
+                initial: 'Étape initiale'
+                initial_help: 'Là où commence une nouvelle demande.'
+                place: 'Étape'
+                target: 'Où vont ses demandes ?'
+                target_help: 'Elles arrivent en haut de leur colonne. Leur historique garde le nom de l''étape quittée, et personne n''est notifié.'
+                no_target: 'Aucune demande à déplacer'
+            remove:
+                title: 'Retirer « %place% » de %workflow%'
+                standing: '{1}Une demande est à cette étape : elle doit aller ailleurs avant que l''étape quitte le workflow.|]1,Inf[ %count% demandes sont à cette étape : elles doivent aller ailleurs avant que l''étape quitte le workflow.'
+                changes: 'Ce qui change avec elle'
+                deleted: 'Supprimée'
+                changed: 'Ne part plus de là'
+                kept: 'L''étape reste dans l''instance, pour les autres workflows. Les règles d''automatisation qui la nomment ne s''appliquent plus aux demandes de ce workflow.'
+                submit: '{0}Retirer l''étape|{1}Retirer l''étape et déplacer 1 demande|]1,Inf[ Retirer l''étape et déplacer %count% demandes'
+        action:
+            new: 'Nouvelle action'
+            deleted: 'Action supprimée.'
+            delete_help: 'Les demandes restent où elles sont ; l''historique garde le nom de l''action.'
+            form:
+                label: 'Libellé du bouton'
+                from: 'Depuis les étapes'
+                to: 'Vers l''étape'
+                roles: 'Qui peut la déclencher'
+                roles_help: 'Les administrateurs le peuvent toujours.'
+                style: 'Apparence'
+                description: 'Description'
+                description_help: 'Affichée sous le bouton, sur la page de la demande.'
+                requires_comment: 'Exiger un commentaire des externes'
+                requires_comment_help: 'Les internes n''ont jamais à commenter.'
+                comment_prompt: 'Invite du commentaire'
+            style:
+                default: 'Normale'
+                primary: 'Principale'
+                danger: 'Danger'
         history:
-            policy: Politique de migration
-            title: Synchronisations
-            intro: Chaque synchronisation enregistre la configuration appliquée et ce qui a changé.
-            current: En vigueur
-            by: 'par %name%'
-            show_changes: '{1}Voir le changement|]1,Inf[ Voir les %count% changements'
-            hide_changes: Masquer les changements
-            no_changes: 'Aucun changement de définition : le snapshot a été réécrit au format de cette version.'
+            empty: 'Rien n''a encore été changé.'
+            system: 'Installation'
+            installed: 'Configuration installée : %roles% rôles, %workflows% workflows, %places% étapes, %fields% champs, %links% types de lien.'
+            role:
+                created: 'Rôle « %name% » créé.'
+                updated: 'Rôle « %name% » modifié.'
+                deleted: 'Rôle « %name% » supprimé.'
+            permission:
+                granted: 'Droit « %permission% » donné au rôle « %role% ».'
+                revoked: 'Droit « %permission% » retiré au rôle « %role% ».'
+            place:
+                created: 'Étape « %name% » créée.'
+                updated: 'Étape « %name% » modifiée.'
+                deleted: 'Étape « %name% » supprimée.'
+                status: '{0}Étape « %name% » : statut changé.|{1}Étape « %name% » : statut changé, 1 demande l''a suivi.|]1,Inf[ Étape « %name% » : statut changé, %count% demandes l''ont suivi.'
+            field:
+                created: 'Champ « %name% » créé.'
+                updated: 'Champ « %name% » modifié.'
+                deleted: 'Champ « %name% » supprimé.'
+            link:
+                created: 'Type de lien « %name% » créé.'
+                updated: 'Type de lien « %name% » modifié.'
+                deleted: 'Type de lien « %name% » supprimé.'
+            workflow:
+                created: 'Workflow « %name% » créé.'
+                updated: 'Workflow « %name% » modifié.'
+                deleted: 'Workflow « %name% » supprimé.'
+                place_added: 'Workflow « %workflow% » : étape « %place% » ajoutée.'
+                place_removed: '{0}Workflow « %workflow% » : étape « %place% » retirée.|{1}Workflow « %workflow% » : étape « %place% » retirée, 1 demande déplacée.|]1,Inf[ Workflow « %workflow% » : étape « %place% » retirée, %count% demandes déplacées.'
+            action:
+                created: 'Workflow « %workflow% » : action « %name% » créée.'
+                updated: 'Workflow « %workflow% » : action « %name% » modifiée.'
+                deleted: 'Workflow « %workflow% » : action « %name% » supprimée.'
     import:
         intro: Reprendre dans un projet les demandes, commentaires et fichiers d'une archive d'export.
         new: Nouvel import
@@ -880,6 +1008,28 @@ admin:
         already_activated: '%name% a déjà choisi un mot de passe : « Mot de passe oublié ? » sur la page de connexion lui en donne un nouveau.'
         not_member: "%name% n'a aucun rôle sur %project%."
         external_only_from_project: Un compte créé depuis un projet est externe.
+        config:
+            invalid_key: '« %key% » n''est pas une clé valide : minuscules, chiffres et tirets bas, en commençant par une lettre, 60 caractères au plus.'
+            key_taken: 'La clé « %key% » est déjà utilisée.'
+            unknown_permission: 'Le droit « %permission% » n''existe pas.'
+            permission_internal_only: 'Le rôle « %role% » est ouvert aux externes : ce droit est pour les rôles réservés aux internes.'
+            role_held_by_externals: '{1}Un utilisateur externe porte le rôle « %role% » : révoquez d''abord cet accès.|]1,Inf[ %count% accès d''utilisateurs externes portent le rôle « %role% » : révoquez-les d''abord.'
+            role_has_internal_permissions: 'Le rôle « %role% » a des droits réservés aux internes : retirez-les d''abord.'
+            role_held: '{1}Un accès porte le rôle « %role% » : révoquez-le ou donnez-lui d''abord un autre rôle.|]1,Inf[ %count% accès portent le rôle « %role% » : révoquez-les ou donnez-leur d''abord un autre rôle.'
+            role_in_actions: 'Le rôle « %role% » déclenche des actions : %actions%. Retirez-le d''abord de ces actions.'
+            place_used: 'L''étape « %place% » est utilisée par : %workflows%. Retirez-la d''abord de ces workflows.'
+            place_holds_issues: '{1}Une demande est à l''étape « %place% ».|]1,Inf[ %count% demandes sont à l''étape « %place% ».'
+            field_used: 'Le champ « %field% » est demandé par : %workflows%. Retirez-le d''abord de ces workflows.'
+            link_type_used: '{1}Un lien est de type « %type% » : il reste tant que des liens l''utilisent.|]1,Inf[ %count% liens sont de type « %type% » : il reste tant que des liens l''utilisent.'
+            workflow_followed: '{1}Une catégorie suit le workflow « %workflow% » : il reste tant que des catégories le suivent.|]1,Inf[ %count% catégories suivent le workflow « %workflow% » : il reste tant que des catégories le suivent.'
+            workflow_in_templates: 'Le workflow « %workflow% » est utilisé par les modèles de projet : %templates%.'
+            not_a_place_of: '« %place% » n''est pas une étape du workflow « %workflow% ».'
+            already_a_place_of: '« %place% » est déjà une étape du workflow « %workflow% ».'
+            initial_place: '« %place% » est l''étape où commencent les demandes du workflow « %workflow% » : choisissez d''abord une autre étape initiale.'
+            issues_to_move: '{1}Une demande est à l''étape « %place% » : choisissez l''étape qui la reprend.|]1,Inf[ %count% demandes sont à l''étape « %place% » : choisissez l''étape qui les reprend.'
+            other_places: 'L''ordre donné ne reprend pas les étapes du workflow « %workflow% ».'
+            pair_taken: 'L''action « %action% » mène déjà de « %from% » à « %to% » : le kanban demande une seule action entre deux étapes.'
+            invalid: 'Ce changement laisserait une configuration qui ne peut pas fonctionner : %detail%'
 
 project:
     summary:
@@ -1346,14 +1496,6 @@ field_type:
     date: Date
     url: Adresse web
     bool: Oui / non
-
-migration_policy:
-    strict:
-        label: Stricte
-        help: si une étape disparaît sans successeur déclaré (migrations), la synchronisation est refusée et la configuration précédente reste en vigueur.
-    fallback:
-        label: Repli
-        help: les demandes posées sur une étape qui disparaît vont à l'étape de repli de leur workflow.
 
 automation:
     signature: automatisation

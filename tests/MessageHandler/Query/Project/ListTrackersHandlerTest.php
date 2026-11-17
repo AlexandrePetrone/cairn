@@ -30,6 +30,7 @@ final class ListTrackersHandlerTest extends KernelTestCase
     protected function setUp(): void
     {
         self::bootKernel();
+        self::applyConfiguration();
         $this->internal = UserFactory::new()->internal()->create();
         $this->external = UserFactory::createOne();
     }
@@ -72,11 +73,11 @@ final class ListTrackersHandlerTest extends KernelTestCase
     {
         $project = ProjectFactory::createOne();
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        $tasks = new Tracker($project, 'Internal task', 'task', 1);
+        $tasks = new Tracker($project, 'Internal task', 'bug', 1);
         $tasks->makePrivate();
         $support = new Tracker($project, 'Support', 'bug', 3);
         $support->archive();
-        foreach ([new Tracker($project, 'Feature', 'evolution', 2), $tasks, new Tracker($project, 'Bug', 'bug', 0), $support] as $tracker) {
+        foreach ([new Tracker($project, 'Feature', 'bug', 2), $tasks, new Tracker($project, 'Bug', 'bug', 0), $support] as $tracker) {
             $entityManager->persist($tracker);
         }
         $entityManager->flush();

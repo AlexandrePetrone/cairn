@@ -14,9 +14,6 @@ final readonly class WorkflowDefinition
     /** @var list<string> ids of places of the instance, in the order of the kanban columns */
     public array $places;
 
-    /** @var array<string, string> place this workflow no longer has => place of it that takes its issues on sync */
-    public array $migrations;
-
     /** @var array<string, TransitionDefinition> id => transition */
     public array $transitions;
 
@@ -24,12 +21,10 @@ final readonly class WorkflowDefinition
     public array $fields;
 
     /**
-     * @param string                     $initial       place of a newly created issue
-     * @param list<string>               $places        ids of places of the instance
+     * @param string                     $initial     place of a newly created issue
+     * @param list<string>               $places      ids of places of the instance
      * @param list<TransitionDefinition> $transitions
      * @param list<FieldUsage>           $fields
-     * @param string|null                $fallbackPlace where orphaned issues go under the Fallback migration policy
-     * @param array<string, string>      $migrations    removed place id => id of the place that takes its issues
      */
     public function __construct(
         public string $id,
@@ -38,21 +33,12 @@ final readonly class WorkflowDefinition
         array $places,
         array $transitions,
         array $fields = [],
-        public ?string $fallbackPlace = null,
-        array $migrations = [],
     ) {
         Definitions::assertId($id, 'workflows');
         Definitions::assertLabel($label, "workflows.$id.label");
         $this->places = Definitions::assertIdList($places, "workflows.$id.places");
         $this->transitions = Definitions::indexById($transitions, TransitionDefinition::class, "workflows.$id.transitions");
         $this->fields = Definitions::indexById($fields, FieldUsage::class, "workflows.$id.fields", 'field');
-
-        foreach ($migrations as $from => $to) {
-            if (!\is_string($from) || !\is_string($to)) {
-                throw new InvalidDefinitionException("workflows.$id.migrations: expected a map of removed place id => place id.");
-            }
-        }
-        $this->migrations = $migrations;
     }
 
     public function hasPlace(string $id): bool
@@ -99,13 +85,5 @@ final readonly class WorkflowDefinition
         }
 
         throw new InvalidDefinitionException(\sprintf('workflows.%s: place "%s" cannot be reached from "%s".', $this->id, $placeId, $this->initial));
-    }
-
-    /**
-     * The place that takes the issues of one this workflow no longer has, if any.
-     */
-    public function migrationTargetFor(string $removedPlaceId): ?string
-    {
-        return $this->migrations[$removedPlaceId] ?? null;
     }
 }

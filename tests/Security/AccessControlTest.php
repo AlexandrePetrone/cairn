@@ -77,14 +77,6 @@ final class AccessControlTest extends KernelTestCase
         self::assertNull($this->access->roleOn($user, $this->fixtures->otherWorkspace));
     }
 
-    public function testAMembershipRoleUnknownToTheConfigurationIsIgnored(): void
-    {
-        $user = $this->fixtures->user('claire@client.test');
-        $this->fixtures->grantOnProject($user, $this->fixtures->shop, 'former_role');
-
-        self::assertNull($this->access->roleOn($user, $this->fixtures->shop));
-    }
-
     public function testAdministratorsMayDoEverything(): void
     {
         $admin = $this->fixtures->user('admin@agency.test', admin: true);

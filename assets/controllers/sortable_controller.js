@@ -3,7 +3,9 @@ import { getComponent } from '@symfony/ux-live-component';
 
 /*
  * Reorders a list by drag and drop, then calls an action of the live
- * component around it with the id of the item moved and its new position:
+ * component around it with the id of the item moved and its new position.
+ * The id is sent as `tracker` unless `data-sortable-param-value` names the
+ * argument, as a number when it is one:
  *
  * <ul data-controller="sortable" data-sortable-action-value="move">
  *     <li data-sortable-target="item" data-sortable-id="12" draggable="true"
@@ -14,7 +16,7 @@ import { getComponent } from '@symfony/ux-live-component';
  */
 export default class extends Controller {
     static targets = ['item'];
-    static values = { action: String };
+    static values = { action: String, param: { type: String, default: 'tracker' } };
 
     start(event) {
         this.dragged = event.currentTarget;
@@ -53,6 +55,7 @@ export default class extends Controller {
             return;
         }
         const component = await getComponent(this.element.closest('[data-controller~="live"]'));
-        component.action(this.actionValue, { tracker: Number(item.dataset.sortableId), position });
+        const id = item.dataset.sortableId;
+        component.action(this.actionValue, { [this.paramValue]: /^\d+$/.test(id) ? Number(id) : id, position });
     }
 }

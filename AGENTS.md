@@ -46,6 +46,9 @@ Decisions already taken:
     deleted only without any issue (`DeleteTracker`); an account is
     deactivated, and deleted only when it left no trace (`DeleteUser`,
     `UserRepository::hasHistory()`). Anonymising an account is not done.
+    What the configuration holds follows the same idea: a role, a
+    workflow, a step, a field or a link type is deleted only once
+    nothing uses it (see [Configuration](#configuration)).
   - **History goes only on purpose, with its container.** An issue is
     erased with all that hangs from it under `issue.delete`
     (`DeleteIssue`); a project or a workspace, by an administrator and
@@ -98,8 +101,14 @@ Decisions already taken:
   API Platform over the same commands and queries as the pages, signed in
   with personal tokens (see [API](#api)), and an MCP server on `/mcp`, on
   the same tokens and the same resources, for their assistants.
+- Configuration: the roles, their permissions, the steps, the workflows,
+  the fields and the link types of an instance are rows of its database,
+  managed by its administrators under `/admin/configuration` (see
+  [Configuration](#configuration)). No file, no sync: a new instance
+  installs a starter configuration once, and a later version changes the
+  tables with Doctrine migrations.
 - Workflow engine: the Symfony Workflow component, with state machines
-  built at runtime from the configuration snapshot stored in database, not
+  built at runtime from the configuration stored in database, not
   from YAML (`framework.workflows` stays empty). They enforce structure and
   dispatch the workflow events; who may trigger a transition is decided by
   `AccessControl`, never by a workflow guard.
@@ -118,7 +127,7 @@ columns are what the English and the French catalogues show.
 |------------------|-------------------|------------------|------------------------------------------------------------------|
 | `Issue`          | Issue             | Demande          | The tracked object. Key `WORKSPACE-PROJECT-123`.                 |
 | `Tracker`        | Category          | Catégorie        | Type of an issue within a project, bound to one workflow. In DB. |
-| `Workflow`       | Workflow          | Workflow         | Places + transitions. Defined in configuration, not in the UI.   |
+| `Workflow`       | Workflow          | Workflow         | Places + transitions + the fields asked. Managed in the administration. |
 | `Place`          | Step              | Étape            | Where an issue stands (Symfony Workflow term). Declared once for the instance, used by the workflows that name it. |
 | `Transition`     | Action            | Action           | Named button that moves an issue to another place.               |
 | `PlaceStatus`    | (internal)        | (interne)        | Family of a place: Open, InProgress, Waiting, Closed. PHP enum. Never shown to users, who see places: it orders lists, hides finished issues, feeds statistics. Only the configuration pages of the administration show it. |
@@ -127,7 +136,7 @@ columns are what the English and the French catalogues show.
 | `Link`           | Link              | Lien             | Related, Duplicates/DuplicatedBy, Blocks/BlockedBy.              |
 | `Workspace`      | Workspace         | Espace           | Group of projects sharing memberships.                           |
 | `Project`        | Project           | Projet           |                                                                  |
-| `Role`           | Role              | Rôle             | Defined in configuration.                                        |
+| `Role`           | Role              | Rôle             | Managed in the administration, with its permissions.             |
 | `Membership`     | Access            | Accès            | Role of a user on a project or a workspace. No organisation entity: a client is a workspace. |
 | `internal` flag  | Internal/External | Interne/Externe  | Internal user (who runs the instance) vs external user (a client). |
 | `company`        | Company           | Société          | Free text on a user, suggested from the values already typed.   |
@@ -135,7 +144,7 @@ columns are what the English and the French catalogues show.
 | `Release`        | Release           | Version          | Planned delivery, optional per project.                          |
 | `JournalEntry`   | History           | Historique       | Immutable journal, keeps the labels of the time.                 |
 | `Attachment`     | File              | Fichier          |                                                                  |
-| `ConfigSnapshot` | —                 | —                | Applied configuration definition, stored in database.            |
+| `ConfigChange`   | History (configuration) | Historique (configuration) | A change made to the configuration: when, by whom, a sentence. |
 | `Import`         | Import            | Import           | An export archive of another tracker brought into a project, once. |
 | `AutomationRule` | Rule (Automations) | Règle (Automatisations) | A rule of a project that acts on its issues by itself: a trigger, conditions, actions. |
 | `AutomationRun`  | Execution         | Exécution        | What a rule did on an issue, once: applied, skipped or stopped.  |
@@ -172,9 +181,10 @@ src/
   Security/          voters, AccessControl and its SQL twin Visibility,
                      authenticators, PasswordTokens (invitation and reset links)
   Twig/Components/   PHP-backed Twig components, when a component needs logic
-  Config/            instance config pipeline: Definition/, validator, diff,
-                     sync, ConfigRegistry; config-only enums
-  Workflow/          state machines built from the snapshot (WorkflowFactory,
+  Config/            the configuration as the application reads it: Definition/
+                     (immutable), DefinitionLoader, ConfigRegistry,
+                     ConfigValidator, StarterKit; config-only enums
+  Workflow/          state machines built from the configuration (WorkflowFactory,
                      WorkflowProvider), HasPlace for the objects they move
   Notification/      who follows an issue (SubscriptionRules), which events
                      notify (NotificationDispatcher), what each may read of a
@@ -207,7 +217,7 @@ src/
                      stored in (Quantities)
   Markdown/          rendering of the text users write, references resolved
   Attachment/        where attachment files live (AttachmentStorage)
-  Command/           console commands (app:config:sync, app:automations:run, …)
+  Command/           console commands (app:config:install, app:automations:run, …)
 ```
 
 ### Code organisation
@@ -221,7 +231,7 @@ src/
 - **No catch-all folders.** No `Service/`, no central `Enum/`, no `Dto/`.
   An enum or DTO lives next to what gives it meaning: `Criticality` and
   `PlaceStatus` in `Entity/Enum/` because they are persisted, `FieldType` and
-  `MigrationPolicy` in `Config/`, forge payloads in `Forge/Event/`, the
+  `TransitionStyle` in `Config/`, forge payloads in `Forge/Event/`, the
   generic `Pagination<T>` in `Repository/` because repositories and query
   handlers both return it, form data objects next to their form type in
   `Form/<Domain>/`. When an enum
@@ -306,7 +316,7 @@ src/
   requires a custom header that keeps cross-origin requests out.
 - **A read has three homes, by what it depends on.** A repository
   answers "give me this entity": find by id or key, the simple finders of
-  one entity, the counts and bulk updates the configuration sync needs.
+  one entity, the counts and bulk updates the configuration commands need.
   It never takes the viewer, nor a flag that stands for them
   (`includePrivate`): what it returns is the same whoever asks, so a
   handler, a component, a controller or a console command may call it.
@@ -482,8 +492,8 @@ src/
   journal entry of a link (`linked`, `unlinked`, on both issues, with
   the other's key and title of the time) is private when the other issue
   is private or of another project. `Issue:Links` offers the inverse
-  labels too and then links the other way. The sync refuses to remove a
-  link type that links still use (`SyncPlan::$usedLinkTypes`).
+  labels too and then links the other way. A link type that links still
+  use cannot be deleted (`DeleteLinkType`).
 - **Releases are optional, without a setting.** A `Release` belongs to
   one project, its name unique there; `ReleaseStatus` (open, delivered,
   abandoned, in `Entity/Enum/`) is a property of `UpdateRelease`, and
@@ -536,7 +546,7 @@ src/
   offers each place its workflows use once
   (`InstanceDefinition::placesIn()`), and the issues of two trackers
   standing on "In progress" are one group. Filters, groups and the sort
-  by place follow the order of the instance file; only a kanban and the
+  by place follow the order of the steps of the instance; only a kanban and the
   step menu follow the order of a workflow. The SQL
   order is `Repository/IssueOrder`: the group first, then the sorted
   column (`IssueSort`), then the default order (status, criticality,
@@ -607,9 +617,9 @@ src/
   the one below) and what follows it in the whole column, so a filtered
   column, hidden private issues or a column loaded by batches give one
   answer. When no rank fits, or the neighbour shares its rank,
-  `IssueRepository::spreadRanks()` ranks the column anew once; the sync
-  does the same to a column that took the issues of a removed place
-  (`moveFromPlace()`), since two columns count their ranks alike. `Board:Move` ranks after the move, two ordinary
+  `IssueRepository::spreadRanks()` ranks the column anew once; so does a
+  column that took the issues of a step removed from its workflow
+  (`RemoveWorkflowPlace`, `moveFromPlace()`), since two columns count their ranks alike. `Board:Move` ranks after the move, two ordinary
   commands; a card moved by someone who may not rank goes on top (`top`
   in `board:moved`). Ranking is the one issue command that does not call
   `record()`: no journal entry, no event, `updatedAt` untouched, since
@@ -1024,8 +1034,8 @@ src/
   match leaves nothing. The Executions page lists them
   (`ListAutomationRuns`); the page of the rules warns of a role its
   active rules aim at that has no referent (`MissingReferents`). A rule
-  that stopped meaning something (a place gone from the instance file)
-  blocks nothing: the configuration sync knows nothing of the rules, and
+  that stopped meaning something (a step taken out of its workflow)
+  blocks nothing: the configuration commands know nothing of the rules, and
   the rule is skipped where it cannot act, which its executions say.
 - **Time is counted from the last person.** A rule may wait for
   "no activity for N days" instead of an event. `Issue::$lastActivityAt`
@@ -1365,7 +1375,7 @@ src/
   `issue.change_tracker` leave the workflow clients are shown, so the
   configuration grants
   them to internal-only roles: `Permission::internalOnly()` says which,
-  `ConfigValidator` refuses the rest; `issue.delete`, which cannot be
+  `GrantPermission` refuses the rest; `issue.delete`, which cannot be
   undone, is internal-only too. A tracker is archived
   (`UpdateTracker::$archived`: no new issue, out of the creation form and
   of the trackers an issue may change to, but still in the navigation,
@@ -1373,14 +1383,9 @@ src/
   deleted while it holds no issue (`DeleteTracker`, with the rules
   limited to it): the buttons under its settings, each saying what it
   does.
-  The configuration itself is shown read-only under
-  `/admin/configuration` (`Controller/Admin/ConfigurationController`,
-  its own section of `Layout:AdminNav`): roles and the permission
-  matrix, each workflow drawn as a graph (`Workflow/MermaidDiagram`
-  writes the Mermaid source, `Workflow:Diagram` shows it) with its
-  fields and actions by role,
-  fields and links, sync history. It changes only through the instance
-  file and `app:config:sync`.
+  The configuration of the instance has its own section of
+  `Layout:AdminNav`, under `/admin/configuration`, one page per subject
+  (see [Configuration](#configuration)).
 - **An import brings an archive in, once, silently, and knows no other
   tracker.** Under `/admin/imports` (`Controller/Admin/ImportController`).
   An archive is a zip in Cairn's own format, written by an export script
@@ -1452,8 +1457,7 @@ src/
   a version that cannot be read, replaced by today's). Only the
   versions of the issues taken become releases, and a refusal of the
   analysis names the issue by its id, never by a line. The
-  analyser and the runner write their own bookkeeping, as the
-  configuration sync does; what lands in the project goes through
+  analyser and the runner write their own bookkeeping; what lands in the project goes through
   commands, and the unit of work is cleared after each item. The page
   of an import follows it with `Import:Progress` (`data-poll`); there is
   no way to stop a run, only to abandon an import that is not running.
@@ -1700,7 +1704,7 @@ src/
   fills it with `project/_form_dialog.html.twig`): the links that open a
   dialog carry `data-turbo-frame="modal"`, and the address does not
   move. A request made for the frame is answered with that block alone
-  (`Controller/Project/OpensDialog::renderWithDialog()`: what only the
+  (`Controller/OpensDialog::renderWithDialog()`: what only the
   whole page reads is a closure it does not call), so the block reads
   nothing the rest of the page sets. The form names its address as its
   action (the `action` option: an empty one would send it to the page
@@ -1748,79 +1752,134 @@ src/
   splits its imports into chunks only fetched on a page that uses it; write a new one when a component needs it, not before. No
   inline scripts.
 
-## Configuration and snapshot
+## Configuration
 
-Workflows, roles, global permissions, fields and link types live in one PHP
-configuration file outside the repository, loaded from an environment
-variable (see `config/instance.example.php`). Trackers, projects,
-memberships and releases live in database. Criticality
-levels and statuses are fixed enums in code. The forges are not in the
-file: the instance token and URL are environment variables
-(`FORGE_GITLAB_URL`, `FORGE_GITLAB_TOKEN`), the linked repositories and
-their secrets live in database. Notification rules are not part of the
-file either: add them when a feature needs them, shaped by its actual
-consumer.
+Roles, permissions outside the workflows, steps, workflows, fields and
+link types are rows of the database, in tables named `config_…`, changed
+by the administrators under `/admin/configuration`. Trackers, projects,
+memberships and releases live in database too, managed elsewhere.
+Criticality levels, statuses, permissions, field types and the looks of
+an action are fixed enums in code. The forges are not part of it: the
+instance token and URL are environment variables (`FORGE_GITLAB_URL`,
+`FORGE_GITLAB_TOKEN`), the linked repositories and their secrets live in
+database.
 
-The file is never read at runtime. It is loaded, validated, normalised into
-readonly definition objects, diffed against the last `ConfigSnapshot`, and
-applied by `app:config:sync` (idempotent, locked with `symfony/lock`,
-`--dry-run`). The snapshot is the source of truth in production. The sync is
-also a plain service so that a future back-office can reuse it.
-
-**Changing the structure of the configuration.** The structure of the
-file is the signature of the definition constructors in `Config/Definition/`,
-and the snapshot stores their public properties under the same names: the
-file carries no version number, PHP checks it. Two kinds of change:
-
-- A property added with a default or nullable changes nothing for a
-  running instance: an older snapshot reads with the default (a key left
-  out of the named-argument spread), the file loads unchanged, and the
-  next sync stores the snapshot in the new shape without a line of diff.
-- A property made required, renamed or removed makes the snapshot in
-  force unreadable by the new code: every page fails with the reason
-  (`SnapshotCodec`, wrapped by `ConfigRegistry` with what to do) until
-  the administrator updates the file and runs `app:config:sync`.
-  `ConfigLoader` turns PHP's refusal of the file into a message with the
-  line of the file and the cause, and `UPGRADE.md` lists what to change
-  for each version. Accepted: the instance is down between the
-  deployment and that sync. A change of meaning must be a change of
-  name, so that PHP refuses the old file instead of misreading it.
-
-For the sync to be the way out, it never needs the snapshot in force:
-the places, link types and workflows in use come from the data
-(`IssueRepository::countByPlace()`, `IssueLinkRepository::countByType()`,
-`TrackerRepository::countByWorkflow()`,
-`TemplateTrackerRepository::templatesByWorkflow()`), compared with the
-next definition, and a link type or a workflow still in use, by a
-tracker of a project or of a project template, blocks its removal; the snapshot in force only feeds the list of changes shown,
-which says so when it cannot be read.
-`SnapshotCodec::FORMAT` is bumped when the stored shape changes, as a
-trace of which version wrote a snapshot, never checked.
-
-Places are declared once, at the root of the file (`InstanceDefinition::$places`:
-an id, a label, a `PlaceStatus`), and a workflow lists the ids of those it
-uses, in the order of its kanban: a place has one label and one status
-wherever it is used, never a label of its own per workflow, which is what
-lets a list across trackers filter and group by place. Whoever holds a
-`WorkflowDefinition` asks the instance for what a place says
-(`InstanceDefinition::place()`, `placesOf()`, or `WorkflowProvider`).
-An issue's state is stored as a place identifier string, not a foreign key.
-Places separate a stable technical id from a label; a place a workflow no
-longer has either names its successor in the `migrations` of that workflow
-(`['old' => 'new']`: the rule is the workflow's, since the place may stay
-in another) or the sync refuses (strict policy by default). A place no
-workflow uses is a warning of the sync. An issue keeps a copy of the status
-of its place (`Issue::$status`, which the lists sort and filter on): when a
-place changes status in the file, the sync gives it to the issues standing
-there (`StatusChange`, read from the data by `countByPlaceStatus()`), closing
-those that enter the closed status and reopening those that leave it. The
-journal is never migrated.
+- **Everything has a key, fixed once created.** A role, a step, a field,
+  a link type and a workflow are identified by a short string (`client`,
+  `to_test`), made from the label when they are created
+  (`ConfigWriting::key()`) and never changed; an action has one within
+  its workflow. It is their primary key, what the data stores (the role
+  of an access, the workflow of a tracker, the type of a link, the place
+  of an issue, the values of its fields), what the journal, the API and
+  the automation rules name. Labels change freely. The entities are
+  `Role` and `RolePermission`, `Place`, `Field` (its choices in a JSON
+  list), `LinkType`, `Workflow` with `WorkflowPlace`, `WorkflowField`
+  and `Transition` (`TransitionSource`, `TransitionRole`): no entity
+  holds a collection, each row names its owner. The columns of the data
+  that name a role, a workflow or a link type stay plain strings for the
+  entities and the queries, and get a foreign key in the schema
+  (`EventListener/ConfigurationReferences`), so the database refuses an
+  unknown one and the deletion of one in use. The place of an issue has
+  none: a key cannot say "a step of the workflow of its tracker".
+- **The application reads an immutable definition, never the rows.**
+  `Config/DefinitionLoader` is the one place that knows how the tables
+  fit together: it builds the `InstanceDefinition` (and its
+  `WorkflowDefinition`s, `PlaceDefinition`s…) that everything else asks
+  `ConfigRegistry` for. It is read once per request, and per message for
+  a worker, without a shared cache, so a change made anywhere is seen by
+  every process at its next request. An instance nobody configured has
+  an empty definition (`InstanceDefinition::isEmpty()`): no page fails,
+  the configuration pages offer the starter configuration. Places are
+  declared once for the instance and a workflow lists those it uses, in
+  the order of its kanban: a place has one label and one status wherever
+  it is used, which is what lets a list across trackers filter and group
+  by place. Whoever holds a `WorkflowDefinition` asks the instance for
+  what a place says (`InstanceDefinition::place()`, `placesOf()`, or
+  `WorkflowProvider`).
+- **A change is a command, in force as soon as it ends.** There is no
+  draft and no publication: `Message/Command/Config/` has one message
+  per change (`CreateRole`, `UpdateRole`, `DeleteRole`,
+  `GrantPermission`, `RevokePermission`, the same three for a place, a
+  field, a link type, a workflow and a transition, `AddWorkflowPlace`,
+  `RemoveWorkflowPlace`), without an actor: only administrators reach
+  them. So every command must leave a configuration the application can
+  run. The handlers refuse what the data relies on, in their own words
+  (`ConfigChangeException`, translatable): a role someone holds or an
+  action names, a workflow a tracker of a project or of a template
+  follows, a link type links use, a step or a field a workflow uses are
+  not deleted; an internal-only permission goes to internal-only roles;
+  a role becomes internal-only once no external user holds it; a single
+  action leads from one step to another. Then every handler ends with
+  `ConfigWriting::settle()`, which writes the change, reads the whole
+  configuration again and gives it to `ConfigValidator`: a fault refuses
+  the command, whatever the handler forgot to check. A handler removes
+  the rows that hang from what it deletes itself, so that the entity
+  manager does not go on holding them.
+- **Two changes touch issues, and say so.** An issue keeps a copy of the
+  status of its place (`Issue::$status`, which the lists sort and filter
+  on): `UpdatePlace` gives a new status to the issues standing there
+  (`IssueRepository::alignStatus()`), closing those that enter the
+  closed status and reopening those that leave it. `RemoveWorkflowPlace`
+  takes a step out of a workflow: the issues standing there, in the
+  trackers that follow it, go in bulk to the step the command names
+  (`moveFromPlace()`), and the command is refused while some stand there
+  and no step is named; the actions that led to the step go with it,
+  those that started from it start from their other steps or go too.
+  The initial step never leaves. Neither writes in the journal of the
+  issues nor notifies anybody. The step stays in the instance, deleted
+  apart once no workflow uses it (`DeletePlace`). Removing a choice of a
+  field is free: an issue that holds it shows the value as stored.
+- **A new instance installs its starter configuration, once.**
+  `Config/StarterKit` describes it as an `InstanceDefinition` (four
+  roles, three workflows, twelve steps, six fields, three link types)
+  whose labels come from the `starter` translation catalogue, read in
+  the language of the instance when it is installed, then stored as data
+  like any other; it also creates the project template "Web project".
+  `InstallConfiguration` writes a whole definition into the empty
+  tables in one command, checked by `ConfigValidator` first, and refuses
+  an instance that has a configuration: nothing is ever compared nor
+  applied again, and a later version of the kit changes no instance that
+  exists. `bin/console app:config:install` and the button the
+  configuration pages show while the instance has none both call
+  `StarterKit::install()`. The development data and the tests install
+  theirs the same way.
+- **The pages are lists arranged in place and dialogs.** One controller
+  per subject in `Controller/Admin/` (`RoleController`,
+  `WorkflowController`, `PlaceController`, `FieldController` for the
+  fields and the link types, `ConfigurationController` for the starter
+  configuration and the history), sharing `EditsConfiguration`: a
+  refusal is the error of the form of the dialog, or a flash for a
+  deletion. A list is the live component `Config:Order` (`kind` says
+  which: roles, steps, fields, link types, the steps and the actions of
+  a workflow), dragged to reorder, each row leading to its dialog; the
+  rights are ticked in `Config:PermissionMatrix`, one command per box;
+  the fields a workflow asks for are arranged in `Config:WorkflowFields`.
+  The three check `ROLE_ADMIN` themselves: their endpoint is not under
+  `/admin`. Dialogs have an address of their own and load in the
+  `modal` frame of the administration layout
+  (`admin/configuration/_dialog.html.twig`). The page of a workflow
+  holds its steps, its actions, its fields, its diagram
+  (`Workflow/MermaidDiagram`, `Workflow:Diagram`) and the trackers that
+  follow it; the dialog that takes a step out says how many issues stand
+  there, asks where they go and lists the actions that go or change.
+- **Every change leaves a line.** `ConfigJournal`, called by `settle()`,
+  writes a `ConfigChange`: the date, the name of whoever is signed in
+  (nobody for the console and the installation) and a sentence in the
+  language of the instance (`admin.configuration.history.*`), with the
+  names of the time. The History page lists them. It is a trace: there
+  is no version to go back to, and no export of a configuration yet.
+- **A later version changes the configuration with migrations.** A new
+  column, or a permission to give the roles that hold another, is a
+  Doctrine migration written in SQL against the `config_…` tables, never
+  through the entities. A new `Permission` case is granted to nobody but
+  the administrators until a migration or an administrator grants it.
 
 ## Conventions
 
 - Code, identifiers, comments, tests, fixtures, commit messages and this
   file are in English. French lives only in the translation catalogues
-  (`translations/*.fr.yaml`) and in `config/instance.example.fr.php`.
+  (`translations/*.fr.yaml`, the labels of the starter configuration
+  in `starter.fr.yaml` among them).
 - **"Agency" is not a term of the application.** Cairn is built for one,
   but what it knows is a user's `internal` flag: say *internal* and
   *external* users in code, comments, tests and this file, *Interne* and
@@ -1900,8 +1959,9 @@ Castor are the only things needed on the host. Commands run inside the
 - `castor db:fixtures` resets the dev database and loads
   `src/Story/AppStory` (Foundry): workspaces, projects, trackers, users
   and issues created through the real commands under a mocked clock, with
-  nothing drawn at random: two loads give the same database. It applies
-  `config/instance.example.php`, whose workflows it is written for.
+  nothing drawn at random: two loads give the same database. It installs
+  the starter configuration (`Config/StarterKit`, in the language of
+  `CAIRN_LOCALE`), whose workflows it is written for.
   Every user's password is `cairn`; `admin@cairn.test` is an
   administrator. The online shop of Maison Dupont (`MD-SPT`) has budgets,
   in days: two open orders, with lines in every status. It then loads
@@ -1909,12 +1969,11 @@ Castor are the only things needed on the host. Commands run inside the
   catalogue (`NC-CAT`): 200 issues without threads, to try the lists over
   several pages. Tests load `AppStory` only. Factories live in
   `src/Factory/` and are also meant for tests.
-- `CAIRN_CONFIG` points to the instance configuration file; `.env`
-  defaults to the committed `config/instance.example.php`
-  (`config/instance.example.fr.php` is the same instance in French, for
-  `CAIRN_LOCALE=fr`). After changing it, run `castor app:config:sync
-  --dry-run`, then without `--dry-run`. Keep both example files in step:
-  a test checks they define the same ids.
+- Configuration: sign in as `admin@cairn.test` and open Administration >
+  Configuration to change the roles, the workflows, the steps and the
+  fields; History shows what was changed. `castor app:config:install`
+  installs the starter configuration into a dev database that has none
+  (the fixtures already do).
 - Mails land in Mailpit: a comment on a followed issue shows up there
   three minutes later, with whatever else happened on the project in
   between; `castor console app:notifications:send --now` sends it at
@@ -1966,8 +2025,9 @@ Functional tests extend `WebTestCase`; handler and service tests extend
 back, so a test never assumes an id: it reads it from the entity. Tests own
 their data: handler tests build what they check with `AccessFixtures` and
 `IssueFixtures`, page and component tests load `tests/Scene/ShopScene` (one
-shop, its people and ten issues under the test configuration,
-`tests/Config/Fixture/`). API tests extend `tests/Api/ApiTestCase`: the
+shop, its people and ten issues under the starter configuration);
+handler tests install the small configuration of
+`tests/Config/Fixture/DefinitionFactory` (`KernelHelpers::applyConfiguration()`). API tests extend `tests/Api/ApiTestCase`: the
 same scene, a token created through `CreateApiToken`, requests sent with
 it as a program would; those of the MCP server extend
 `tests/Api/Mcp/McpTestCase`, which sends JSON-RPC messages to `/mcp`. The development story is loaded only by the tests

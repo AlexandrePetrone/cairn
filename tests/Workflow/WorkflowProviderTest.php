@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Workflow;
 
-use App\Config\ConfigException;
 use App\Config\ConfigRegistry;
 use App\Config\Definition\InvalidDefinitionException;
 use App\Tests\KernelHelpers;
@@ -33,13 +32,13 @@ final class WorkflowProviderTest extends KernelTestCase
         );
     }
 
-    public function testWithoutSnapshotThereIsNoWorkflow(): void
+    public function testAnInstanceWithoutConfigurationHasNoWorkflow(): void
     {
-        $this->expectException(ConfigException::class);
+        $this->expectException(InvalidDefinitionException::class);
         $this->provider->get('bug');
     }
 
-    public function testWorkflowsComeFromTheSnapshotInForce(): void
+    public function testWorkflowsComeFromTheConfiguration(): void
     {
         self::applyConfiguration();
 

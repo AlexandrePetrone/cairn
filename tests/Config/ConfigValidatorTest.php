@@ -9,7 +9,6 @@ use App\Config\Definition\FieldUsage;
 use App\Config\Definition\InstanceDefinition;
 use App\Config\Definition\TransitionDefinition;
 use App\Config\Definition\WorkflowDefinition;
-use App\Config\MigrationPolicy;
 use App\Tests\Config\Fixture\DefinitionFactory;
 use PHPUnit\Framework\TestCase;
 
@@ -53,7 +52,7 @@ final class ConfigValidatorTest extends TestCase
         ], $this->messages($definition));
     }
 
-    public function testInitialAndFallbackMustBePlaces(): void
+    public function testTheInitialPlaceMustBeAPlaceOfTheWorkflow(): void
     {
         $workflow = new WorkflowDefinition(
             id: 'w',
@@ -61,27 +60,11 @@ final class ConfigValidatorTest extends TestCase
             initial: 'nowhere',
             places: ['a'],
             transitions: [],
-            fallbackPlace: 'elsewhere',
         );
 
         self::assertSame([
             'workflows.w.initial: unknown place "nowhere".',
-            'workflows.w.fallbackPlace: unknown place "elsewhere".',
         ], $this->messages(DefinitionFactory::definition(workflows: [$workflow])));
-    }
-
-    public function testFallbackPolicyRequiresAFallbackPlace(): void
-    {
-        $workflow = new WorkflowDefinition(
-            id: 'w',
-            label: 'W',
-            initial: 'a',
-            places: ['a'],
-            transitions: [],
-        );
-        $definition = DefinitionFactory::definition(workflows: [$workflow], migrationPolicy: MigrationPolicy::Fallback);
-
-        self::assertSame(['workflows.w.fallbackPlace: required under the Fallback migration policy.'], $this->messages($definition));
     }
 
     public function testTransitionsMustReferenceKnownPlacesAndRoles(): void
@@ -128,23 +111,6 @@ final class ConfigValidatorTest extends TestCase
             ['workflows.w.places: unknown place "ghost".'],
             $this->messages(DefinitionFactory::definition(workflows: [$workflow], places: DefinitionFactory::places())),
         );
-    }
-
-    public function testAMigrationLeadsFromARemovedPlaceToAPlaceOfTheWorkflow(): void
-    {
-        $workflow = new WorkflowDefinition(
-            id: 'w',
-            label: 'W',
-            initial: 'a',
-            places: ['a', 'b'],
-            transitions: [],
-            migrations: ['old' => 'a', 'b' => 'a', 'gone' => 'nowhere'],
-        );
-
-        self::assertSame([
-            'workflows.w.migrations.b: is still a place of this workflow.',
-            'workflows.w.migrations.gone: "nowhere" is not a place of this workflow.',
-        ], $this->messages(DefinitionFactory::definition(workflows: [$workflow])));
     }
 
     public function testWorkflowFieldsMustExist(): void

@@ -1,5 +1,5 @@
 {# Base of the administration pages (`/admin/…`): the header in its administration variant, the administration navigation, a breadcrumb rooted on the administration.
-   Pages fill `page_title` and `content`; `breadcrumb` lists the steps between the root and the title, as links. The blocks are captured before the shell component, whose own blocks would otherwise hide them. #}
+   Pages fill `page_title` and `content`; `breadcrumb` lists the steps between the root and the title, as links. `modal` is the `modal` Turbo frame, empty unless the page fills it with its dialog (`project/_form_dialog.html.twig`): a request made for the frame is answered with this block alone (`Controller/OpensDialog`). The blocks are captured before the shell component, whose own blocks would otherwise hide them. #}
 {% extends 'base.html.twig' %}
 
 {% block title %}{{ block('page_title') }} · {{ 'admin.title'|trans }} · Cairn{% endblock %}
@@ -8,6 +8,7 @@
     {% set layoutPageTitle %}{% block page_title %}{% endblock %}{% endset %}
     {% set layoutBreadcrumb %}{% block breadcrumb %}{% endblock %}{% endset %}
     {% set layoutPageContent %}{% block content %}{% endblock %}{% endset %}
+    {% set layoutModal %}{% block modal %}{{ include('project/_form_dialog.html.twig', { form: null }) }}{% endblock %}{% endset %}
     <twig:Ui:Layout:Shell>
         <twig:block name="header"><twig:Layout:Header admin /></twig:block>
         <twig:block name="sidebar"><twig:Layout:AdminNav /></twig:block>
@@ -20,5 +21,6 @@
             </nav>
         </twig:block>
         {{ layoutPageContent }}
+        {{ layoutModal }}
     </twig:Ui:Layout:Shell>
 {% endblock %}

@@ -1,0 +1,27 @@
+{# The dialog of a configuration page, in its `modal` frame: the `form` in `project/_form_dialog.html.twig`, with what a dialog that changes something adds under its fields. `note` is said under the fields (what the change does to the issues); `deleteAction` adds the deletion, confirmed in place and sent by a form of its own, with `deleteHelp` saying when it is refused. #}
+{% set dialogDeleteForm = '' %}
+{% set dialogAfter = '' %}
+{% if form %}
+    {% if deleteAction ?? null %}
+        {% set dialogDeleteForm %}
+            <form id="configuration-delete" method="post" action="{{ deleteAction }}" class="hidden">
+                <input type="hidden" name="_token" value="{{ csrf_token('submit') }}" data-controller="csrf-protection">
+            </form>
+        {% endset %}
+    {% endif %}
+    {% set dialogAfter %}
+        {{ note ?? '' }}
+        {% if deleteAction ?? null %}
+            <twig:Ui:Callout tone="danger" size="sm" class="mt-4">
+                <p>{{ deleteHelp }}</p>
+                <twig:Ui:Disclosure :closedLabel="'admin.configuration.delete'|trans" :openLabel="'issue.edit.cancel'|trans" class="mt-1.5">
+                    <div class="mt-2 flex flex-wrap items-center gap-3" role="alertdialog">
+                        <span class="flex-1 basis-48">{{ 'admin.configuration.delete_confirm'|trans }}</span>
+                        <twig:Ui:Button type="submit" variant="danger" size="sm" icon="trash-2" form="configuration-delete">{{ 'admin.configuration.delete'|trans }}</twig:Ui:Button>
+                    </div>
+                </twig:Ui:Disclosure>
+            </twig:Ui:Callout>
+        {% endif %}
+    {% endset %}
+{% endif %}
+{{ include('project/_form_dialog.html.twig', { before: dialogDeleteForm, after: dialogAfter, size: size ?? 'md' }) }}

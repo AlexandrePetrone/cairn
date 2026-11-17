@@ -1,0 +1,39 @@
+{# The fields a workflow asks for, in the order of the form of an issue: dragged to reorder (`sortable` controller, `move`), required or not (`toggle`), taken out (`remove`), and a menu of the other fields of the instance to add one (`add`). #}
+{% set workflowFieldsAsked = this.asked %}
+{% set workflowFieldsOthers = this.others %}
+<div {{ attributes }} data-loading="addClass(opacity-60)">
+    {% if error %}
+        <twig:Ui:Callout tone="danger" size="sm" role="alert" class="m-3">{{ error }}</twig:Ui:Callout>
+    {% endif %}
+    {% if workflowFieldsAsked is empty %}
+        <p class="px-4 py-6 text-center text-sm text-faint">{{ 'admin.configuration.workflow.no_field'|trans }}</p>
+    {% else %}
+        <ul class="divide-y divide-line-subtle" data-controller="sortable" data-sortable-action-value="move" data-sortable-param-value="id">
+            {% for asked in workflowFieldsAsked %}
+                <li id="workflow-field-{{ asked.field.id }}" data-sortable-target="item" data-sortable-id="{{ asked.field.id }}" draggable="true" data-action="dragstart->sortable#start dragover->sortable#over drop->sortable#drop dragend->sortable#end"
+                    class="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5 hover:bg-subtle">
+                    <span class="cursor-grab text-ghost hover:text-muted" title="{{ 'admin.configuration.drag'|trans }}"><twig:ux:icon name="lucide:grip-vertical" class="h-4 w-4" /></span>
+                    <div class="min-w-0 flex-1 leading-tight">
+                        <div class="text-sm font-medium text-strong">{{ asked.field.label }}</div>
+                        <div class="text-xs text-muted">{{ ('field_type.' ~ asked.field.type.value)|trans }}{% if asked.field.internalOnly %} · {{ 'admin.configuration.fields.internal_only'|trans }}{% endif %}</div>
+                    </div>
+                    <label class="flex items-center gap-1.5 text-xs text-body">
+                        <input type="checkbox" class="h-4 w-4 rounded border-line-strong" {{ asked.required ? 'checked' }} data-action="live#action" data-live-action-param="toggle" data-live-field-param="{{ asked.field.id }}">
+                        {{ 'admin.configuration.fields.required'|trans }}
+                    </label>
+                    <button type="button" class="text-xs text-muted hover:text-red" data-action="live#action" data-live-action-param="remove" data-live-field-param="{{ asked.field.id }}">{{ 'admin.configuration.workflow.remove_field'|trans }}</button>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    {% if workflowFieldsOthers is not empty %}
+        <div class="flex items-center gap-2 border-t border-line-subtle px-3 py-2.5">
+            <label class="sr-only" for="workflow-field-add">{{ 'admin.configuration.workflow.add_field'|trans }}</label>
+            <select id="workflow-field-add" data-model="adding" class="min-w-0 flex-1 rounded-md border-line-strong bg-surface text-sm text-strong">
+                <option value="">{{ 'admin.configuration.workflow.choose_field'|trans }}</option>
+                {% for field in workflowFieldsOthers %}<option value="{{ field.id }}">{{ field.label }}</option>{% endfor %}
+            </select>
+            <twig:Ui:Button size="sm" data-action="live#action" data-live-action-param="add">{{ 'admin.configuration.workflow.add_field'|trans }}</twig:Ui:Button>
+        </div>
+    {% endif %}
+</div>

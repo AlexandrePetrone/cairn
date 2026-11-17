@@ -1,57 +1,48 @@
+{# The fields and the link types of the instance, each list in its order, created and changed in dialogs. #}
 {% extends 'admin/configuration/base.html.twig' %}
 
 {% set configurationSubject = 'fields' %}
 
 {% block configuration_content %}
-    <section class="space-y-2">
-        <h2 class="font-semibold text-strong">{{ 'admin.configuration.fields.title'|trans }}</h2>
-        <p class="text-xs text-muted">{{ 'admin.configuration.fields.intro'|trans }}</p>
-        <div class="grid md:grid-cols-2 gap-4">
-            {% for field in definition.fields %}
-                <div class="rounded-lg border border-line bg-surface p-4 space-y-2">
-                    <div class="flex flex-wrap items-center gap-2">
-                        <h3 class="font-medium text-strong">{{ field.label }}</h3>
-                        <span class="text-xs text-muted">{{ ('field_type.' ~ field.type.value)|trans }}</span>
-                        {% if field.internalOnly %}<twig:Ui:Badge size="sm" icon="lock">{{ 'admin.configuration.fields.internal_only'|trans }}</twig:Ui:Badge>{% endif %}
-                        <span class="ml-auto font-mono text-[11px] text-faint">{{ field.id }}</span>
-                    </div>
-                    {% if field.help %}<p class="text-xs text-muted">{{ field.help }}</p>{% endif %}
-                    {% if field.options is not empty %}
-                        <div class="flex flex-wrap gap-1">
-                            {% for optionLabel in field.options %}<twig:Ui:Badge>{{ optionLabel }}</twig:Ui:Badge>{% endfor %}
-                        </div>
-                    {% endif %}
-                    <p class="text-xs text-muted">
-                        {% set fieldWorkflows = definition.workflows|filter(wf => wf.fields[field.id] is defined) %}
-                        {% if fieldWorkflows is empty %}
-                            {{ 'admin.configuration.fields.unused'|trans }}
-                        {% else %}
-                            {{ 'admin.configuration.fields.used_by'|trans }}
-                            {% for workflow in fieldWorkflows %}
-                                <a href="{{ path('app_admin_configuration_workflow', { id: workflow.id }) }}" class="text-body hover:text-brand">{{ workflow.label }}</a>{% if workflow.fields[field.id].required %} ({{ 'admin.configuration.fields.required'|trans|lower }}){% endif %}{{ not loop.last ? ', ' }}
-                            {% endfor %}
-                        {% endif %}
-                    </p>
-                </div>
-            {% endfor %}
-        </div>
-    </section>
+    {% if not definition.empty %}
+        <twig:Ui:Panel>
+            <twig:block name="header">
+                <h2 class="font-semibold text-strong">{{ 'admin.configuration.fields.title'|trans }}</h2>
+                <span class="text-xs text-faint">{{ definition.fields|length }}</span>
+                <twig:Ui:Button size="sm" icon="plus" class="ml-auto" href="{{ path('app_admin_configuration_field_new') }}" data-turbo-frame="modal">{{ 'admin.configuration.fields.new'|trans }}</twig:Ui:Button>
+            </twig:block>
+            <twig:block name="content"><twig:Config:Order kind="fields" :empty="'admin.configuration.fields.empty'|trans" /></twig:block>
+            <twig:block name="footer">{{ 'admin.configuration.fields.intro'|trans }}</twig:block>
+        </twig:Ui:Panel>
 
-    <section class="space-y-2">
-        <h2 class="font-semibold text-strong">{{ 'admin.configuration.links.title'|trans }}</h2>
-        <p class="text-xs text-muted">{{ 'admin.configuration.links.intro'|trans }}</p>
-        <ul class="rounded-lg border border-line bg-surface divide-y divide-line-subtle text-sm">
-            {% for link in definition.links %}
-                <li class="flex flex-wrap items-center gap-2 px-4 py-2">
-                    <span class="text-strong">{{ link.label }}</span>
-                    {% if link.inverseLabel %}
-                        <span class="text-xs text-muted">{{ 'admin.configuration.links.inverse'|trans({ '%label%': link.inverseLabel }) }}</span>
-                    {% else %}
-                        <span class="text-xs text-muted">{{ 'admin.configuration.links.symmetric'|trans }}</span>
-                    {% endif %}
-                    <span class="ml-auto font-mono text-[11px] text-faint">{{ link.id }}</span>
-                </li>
-            {% endfor %}
-        </ul>
-    </section>
+        <twig:Ui:Panel>
+            <twig:block name="header">
+                <h2 class="font-semibold text-strong">{{ 'admin.configuration.links.title'|trans }}</h2>
+                <span class="text-xs text-faint">{{ definition.links|length }}</span>
+                <twig:Ui:Button size="sm" icon="plus" class="ml-auto" href="{{ path('app_admin_configuration_link_new') }}" data-turbo-frame="modal">{{ 'admin.configuration.links.new'|trans }}</twig:Ui:Button>
+            </twig:block>
+            <twig:block name="content"><twig:Config:Order kind="links" :empty="'admin.configuration.links.empty'|trans" /></twig:block>
+            <twig:block name="footer">{{ 'admin.configuration.links.intro'|trans }}</twig:block>
+        </twig:Ui:Panel>
+    {% endif %}
+{% endblock %}
+
+{% block modal %}
+    {% if dialogIsLink %}
+        {{ include('admin/configuration/_dialog.html.twig', {
+            title: dialogSubject ? dialogSubject.label : 'admin.configuration.links.new'|trans,
+            closeHref: path('app_admin_configuration_fields'),
+            submitLabel: (dialogSubject ? 'admin.configuration.save' : 'admin.configuration.create')|trans,
+            deleteAction: dialogSubject ? path('app_admin_configuration_link_delete', { id: dialogSubject.id }) : null,
+            deleteHelp: 'admin.configuration.links.delete_help'|trans,
+        }) }}
+    {% else %}
+        {{ include('admin/configuration/_dialog.html.twig', {
+            title: dialogSubject ? dialogSubject.label : 'admin.configuration.fields.new'|trans,
+            closeHref: path('app_admin_configuration_fields'),
+            submitLabel: (dialogSubject ? 'admin.configuration.save' : 'admin.configuration.create')|trans,
+            deleteAction: dialogSubject ? path('app_admin_configuration_field_delete', { id: dialogSubject.id }) : null,
+            deleteHelp: 'admin.configuration.fields.delete_help'|trans,
+        }) }}
+    {% endif %}
 {% endblock %}

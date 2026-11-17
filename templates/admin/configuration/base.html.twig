@@ -1,4 +1,5 @@
-{# Base of the configuration pages, read-only: the navigation has one entry per subject. Pages set `configurationSubject` (roles, workflows, fields or history) and fill `configuration_content`. #}
+{# Base of the configuration pages: the navigation has one entry per subject. Pages set `configurationSubject` (roles, workflows, places, fields or history) and fill `configuration_content`, `configuration_actions` (the main action of the page, at the right of its title) and `modal` (their dialog, with `_dialog.html.twig`).
+   An instance nobody configured yet (`definition.empty`) is offered its starter configuration instead of the content. #}
 {% extends 'layout/admin.html.twig' %}
 
 {% block page_title %}{{ ('admin.configuration.nav.' ~ configurationSubject)|trans }}{% endblock %}
@@ -10,10 +11,24 @@
 
 {% block content %}
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 space-y-6">
-        <div>
-            <h1 class="text-xl font-semibold text-strong">{{ ('admin.configuration.nav.' ~ configurationSubject)|trans }}</h1>
-            <p class="text-xs text-muted">{{ 'admin.configuration.intro'|trans }}</p>
+        <div class="flex flex-wrap items-start gap-x-4 gap-y-2">
+            <div class="min-w-0 flex-1 basis-64">
+                <h1 class="text-xl font-semibold text-strong">{{ ('admin.configuration.nav.' ~ configurationSubject)|trans }}</h1>
+                <p class="text-xs text-muted">{{ ('admin.configuration.intro.' ~ configurationSubject)|trans }}</p>
+            </div>
+            {% if not definition.empty %}<div class="flex flex-wrap items-center gap-2">{% block configuration_actions %}{% endblock %}</div>{% endif %}
         </div>
+        {% if definition.empty %}
+            <twig:Ui:EmptyState :title="'admin.configuration.starter.title'|trans" icon="workflow" bordered>
+                {{ 'admin.configuration.starter.help'|trans }}
+                <twig:block name="actions">
+                    <form method="post" action="{{ path('app_admin_configuration_install') }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('submit') }}" data-controller="csrf-protection">
+                        <twig:Ui:Button type="submit" variant="primary" icon="play">{{ 'admin.configuration.starter.install'|trans }}</twig:Ui:Button>
+                    </form>
+                </twig:block>
+            </twig:Ui:EmptyState>
+        {% endif %}
         {% block configuration_content %}{% endblock %}
     </div>
 {% endblock %}

@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Scene;
 
-use App\Config\ConfigLoader;
 use App\Config\Definition\FieldDefinition;
 use App\Config\Definition\FieldUsage;
 use App\Config\Definition\InstanceDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use App\Config\FieldType;
-use App\Config\Sync\ConfigSynchronizer;
+use App\Config\StarterKit;
 use App\Entity\Budget;
 use App\Entity\BudgetLine;
 use App\Entity\Enum\BudgetLineStatus;
@@ -25,6 +24,7 @@ use App\Entity\User;
 use App\Entity\Workspace;
 use App\Message\Command\Budget\AddBudgetLine;
 use App\Message\Command\Budget\CreateBudget;
+use App\Message\Command\Config\InstallConfiguration;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\Command\Issue\CreateIssue;
@@ -88,8 +88,7 @@ final class ShopScene
         $this->access = $container->get(AccessControl::class);
         $this->workflows = $container->get(WorkflowProvider::class);
 
-        $synchronizer = $container->get(ConfigSynchronizer::class);
-        $synchronizer->apply($synchronizer->plan(self::configuration()), 'tests');
+        $this->commands->dispatch(new InstallConfiguration(self::configuration($container->get(StarterKit::class))));
 
         $this->people();
         $this->places();
@@ -97,20 +96,19 @@ final class ShopScene
     }
 
     /**
-     * The example configuration, with the two cases it does not show: a
+     * The starter configuration, with the two cases it does not show: a
      * field for internal users only (`estimate`, on bugs) and a workflow
      * without fields (tasks).
      */
-    private static function configuration(): InstanceDefinition
+    private static function configuration(StarterKit $kit): InstanceDefinition
     {
-        $example = (new ConfigLoader(\dirname(__DIR__, 2).'/config/instance.example.php'))->load();
+        $example = $kit->definition();
         $fields = [
             'bug' => [...array_values($example->workflows['bug']->fields), new FieldUsage('estimate')],
             'task' => [],
         ];
 
         return new InstanceDefinition(
-            migrationPolicy: $example->migrationPolicy,
             roles: array_values($example->roles),
             permissions: $example->permissions,
             fields: [...array_values($example->fields), new FieldDefinition(id: 'estimate', label: 'Estimate (days)', type: FieldType::Number, internalOnly: true)],
@@ -123,8 +121,6 @@ final class ShopScene
                 places: $workflow->places,
                 transitions: array_values($workflow->transitions),
                 fields: $fields[$workflow->id] ?? array_values($workflow->fields),
-                fallbackPlace: $workflow->fallbackPlace,
-                migrations: $workflow->migrations,
             ), array_values($example->workflows)),
         );
     }

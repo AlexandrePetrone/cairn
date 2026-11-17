@@ -1,6 +1,10 @@
 admin:
     key_invalid: 2 to 5 uppercase letters.
     delete_mismatch: This is not the key of what you are about to delete.
+    configuration:
+        action:
+            from_required: 'An action starts from at least one step.'
+            roles_required: 'At least one role triggers an action.'
     import:
         tracker_name_required: Name the tracker to create.
         zip_expected: Send a zip archive.

@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace App\Config\Definition;
 
 use App\Config\FieldValue;
-use App\Config\MigrationPolicy;
 use App\Security\Permission;
 
 /**
- * The whole instance configuration, as returned by the configuration file
- * and as rebuilt from a snapshot. Immutable; cross-references are checked by
- * the ConfigValidator, not here.
+ * The whole instance configuration, as Config\DefinitionLoader reads it
+ * from its tables. Immutable; cross-references are checked by the
+ * ConfigValidator, not here.
  */
 final readonly class InstanceDefinition
 {
@@ -31,16 +30,14 @@ final readonly class InstanceDefinition
     public array $workflows;
 
     /**
-     * @param MigrationPolicy             $migrationPolicy what the sync does with issues on a removed place
-     * @param list<RoleDefinition>        $roles           declared from the broadest to the narrowest
-     * @param array<string, list<string>> $permissions     Permission value => role ids
+     * @param list<RoleDefinition>        $roles       declared from the broadest to the narrowest
+     * @param array<string, list<string>> $permissions Permission value => role ids
      * @param list<FieldDefinition>       $fields
      * @param list<LinkTypeDefinition>    $links
-     * @param list<PlaceDefinition>       $places          every step of the instance; each workflow names those it uses
+     * @param list<PlaceDefinition>       $places      every step of the instance; each workflow names those it uses
      * @param list<WorkflowDefinition>    $workflows
      */
     public function __construct(
-        public MigrationPolicy $migrationPolicy,
         array $roles,
         public array $permissions,
         array $fields,
@@ -60,6 +57,15 @@ final readonly class InstanceDefinition
             }
             Definitions::assertIdList($roleIds, "permissions.$permission");
         }
+    }
+
+    /**
+     * Nothing configured yet: the state of a new instance, before its
+     * starter configuration is installed.
+     */
+    public function isEmpty(): bool
+    {
+        return [] === $this->roles && [] === $this->fields && [] === $this->links && [] === $this->places && [] === $this->workflows;
     }
 
     public function hasRole(string $id): bool
@@ -148,7 +154,7 @@ final readonly class InstanceDefinition
 
     /**
      * The place, or null when it left the configuration (an issue may
-     * still sit on it until the sync migrates it).
+     * still name it).
      */
     public function findPlace(string $id): ?PlaceDefinition
     {

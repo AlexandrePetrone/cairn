@@ -29,8 +29,7 @@ class IssueRepository extends ServiceEntityRepository
     }
 
     /**
-     * Every place that holds issues, with how many, across every workflow:
-     * what the configuration sync compares with the places of the file.
+     * Every place that holds issues, with how many, across every workflow.
      *
      * @return list<array{workflowId: string, placeId: string, issues: int}>
      */
@@ -50,31 +49,19 @@ class IssueRepository extends ServiceEntityRepository
     }
 
     /**
-     * The status the issues of each place carry, with how many, workflow by
-     * workflow: what the configuration sync compares with the status the
-     * file gives the place.
-     *
-     * @return list<array{workflowId: string, placeId: string, status: PlaceStatus, issues: int}>
+     * How many issues stand on a place, in the trackers of one workflow or
+     * in all of them: what must move before the place leaves.
      */
-    public function countByPlaceStatus(): array
+    public function countOnPlace(string $placeId, ?string $workflowId = null): int
     {
-        /** @var list<array{workflowId: string, placeId: string, status: PlaceStatus|string, issues: int|string}> $rows */
-        $rows = $this->createQueryBuilder('i')
-            ->select('t.workflowId AS workflowId', 'i.place AS placeId', 'i.status AS status', 'COUNT(i.id) AS issues')
-            ->join('i.tracker', 't')
-            ->groupBy('t.workflowId', 'i.place', 'i.status')
-            ->orderBy('i.place')
-            ->addOrderBy('i.status')
-            ->addOrderBy('t.workflowId')
-            ->getQuery()
-            ->getArrayResult();
+        $count = 0;
+        foreach ($this->countByPlace() as $row) {
+            if ($row['placeId'] === $placeId && (null === $workflowId || $row['workflowId'] === $workflowId)) {
+                $count += $row['issues'];
+            }
+        }
 
-        return array_map(static fn (array $row): array => [
-            'workflowId' => $row['workflowId'],
-            'placeId' => $row['placeId'],
-            'status' => $row['status'] instanceof PlaceStatus ? $row['status'] : PlaceStatus::from($row['status']),
-            'issues' => (int) $row['issues'],
-        ], $rows);
+        return $count;
     }
 
     /**

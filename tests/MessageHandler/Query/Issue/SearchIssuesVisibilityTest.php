@@ -83,10 +83,6 @@ final class SearchIssuesVisibilityTest extends KernelTestCase
         MembershipFactory::createOne(['user' => $projectClient, 'project' => $project, 'role' => 'client']);
         self::assertSame(self::ids($public), $this->visibleIds($projectClient), 'direct on one project only');
 
-        $formerClient = UserFactory::createOne();
-        MembershipFactory::createOne(['user' => $formerClient, 'project' => $project, 'role' => 'role_removed_from_configuration']);
-        self::assertSame([], $this->visibleIds($formerClient), 'a role unknown to the configuration grants nothing');
-
         $everything = self::ids($public, $privateIssue, $inPrivateTracker, $inSibling, $inElsewhere);
         self::assertSame($everything, $this->visibleIds(UserFactory::new()->internal()->create()), 'internal users see everything');
         self::assertSame($everything, $this->visibleIds(UserFactory::new()->admin()->create()), 'administrators too');

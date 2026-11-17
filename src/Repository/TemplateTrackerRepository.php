@@ -43,8 +43,8 @@ class TemplateTrackerRepository extends ServiceEntityRepository
     }
 
     /**
-     * The templates that use each workflow, for the configuration sync:
-     * a workflow a template still names stays in the instance file.
+     * The templates that use each workflow: a workflow a template still
+     * names cannot be deleted.
      *
      * @return array<string, list<string>> workflow id => names of the templates
      */

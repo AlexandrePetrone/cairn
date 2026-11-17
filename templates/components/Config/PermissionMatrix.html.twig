@@ -1,0 +1,44 @@
+{# The rights outside the workflows as a grid of boxes, a row per right and a column per role: a box ticked grants the right at once (`toggle`). A right for internal roles only shows no box under a role open to external users. Administrators hold every right. #}
+{% set matrixRoles = this.roles %}
+<div {{ attributes }} data-loading="addClass(opacity-60)">
+    {% if error %}
+        <twig:Ui:Callout tone="danger" size="sm" role="alert" class="mb-2">{{ error }}</twig:Ui:Callout>
+    {% endif %}
+    <div class="overflow-x-auto rounded-lg border border-line bg-surface">
+        <table class="w-full text-sm">
+            <thead class="bg-subtle text-[11px] uppercase tracking-wider text-muted">
+                <tr>
+                    <th class="px-4 py-2 text-left font-medium">{{ 'admin.configuration.permissions.permission'|trans }}</th>
+                    {% for role in matrixRoles %}<th class="px-3 py-2 text-center font-medium whitespace-nowrap">{{ role.label }}</th>{% endfor %}
+                    <th class="px-3 py-2 text-center font-medium whitespace-nowrap">{{ 'admin.user.type.admin'|trans }}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-line-subtle">
+                {% for permission in this.permissions %}
+                    {% set matrixLabel = ('permission.' ~ permission.value ~ '.label')|trans %}
+                    <tr>
+                        <td class="px-4 py-2.5">
+                            <div class="flex flex-wrap items-center gap-2 text-strong">
+                                {{ matrixLabel }}
+                                {% if permission.internalOnly %}<twig:Ui:Badge size="sm" tone="amber">{{ 'admin.configuration.permissions.internal_only'|trans }}</twig:Ui:Badge>{% endif %}
+                            </div>
+                            <div class="text-xs text-muted">{{ ('permission.' ~ permission.value ~ '.help')|trans }}</div>
+                        </td>
+                        {% for role in matrixRoles %}
+                            <td class="px-3 py-2.5 text-center">
+                                {% if this.offered(role, permission) %}
+                                    <input type="checkbox" class="rounded border-line-strong text-brand-solid focus:ring-focus" {{ this.holds(role, permission) ? 'checked' }}
+                                        aria-label="{{ matrixLabel }} : {{ role.label }}"
+                                        data-action="live#action" data-live-action-param="toggle" data-live-role-param="{{ role.id }}" data-live-permission-param="{{ permission.value }}">
+                                {% else %}
+                                    <span class="text-ghost" title="{{ 'admin.configuration.permissions.internal_only_help'|trans }}">·</span>
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                        <td class="px-3 py-2.5 text-center"><twig:ux:icon name="lucide:check" class="mx-auto h-4 w-4 text-emerald" /></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

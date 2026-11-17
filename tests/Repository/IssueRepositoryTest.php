@@ -8,6 +8,7 @@ use App\Config\Definition\PlaceDefinition;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
 use App\Entity\Tracker;
+use App\Message\Command\Config\CreateWorkflow;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Repository\IssueRepository;
 use App\Tests\Config\Fixture\DefinitionFactory;
@@ -47,6 +48,7 @@ final class IssueRepositoryTest extends KernelTestCase
         $commands->dispatch(new ApplyTransition($developer, $c->getKey(), 'start'));
 
         // An issue of another workflow on a place with the same id must not move.
+        $commands->dispatch(new CreateWorkflow('Other', 'new', 'other_workflow'));
         $otherTracker = new Tracker($this->fixtures->access->otherProject, 'Other', 'other_workflow');
         $this->entityManager->persist($otherTracker);
         $other = new Issue($this->fixtures->access->otherProject, $otherTracker, DefinitionFactory::place('new'), 1, $this->fixtures->client, 'Other', '');

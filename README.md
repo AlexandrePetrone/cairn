@@ -36,7 +36,7 @@ npm ci && npm run build                   # assets into public/build/
 
 bin/console doctrine:database:create --if-not-exists
 bin/console doctrine:schema:update --force
-bin/console app:config:sync               # applies the instance configuration (CAIRN_CONFIG)
+bin/console app:config:install            # starter configuration: roles, workflows, steps, fields
 bin/console app:user:create               # first administrator
 ```
 
@@ -48,7 +48,7 @@ bin/console messenger:consume async scheduler_default --time-limit=3600
 
 ### Instance configuration
 
-Roles, permissions, fields, link types and workflows live in a PHP file outside the repository, pointed to by `CAIRN_CONFIG`. Start from [`config/instance.example.php`](config/instance.example.php), or [`config/instance.example.fr.php`](config/instance.example.fr.php) for a French instance. The file is never read at runtime: `app:config:sync` validates it, shows what changes (`--dry-run`) and stores it in the database. Run it again after every change, and after upgrading Cairn: [`UPGRADE.md`](UPGRADE.md) lists what a new version changes in the file.
+Roles and their rights, workflows, steps, fields and link types live in the database and are managed by the administrators, under Administration > Configuration. `app:config:install` gives a new instance a starter configuration, in the language of `CAIRN_LOCALE`: four roles, three workflows (bug, feature, internal task) and a project template to create the first project with. It is installed once: everything it gave is then changed from the administration, and running the command again changes nothing. An instance may also start empty and be configured by hand.
 
 ### Environment
 
@@ -62,8 +62,7 @@ DATABASE_URL="postgresql://user:password@127.0.0.1:5432/cairn?serverVersion=18&c
 DEFAULT_URI=https://cairn.example
 MAILER_DSN=smtp://user:password@smtp.example.com:587
 MAILER_FROM="Cairn <no-reply@cairn.example>"
-# Instance configuration file and language (en or fr)
-CAIRN_CONFIG=/etc/cairn/instance.php
+# Language of the instance (en or fr)
 CAIRN_LOCALE=en
 # Where the attachments are stored, outside public/
 ATTACHMENTS_DIR=/var/lib/cairn/attachments
@@ -157,7 +156,7 @@ castor console debug:router     # app:console
 castor composer require foo/bar # app:composer
 castor npm install foo          # app:npm
 castor sh                       # app:sh
-castor app:config:sync --dry-run
+castor app:config:install       # starter configuration, into a database that has none
 
 # Databases (db:*)
 castor db:reset                 # apply the entity mapping to the dev and test schemas

@@ -609,77 +609,205 @@ admin:
             invited: Invited
             deactivated: Deactivated
     configuration:
-        intro: 'Read-only: the configuration changes in the instance file, then applies with app:config:sync.'
+        intro:
+            roles: 'Who may do what: a role is given to someone on a project or a workspace, and holds rights.'
+            workflows: 'Each category of a project follows a workflow: its steps, the actions that lead from one to another, and the fields it asks for.'
+            places: 'A step has a name and a status, the same in every workflow that uses it.'
+            fields: 'Fields are declared once for the instance and each workflow picks the ones it asks for. Link types tie two issues together.'
+            history: 'Who changed what in the configuration, and what it did to the issues. A trace to read: nothing here goes back to an earlier configuration.'
         nav:
-            roles: Roles and rights
-            workflows: Workflows
-            fields: Fields and links
-            history: History
+            roles: 'Roles and rights'
+            workflows: 'Workflows'
+            places: 'Steps'
+            fields: 'Fields and links'
+            history: 'History'
+        moved: 'Order saved.'
+        drag: 'Drag to reorder'
+        edit: 'Edit'
+        save: 'Save'
+        create: 'Create'
+        saved: 'Configuration saved.'
+        delete: 'Delete'
+        delete_confirm: 'Delete for good?'
+        issue_count: '{0}no issue|{1}1 issue|]1,Inf[ %count% issues'
+        form:
+            label: 'Name'
+        starter:
+            title: 'This instance has no configuration yet'
+            help: 'Install the starter configuration to begin with the roles, workflows, steps and fields of a team working with its clients. You change everything afterwards, here.'
+            install: 'Install the starter configuration'
+            installed: 'Starter configuration installed.'
+            already: 'The instance already has a configuration: nothing changed.'
         roles:
-            title: Roles
-            intro: From the broadest to the narrowest. Direct access to a project may only widen the role inherited from the workspace.
-            role: Role
-            who: For whom
-            memberships: Access
-            anyone: Internal and external users
-            internal_only: Internal users only
-            follows_new_issues: New issues
-            follows_new_issues_help: Subscribed to every new issue of the project
+            title: 'Roles'
+            intro: 'From the broadest to the narrowest. Direct access to a project may only widen the role inherited from the workspace.'
+            anyone: 'Internal and external users'
+            internal_only: 'Internal users only'
+            follows_new_issues_help: 'Subscribed to every new issue of the project'
             membership_count: '{0}no access|{1}1 access|]1,Inf[ %count% accesses'
-            orphan: '%count% accesses carry the role "%role%", missing from the configuration: they grant nothing any more.'
+            new: 'New role'
+            created: 'Role "%name%" created. It holds no right yet.'
+            deleted: 'Role "%name%" deleted.'
+            delete_help: 'A role is deleted once nobody holds it and no action of a workflow names it.'
+            form:
+                internal_only: 'Reserved to internal users'
+                internal_only_help: 'It may then hold the rights that open what external users never see.'
+                follows_new_issues: 'Follows new issues'
+                follows_new_issues_help: 'Whoever holds it on a project is subscribed to every new issue of the project, and may unsubscribe issue by issue.'
         permissions:
-            title: Rights outside workflows
-            intro: The rights the configuration gives each role. Workflow actions have their own roles, detailed below.
-            permission: Right
+            title: 'Rights outside workflows'
+            intro: 'A ticked box grants the right at once. Who triggers an action is settled on the action, in its workflow.'
+            permission: 'Right'
+            internal_only: 'Internal roles'
+            internal_only_help: 'This right opens what external users never see: it only goes to a role reserved to internal users.'
+        places:
+            title: 'Steps'
+            new: 'New step'
+            empty: 'No step yet.'
+            unused: 'Used by no workflow'
+            order_help: 'This order is the order of the filters and of the groups of the issue lists. The columns of a kanban follow its workflow.'
+            created: 'Step "%name%" created. Add it to the workflows that use it.'
+            deleted: 'Step "%name%" deleted.'
+            delete_help: 'A step is deleted once no workflow uses it.'
+            status_note: '{1}An issue stands on this step: giving the step the closed status closes it, taking that status away reopens it.|]1,Inf[ %count% issues stand on this step: giving the step the closed status closes them, taking that status away reopens them.'
+            form:
+                status: 'Status'
+                status_help: 'The family of the step: it orders the lists, hides finished issues and feeds the statistics. Users see the step, never its status.'
+        fields:
+            title: 'Fields'
+            intro: 'Each workflow picks the fields it asks for, on its page.'
+            new: 'New field'
+            empty: 'No field yet.'
+            unused: 'Asked for by no workflow'
+            internal_only: 'Internal users only'
+            required: 'Required'
+            type: 'Type'
+            created: 'Field "%name%" created. Add it to the workflows that ask for it.'
+            deleted: 'Field deleted.'
+            delete_help: 'A field is deleted once no workflow asks for it. The values issues hold of it are kept, shown nowhere.'
+            form:
+                type_help: 'Chosen for good: the values issues hold are of that type.'
+                choices: 'Choices'
+                choices_help: 'For a list or a single choice: one per line. A new line is its label alone; a choice already there reads "value = Label", and keeps its value when you change its label. A choice you take out stays shown as stored on the issues that hold it.'
+                placeholder: 'Placeholder'
+                help: 'Help text'
+                internal_only: 'Never shown to external users'
+        links:
+            title: 'Link types'
+            intro: 'The links possible between two issues.'
+            new: 'New link type'
+            empty: 'No link type yet.'
+            inverse: 'seen from the other issue: "%label%"'
+            symmetric: 'symmetric'
+            link_count: '{0}no link|{1}1 link|]1,Inf[ %count% links'
+            created: 'Link type "%name%" created.'
+            deleted: 'Link type deleted.'
+            delete_help: 'A link type is deleted once no link is of it.'
+            form:
+                inverse: 'Seen from the other issue'
+                inverse_help: '"Blocks" reads "Blocked by" from the other issue. Left empty, the link reads the same from both.'
         workflows:
-            intro: Each category picks a workflow when it is created, for good. Open one to read its places (the columns of the kanban), the actions moving an issue from one place to another with the roles that may trigger them, and the fields it asks for. An administrator may trigger every action.
-            steps: Places
-            steps_intro: Every place of the instance, in the order the issue lists filter and group by, and the workflows that use it. A place is the same wherever it is used.
-            place_count: '{1}1 place|]1,Inf[ %count% places'
+            new: 'New workflow'
+            empty: 'No workflow yet'
+            created: 'Workflow "%name%" created. Add its steps and its actions.'
+            deleted: 'Workflow "%name%" deleted.'
+            delete_help: 'A workflow is deleted, with its actions, once no category follows it, of a project or of a project template.'
+            place_count: '{1}1 step|]1,Inf[ %count% steps'
             action_count: '{0}no action|{1}1 action|]1,Inf[ %count% actions'
             tracker_count: '{0}no category|{1}1 category|]1,Inf[ %count% categories'
         workflow:
             initial: 'A new issue starts on "%place%".'
-            fallback: 'Fallback place: "%place%".'
-            steps: Places and actions
-            steps_intro: In the order of the kanban. Under each place, the actions leaving it and the roles that may trigger them.
-            initial_badge: Initial
-            final_badge: Final
-            comment_required: Comment required (external users)
-            comment_prompt: '“%prompt%”'
-            fields: Fields
-            no_field: No field.
-            usage: Usage
-            unused: No category uses this workflow.
-            tracker: Category
-            total: Total
-        fields:
-            title: Fields
-            intro: Fields are shared by the whole instance; each workflow picks the ones it uses.
-            field: Field
-            type: Type
-            filling: Filling
-            visibility: Visibility
-            required: Required
-            optional: Optional
-            everyone: Everyone
-            internal_only: Internal users only
-            used_by: 'Used by:'
-            unused: Used by no workflow.
-        links:
-            title: Link types
-            intro: The links possible between two issues.
-            inverse: 'seen from the other issue: "%label%"'
-            symmetric: symmetric
+            settings: 'Name and initial step'
+            steps: 'Steps'
+            steps_intro: 'In the order of the columns of the kanban. A step of the instance is added; one that leaves sends its issues elsewhere.'
+            fields: 'Fields'
+            fields_intro: 'In the order of the form of an issue.'
+            actions: 'Actions'
+            actions_intro: 'The buttons that move an issue from one step to another, for the roles named. An administrator triggers them all.'
+            no_action: 'No action yet: an issue of this workflow stays on its initial step.'
+            no_field: 'No field.'
+            initial_badge: 'Initial'
+            comment_required: 'comment required of external users'
+            remove_place: 'Remove'
+            add_place: 'Add a step'
+            add: 'Add the step'
+            remove_field: 'Remove'
+            add_field: 'Add'
+            choose_field: 'Add a field…'
+            place_removed: '{0}"%place%" left the workflow.|{1}"%place%" left the workflow, and its issue moved.|]1,Inf[ "%place%" left the workflow, and its %count% issues moved.'
+            usage: 'Usage'
+            unused: 'No category uses this workflow.'
+            tracker: 'Category'
+            total: 'Total'
+            form:
+                initial: 'Initial step'
+                initial_help: 'Where a new issue starts.'
+                place: 'Step'
+                target: 'Where do its issues go?'
+                target_help: 'They arrive on top of their column. Their history keeps the name of the step they left, and nobody is notified.'
+                no_target: 'No issue to move'
+            remove:
+                title: 'Remove "%place%" from %workflow%'
+                standing: '{1}An issue stands on this step: it must go elsewhere before the step leaves the workflow.|]1,Inf[ %count% issues stand on this step: they must go elsewhere before the step leaves the workflow.'
+                changes: 'What changes with it'
+                deleted: 'Deleted'
+                changed: 'No longer starts from there'
+                kept: 'The step stays in the instance, for the other workflows. The automation rules that name it no longer apply to the issues of this workflow.'
+                submit: '{0}Remove the step|{1}Remove the step and move 1 issue|]1,Inf[ Remove the step and move %count% issues'
+        action:
+            new: 'New action'
+            deleted: 'Action deleted.'
+            delete_help: 'Issues stay where they are; the journal keeps the name of the action.'
+            form:
+                label: 'Label of the button'
+                from: 'From the steps'
+                to: 'To the step'
+                roles: 'Who may trigger it'
+                roles_help: 'Administrators always may.'
+                style: 'Look'
+                description: 'Description'
+                description_help: 'Shown under the button, on the page of the issue.'
+                requires_comment: 'Require a comment of external users'
+                requires_comment_help: 'Internal users never have to comment.'
+                comment_prompt: 'Prompt of the comment'
+            style:
+                default: 'Plain'
+                primary: 'Main'
+                danger: 'Danger'
         history:
-            policy: Migration policy
-            title: Syncs
-            intro: Each sync records the configuration it applied and what changed.
-            current: In force
-            by: 'by %name%'
-            show_changes: '{1}Show the change|]1,Inf[ Show the %count% changes'
-            hide_changes: Hide the changes
-            no_changes: 'No change in the definition: the snapshot was rewritten in the format of this version.'
+            empty: 'Nothing was changed yet.'
+            system: 'Installation'
+            installed: 'Configuration installed: %roles% roles, %workflows% workflows, %places% steps, %fields% fields, %links% link types.'
+            role:
+                created: 'Role "%name%" created.'
+                updated: 'Role "%name%" changed.'
+                deleted: 'Role "%name%" deleted.'
+            permission:
+                granted: 'Right "%permission%" given to the role "%role%".'
+                revoked: 'Right "%permission%" taken away from the role "%role%".'
+            place:
+                created: 'Step "%name%" created.'
+                updated: 'Step "%name%" changed.'
+                deleted: 'Step "%name%" deleted.'
+                status: '{0}Step "%name%": status changed.|{1}Step "%name%": status changed, and 1 issue followed it.|]1,Inf[ Step "%name%": status changed, and %count% issues followed it.'
+            field:
+                created: 'Field "%name%" created.'
+                updated: 'Field "%name%" changed.'
+                deleted: 'Field "%name%" deleted.'
+            link:
+                created: 'Link type "%name%" created.'
+                updated: 'Link type "%name%" changed.'
+                deleted: 'Link type "%name%" deleted.'
+            workflow:
+                created: 'Workflow "%name%" created.'
+                updated: 'Workflow "%name%" changed.'
+                deleted: 'Workflow "%name%" deleted.'
+                place_added: 'Workflow "%workflow%": step "%place%" added.'
+                place_removed: '{0}Workflow "%workflow%": step "%place%" removed.|{1}Workflow "%workflow%": step "%place%" removed, 1 issue moved.|]1,Inf[ Workflow "%workflow%": step "%place%" removed, %count% issues moved.'
+            action:
+                created: 'Workflow "%workflow%": action "%name%" created.'
+                updated: 'Workflow "%workflow%": action "%name%" changed.'
+                deleted: 'Workflow "%workflow%": action "%name%" deleted.'
     import:
         intro: Bring the issues, comments and files of an export archive into a project.
         new: New import
@@ -880,6 +1008,28 @@ admin:
         already_activated: '%name% already chose a password: they can use "Forgot password?" on the sign-in page.'
         not_member: '%name% holds no role on %project%.'
         external_only_from_project: An account created from a project is external.
+        config:
+            invalid_key: '"%key%" is not a valid key: lowercase letters, digits and underscores, starting with a letter, 60 characters at most.'
+            key_taken: 'The key "%key%" is already used.'
+            unknown_permission: 'The right "%permission%" does not exist.'
+            permission_internal_only: 'The role "%role%" is open to external users: this right is for the roles reserved to internal users.'
+            role_held_by_externals: '{1}An external user holds the role "%role%": revoke that access first.|]1,Inf[ %count% accesses of external users carry the role "%role%": revoke them first.'
+            role_has_internal_permissions: 'The role "%role%" holds rights reserved to internal users: take them away first.'
+            role_held: '{1}An access carries the role "%role%": revoke it or give it another role first.|]1,Inf[ %count% accesses carry the role "%role%": revoke them or give them another role first.'
+            role_in_actions: 'The role "%role%" triggers actions: %actions%. Take it out of them first.'
+            place_used: 'The step "%place%" is used by: %workflows%. Take it out of them first.'
+            place_holds_issues: '{1}An issue stands on the step "%place%".|]1,Inf[ %count% issues stand on the step "%place%".'
+            field_used: 'The field "%field%" is asked for by: %workflows%. Take it out of them first.'
+            link_type_used: '{1}A link is of the type "%type%": it stays while links use it.|]1,Inf[ %count% links are of the type "%type%": it stays while links use it.'
+            workflow_followed: '{1}A category follows the workflow "%workflow%": it stays while categories follow it.|]1,Inf[ %count% categories follow the workflow "%workflow%": it stays while categories follow it.'
+            workflow_in_templates: 'The workflow "%workflow%" is used by the project templates: %templates%.'
+            not_a_place_of: '"%place%" is not a step of the workflow "%workflow%".'
+            already_a_place_of: '"%place%" is already a step of the workflow "%workflow%".'
+            initial_place: '"%place%" is the step new issues of the workflow "%workflow%" start on: choose another initial step first.'
+            issues_to_move: '{1}An issue stands on "%place%": choose the step that takes it.|]1,Inf[ %count% issues stand on "%place%": choose the step that takes them.'
+            other_places: 'The order given does not list the steps of the workflow "%workflow%".'
+            pair_taken: 'The action "%action%" already leads from "%from%" to "%to%": the kanban needs a single action between two steps.'
+            invalid: 'This change would leave a configuration that cannot run: %detail%'
 
 project:
     summary:
@@ -1346,14 +1496,6 @@ field_type:
     date: Date
     url: Web address
     bool: Yes / no
-
-migration_policy:
-    strict:
-        label: Strict
-        help: when a place disappears without a declared successor (migrations), the sync is refused and the previous configuration stays in force.
-    fallback:
-        label: Fallback
-        help: the issues sitting on a place that disappears move to the fallback place of their workflow.
 
 automation:
     signature: automation

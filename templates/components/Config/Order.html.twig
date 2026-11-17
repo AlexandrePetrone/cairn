@@ -1,0 +1,34 @@
+{# A list of the configuration in its order, dragged to reorder (`sortable` controller, `move` action). Each row: its label (a step with its status), its key, a line saying what it is, and the link to the dialog that changes it, loaded in the `modal` frame of the page. `empty` is what to say when the list has no row. #}
+{% set orderRows = this.rows %}
+<div {{ attributes }} data-loading="addClass(opacity-60)">
+    {% if error %}
+        <twig:Ui:Callout tone="danger" size="sm" role="alert" class="m-3">{{ error }}</twig:Ui:Callout>
+    {% endif %}
+    {% if orderRows is empty %}
+        <p class="px-4 py-6 text-center text-sm text-faint">{{ empty }}</p>
+    {% else %}
+        <ul class="divide-y divide-line-subtle" data-controller="sortable" data-sortable-action-value="move" data-sortable-param-value="id">
+            {% for row in orderRows %}
+                <li id="config-{{ kind }}-{{ row.id }}" data-sortable-target="item" data-sortable-id="{{ row.id }}" draggable="true" data-action="dragstart->sortable#start dragover->sortable#over drop->sortable#drop dragend->sortable#end"
+                    class="flex items-center gap-3 px-3 py-2.5 hover:bg-subtle">
+                    <span class="cursor-grab text-ghost hover:text-muted" title="{{ 'admin.configuration.drag'|trans }}"><twig:ux:icon name="lucide:grip-vertical" class="h-4 w-4" /></span>
+                    <div class="min-w-0 flex-1 leading-tight">
+                        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            {% if row.status %}
+                                <twig:Ui:Status:Step :status="row.status" :label="row.label" withStatus class="font-medium" />
+                            {% else %}
+                                <span class="text-sm font-medium text-strong">{{ row.label }}</span>
+                            {% endif %}
+                            <span class="font-mono text-[11px] text-faint">{{ row.key }}</span>
+                            {% if row.badge %}<twig:Ui:Badge size="sm" tone="blue">{{ row.badge }}</twig:Ui:Badge>{% endif %}
+                        </div>
+                        <div class="text-xs text-muted">{{ row.meta }}</div>
+                    </div>
+                    {% if row.href %}
+                        <a href="{{ row.href }}" data-turbo-frame="modal" class="shrink-0 text-xs text-brand hover:underline">{{ row.action }}</a>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</div>

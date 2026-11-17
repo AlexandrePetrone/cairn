@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Project;
 
 use App\Budget\Quantities;
+use App\Controller\OpensDialog;
 use App\Entity\Budget;
 use App\Entity\BudgetLine;
 use App\Entity\Enum\BudgetLineStatus;

@@ -13,7 +13,6 @@ use App\Config\Definition\RoleDefinition;
 use App\Config\Definition\TransitionDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use App\Config\FieldType;
-use App\Config\MigrationPolicy;
 use App\Config\TransitionStyle;
 use App\Entity\Enum\PlaceStatus;
 use App\Security\Permission;
@@ -85,10 +84,8 @@ final class DefinitionFactory
 
     /**
      * A bug workflow: new → in_progress → to_test → done, with to_test optional.
-     *
-     * @param array<string, string> $migrations removed place id => place that takes its issues
      */
-    public static function bugWorkflow(bool $withToTest = true, array $migrations = [], string $label = 'Bug'): WorkflowDefinition
+    public static function bugWorkflow(bool $withToTest = true, string $label = 'Bug'): WorkflowDefinition
     {
         $transitions = [
             new TransitionDefinition(id: 'start', label: 'Start', from: ['new'], to: 'in_progress', roles: ['developer']),
@@ -109,8 +106,6 @@ final class DefinitionFactory
             places: $withToTest ? ['new', 'in_progress', 'to_test', 'done'] : ['new', 'in_progress', 'done'],
             transitions: $transitions,
             fields: [new FieldUsage('environment', required: true), new FieldUsage('url')],
-            fallbackPlace: 'new',
-            migrations: $migrations,
         );
     }
 
@@ -127,7 +122,6 @@ final class DefinitionFactory
         ?array $roles = null,
         ?array $fields = null,
         ?array $permissions = null,
-        MigrationPolicy $migrationPolicy = MigrationPolicy::Strict,
         ?array $links = null,
         ?array $places = null,
     ): InstanceDefinition {
@@ -135,7 +129,6 @@ final class DefinitionFactory
         $used = array_merge(...array_map(static fn (WorkflowDefinition $workflow): array => $workflow->places, $workflows));
 
         return new InstanceDefinition(
-            migrationPolicy: $migrationPolicy,
             roles: $roles ?? self::roles(),
             permissions: $permissions ?? [
                 Permission::IssueCreate->value => ['project_manager', 'developer', 'client'],

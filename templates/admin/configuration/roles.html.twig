@@ -1,64 +1,33 @@
+{# The roles in their order, from the broadest to the narrowest, and the rights outside the workflows. A role is created and changed in a dialog; the rights are ticked in place. #}
 {% extends 'admin/configuration/base.html.twig' %}
 
 {% set configurationSubject = 'roles' %}
 
+{% block configuration_actions %}
+    <twig:Ui:Button variant="primary" size="sm" icon="plus" href="{{ path('app_admin_configuration_role_new') }}" data-turbo-frame="modal">{{ 'admin.configuration.roles.new'|trans }}</twig:Ui:Button>
+{% endblock %}
+
 {% block configuration_content %}
-    {% set rolesCheck %}<twig:ux:icon name="lucide:check" class="mx-auto h-4 w-4 text-emerald" />{% endset %}
-    {% set rolesNone %}<span class="text-ghost">·</span>{% endset %}
+    {% if not definition.empty %}
+        <twig:Ui:Panel :title="'admin.configuration.roles.title'|trans" :count="definition.roles|length">
+            <twig:block name="content"><twig:Config:Order kind="roles" /></twig:block>
+            <twig:block name="footer">{{ 'admin.configuration.roles.intro'|trans }}</twig:block>
+        </twig:Ui:Panel>
 
-    <section class="space-y-2">
-        <h2 class="font-semibold text-strong">{{ 'admin.configuration.roles.title'|trans }}</h2>
-        <p class="text-xs text-muted">{{ 'admin.configuration.roles.intro'|trans }}</p>
-        <twig:Ui:Table>
-            <twig:block name="head">
-                <th class="px-4 py-2 text-left font-medium">{{ 'admin.configuration.roles.role'|trans }}</th>
-                <th class="px-3 py-2 text-left font-medium">{{ 'admin.configuration.roles.who'|trans }}</th>
-                <th class="px-3 py-2 text-center font-medium">{{ 'admin.configuration.roles.follows_new_issues'|trans }}</th>
-                <th class="px-4 py-2 text-right font-medium w-32">{{ 'admin.configuration.roles.memberships'|trans }}</th>
-            </twig:block>
-            {% for role in definition.roles %}
-                <twig:Ui:Table:Row>
-                    <td class="sm:px-4 sm:py-2.5 order-1 font-medium text-strong">
-                        {{ role.label }} <span class="font-mono text-[11px] text-faint">{{ role.id }}</span>
-                    </td>
-                    <td class="sm:px-3 sm:py-2.5 order-3 basis-full sm:basis-auto text-xs text-muted">{{ (role.internalOnly ? 'admin.configuration.roles.internal_only' : 'admin.configuration.roles.anyone')|trans }}</td>
-                    <td class="sm:px-3 sm:py-2.5 order-4 text-center text-xs text-muted" title="{{ 'admin.configuration.roles.follows_new_issues_help'|trans }}">{{ role.followsNewIssues ? rolesCheck : rolesNone }}</td>
-                    <td class="sm:px-4 sm:py-2.5 order-2 ml-auto text-right text-xs text-muted">{{ 'admin.configuration.roles.membership_count'|trans({ '%count%': memberships[role.id] ?? 0 }) }}</td>
-                </twig:Ui:Table:Row>
-            {% endfor %}
-        </twig:Ui:Table>
-        {% for role, count in memberships|filter((count, role) => definition.roles[role] is not defined) %}
-            <twig:Ui:Callout tone="amber" size="sm">{{ 'admin.configuration.roles.orphan'|trans({ '%role%': role, '%count%': count }) }}</twig:Ui:Callout>
-        {% endfor %}
-    </section>
+        <section class="space-y-2">
+            <h2 class="font-semibold text-strong">{{ 'admin.configuration.permissions.title'|trans }}</h2>
+            <p class="text-xs text-muted">{{ 'admin.configuration.permissions.intro'|trans }}</p>
+            <twig:Config:PermissionMatrix />
+        </section>
+    {% endif %}
+{% endblock %}
 
-    <section class="space-y-2">
-        <h2 class="font-semibold text-strong">{{ 'admin.configuration.permissions.title'|trans }}</h2>
-        <p class="text-xs text-muted">{{ 'admin.configuration.permissions.intro'|trans }}</p>
-        <div class="overflow-x-auto rounded-lg border border-line bg-surface">
-            <table class="w-full text-sm">
-                <thead class="bg-subtle text-[11px] uppercase tracking-wider text-muted">
-                    <tr>
-                        <th class="px-4 py-2 text-left font-medium">{{ 'admin.configuration.permissions.permission'|trans }}</th>
-                        {% for role in definition.roles %}<th class="px-3 py-2 text-center font-medium whitespace-nowrap">{{ role.label }}</th>{% endfor %}
-                        <th class="px-3 py-2 text-center font-medium whitespace-nowrap">{{ 'admin.user.type.admin'|trans }}</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-line-subtle">
-                    {% for permission in permissions %}
-                        {% set granted = definition.rolesGranted(permission) %}
-                        <tr>
-                            <td class="px-4 py-2.5">
-                                <div class="text-strong">{{ ('permission.' ~ permission.value ~ '.label')|trans }}</div>
-                                <div class="text-xs text-muted">{{ ('permission.' ~ permission.value ~ '.help')|trans }}</div>
-                            </td>
-                            {% for role in definition.roles %}<td class="px-3 py-2.5 text-center">{{ role.id in granted ? rolesCheck : rolesNone }}</td>{% endfor %}
-                            <td class="px-3 py-2.5 text-center">{{ rolesCheck }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </section>
-
+{% block modal %}
+    {{ include('admin/configuration/_dialog.html.twig', {
+        title: dialogRole ? dialogRole.label : 'admin.configuration.roles.new'|trans,
+        closeHref: path('app_admin_configuration_roles'),
+        submitLabel: (dialogRole ? 'admin.configuration.save' : 'admin.configuration.create')|trans,
+        deleteAction: dialogRole ? path('app_admin_configuration_role_delete', { id: dialogRole.id }) : null,
+        deleteHelp: 'admin.configuration.roles.delete_help'|trans,
+    }) }}
 {% endblock %}

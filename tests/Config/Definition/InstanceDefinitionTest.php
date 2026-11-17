@@ -63,8 +63,6 @@ final class InstanceDefinitionTest extends TestCase
         self::assertSame(['deliver'], array_map(static fn ($t) => $t->id, $workflow->transitionsFrom('in_progress')));
         self::assertSame(['environment', 'url'], array_keys($workflow->fields));
         self::assertTrue($workflow->fields['environment']->required);
-        self::assertSame('in_progress', DefinitionFactory::bugWorkflow(withToTest: false, migrations: ['to_test' => 'in_progress'])->migrationTargetFor('to_test'));
-        self::assertNull($workflow->migrationTargetFor('to_test'));
     }
 
     public function testTransitionNeedsSourcesAndRoles(): void

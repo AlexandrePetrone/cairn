@@ -1,42 +1,41 @@
+{# The workflows of the instance: each leads to its page. A workflow is created in a dialog, with its initial step, and leads to its page to get its other steps and its actions. #}
 {% extends 'admin/configuration/base.html.twig' %}
 
 {% set configurationSubject = 'workflows' %}
 
+{% block configuration_actions %}
+    <twig:Ui:Button variant="primary" size="sm" icon="plus" href="{{ path('app_admin_configuration_workflow_new') }}" data-turbo-frame="modal">{{ 'admin.configuration.workflows.new'|trans }}</twig:Ui:Button>
+{% endblock %}
+
 {% block configuration_content %}
-    <p class="text-sm text-muted">{{ 'admin.configuration.workflows.intro'|trans }}</p>
+    {% if not definition.empty %}
+        {% if definition.workflows is empty %}
+            <twig:Ui:EmptyState :title="'admin.configuration.workflows.empty'|trans" icon="workflow" bordered />
+        {% else %}
+            <ul class="divide-y divide-line-subtle rounded-lg border border-line bg-surface">
+                {% for workflow in definition.workflows %}
+                    <li id="{{ workflow.id }}">
+                        <a href="{{ path('app_admin_configuration_workflow', { id: workflow.id }) }}" class="group flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 hover:bg-subtle">
+                            <span class="font-semibold text-strong group-hover:text-brand">{{ workflow.label }}</span>
+                            <span class="font-mono text-[11px] text-faint">{{ workflow.id }}</span>
+                            <span class="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+                                <span>{{ 'admin.configuration.workflows.place_count'|trans({ '%count%': workflow.places|length }) }}</span>
+                                <span>{{ 'admin.configuration.workflows.action_count'|trans({ '%count%': workflow.transitions|length }) }}</span>
+                                <span>{{ 'admin.configuration.workflows.tracker_count'|trans({ '%count%': trackers[workflow.id] ?? 0 }) }}</span>
+                                <twig:ux:icon name="lucide:chevron-right" class="h-4 w-4 text-faint" />
+                            </span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endif %}
+{% endblock %}
 
-    <ul class="divide-y divide-line-subtle rounded-lg border border-line bg-surface">
-        {% for workflow in definition.workflows %}
-            <li id="{{ workflow.id }}">
-                <a href="{{ path('app_admin_configuration_workflow', { id: workflow.id }) }}" class="group flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 hover:bg-subtle">
-                    <span class="font-semibold text-strong group-hover:text-brand">{{ workflow.label }}</span>
-                    <span class="font-mono text-[11px] text-faint">{{ workflow.id }}</span>
-                    <span class="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-                        <span>{{ 'admin.configuration.workflows.place_count'|trans({ '%count%': workflow.places|length }) }}</span>
-                        <span>{{ 'admin.configuration.workflows.action_count'|trans({ '%count%': workflow.transitions|length }) }}</span>
-                        <span>{{ 'admin.configuration.workflows.tracker_count'|trans({ '%count%': trackers[workflow.id] ?? 0 }) }}</span>
-                        <twig:ux:icon name="lucide:chevron-right" class="h-4 w-4 text-faint" />
-                    </span>
-                </a>
-            </li>
-        {% endfor %}
-    </ul>
-
-    <section class="space-y-2">
-        <h3 class="font-semibold text-strong">{{ 'admin.configuration.workflows.steps'|trans }}</h3>
-        <p class="text-xs text-muted">{{ 'admin.configuration.workflows.steps_intro'|trans }}</p>
-        <ol class="divide-y divide-line-subtle rounded-lg border border-line bg-surface">
-            {% for place in definition.places %}
-                <li class="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 text-sm">
-                    <twig:Ui:Status:Step :status="place.status.value" :label="place.label" withStatus class="font-medium" />
-                    <span class="font-mono text-[11px] text-faint">{{ place.id }}</span>
-                    <span class="ml-auto flex flex-wrap gap-1">
-                        {% for workflow in definition.workflows|filter(workflow => workflow.hasPlace(place.id)) %}
-                            <twig:Ui:Badge size="sm">{{ workflow.label }}</twig:Ui:Badge>
-                        {% endfor %}
-                    </span>
-                </li>
-            {% endfor %}
-        </ol>
-    </section>
+{% block modal %}
+    {{ include('admin/configuration/_dialog.html.twig', {
+        title: 'admin.configuration.workflows.new'|trans,
+        closeHref: path('app_admin_configuration_workflows'),
+        submitLabel: 'admin.configuration.create'|trans,
+    }) }}
 {% endblock %}

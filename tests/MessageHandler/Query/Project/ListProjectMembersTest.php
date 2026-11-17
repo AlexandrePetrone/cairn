@@ -58,8 +58,6 @@ final class ListProjectMembersTest extends KernelTestCase
         $both = UserFactory::new()->internal()->create(['lastName' => 'Girard', 'firstName' => 'Thomas']);
         MembershipFactory::createOne(['user' => $both, 'workspace' => $project->getWorkspace(), 'role' => 'developer']);
         MembershipFactory::createOne(['user' => $both, 'project' => $project, 'role' => 'project_manager']);
-        $former = UserFactory::createOne();
-        MembershipFactory::createOne(['user' => $former, 'project' => $project, 'role' => 'role_removed_from_configuration']);
         $elsewhere = UserFactory::createOne();
         MembershipFactory::createOne(['user' => $elsewhere, 'project' => ProjectFactory::createOne(), 'role' => 'client']);
         $deactivated = UserFactory::createOne(['active' => false]);

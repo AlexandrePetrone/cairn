@@ -1,16 +1,10 @@
 parameters:
     level: 8
-    # The instance configuration file is hand-written: keep the runtime
-    # checks on values that PHPDoc alone declares as typed.
+    # Keep the runtime checks on values that PHPDoc alone declares as typed.
     treatPhpDocTypesAsCertain: false
     paths:
         - src/
         - tests/
-        - config/instance.example.php
-    excludePaths:
-        # Configuration files written for another version of the definition
-        # objects, which the loader must refuse with a readable message.
-        - tests/Config/Fixture/Broken/
     tmpDir: var/cache/phpstan
     symfony:
         containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml

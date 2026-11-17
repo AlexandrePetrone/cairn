@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace App\Story;
 
 use App\Budget\Quantities;
-use App\Config\ConfigLoader;
 use App\Config\Definition\TransitionDefinition;
 use App\Config\Definition\WorkflowDefinition;
-use App\Config\Sync\ConfigSynchronizer;
+use App\Config\StarterKit;
 use App\Entity\Attachment;
 use App\Entity\Budget;
 use App\Entity\CodeRepository;
@@ -20,9 +19,7 @@ use App\Entity\Enum\MergeRequestState;
 use App\Entity\Enum\ReleaseStatus;
 use App\Entity\Issue;
 use App\Entity\Project;
-use App\Entity\ProjectTemplate;
 use App\Entity\Release;
-use App\Entity\TemplateTracker;
 use App\Entity\Tracker;
 use App\Entity\User;
 use App\Entity\Workspace;
@@ -49,9 +46,6 @@ use App\Message\Command\Issue\UpdateIssue;
 use App\Message\Command\Project\UpdateProject;
 use App\Message\Command\Release\CreateRelease;
 use App\Message\Command\Release\UpdateRelease;
-use App\Message\Command\Template\CreateTemplate;
-use App\Message\Command\Template\CreateTemplateRule;
-use App\Message\Command\Template\CreateTemplateTracker;
 use App\Message\CommandBus;
 use App\Security\AccessControl;
 use App\Workflow\WorkflowProvider;
@@ -59,7 +53,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Zenstruck\Foundry\Attribute\AsFixture;
 use Zenstruck\Foundry\Story;
@@ -71,8 +64,8 @@ use Zenstruck\Foundry\Story;
  * releases of two projects and a few links, one to an internal task and
  * one across projects.
  *
- * Load it with `castor fixtures`. It applies config/instance.example.php,
- * whose workflows it is written for, and creates issues through the real
+ * Load it with `castor fixtures`. It installs the starter configuration
+ * (Config\StarterKit), whose workflows it is written for, and creates issues through the real
  * commands under a mocked clock, so numbering, journal and dates are
  * consistent. Nothing is drawn at random: the variety (who comments,
  * delays, field values) follows the index of the issue in its project, so
@@ -89,9 +82,7 @@ final class AppStory extends Story
     private array $users = [];
 
     public function __construct(
-        #[Autowire('%kernel.project_dir%/config/instance.example.php')]
-        private readonly string $configPath,
-        private readonly ConfigSynchronizer $synchronizer,
+        private readonly StarterKit $kit,
         private readonly CommandBus $commands,
         private readonly AccessControl $access,
         private readonly WorkflowProvider $workflows,
@@ -102,7 +93,8 @@ final class AppStory extends Story
 
     public function build(): void
     {
-        $this->synchronizer->apply($this->synchronizer->plan((new ConfigLoader($this->configPath))->load()), 'fixtures');
+        // The starter configuration, with the project template every project above could have started with.
+        $this->kit->install();
 
         $this->createUsers();
         $now = (new NativeClock())->now();
@@ -126,7 +118,6 @@ final class AppStory extends Story
                     $this->createRules($project, $trackers['bug']);
                 }
             }
-            $this->createTemplate();
             $this->createLinks($now);
             $this->createCode($now);
             $this->entityManager->flush();
@@ -292,61 +283,9 @@ final class AppStory extends Story
      */
     private function createRules(Project $project, Tracker $bugs): void
     {
-        foreach (self::rules() as [$name, $onBugs, $definition, $active]) {
+        foreach ($this->kit->rules() as [$name, $onBugs, $definition, $active]) {
             $this->commands->dispatch(new CreateRule((int) $project->getId(), $name, $onBugs ? (int) $bugs->getId() : null, $definition, $active));
         }
-    }
-
-    /**
-     * The project template of the instance: the three trackers and the
-     * four rules every project above has, for the next one to start with.
-     */
-    private function createTemplate(): void
-    {
-        $template = $this->commands->dispatch(new CreateTemplate('Web project', 'Bugs, features and internal tasks, issues handed to the referent project manager.'));
-        \assert($template instanceof ProjectTemplate);
-        $templateId = (int) $template->getId();
-
-        $bugs = $this->commands->dispatch(new CreateTemplateTracker($templateId, $this->workflows->definition('bug')->label, 'bug', 'Something no longer works as before.'));
-        \assert($bugs instanceof TemplateTracker);
-        $this->commands->dispatch(new CreateTemplateTracker($templateId, $this->workflows->definition('evolution')->label, 'evolution', 'A new feature or an improvement.'));
-        $this->commands->dispatch(new CreateTemplateTracker($templateId, $this->workflows->definition('task')->label, 'task', 'Technical work without a client request.', private: true));
-
-        foreach (self::rules() as [$name, $onBugs, $definition, $active]) {
-            $this->commands->dispatch(new CreateTemplateRule($templateId, $name, $onBugs ? (int) $bugs->getId() : null, $definition, $active));
-        }
-    }
-
-    /**
-     * @return list<array{string, bool, array<string, mixed>, bool}> the name of each rule, whether it is limited to the bugs, what it says, whether it is switched on
-     */
-    private static function rules(): array
-    {
-        $toTheManager = [['type' => 'assign', 'params' => ['target' => 'referent:project_manager']]];
-        $leftWithTheClient = [['type' => 'assignee', 'params' => ['is' => 'external']], ['type' => 'code', 'params' => ['is' => 'none']]];
-
-        return [
-            ['New issue to the project manager', false, [
-                'trigger' => ['type' => 'issue_created'],
-                'conditions' => [['type' => 'assignee', 'params' => ['is' => 'nobody']]],
-                'actions' => $toTheManager,
-            ], true],
-            ['The client answers: back to the project manager', false, [
-                'trigger' => ['type' => 'comment_added'],
-                'conditions' => [['type' => 'actor', 'params' => ['is' => 'external']], ['type' => 'assignee', 'params' => ['is' => 'external_or_nobody']]],
-                'actions' => $toTheManager,
-            ], true],
-            ['Reminder to the client', false, [
-                'trigger' => ['type' => 'inactive_for', 'params' => ['days' => 30]],
-                'conditions' => $leftWithTheClient,
-                'actions' => [['type' => 'comment', 'params' => ['body' => 'This issue has been waiting for your answer for 30 days. Without news from you, it will be closed in 15 days; it can always be reopened.']]],
-            ], true],
-            ['Closing without an answer', true, [
-                'trigger' => ['type' => 'inactive_for', 'params' => ['days' => 45]],
-                'conditions' => $leftWithTheClient,
-                'actions' => [['type' => 'move', 'params' => ['place' => 'done']]],
-            ], false],
-        ];
     }
 
     /**

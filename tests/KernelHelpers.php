@@ -4,18 +4,17 @@ declare(strict_types=1);
 
 namespace App\Tests;
 
-use App\Config\ConfigLoader;
-use App\Config\Sync\ConfigSynchronizer;
+use App\Message\Command\Config\InstallConfiguration;
 use App\Message\CommandBus;
 use App\Message\QueryBus;
+use App\Tests\Config\Fixture\DefinitionFactory;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Mailer\Event\MessageEvents;
 use Symfony\Component\Mime\Email;
 
 /**
- * Shortcuts for kernel tests: a configuration in force (the test instance
- * file of CAIRN_CONFIG in .env.test, applied as the first snapshot) and the
- * two buses.
+ * Shortcuts for kernel tests: a configuration in force (the small one of
+ * DefinitionFactory, installed into the empty tables) and the two buses.
  *
  * @phpstan-require-extends KernelTestCase
  */
@@ -55,8 +54,6 @@ trait KernelHelpers
 
     protected static function applyConfiguration(): void
     {
-        $container = self::getContainer();
-        $synchronizer = $container->get(ConfigSynchronizer::class);
-        $synchronizer->apply($synchronizer->plan($container->get(ConfigLoader::class)->load()));
+        self::commandBus()->dispatch(new InstallConfiguration(DefinitionFactory::definition()));
     }
 }

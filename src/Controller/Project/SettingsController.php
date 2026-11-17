@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Project;
 
 use App\Config\ConfigRegistry;
+use App\Controller\OpensDialog;
 use App\Entity\CodeRepository;
 use App\Entity\Enum\Forge;
 use App\Entity\Project;
