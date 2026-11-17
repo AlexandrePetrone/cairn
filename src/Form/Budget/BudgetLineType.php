@@ -8,6 +8,7 @@ use App\Entity\Enum\BudgetLineStatus;
 use App\Entity\Enum\BudgetUnit;
 use App\Entity\Issue;
 use App\Form\Type\PickerType;
+use App\Form\Type\SearchedChoiceLoader;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
@@ -18,8 +19,9 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 /**
  * A line of a budget: its status, its quantity typed in the `unit` of the
  * project, a label and, when the line is written, the issue it is for,
- * picked among `issues` (the issue of a line never changes: the form of
- * an existing line is given none).
+ * searched at `issues_url` and looked up by `find_issue` once chosen (the
+ * issue of a line never changes: the form of an existing line is given
+ * neither).
  *
  * @extends AbstractType<BudgetLineData>
  */
@@ -27,9 +29,10 @@ final class BudgetLineType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        if (null !== $options['issues']) {
+        if (null !== $options['find_issue']) {
             $builder->add('issue', PickerType::class, [
-                'choices' => $options['issues'],
+                'choice_loader' => new SearchedChoiceLoader($options['find_issue']),
+                'search_url' => $options['issues_url'],
                 'choice_label' => static fn (Issue $issue): string => $issue->getKey().' · '.$issue->getTitle(),
                 'choice_value' => static fn (?Issue $issue): ?string => null === $issue ? null : (string) $issue->getId(),
                 'choice_translation_domain' => false,
@@ -62,10 +65,11 @@ final class BudgetLineType extends AbstractType
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        $resolver->setDefaults(['data_class' => BudgetLineData::class, 'issues' => null, 'asks_quantity' => false]);
+        $resolver->setDefaults(['data_class' => BudgetLineData::class, 'find_issue' => null, 'issues_url' => null, 'asks_quantity' => false]);
         $resolver->setRequired('unit');
         $resolver->setAllowedTypes('unit', BudgetUnit::class);
         $resolver->setAllowedTypes('asks_quantity', 'bool');
-        $resolver->setAllowedTypes('issues', ['null', Issue::class.'[]']);
+        $resolver->setAllowedTypes('find_issue', ['null', \Closure::class]);
+        $resolver->setAllowedTypes('issues_url', ['null', 'string']);
     }
 }

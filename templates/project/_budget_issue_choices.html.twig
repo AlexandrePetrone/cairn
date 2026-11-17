@@ -1,0 +1,8 @@
+{# The issues the form of a budget line offers, as the items of its picker (PickerType with a `search_url`: the `list-filter` controller puts them in its list): each writes its id into the field, and reads as in the list drawn with the form. `more` is how many matched beyond those. #}
+{% for issue in issues %}
+    {% set choiceLabel = issue.key ~ ' · ' ~ issue.title %}
+    <twig:Ui:Dropdown:Item data-list-filter-target="item" data-action="picker#choose dropdown#close" data-picker-value-param="{{ issue.id }}" data-picker-label-param="{{ choiceLabel }}"><span class="truncate">{{ choiceLabel }}</span></twig:Ui:Dropdown:Item>
+{% endfor %}
+{% if more > 0 %}
+    <p class="px-3 py-2 text-xs text-faint">{{ 'budget.line.form.more_issues'|trans({ '%count%': more }) }}</p>
+{% endif %}

@@ -1717,7 +1717,16 @@ src/
   it is given (`list-filter`), grouped in `Ui:Picker:Group`s; each item
   calls a live action that records the choice, and the button shows its
   `label`. Everything is in the page, filtered in the browser: enough
-  for the accounts, workspaces and projects of an instance.
+  for the accounts, workspaces and projects of an instance. What has no
+  bound is searched on the server instead, never cut to a first page:
+  with `src` (the `search_url` of a `PickerType`) what is typed goes to
+  that address as `q`, and the items it answers, drawn by a template of
+  the page that owns them, replace the list (`list-filter` with a `url`);
+  it answers a few and says how many more match. The field then has no
+  list of choices: `Form/Type/SearchedChoiceLoader` looks up the value
+  submitted with a closure of the controller, which answers only what
+  the search could have offered. The issue of a budget line is chosen so
+  (`BudgetController::issues()`).
   `Ui:Form:Combobox` (the `combobox` controller, `CompanyType` in forms)
   is a text input whose `suggestions` are offered as one types; what
   matches none stays as typed. Neither needs a JavaScript dependency.

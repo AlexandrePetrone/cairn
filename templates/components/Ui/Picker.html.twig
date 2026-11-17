@@ -1,5 +1,5 @@
-{# A choice among many: a field-like button shows what is chosen (`label`, or `placeholder` when nothing is) and opens a list narrowed by a search field. Put `Ui:Dropdown:Item`s in the content, each with `data-list-filter-target="item"` and a `data-text`, its action picking (a live action, then `dropdown#close`); group them in `Ui:Picker:Group`s when they are. Structure only: the picker holds no data. In a plain form the `picker` controller around it writes the choice (PickerType). `invalid` turns the border red. #}
-{% props label = null, placeholder = '', searchPlaceholder = '', empty = '', width = 'full', invalid = false %}
+{# A choice among many: a field-like button shows what is chosen (`label`, or `placeholder` when nothing is) and opens a list narrowed by a search field. Put `Ui:Dropdown:Item`s in the content, each with `data-list-filter-target="item"` and a `data-text`, its action picking (a live action, then `dropdown#close`); group them in `Ui:Picker:Group`s when they are. Structure only: the picker holds no data. In a plain form the `picker` controller around it writes the choice (PickerType). `invalid` turns the border red. With `src` the list is not narrowed in the page: the address is asked for the items matching what is typed (`q`) and its answer replaces the content of the element marked `data-list-filter-target="results"`. #}
+{% props label = null, placeholder = '', searchPlaceholder = '', empty = '', width = 'full', invalid = false, src = null %}
 {% set pickerClasses = html_cva(base: 'block') %}
 {% set pickerTriggerClasses = html_cva(
     base: 'inline-flex h-9 w-full items-center gap-2 rounded-md border bg-surface pl-3 pr-2 text-left text-sm hover:bg-subtle focus:border-focus focus:outline-none focus:ring-2 focus:ring-brand-line',
@@ -12,6 +12,7 @@
 {% set pickerPlaceholder = placeholder %}
 {% set pickerSearchPlaceholder = searchPlaceholder %}
 {% set pickerEmpty = empty %}
+{% set pickerSrc = src %}
 {% set pickerTriggerClass = pickerTriggerClasses.apply({ chosen: label is not null, invalid: invalid }) %}
 {# The caller's items, read before the nested dropdown whose own `content` block hosts them. #}
 {% set pickerItems %}{% block content %}{% endblock %}{% endset %}
@@ -23,7 +24,7 @@
         </button>
     </twig:block>
     <twig:block name="content">
-        <div data-controller="list-filter">
+        <div data-controller="list-filter"{% if pickerSrc %} data-list-filter-url-value="{{ pickerSrc }}"{% endif %}>
             <label class="-mt-1 flex items-center gap-2 border-b border-line-subtle px-3 py-2 text-faint">
                 <twig:ux:icon name="lucide:search" class="h-3.5 w-3.5 shrink-0" />
                 <input type="search" data-dropdown-target="search" data-action="input->list-filter#filter" placeholder="{{ pickerSearchPlaceholder }}" aria-label="{{ pickerSearchPlaceholder }}" autocomplete="off" class="w-full border-0 bg-transparent p-0 text-sm text-body placeholder:text-faint focus:outline-none focus:ring-0">

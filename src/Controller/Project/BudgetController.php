@@ -9,6 +9,7 @@ use App\Entity\Budget;
 use App\Entity\BudgetLine;
 use App\Entity\Enum\BudgetLineStatus;
 use App\Entity\Enum\BudgetUnit;
+use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\User;
 use App\Form\Budget\BudgetData;
@@ -26,6 +27,7 @@ use App\Message\Query\Budget\ListBudgets;
 use App\Message\Query\Issue\SearchIssues;
 use App\Message\QueryBus;
 use App\MessageHandler\Command\Budget\BudgetException;
+use App\Repository\IssueRepository;
 use App\Security\AccessControl;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -34,6 +36,7 @@ use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -57,8 +60,8 @@ final class BudgetController extends AbstractController
 {
     use OpensDialog;
 
-    /** How many issues of the project the form of a line offers, the open ones first. */
-    private const int ISSUES_OFFERED = 200;
+    /** How many issues the form of a line offers at once, the open ones first; the others are found by typing. */
+    private const int ISSUES_OFFERED = 20;
 
     /** What the card of the page of a budget puts in the address of its dialogs (`from`): they lead back to that page. */
     private const string FROM_ITS_PAGE = 'budget';
@@ -68,6 +71,7 @@ final class BudgetController extends AbstractController
         private readonly QueryBus $queries,
         private readonly Quantities $quantities,
         private readonly AccessControl $access,
+        private readonly IssueRepository $issues,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -179,8 +183,24 @@ final class BudgetController extends AbstractController
     }
 
     /**
-     * The dialog writing a line on a budget: the issue it is for is picked
-     * among the issues of the project the manager sees.
+     * What the form of a line offers as its issue: the issues of the
+     * project the manager sees matching what is typed, closed ones too (a
+     * line is often written, or put right, once the work is delivered),
+     * as the items of its picker, and how many more there are.
+     */
+    #[Route('/issues', name: 'app_project_budget_issues', methods: ['GET'])]
+    #[IsGranted('budget.manage', subject: 'project')]
+    public function issues(#[CurrentProject] Project $project, #[CurrentUser] User $actor, #[MapQueryParameter] string $q = ''): Response
+    {
+        $this->unit($project);
+        $page = $this->queries->ask(new SearchIssues($actor, projectId: $project->getId(), q: $q, closed: true, perPage: self::ISSUES_OFFERED));
+
+        return $this->render('project/_budget_issue_choices.html.twig', ['issues' => $page->items, 'more' => $page->total - \count($page->items)]);
+    }
+
+    /**
+     * The dialog writing a line on a budget: the issue it is for is
+     * searched among the issues of the project the manager sees.
      */
     #[Route('/{budget}/lines/new', name: 'app_project_budget_line_new', methods: ['GET', 'POST'])]
     #[IsGranted('budget.manage', subject: 'project')]
@@ -189,10 +209,19 @@ final class BudgetController extends AbstractController
         $this->assertOfProject($budget, $project);
         $unit = $this->unit($project);
         $data = new BudgetLineData();
-        // closed issues too: a line is often written, or put right, once the work is delivered
-        $issues = $this->queries->ask(new SearchIssues($actor, projectId: $project->getId(), closed: true, perPage: self::ISSUES_OFFERED))->items;
         // sent to the address of the dialog, not to the page it is loaded over
-        $form = $this->createForm(BudgetLineType::class, $data, ['action' => $request->getRequestUri(), 'unit' => $unit, 'issues' => $issues]);
+        $form = $this->createForm(BudgetLineType::class, $data, [
+            'action' => $request->getRequestUri(),
+            'unit' => $unit,
+            'issues_url' => $this->generateUrl('app_project_budget_issues', self::route($project)),
+            // what the search could have offered, and nothing else: the handler says so again
+            'find_issue' => function (string $id) use ($project, $actor): ?Issue {
+                // an id is a few digits: a longer number is none, and the database would refuse to compare it
+                $issue = ctype_digit($id) && \strlen($id) < 10 ? $this->issues->find((int) $id) : null;
+
+                return null !== $issue && $issue->getProject()->getId() === $project->getId() && $this->access->canSee($actor, $issue) ? $issue : null;
+            },
+        ]);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             try {

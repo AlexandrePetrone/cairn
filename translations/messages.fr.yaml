@@ -1299,6 +1299,7 @@ budget:
             issue: Demande
             issue_help: 'Facultative : une des demandes du projet.'
             no_issue: Aucune demande
+            more_issues: 'Une autre demande : tapez un mot ou un numéro pour la trouver.|%count% autres demandes : tapez un mot ou un numéro pour en trouver une.'
             label: Libellé
             label_help: Obligatoire sans demande ; avec une demande, il précise ce que la ligne ajoute.
             status: Statut

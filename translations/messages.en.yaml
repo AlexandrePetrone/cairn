@@ -1299,6 +1299,7 @@ budget:
             issue: Issue
             issue_help: 'Optional: one of the issues of the project.'
             no_issue: No issue
+            more_issues: 'One more issue: type a word or a number to find it.|%count% more issues: type a word or a number to find one.'
             label: Label
             label_help: Required without an issue; with one, it says what the line adds.
             status: Status

@@ -287,7 +287,7 @@ final class BudgetTest extends WebTestCase
         self::assertSelectorTextContains('main', 'No line yet');
         $this->client->clickLink('New line');
         self::assertRouteSame('app_project_budget_line_new');
-        self::assertSelectorTextContains('[role="dialog"]', 'MD-SPT-8', 'the open issues of the project are offered');
+        self::assertSelectorExists('[role="dialog"] [data-list-filter-url-value="/MD/SPT/budgets/issues"]', 'the issues are searched on the server, not listed in the page');
 
         $this->client->submitForm('Add the line', ['budget_line[status]' => 'pending', 'budget_line[quantity]' => '2']);
         self::assertResponseStatusCodeSame(422);
@@ -347,6 +347,50 @@ final class BudgetTest extends WebTestCase
         self::assertResponseStatusCodeSame(403);
     }
 
+    public function testTheIssueOfALineIsSearchedAmongThoseOfTheProject(): void
+    {
+        $budget = $this->scene->budget();
+        $elsewhere = (string) $this->scene->intranetBug()->getId();
+        $this->signInAs('thomas.girard@cairn.test');
+
+        $this->client->request('GET', '/MD/SPT/budgets/issues');
+        self::assertResponseIsSuccessful();
+        $offered = $this->client->getCrawler()->filter('[data-list-filter-target="item"]');
+        self::assertCount(10, $offered, 'every issue of the shop, closed ones too');
+        self::assertSelectorExists('[data-picker-label-param^="MD-SPT-5 "]', 'closed issues are offered too');
+        self::assertSelectorNotExists('p', 'nothing more to find');
+
+        $crawler = $this->client->request('GET', '/MD/SPT/budgets/issues?q=8');
+        $item = $crawler->filter('[data-picker-value-param="'.$this->scene->issue('MD-SPT-8')->getId().'"]');
+        self::assertCount(1, $item, 'found by its number, and chosen by its id');
+        self::assertStringStartsWith('MD-SPT-8 · ', (string) $item->attr('data-picker-label-param'));
+        self::assertCount(0, $crawler->filter('[data-picker-label-param^="MD-SPT-2 "]'));
+
+        $this->client->request('GET', '/MD/SPT/budgets/issues?q=nothing+is+called+that');
+        self::assertSelectorNotExists('[data-list-filter-target="item"]');
+
+        // An issue of another project is not one of the choices, whatever the request says.
+        $this->client->request('GET', \sprintf('/MD/SPT/budgets/%d/lines/new', $budget->getId()));
+        $this->client->submitForm('Add the line', ['budget_line[issue]' => $elsewhere, 'budget_line[status]' => 'pending', 'budget_line[quantity]' => '2']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertCount(0, $this->lines($budget));
+        foreach (['99999999999', 'MD-SPT-8', '-1'] as $notAnId) {
+            $this->client->submitForm('Add the line', ['budget_line[issue]' => $notAnId, 'budget_line[status]' => 'pending', 'budget_line[quantity]' => '2']);
+            self::assertResponseStatusCodeSame(422, \sprintf('"%s" is refused like any issue that is not offered', $notAnId));
+        }
+        self::assertCount(0, $this->lines($budget));
+
+        // A refused line is drawn again with the issue that was chosen.
+        $this->client->submitForm('Add the line', ['budget_line[issue]' => (string) $this->scene->issue('MD-SPT-8')->getId(), 'budget_line[status]' => 'pending', 'budget_line[quantity]' => '']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('[role="dialog"] [data-picker-target="label"]', 'MD-SPT-8');
+
+        // Searching is for whoever writes the lines.
+        $this->signInAs('claire.martin@maison-dupont.test');
+        $this->client->request('GET', '/MD/SPT/budgets/issues');
+        self::assertResponseStatusCodeSame(403);
+    }
+
     public function testWhatAFormCannotTake(): void
     {
         $budget = $this->scene->budget();
@@ -359,7 +403,6 @@ final class BudgetTest extends WebTestCase
         $this->client->request('GET', \sprintf('/MD/SPT/budgets/%d/lines/new', $budget->getId()));
         $this->client->submitForm('Add the line', ['budget_line[label]' => 'Too much', 'budget_line[status]' => 'approved', 'budget_line[quantity]' => '40000000']);
         self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('[role="dialog"]', 'MD-SPT-5', 'closed issues are offered too');
         self::assertSelectorExists('[role="dialog"] [data-picker-value-param=""]', 'an issue picked by mistake is taken back');
 
         // A status left out by a request written by hand is a refusal like another.
