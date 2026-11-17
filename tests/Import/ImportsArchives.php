@@ -27,10 +27,10 @@ trait ImportsArchives
 {
     use KernelHelpers;
 
-    /** Empties the imports directory and gives its path. */
+    /** Empties the imports directory (IMPORTS_DIR in .env.test: one per ParaTest worker) and gives its path. */
     private function importsDirectory(): string
     {
-        $directory = self::getContainer()->getParameter('kernel.project_dir').'/var/imports_test';
+        $directory = self::getContainer()->getParameter('kernel.project_dir').'/var/imports_test'.(getenv('TEST_TOKEN') ?: '');
         new Filesystem()->remove($directory);
 
         return $directory;

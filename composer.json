@@ -114,6 +114,7 @@
         }
     },
     "require-dev": {
+        "brianium/paratest": "^7.29",
         "dama/doctrine-test-bundle": "^8.7",
         "friendsofphp/php-cs-fixer": "^3.95",
         "iq2i/storia-bundle": "^0.6.0",

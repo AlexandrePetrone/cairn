@@ -20,9 +20,15 @@ use function Castor\run;
 /** Pinned release of symfony-lsp (https://github.com/symfony/language-tools/releases); .github/workflows/ci.yaml pins the same one. */
 const SYMFONY_LSP_VERSION = '0.24.1';
 
-#[AsTask(description: 'Runs the PHPUnit suite, e.g. "castor test --filter=IssueListTest"', aliases: ['test'])]
+#[AsTask(description: 'Runs the whole test suite in parallel, or PHPUnit alone with arguments, e.g. "castor test --filter=IssueListTest"', aliases: ['test'])]
 function test(#[AsRawTokens] array $args): int
 {
+    // The whole suite: ParaTest, one process per core, each with its database and its folders
+    // (TEST_TOKEN). A targeted run gains nothing from eight processes.
+    if ([] === $args) {
+        return in_container(['vendor/bin/paratest'], allowFailure: true);
+    }
+
     return in_container(['php', 'bin/phpunit', ...array_values($args)], allowFailure: true);
 }
 

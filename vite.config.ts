@@ -14,6 +14,11 @@ export default defineConfig({
         host: true,
         port,
         strictPort: true,
+        // Caches, logs and the files the tests write: nothing the pages are built from, and
+        // watching them costs a core for as long as the test suite runs.
+        watch: {
+            ignored: ['**/var/**'],
+        },
     },
     plugins: [
         tailwindcss(),

@@ -1883,8 +1883,14 @@ Tests, fixtures and their data are in English, the default locale; the
 French catalogue is checked by key (`PermissionTest`), not through the
 pages.
 
-Run `castor test` (arguments are passed to PHPUnit, e.g. `castor test
---filter IssueListTest`). The Storia snapshots run with the suite; after a
+Run `castor test`: the whole suite, in parallel with ParaTest, one
+process per core. Each process has its own database (`app_test1`…, the
+`TEST_TOKEN` suffix of `doctrine.yaml`, created by `tests/bootstrap.php`),
+its own folders for the files and the imports, its own application cache
+pool and its own locks (`.env.test`, `cache.yaml`): a test that reads or
+writes anything else shared between processes, a file under `var/` above
+all, will fail one run in ten. With arguments, PHPUnit runs alone, as the
+CI does (`castor test --filter IssueListTest`). The Storia snapshots run with the suite; after a
 deliberate change of a component, review the diff and rewrite them with
 `castor qa:storia --update`. A feature isn't done until it has a test that
 exercises it the way a caller would: an HTTP request for a controller, a

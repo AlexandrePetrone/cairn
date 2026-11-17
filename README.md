@@ -165,7 +165,8 @@ castor db:fixtures              # reload the development data
 castor db:psql                  # psql on the dev database
 
 # Quality (qa:*)
-castor test --filter=IssueListTest   # qa:test
+castor test                          # qa:test: the whole suite, in parallel
+castor test --filter=IssueListTest   # PHPUnit alone, with its arguments
 castor cs                       # qa:cs: php-cs-fixer fix (--dry-run to only report)
 castor phpstan                  # qa:phpstan
 castor lint                     # qa:lint: container, Twig and YAML
