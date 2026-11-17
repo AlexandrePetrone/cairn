@@ -93,14 +93,25 @@
                             <div class="{{ ruleFormRowClasses }}">
                                 <div class="{{ ruleFormTypeClasses }}">{{ form_widget(row.type, { attr: { class: ruleFormControl, 'aria-label': 'automation.form.then'|trans } }) }}</div>
                                 {% for field in row.params %}
-                                    {% if 'textarea' not in field.vars.block_prefixes %}
+                                    {% if 'textarea' not in field.vars.block_prefixes and not field.vars.expanded|default(false) %}
                                         <div class="{{ 'checkbox' in field.vars.block_prefixes ? 'min-w-0 flex-1 basis-48 px-1' : ruleFormValueClasses }}">{{ form_widget(field, { attr: field.vars.attr|merge({ class: ruleFormControl }) }) }}{{ form_errors(field) }}</div>
                                     {% endif %}
                                 {% endfor %}
                                 <twig:Ui:IconButton icon="x" :label="'automation.form.remove'|trans" class="ml-auto" data-action="live#action" data-live-action-param="removeAction" data-live-index-param="{{ index }}" />
                             </div>
                             {% for field in row.params %}
-                                {% if 'textarea' in field.vars.block_prefixes %}
+                                {% if field.vars.expanded|default(false) %}
+                                    {# Several values: one box each under the row, the action holds on any of them. #}
+                                    <div class="flex flex-wrap gap-x-5 gap-y-1.5 rounded-md border border-line-subtle bg-subtle/60 px-3 py-2.5">
+                                        {% for ruleFormBox in field %}
+                                            <twig:Ui:Form:Checkbox :label="ruleFormBox.vars.label" :checked="ruleFormBox.vars.checked" :id="ruleFormBox.vars.id" :name="ruleFormBox.vars.full_name" :value="ruleFormBox.vars.value" />
+                                            {% do ruleFormBox.setRendered %}
+                                        {% endfor %}
+                                    </div>
+                                    {% do field.setRendered %}
+                                    <p class="text-xs text-muted">{{ ('automation.form.' ~ row.type.vars.value ~ '_help')|trans }}</p>
+                                    {{ form_errors(field) }}
+                                {% elseif 'textarea' in field.vars.block_prefixes %}
                                     {{ form_widget(field, { attr: field.vars.attr|merge({ class: 'mt-0' }) }) }}
                                     {{ form_errors(field) }}
                                     <p class="text-xs text-muted">{{ 'automation.form.body_help'|trans }}</p>

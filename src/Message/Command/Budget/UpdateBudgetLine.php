@@ -11,9 +11,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 /**
  * Changes a line of a budget, PATCH style: a property left null keeps its
  * value. Its status is how its manager says the client approved or
- * refused it; back to estimate, it loses its quantity. Zero is a quantity,
+ * refused it; back to estimate, it keeps its quantity. Zero is a quantity,
  * so taking the quantity away is said apart (`withoutQuantity`): only a
- * refused line may then stay as it is. The issue it names never changes.
+ * line to estimate or refused may then stay as it is. The issue it names never changes.
  * The actor needs `budget.manage`. Handled by UpdateBudgetLineHandler.
  */
 final readonly class UpdateBudgetLine

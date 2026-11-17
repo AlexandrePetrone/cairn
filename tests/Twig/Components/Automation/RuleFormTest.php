@@ -117,6 +117,20 @@ final class RuleFormTest extends KernelTestCase
         self::assertSame(['high', 'blocking'], $this->rules()[0]->getDefinition()->conditions[0]->params['is']);
     }
 
+    public function testAnActionMarksTheBudgetLinesFromSomeStatusesToAnother(): void
+    {
+        $component = $this->component();
+        $render = (string) $component->set('automation_rule.actions.0.type', 'mark_budget_lines')->render();
+        self::assertMatchesRegularExpression('~type="checkbox"\s+value="pending"[^>]*name="automation_rule\[actions\]\[0\]\[params\]\[from\]\[\]"~', $render, 'one box per status to start from');
+        self::assertStringContainsString('<option value="approved">Approved</option>', $render, 'and the status to give');
+
+        $component->set('automation_rule.actions.0.params.status', 'approved')->set('automation_rule.actions.0.params.from', ['pending', 'refused']);
+        self::assertStringContainsString('mark its budget lines “To approve” or “Refused” as “Approved”.', (string) $component->render());
+
+        $component->set('automation_rule.name', 'Approve')->call('save');
+        self::assertSame(['status' => 'approved', 'from' => ['pending', 'refused']], $this->rules()[0]->getDefinition()->actions[0]->params);
+    }
+
     public function testTwoPeopleWithTheSameNameAreTwoChoices(): void
     {
         $nadia = $this->scene->user('nadia.benali@cairn.test');

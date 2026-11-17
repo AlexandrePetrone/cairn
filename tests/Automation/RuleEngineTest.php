@@ -10,7 +10,11 @@ use App\Automation\Definition\Target;
 use App\Automation\Definition\TriggerType;
 use App\Entity\AutomationRule;
 use App\Entity\AutomationRun;
+use App\Entity\Budget;
+use App\Entity\BudgetLine;
 use App\Entity\Comment;
+use App\Entity\Enum\BudgetLineStatus;
+use App\Entity\Enum\BudgetUnit;
 use App\Entity\Enum\Criticality;
 use App\Entity\Enum\JournalEntryType;
 use App\Entity\Enum\RunOutcome;
@@ -22,11 +26,15 @@ use App\Entity\Tracker;
 use App\Entity\User;
 use App\Event\CommentAdded;
 use App\Message\Command\Automation\CreateRule;
+use App\Message\Command\Budget\AddBudgetLine;
+use App\Message\Command\Budget\CreateBudget;
+use App\Message\Command\Budget\UpdateBudget;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\Command\Issue\CreateIssue;
 use App\Message\Command\Issue\UpdateIssue;
 use App\Message\Command\Membership\SetReferent;
+use App\Message\Command\Project\UpdateProject;
 use App\Message\CommandBus;
 use App\Message\Notification\NotifyIssueChange;
 use App\MessageHandler\Notification\NotifyIssueChangeHandler;
@@ -49,6 +57,7 @@ final class RuleEngineTest extends KernelTestCase
     private CommandBus $commands;
     private IssueFixtures $fixtures;
     private EntityManagerInterface $entityManager;
+    private ?User $accountant = null;
 
     protected function setUp(): void
     {
@@ -283,6 +292,108 @@ final class RuleEngineTest extends KernelTestCase
         self::assertSame(['claire@client.test', 'thomas@agency.test'], $recipients, 'a rule tells everyone who follows, the person who triggered it included');
         self::assertSame('Welcome', $waiting[0]->getRule());
         self::assertNull($waiting[0]->getActor());
+    }
+
+    public function testAnActionOfTheWorkflowMarksTheBudgetLinesOfTheIssue(): void
+    {
+        $rule = $this->startApprovesWhatWaits();
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+        $other = $this->fixtures->createIssue($this->fixtures->client, title: 'Another one');
+        $budget = $this->budget('Order 2026-01');
+        $closed = $this->budget('Order 2025-06');
+        $pending = $this->line($budget, BudgetLineStatus::Pending, 840, $issue);
+        $refused = $this->line($budget, BudgetLineStatus::Refused, 420, $issue);
+        $elsewhere = $this->line($budget, BudgetLineStatus::Pending, 420, $other);
+        $past = $this->line($closed, BudgetLineStatus::Pending, 420, $issue);
+        $this->commands->dispatch(new UpdateBudget($this->accountant(), (int) $closed->getId(), closed: true));
+        $journal = $this->entityManager->getRepository(JournalEntry::class)->count(['issue' => $issue]);
+
+        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->developer->getId(), $issue->getKey(), 'start'));
+
+        self::assertSame([BudgetLineStatus::Approved, 840], [$pending->getStatus(), $pending->getQuantity()], 'the line that waited is approved as it was estimated');
+        self::assertSame(BudgetLineStatus::Refused, $refused->getStatus(), 'a status the rule does not start from is left alone');
+        self::assertSame(BudgetLineStatus::Pending, $elsewhere->getStatus(), 'and so is the line of another issue');
+        self::assertSame(BudgetLineStatus::Pending, $past->getStatus(), 'and the line of a closed budget');
+        $runs = $this->runs($rule);
+        self::assertCount(1, $runs);
+        self::assertSame(RunOutcome::Applied, $runs[0]->getOutcome());
+        self::assertSame([['action' => 'mark_budget_lines', 'result' => 'applied', 'value' => 'approved']], $runs[0]->getSteps());
+        self::assertSame($journal + 1, $this->entityManager->getRepository(JournalEntry::class)->count(['issue' => $issue]), 'the history of the issue only holds the action someone applied');
+    }
+
+    public function testARuleKeepsTheQuantityOfTheLinesItSendsBackToEstimate(): void
+    {
+        $this->rule('Start again', [TriggerType::CommentAdded, []], [], [[ActionType::MarkBudgetLines, ['status' => 'to_estimate', 'from' => ['pending', 'approved']]]]);
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+        $line = $this->line($this->budget('Order 2026-01'), BudgetLineStatus::Approved, 840, $issue);
+
+        $this->commands->dispatch(new AddComment((int) $this->fixtures->client->getId(), $issue->getKey(), 'This is not what we asked.'));
+
+        self::assertSame([BudgetLineStatus::ToEstimate, 840], [$line->getStatus(), $line->getQuantity()]);
+    }
+
+    public function testARuleDoesNotEstimateALine(): void
+    {
+        $rule = $this->startApprovesWhatWaits(from: ['to_estimate']);
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+        $unbudgeted = $this->fixtures->createIssue($this->fixtures->client, title: 'Nothing to pay');
+        $line = $this->line($this->budget('Order 2026-01'), BudgetLineStatus::ToEstimate, null, $issue);
+
+        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->developer->getId(), $issue->getKey(), 'start'));
+        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->developer->getId(), $unbudgeted->getKey(), 'start'));
+
+        self::assertSame(BudgetLineStatus::ToEstimate, $line->getStatus(), 'approved, a line has a quantity');
+        $runs = $this->runs($rule);
+        self::assertSame([['action' => 'mark_budget_lines', 'result' => 'skipped', 'value' => 'approved', 'reason' => 'no_quantity']], $runs[0]->getSteps());
+        self::assertSame([['action' => 'mark_budget_lines', 'result' => 'unchanged', 'value' => 'approved']], $runs[1]->getSteps(), 'an issue no line names has nothing to mark');
+    }
+
+    public function testOnAProjectWithoutBudgetsTheLinesAreLeftAlone(): void
+    {
+        $rule = $this->startApprovesWhatWaits();
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+        $line = $this->line($this->budget('Order 2026-01'), BudgetLineStatus::Pending, 840, $issue);
+        $this->commands->dispatch(new UpdateProject((int) $this->fixtures->access->shop->getId(), withoutBudgets: true));
+
+        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->developer->getId(), $issue->getKey(), 'start'));
+
+        self::assertSame(BudgetLineStatus::Pending, $line->getStatus());
+        self::assertSame([['action' => 'mark_budget_lines', 'result' => 'skipped', 'reason' => 'no_budget']], $this->runs($rule)[0]->getSteps());
+    }
+
+    /**
+     * @param list<string> $from
+     */
+    private function startApprovesWhatWaits(array $from = ['pending']): AutomationRule
+    {
+        return $this->rule(
+            'Starting approves the estimate',
+            [TriggerType::TransitionApplied, ['transition' => 'start']],
+            [],
+            [[ActionType::MarkBudgetLines, ['status' => 'approved', 'from' => $from]]],
+            $this->fixtures->bugs,
+        );
+    }
+
+    /** An open budget of the shop, in days. No role of these fixtures manages the budgets: an administrator writes them. */
+    private function budget(string $name): Budget
+    {
+        $shop = (int) $this->fixtures->access->shop->getId();
+        $this->commands->dispatch(new UpdateProject($shop, budgetUnit: BudgetUnit::Days));
+
+        return $this->commands->dispatch(new CreateBudget($this->accountant(), $shop, $name, 4200));
+    }
+
+    private function accountant(): int
+    {
+        $this->accountant ??= $this->fixtures->access->user('accountant@agency.test', internal: true, admin: true);
+
+        return (int) $this->accountant->getId();
+    }
+
+    private function line(Budget $budget, BudgetLineStatus $status, ?int $minutes, Issue $issue): BudgetLine
+    {
+        return $this->commands->dispatch(new AddBudgetLine($this->accountant(), (int) $budget->getId(), $status, $minutes, $issue->getId()));
     }
 
     /** Read through a method: the issue changes under the commands, which an assertion on its getter would hide from the analysis. */

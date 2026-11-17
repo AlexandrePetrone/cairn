@@ -672,25 +672,30 @@ src/
   (`UpdateBudget::$closed`: it keeps its lines and takes no new one),
   deleted only once closed, with its lines (`DeleteBudget`, from the
   dialog that changes it), and may end below zero.
-- **A line is written by hand, and nothing ties it to the workflow.** A
+- **A line is written by hand, and only a rule of the project ties it
+  to the workflow.** A
   `BudgetLine` holds a quantity, a status (`BudgetLineStatus`: to
   estimate, pending, approved, refused) and what it is for: an issue of
   the project, a label, or both; an issue may have several lines, on
   one budget or on several. Whoever manages the budgets writes the line
   (`AddBudgetLine`), marks its status as the client answers and corrects
   it (`UpdateBudgetLine`, `BudgetLine::mark()`), or deletes it
-  (`RemoveBudgetLine`): no action
-  of a workflow moves a line, the client clicks nothing, and the issue
-  is left alone: these handlers never call
-  `IssueHandlerSupport::record()`, so there is no journal entry, no
+  (`RemoveBudgetLine`). The budgets
+  know nothing of the workflow: an action of a workflow marks the lines
+  of its issue only where an automation rule of the project says so
+  (`ActionType::MarkBudgetLines`, see [Automations](#automations)). The
+  issue is left alone either way: these handlers, and that action, never
+  call `IssueHandlerSupport::record()`, so there is no journal entry, no
   event and no mail. Do not bring an estimate back into the issue, its
   workflow or its history: the budgets pages are the whole of it.
   `BudgetException::unlessComplete()` is what a line must hold, for both
   handlers: an issue or a label, and a quantity once it is to approve or
-  approved (`BudgetLineStatus::needsQuantity()`). A line to estimate has
-  none, a refused one may have been refused before anyone estimated it,
-  and zero is a quantity like another: taking a quantity away is said
-  apart (`UpdateBudgetLine::$withoutQuantity`). The issue of a line
+  approved (`BudgetLineStatus::needsQuantity()`). A line keeps its
+  quantity in every status: to estimate, it is a draft or the estimate
+  to do again, and may have none, as a line refused before anyone
+  estimated it; zero is a quantity like another, so taking a quantity
+  away is said apart (`UpdateBudgetLine::$withoutQuantity`), and nothing
+  else does. The issue of a line
   is chosen when it is written and never changes.
 - **Only an approved line is consumed.** `BudgetLineRepository::totalsByBudget()`
   is the one place that says what lines count for: approved, they are
@@ -734,7 +739,7 @@ src/
   it they lead to the Budgets page. Nothing is
   paginated nor loaded later: open budgets are few and show every line,
   the totals come from SQL, and a closed budget costs one row.
-- **Two permissions govern all of it, and nothing is hidden.**
+- **Two permissions govern all of it, and next to nothing is hidden.**
   `budget.manage` creates and changes the budgets, deletes a closed one
   and writes their lines; `budget.view` reads. `AccessControl::canReadBudgets()` is the
   one place that says who reads (either permission, on a project that
@@ -742,17 +747,24 @@ src/
   live components (checked each time they are drawn) and the card of an
   issue; reading outlives the archiving of the project, which refuses
   every permission, writing does not. On the page of an issue, the
-  read-only card of the lines that name it (`Issue:Budget`, a plain Twig
-  component, through `ListIssueBudgetLines`) shows the time they amount
+  read-only card of the lines that name it (`Issue:Budget`, a live
+  component that only redraws on `issue:changed`, since a rule may mark
+  the lines when an action is applied, through `ListIssueBudgetLines`) shows the time they amount
   to, approved and to approve. Every reader gets every line, so the
   balance is the same for all; the one thing a reader may miss is the
   issue of a line: a private issue may be named by a line, which then
   shows to who does not see it with its quantity and "Private issue",
   without key nor title (`BudgetStatement::hides()`, decided by
-  `AccessControl::canSee()` in `ShowBudgetHandler`). The lines of an
+  `AccessControl::canSee()` in `ShowBudgetHandler`), and the quantity of
+  a line to estimate, which counts for nothing: a draft, read by
+  internal users and by whoever manages the budgets, shown greyed, and
+  as "—" to the others until the line is to approve
+  (`AccessControl::canSeeQuantity()`, the one place that says so, through
+  `BudgetStatement::quantityOf()` and `IssueBudgetLines::quantityOf()`).
+  The lines of an
   erased issue go with it (`IssueEraser`), those of a deleted project
   with their budgets (`ProjectRemoval`). Outside for now: the API, the
-  automation rules, the issue lists, imports.
+  issue lists, imports.
 
 ### Notifications
 
@@ -986,6 +998,15 @@ src/
   a rule must not fail the command that triggered it. Only an error of
   the database goes up, since the transaction it broke cannot go on. Rules do not go through the issue commands, which are
   what a person may do; do not add an `actorId: null` to those.
+  One action is not a change of the issue: `MarkBudgetLines` marks the
+  lines of the open budgets that name the issue and stand in one of the
+  statuses the rule starts from (`from`, several) as the one it gives
+  (`status`), each keeping its quantity. A rule does not estimate: a
+  line without a quantity stays where it is when the status asks for
+  one (`no_quantity` when none could be marked), and a project without
+  budgets skips the action (`no_budget`). Nothing is journaled nor
+  recorded, as when a manager marks a line, so nobody is told and no
+  rule follows: the execution is the trace.
 - **Rules follow one another, three deep.** What a rule does is an
   event, so another rule may react. A chain is everything that follows
   from one thing someone did (or from one rule that time started): a

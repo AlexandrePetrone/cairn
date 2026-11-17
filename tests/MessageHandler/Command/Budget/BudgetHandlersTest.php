@@ -211,8 +211,10 @@ final class BudgetHandlersTest extends KernelTestCase
     {
         $budget = $this->scene->budget();
 
-        $line = $this->scene->line($budget, BudgetLineStatus::ToEstimate, 3, 'MD-SPT-8');
-        self::assertNull($line->getQuantity(), 'to estimate, it has no quantity whatever is given');
+        $draft = $this->scene->line($budget, BudgetLineStatus::ToEstimate, 3, 'MD-SPT-8');
+        self::assertSame(1260, $draft->getQuantity(), 'to estimate, it may hold a draft');
+        $line = $this->scene->line($budget, BudgetLineStatus::ToEstimate, null, 'MD-SPT-8');
+        self::assertNull($line->getQuantity(), 'or nothing yet');
 
         try {
             $this->scene->line($budget, BudgetLineStatus::Pending, null, 'MD-SPT-8');
@@ -274,7 +276,9 @@ final class BudgetHandlersTest extends KernelTestCase
         self::assertSame([BudgetLineStatus::Refused, 1680, null], [$line->getStatus(), $line->getQuantity(), $line->getLabel()]);
 
         $this->commands->dispatch(new UpdateBudgetLine($this->thomas, (int) $line->getId(), BudgetLineStatus::ToEstimate));
-        self::assertNull($line->getQuantity(), 'back to estimate, it loses its quantity');
+        self::assertSame([BudgetLineStatus::ToEstimate, 1680], [$line->getStatus(), $line->getQuantity()], 'back to estimate, it keeps its quantity');
+        $this->commands->dispatch(new UpdateBudgetLine($this->thomas, (int) $line->getId(), withoutQuantity: true));
+        self::assertNull($line->getQuantity(), 'which is taken away on purpose only');
 
         self::assertSame($place, $this->scene->issue('MD-SPT-8')->getPlace(), 'the workflow of the issue is left alone');
         self::assertSame($journal, $this->entityManager->getRepository(JournalEntry::class)->count(['issue' => $this->scene->issue('MD-SPT-8')]), 'and nothing is written in its history');

@@ -97,6 +97,10 @@ final class RuleSentence
             ActionType::SetCriticality => $this->translator->trans($key, ['%criticality%' => $this->criticality($action->text('criticality'))]),
             ActionType::Comment => $this->translator->trans($action->flag('private') ? $key.'_private' : $key),
             ActionType::MakePrivate => $this->translator->trans($key),
+            ActionType::MarkBudgetLines => $this->translator->trans($key, [
+                '%from%' => implode($this->join('or'), array_map($this->budgetStatus(...), $action->texts('from'))) ?: self::BLANK,
+                '%status%' => $this->budgetStatus($action->text('status')),
+            ]),
         };
     }
 
@@ -115,6 +119,11 @@ final class RuleSentence
     private function criticality(string $value): string
     {
         return '' === $value ? self::BLANK : mb_strtolower($this->translator->trans('criticality.'.$value));
+    }
+
+    private function budgetStatus(string $value): string
+    {
+        return '' === $value ? self::BLANK : '“'.$this->translator->trans('budget.status.'.$value).'”';
     }
 
     private function join(string $piece): string

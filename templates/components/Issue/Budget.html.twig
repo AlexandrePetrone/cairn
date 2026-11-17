@@ -1,24 +1,25 @@
-{# The lines of the budgets that name the issue, a card of the side panel, read-only: the time they amount to together (approved and to approve), then for each its budget (a link to its page), where it stands and its quantity. Nothing shows when no line names the issue, or to a reader who may not read the budgets. `this` is read before the nested component, whose blocks see their own `this`. #}
+{# The lines of the budgets that name the issue, a card of the side panel, read-only: the time they amount to together (approved and to approve), then for each its budget (a link to its page), where it stands and its quantity (the draft of a line to estimate greyed, and kept from who may not read it). Hidden when no line names the issue, or to a reader who may not read the budgets; redrawn when the issue changes, since a rule may then mark its lines. `this` is read before the nested component, whose blocks see their own `this`. #}
 {% set budgetLines = this.lines %}
 {% set budgetTotal = this.total %}
-{% if budgetLines is not empty %}
-<div {{ attributes }}>
+<div {{ attributes.defaults({ class: budgetLines.lines is empty ? 'hidden' : '' }) }} data-loading="addClass(opacity-60)">
+    {% if budgetLines.lines is not empty %}
     <twig:Ui:Section :title="'budget.card.title'|trans" icon="hourglass">
         <twig:block name="actions">
             <span class="text-[13px] font-semibold tabular-nums text-strong" title="{{ 'budget.card.total'|trans }}">{{ budgetTotal|quantity(issue.project) }}</span>
         </twig:block>
         <twig:block name="content">
             <ul class="space-y-1.5 text-[13px]">
-                {% for line in budgetLines %}
+                {% for line in budgetLines.lines %}
                     <li class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                         <a href="{{ path('app_project_budget', { workspaceKey: issue.project.workspace.key, projectKey: issue.project.key, budget: line.budget.id }) }}" class="min-w-0 flex-1 truncate text-body hover:text-brand hover:underline">{{ line.budget.name }}</a>
                         {{ include('project/_budget_line_status.html.twig', { status: line.status }) }}
-                        <span class="shrink-0 font-medium tabular-nums text-strong">{{ line.quantity is null ? '—' : line.quantity|quantity(issue.project) }}</span>
+                        {% set budgetQuantity = budgetLines.quantityOf(line) %}
+                        <span class="shrink-0 font-medium tabular-nums {{ line.status.value == 'to_estimate' ? 'text-muted' : 'text-strong' }}">{{ budgetQuantity is null ? '—' : budgetQuantity|quantity(issue.project) }}</span>
                         {% if line.label %}<span class="w-full truncate text-xs text-muted">{{ line.label }}</span>{% endif %}
                     </li>
                 {% endfor %}
             </ul>
         </twig:block>
     </twig:Ui:Section>
+    {% endif %}
 </div>
-{% endif %}

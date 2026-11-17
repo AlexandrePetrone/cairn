@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Message\Query\Budget;
 
-use App\Entity\BudgetLine;
 use App\Entity\Issue;
 use App\Entity\User;
 use App\Message\Query\Query;
@@ -15,7 +14,7 @@ use App\Message\Query\Query;
  * viewer who may neither read nor manage the budgets of its project, nor
  * on a project without budgets.
  *
- * @implements Query<list<BudgetLine>>
+ * @implements Query<IssueBudgetLines>
  */
 final readonly class ListIssueBudgetLines implements Query
 {

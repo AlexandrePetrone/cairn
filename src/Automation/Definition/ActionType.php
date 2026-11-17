@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Automation\Definition;
 
+use App\Entity\Enum\BudgetLineStatus;
+
 /**
  * What a rule does to the issue, in the order written. A closed list: a
  * new case comes with its effect in RuleExecutor and its labels
@@ -19,6 +21,12 @@ enum ActionType: string
     case Subscribe = 'subscribe';
     case Comment = 'comment';
     case MakePrivate = 'make_private';
+    /**
+     * Marks the budget lines that name the issue and stand in one of the
+     * statuses `from`, as `status`: the one thing a rule does that is not
+     * a change of the issue.
+     */
+    case MarkBudgetLines = 'mark_budget_lines';
 
     /**
      * @return list<Parameter>
@@ -31,6 +39,10 @@ enum ActionType: string
             self::SetCriticality => [new Parameter('criticality', ParameterKind::Criticality)],
             self::Comment => [new Parameter('body', ParameterKind::Text), new Parameter('private', ParameterKind::Flag, required: false)],
             self::MakePrivate => [],
+            self::MarkBudgetLines => [
+                new Parameter('status', ParameterKind::Choice, array_column(BudgetLineStatus::cases(), 'value')),
+                new Parameter('from', ParameterKind::Choice, array_column(BudgetLineStatus::cases(), 'value'), multiple: true),
+            ],
         };
     }
 }

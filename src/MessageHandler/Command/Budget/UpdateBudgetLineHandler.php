@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\Command\Budget;
 
-use App\Entity\Enum\BudgetLineStatus;
 use App\Message\Command\Budget\UpdateBudgetLine;
 use App\MessageHandler\Command\ProjectActor;
 use App\Repository\BudgetLineRepository;
@@ -27,7 +26,7 @@ final class UpdateBudgetLineHandler
         BudgetException::unlessBudgeted($line->getBudget()->getProject());
 
         $status = $command->status ?? $line->getStatus();
-        $quantity = BudgetLineStatus::ToEstimate === $status || $command->withoutQuantity ? null : ($command->quantity ?? $line->getQuantity());
+        $quantity = $command->withoutQuantity ? null : ($command->quantity ?? $line->getQuantity());
         $label = $command->label ?? $line->getLabel();
         BudgetException::unlessComplete(null !== $line->getIssue(), $label, $status, $quantity);
 

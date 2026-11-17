@@ -7,6 +7,7 @@ namespace App\Tests\MessageHandler\Query\Budget;
 use App\Entity\Budget;
 use App\Entity\BudgetLine;
 use App\Entity\Enum\BudgetLineStatus;
+use App\Message\Command\Budget\UpdateBudgetLine;
 use App\Message\Command\Project\UpdateProject;
 use App\Message\Query\Budget\BudgetStatement;
 use App\Message\Query\Budget\BudgetSummary;
@@ -89,7 +90,7 @@ final class BudgetQueriesTest extends KernelTestCase
     {
         $lines = fn (string $email, string $key): array => array_map(
             static fn (BudgetLine $line): array => [$line->getBudget()->getName(), $line->getStatus(), $line->getQuantity()],
-            self::getContainer()->get(QueryBus::class)->ask(new ListIssueBudgetLines($this->scene->user($email), $this->scene->issue($key))),
+            self::getContainer()->get(QueryBus::class)->ask(new ListIssueBudgetLines($this->scene->user($email), $this->scene->issue($key)))->lines,
         );
         $expected = [['Order 2026-01', BudgetLineStatus::Approved, 420], ['Order 2026-10', BudgetLineStatus::Approved, 420]];
 
@@ -100,6 +101,23 @@ final class BudgetQueriesTest extends KernelTestCase
 
         self::commandBus()->dispatch(new UpdateProject((int) $this->scene->shop->getId(), withoutBudgets: true));
         self::assertSame([], $lines('thomas.girard@cairn.test', 'MD-SPT-8'), 'a project without budgets shows none');
+    }
+
+    public function testTheDraftOfALineToEstimateIsKeptFromTheClient(): void
+    {
+        $draft = $this->scene->line($this->second, BudgetLineStatus::ToEstimate, 2, 'MD-SPT-8', 'Third format');
+        $read = fn (string $email): array => [
+            $this->statement($email)->quantityOf($draft),
+            self::getContainer()->get(QueryBus::class)->ask(new ListIssueBudgetLines($this->scene->user($email), $this->scene->issue('MD-SPT-8')))->quantityOf($draft),
+        ];
+
+        self::assertSame([840, 840], $read('thomas.girard@cairn.test'), 'who manages the budgets wrote it');
+        self::assertSame([840, 840], $read('nadia.benali@cairn.test'), 'an internal user reads it');
+        self::assertSame([null, null], $read('claire.martin@maison-dupont.test'), 'the client reads the line, not what it may amount to');
+        self::assertEquals($this->statement('thomas.girard@cairn.test')->summary, $this->statement('claire.martin@maison-dupont.test')->summary, 'it counts for nothing, so the balance is the same');
+
+        self::commandBus()->dispatch(new UpdateBudgetLine((int) $this->scene->user('thomas.girard@cairn.test')->getId(), (int) $draft->getId(), BudgetLineStatus::Pending));
+        self::assertSame([840, 840], $read('claire.martin@maison-dupont.test'), 'once to approve, it is what she is asked');
     }
 
     private function statement(string $email): BudgetStatement

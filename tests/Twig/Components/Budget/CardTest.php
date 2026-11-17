@@ -139,6 +139,16 @@ final class CardTest extends KernelTestCase
         self::assertNull($card->getEmittedEvent($render, 'budget:changed'));
     }
 
+    public function testTheDraftOfALineToEstimateShowsToWhoMayReadIt(): void
+    {
+        $this->scene->line($this->budget, BudgetLineStatus::ToEstimate, 3, label: 'Rewrite of the checkout');
+        $row = fn (string $email): string => $this->card($email)->render()->crawler()->filter('tbody tr')->reduce(static fn ($row): bool => str_contains($row->text(), 'Rewrite of the checkout'))->text();
+
+        self::assertStringContainsString('3 d', $row('thomas.girard@cairn.test'));
+        self::assertStringNotContainsString('3 d', $row('claire.martin@maison-dupont.test'), 'the client reads the line without what it may amount to');
+        self::assertStringContainsString('—', $row('claire.martin@maison-dupont.test'));
+    }
+
     public function testTheCardIsDrawnOnlyForWhoReadsTheBudgets(): void
     {
         $this->expectException(AccessDeniedException::class);

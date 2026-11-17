@@ -77,7 +77,7 @@
                                             <li>
                                                 {{ ('automation.action.' ~ step.action)|trans }}
                                                 {%- if step.result == 'applied' -%}
-                                                    {%- if step.value is defined and step.value != '' %} {{ step.action == 'set_criticality' ? ('criticality.' ~ step.value)|trans|lower : step.value }}{% endif -%}
+                                                    {%- if step.value is defined and step.value != '' %} {{ step.action == 'set_criticality' ? ('criticality.' ~ step.value)|trans|lower : (step.action == 'mark_budget_lines' ? ('budget.status.' ~ step.value)|trans|lower : step.value) }}{% endif -%}
                                                 {%- elseif step.result == 'unchanged' %} · {{ 'automation.run.step.unchanged'|trans -}}
                                                 {%- else %} · {{ 'automation.run.step.skipped'|trans({ '%reason%': ('automation.run.reason.' ~ step.reason|default('unknown_user'))|trans({ '%value%': step.value|default('') }) }) -}}
                                                 {%- endif -%}

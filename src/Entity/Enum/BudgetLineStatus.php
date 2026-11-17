@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Entity\Enum;
 
 /**
- * Where a line of a budget stands, set by hand by whoever manages the
- * budgets: to estimate (it has no quantity yet), pending the client's
- * approval, approved (the only one a budget consumes), or refused.
+ * Where a line of a budget stands, set by whoever manages the
+ * budgets or by an automation rule of the project: to estimate (its
+ * quantity, when it has one, is a draft that external users do not
+ * read), pending the client's approval, approved (the only one a budget
+ * consumes), or refused.
  */
 enum BudgetLineStatus: string
 {

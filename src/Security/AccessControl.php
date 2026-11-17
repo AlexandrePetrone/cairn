@@ -7,7 +7,9 @@ namespace App\Security;
 use App\Config\ConfigRegistry;
 use App\Config\Definition\TransitionDefinition;
 use App\Entity\Attachment;
+use App\Entity\BudgetLine;
 use App\Entity\Comment;
+use App\Entity\Enum\BudgetLineStatus;
 use App\Entity\Issue;
 use App\Entity\Membership;
 use App\Entity\Project;
@@ -103,6 +105,24 @@ final class AccessControl implements ResetInterface
 
         return null !== $role
             && (\in_array($role, $definition->rolesGranted(Permission::BudgetView), true) || \in_array($role, $definition->rolesGranted(Permission::BudgetManage), true));
+    }
+
+    /**
+     * The quantity of a line to estimate is a draft, or an estimate to do
+     * again: internal users read it, and whoever manages the budgets of
+     * the project, who writes it. Everyone else reads it once the line
+     * waits for an approval. The one place that says so, for the budgets
+     * pages and the card of an issue; like reading the budgets, it
+     * outlives the archiving of the project.
+     */
+    public function canSeeQuantity(User $user, BudgetLine $line): bool
+    {
+        if (BudgetLineStatus::ToEstimate !== $line->getStatus() || $user->isInternal() || $user->isAdmin()) {
+            return true;
+        }
+        $role = $this->roleOn($user, $line->getBudget()->getProject());
+
+        return null !== $role && \in_array($role, $this->config->definition()->rolesGranted(Permission::BudgetManage), true);
     }
 
     public function isGranted(User $user, Permission $permission, Project|Workspace $scope): bool

@@ -8,7 +8,9 @@ use App\Automation\Definition\ActionType;
 use App\Automation\Definition\RuleDefinition;
 use App\Automation\Definition\RuleStep;
 use App\Config\ConfigRegistry;
+use App\Entity\BudgetLine;
 use App\Entity\Comment;
+use App\Entity\Enum\BudgetLineStatus;
 use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
 use App\Entity\JournalEntry;
@@ -18,6 +20,7 @@ use App\Event\IssueMoved;
 use App\Event\IssueUpdated;
 use App\MessageHandler\Command\Issue\IssueHandlerSupport;
 use App\Notification\SubscriptionRules;
+use App\Repository\BudgetLineRepository;
 use App\Security\AccessControl;
 use Doctrine\DBAL\Exception as DatabaseException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -32,6 +35,8 @@ use Psr\Log\LoggerInterface;
  * the name of the rule, and IssueHandlerSupport::record() with the usual
  * event and no actor, so the assignee is subscribed, the mails leave and
  * another rule may follow. One event per action that changed something.
+ * Marking the budget lines of the issue is the exception: it changes the
+ * budgets, not the issue, and records nothing.
  *
  * A rule must not fail what someone did: what cannot be done (nobody
  * behind a target, a place that left the workflow) is skipped and
@@ -46,6 +51,7 @@ final class RuleExecutor
         private readonly SubscriptionRules $subscriptions,
         private readonly AccessControl $access,
         private readonly ConfigRegistry $config,
+        private readonly BudgetLineRepository $budgetLines,
         private readonly EntityManagerInterface $entityManager,
         private readonly LoggerInterface $logger,
     ) {
@@ -83,6 +89,7 @@ final class RuleExecutor
             ActionType::Subscribe => $this->subscribe($action, $issue),
             ActionType::Comment => $this->comment($rule, $action, $issue),
             ActionType::MakePrivate => $this->makePrivate($rule, $issue),
+            ActionType::MarkBudgetLines => $this->markBudgetLines($action, $issue),
         };
     }
 
@@ -205,6 +212,41 @@ final class RuleExecutor
         $this->recordUpdate($rule, $issue, JournalEntry::changed($issue, null, 'visibility', 'public', 'private'));
 
         return StepResult::applied(ActionType::MakePrivate);
+    }
+
+    /**
+     * Marks the lines of the open budgets that name the issue and stand in
+     * one of the statuses the rule starts from, keeping their quantity. A
+     * rule cannot estimate: a line without a quantity is left where it is
+     * when the status asks for one. The issue itself does not change, as
+     * when a manager marks a line: nothing is journaled, no event is
+     * recorded, so nobody is told and no rule follows; the execution is
+     * the trace.
+     *
+     * @param RuleStep<ActionType> $action
+     */
+    private function markBudgetLines(RuleStep $action, Issue $issue): StepResult
+    {
+        $status = BudgetLineStatus::from($action->text('status'));
+        if (!$issue->getProject()->hasBudgets()) {
+            return StepResult::skipped(ActionType::MarkBudgetLines, 'no_budget');
+        }
+        $from = $action->texts('from');
+        $lines = array_filter($this->budgetLines->findByIssue($issue), static fn (BudgetLine $line): bool => $line->getBudget()->isOpen()
+            && $status !== $line->getStatus()
+            && \in_array($line->getStatus()->value, $from, true));
+        if ([] === $lines) {
+            return StepResult::unchanged(ActionType::MarkBudgetLines, $status->value);
+        }
+        $estimated = array_filter($lines, static fn (BudgetLine $line): bool => !$status->needsQuantity() || null !== $line->getQuantity());
+        if ([] === $estimated) {
+            return StepResult::skipped(ActionType::MarkBudgetLines, 'no_quantity', $status->value);
+        }
+        foreach ($estimated as $line) {
+            $line->mark($status, $line->getQuantity());
+        }
+
+        return StepResult::applied(ActionType::MarkBudgetLines, $status->value);
     }
 
     /**

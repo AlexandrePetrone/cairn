@@ -1398,6 +1398,7 @@ automation:
         choose: Choisir…
         any_place: n'importe quelle étape
         any_of: "Cochez une ou plusieurs valeurs : la condition est vraie si l'une d'elles correspond."
+        mark_budget_lines_help: "Cochez les statuts de départ : seules les lignes de la demande qui sont dans l'un d'eux sont marquées, dans les budgets ouverts, chacune gardant sa quantité. Une ligne sans quantité est laissée telle quelle quand le nouveau statut en demande un."
         needs_tracker: Limitez la règle à une catégorie pour choisir ici.
         in_plain: En clair
         how: Comment elle agit
@@ -1436,6 +1437,7 @@ automation:
         subscribe: Abonner à la demande
         comment: Ajouter un commentaire
         make_private: Rendre la demande privée
+        mark_budget_lines: Marquer ses lignes de budget comme
     option:
         actor:
             internal: est un utilisateur interne
@@ -1448,6 +1450,11 @@ automation:
         code:
             none: aucun
             some: au moins un
+        mark_budget_lines:
+            to_estimate: À chiffrer
+            pending: À valider
+            approved: Validé
+            refused: Refusé
     target:
         group:
             referents: Référents du projet
@@ -1489,6 +1496,7 @@ automation:
             comment: ajouter un commentaire
             comment_private: ajouter un commentaire privé
             make_private: la rendre privée
+            mark_budget_lines: 'marquer ses lignes de budget %from% comme %status%'
         target:
             referent: 'le référent %role%'
             author: son auteur
@@ -1538,6 +1546,8 @@ automation:
             unknown_place: "l'étape « %value% » n'existe plus"
             unknown_criticality: "la criticité « %value% » n'existe pas"
             cannot_see: '%value% ne peut pas voir la demande'
+            no_budget: "le projet n'a pas de budget"
+            no_quantity: "ses lignes de budget n'ont pas de quantité"
             empty_comment: le commentaire est vide
             error: une erreur imprévue, journalisée
     refused:

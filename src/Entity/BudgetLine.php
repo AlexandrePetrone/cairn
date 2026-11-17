@@ -14,9 +14,11 @@ use function Symfony\Component\Clock\now;
  * A line of a budget, written by hand by whoever manages the budgets: a
  * quantity in minutes, a status, and what it is for, an issue of the
  * project, a label, or both. Nothing ties it to the workflow of the issue
- * nor to its history: the issue only shows the lines that name it. A line
- * to estimate has no quantity yet, nor one refused before it was estimated;
- * only an approved line is consumed.
+ * nor to its history: the issue only shows the lines that name it, and
+ * only an automation rule of the project marks them when it moves. A line
+ * keeps its quantity whatever its status: to estimate, it is a draft or
+ * the estimate to do again, and may have none, as a line refused before
+ * it was estimated; only an approved line is consumed.
  */
 #[ORM\Entity(repositoryClass: BudgetLineRepository::class)]
 class BudgetLine
@@ -37,7 +39,7 @@ class BudgetLine
     #[ORM\Column(length: 200, nullable: true)]
     private ?string $label = null;
 
-    /** In minutes; null while the line is to estimate, or refused before it was. Negative gives time back. */
+    /** In minutes; null while nobody estimated the line. Negative gives time back. */
     #[ORM\Column(nullable: true)]
     private ?int $quantity = null;
 
@@ -91,14 +93,14 @@ class BudgetLine
     }
 
     /**
-     * Its manager marks where the line stands, as the client answers, and
-     * what it amounts to: a line to estimate has no quantity, whatever is
-     * given. Zero is a quantity: an estimate of nothing.
+     * Where the line stands, as the client answers, and what it amounts
+     * to: the quantity is kept in every status, a line sent back to
+     * estimate included. Zero is a quantity: an estimate of nothing.
      */
     public function mark(BudgetLineStatus $status, ?int $quantity): void
     {
         $this->status = $status;
-        $this->quantity = BudgetLineStatus::ToEstimate === $status ? null : $quantity;
+        $this->quantity = $quantity;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

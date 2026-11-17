@@ -14,7 +14,8 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 /**
  * Every line shows and counts, so that the balance is the same for all
  * its readers; `AccessControl::canSee()` only decides whether the issue
- * of a line is named.
+ * of a line is named, and `canSeeQuantity()` whether the quantity of a
+ * line to estimate is given.
  */
 #[AsMessageHandler(bus: 'query.bus')]
 final class ShowBudgetHandler
@@ -30,7 +31,11 @@ final class ShowBudgetHandler
         $budget = $query->budget;
         $lines = $this->lines->findByBudget($budget);
         $hidden = [];
+        $drafts = [];
         foreach ($lines as $line) {
+            if (!$this->access->canSeeQuantity($query->viewer, $line)) {
+                $drafts[] = (int) $line->getId();
+            }
             $issue = $line->getIssue();
             if (null !== $issue && !$this->access->canSee($query->viewer, $issue)) {
                 $hidden[] = (int) $line->getId();
@@ -38,6 +43,6 @@ final class ShowBudgetHandler
         }
         $totals = $this->lines->totalsByBudget($budget->getProject(), $budget)[(int) $budget->getId()] ?? [];
 
-        return new BudgetStatement(new BudgetSummary($budget, ...$totals), $lines, $hidden);
+        return new BudgetStatement(new BudgetSummary($budget, ...$totals), $lines, $hidden, $drafts);
     }
 }
