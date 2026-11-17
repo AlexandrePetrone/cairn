@@ -13,6 +13,7 @@ use App\Message\Command\Config\CreatePlace;
 use App\Message\Command\Config\DeletePlace;
 use App\Message\Command\Config\UpdatePlace;
 use App\Message\CommandBus;
+use App\MessageHandler\Command\Config\ConfigDeletions;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -39,6 +40,7 @@ final class PlaceController extends AbstractController
         private readonly ConfigRegistry $config,
         private readonly CommandBus $commands,
         private readonly TranslatorInterface $translator,
+        private readonly ConfigDeletions $deletions,
     ) {
     }
 
@@ -100,6 +102,7 @@ final class PlaceController extends AbstractController
         return $this->renderWithDialog($request, 'admin/configuration/places.html.twig', [
             'form' => $form,
             'dialogPlace' => $place,
+            'dialogRefusal' => null === $place ? null : $this->deletions->place($place->id)?->trans($this->translator),
         ], fn (): array => [
             'definition' => $this->config->definition(),
         ], $form);

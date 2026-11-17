@@ -65,10 +65,10 @@
     <twig:Ui:Form:Select :invalid="not valid" {{ ...controlAttributes }}>{{ selectOptions }}</twig:Ui:Form:Select>
 {% endblock %}
 
-{# Radios render as segments, checkboxes as a stack of Form:Checkbox. #}
+{# Radios render as segments, checkboxes as a stack of Form:Checkbox, one per line; a field whose choices are short asks for a row with its `attr` class (`flex-row flex-wrap gap-x-5`). #}
 {% block choice_widget_expanded %}
     {% if multiple %}
-        <div class="mt-1 space-y-1.5">
+        <div class="{{ html_cva(base: 'mt-1 flex flex-col gap-1.5').apply({}, attr.class ?? null)|tailwind_merge }}">
             {% for child in form %}
                 <twig:Ui:Form:Checkbox
                     :label="translation_domain is same as(false) ? child.vars.label : child.vars.label|trans(child.vars.label_translation_parameters, choice_translation_domain)"

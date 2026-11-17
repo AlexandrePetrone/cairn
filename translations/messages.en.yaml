@@ -610,9 +610,9 @@ admin:
             deactivated: Deactivated
     configuration:
         intro:
-            roles: 'Who may do what: a role is given to someone on a project or a workspace, and holds rights.'
+            roles: 'A role is given to a person on a project or on a workspace, and determines what they may do there.'
             workflows: 'Each category of a project follows a workflow: its steps, the actions that lead from one to another, and the fields it asks for.'
-            places: 'A step has a name and a status, the same in every workflow that uses it.'
+            places: 'A step is defined once, with its name and its status, and keeps both in every workflow that uses it.'
             fields: 'Fields are declared once for the instance and each workflow picks the ones it asks for. Link types tie two issues together.'
             history: 'Who changed what in the configuration, and what it did to the issues. A trace to read: nothing here goes back to an earlier configuration.'
         nav:
@@ -640,7 +640,7 @@ admin:
             already: 'The instance already has a configuration: nothing changed.'
         roles:
             title: 'Roles'
-            intro: 'From the broadest to the narrowest. Direct access to a project may only widen the role inherited from the workspace.'
+            intro: 'The order of the roles is a hierarchy, from the broadest to the narrowest: when a person has a role on a workspace and another on one of its projects, the broadest applies.'
             anyone: 'Internal and external users'
             internal_only: 'Internal users only'
             follows_new_issues_help: 'Subscribed to every new issue of the project'
@@ -656,7 +656,7 @@ admin:
                 follows_new_issues_help: 'Whoever holds it on a project is subscribed to every new issue of the project, and may unsubscribe issue by issue.'
         permissions:
             title: 'Rights outside workflows'
-            intro: 'A ticked box grants the right at once. Who triggers an action is settled on the action, in its workflow.'
+            intro: 'Ticking a box grants the right immediately. The roles allowed to trigger an action are set on the action itself, in its workflow.'
             permission: 'Right'
             internal_only: 'Internal roles'
             internal_only_help: 'This right opens what external users never see: it only goes to a role reserved to internal users.'
@@ -716,6 +716,8 @@ admin:
             tracker_count: '{0}no category|{1}1 category|]1,Inf[ %count% categories'
         workflow:
             initial: 'A new issue starts on "%place%".'
+            back: 'All workflows'
+            diagram: 'Diagram'
             settings: 'Name and initial step'
             steps: 'Steps'
             steps_intro: 'In the order of the columns of the kanban. A step of the instance is added; one that leaves sends its issues elsewhere.'
@@ -728,8 +730,9 @@ admin:
             initial_badge: 'Initial'
             comment_required: 'comment required of external users'
             remove_place: 'Remove'
-            add_place: 'Add a step'
-            add: 'Add the step'
+            add_place: 'Add steps'
+            add_places: 'Add steps to the workflow'
+            add: 'Add the steps'
             remove_field: 'Remove'
             add_field: 'Add'
             choose_field: 'Add a field…'
@@ -741,7 +744,8 @@ admin:
             form:
                 initial: 'Initial step'
                 initial_help: 'Where a new issue starts.'
-                place: 'Step'
+                places: 'Steps of the instance'
+                places_help: 'Tick those the workflow gains: they come after its columns, in this order, and are arranged afterwards.'
                 target: 'Where do its issues go?'
                 target_help: 'They arrive on top of their column. Their history keeps the name of the step they left, and nobody is notified.'
                 no_target: 'No issue to move'

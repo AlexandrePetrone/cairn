@@ -1,0 +1,14 @@
+{# The diagram of a workflow, drawn by the browser: its steps and the actions that lead from one to another. #}
+{% extends 'admin/configuration/base.html.twig' %}
+
+{% set configurationSubject = 'workflows' %}
+
+{% block configuration_content %}
+    <a href="{{ path('app_admin_configuration_workflow', { id: workflow.id }) }}" class="inline-flex items-center gap-1 text-xs text-muted hover:text-strong">
+        <twig:ux:icon name="lucide:arrow-left" class="h-3.5 w-3.5" />{{ workflow.label }}
+    </a>
+
+    <h2 class="text-lg font-semibold text-strong">{{ workflow.label }} · {{ 'admin.configuration.workflow.diagram'|trans }}</h2>
+
+    <twig:Workflow:Diagram :workflow="workflow" />
+{% endblock %}

@@ -1747,7 +1747,7 @@ src/
   `assets/controllers/` (`dropdown`, `sidebar`, `drawer`, `dialog`,
   `toast`, `toaster`, `autosubmit`, `autofocus`, `editor`, `file-picker`,
   `workflow-diagram`, `sortable`, `list-filter`, `combobox`, `board`,
-  `load-more`, `clipboard`, `picker`, `filters`, `selection`, `fold`, `list-view`, `live-updates`, `theme`, `panels`, `avatar`, `live-trigger`, `modal-frame`, `suggestions`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
+  `load-more`, `clipboard`, `picker`, `filters`, `selection`, `fold`, `list-view`, `live-updates`, `theme`, `panels`, `avatar`, `live-trigger`, `modal-frame`, `suggestions`, `reveal`); a heavy one is marked `/* stimulusFetch: 'lazy' */`
   (`editor` with TipTap, `workflow-diagram` with Mermaid, `board` with
   SortableJS) so that Vite
   splits its imports into chunks only fetched on a page that uses it; write a new one when a component needs it, not before. No
@@ -1815,7 +1815,10 @@ database.
   `RemoveWorkflowPlace`), without an actor: only administrators reach
   them. So every command must leave a configuration the application can
   run. The handlers refuse what the data relies on, in their own words
-  (`ConfigChangeException`, translatable): a role someone holds or an
+  (`ConfigChangeException`, translatable; `ConfigDeletions` is the one
+  place that says whether something may be deleted, as a
+  `DeletionRefusal` the dialogs show beside a button that cannot be
+  pressed and the handlers throw): a role someone holds or an
   action names, a workflow a tracker of a project or of a template
   follows, a link type links use, a step or a field a workflow uses are
   not deleted; an internal-only permission goes to internal-only roles;

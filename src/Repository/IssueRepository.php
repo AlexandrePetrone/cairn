@@ -54,14 +54,11 @@ class IssueRepository extends ServiceEntityRepository
      */
     public function countOnPlace(string $placeId, ?string $workflowId = null): int
     {
-        $count = 0;
-        foreach ($this->countByPlace() as $row) {
-            if ($row['placeId'] === $placeId && (null === $workflowId || $row['workflowId'] === $workflowId)) {
-                $count += $row['issues'];
-            }
+        if (null === $workflowId) {
+            return $this->count(['place' => $placeId]);
         }
 
-        return $count;
+        return (int) $this->onPlace($workflowId, $placeId)->select('COUNT(i.id)')->getQuery()->getSingleScalarResult();
     }
 
     /**

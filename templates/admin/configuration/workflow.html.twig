@@ -1,19 +1,18 @@
-{# The page of a workflow: its steps in the order of the kanban, its actions and the fields it asks for, each arranged in place and changed in a dialog; then its diagram and the categories that follow it. `dialog` says which dialog the address opens. #}
+{# The page of a workflow: its steps in the order of the kanban, its actions and the fields it asks for, each arranged in place and changed in a dialog. Its diagram and the categories that follow it have a page each, reached from here. `dialog` says which dialog the address opens. #}
 {% extends 'admin/configuration/base.html.twig' %}
 
 {% set configurationSubject = 'workflows' %}
 
 {% block configuration_actions %}
+    <twig:Ui:Button size="sm" icon="workflow" href="{{ path('app_admin_configuration_workflow_diagram', { id: workflow.id }) }}">{{ 'admin.configuration.workflow.diagram'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button size="sm" icon="bar-chart-3" href="{{ path('app_admin_configuration_workflow_usage', { id: workflow.id }) }}">{{ 'admin.configuration.workflow.usage'|trans }}</twig:Ui:Button>
     <twig:Ui:Button size="sm" icon="settings" href="{{ path('app_admin_configuration_workflow_edit', { id: workflow.id }) }}" data-turbo-frame="modal">{{ 'admin.configuration.workflow.settings'|trans }}</twig:Ui:Button>
 {% endblock %}
 
 {% block configuration_content %}
-    {% set workflowPlaces = definition.placesOf(workflow) %}
-    <nav class="flex flex-wrap gap-x-5 border-b border-line" aria-label="{{ 'admin.configuration.nav.workflows'|trans }}">
-        {% for other in definition.workflows %}
-            <twig:Ui:Tab href="{{ path('app_admin_configuration_workflow', { id: other.id }) }}" :active="other.id == workflow.id">{{ other.label }}</twig:Ui:Tab>
-        {% endfor %}
-    </nav>
+    <a href="{{ path('app_admin_configuration_workflows') }}" class="inline-flex items-center gap-1 text-xs text-muted hover:text-strong">
+        <twig:ux:icon name="lucide:arrow-left" class="h-3.5 w-3.5" />{{ 'admin.configuration.workflow.back'|trans }}
+    </a>
 
     <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h2 class="text-lg font-semibold text-strong">{{ workflow.label }} <span class="font-mono text-xs font-normal text-faint">{{ workflow.id }}</span></h2>
@@ -26,7 +25,10 @@
                 <twig:block name="header">
                     <h3 class="font-semibold text-strong">{{ 'admin.configuration.workflow.steps'|trans }}</h3>
                     <span class="text-xs text-faint">{{ workflow.places|length }}</span>
-                    <twig:Ui:Button size="sm" icon="plus" class="ml-auto" href="{{ path('app_admin_configuration_workflow_place_add', { id: workflow.id }) }}" data-turbo-frame="modal">{{ 'admin.configuration.workflow.add_place'|trans }}</twig:Ui:Button>
+                    {# Offered while the instance has steps the workflow does not use. #}
+                    {% if definition.places|length > workflow.places|length %}
+                        <twig:Ui:Button size="sm" icon="plus" class="ml-auto" href="{{ path('app_admin_configuration_workflow_place_add', { id: workflow.id }) }}" data-turbo-frame="modal">{{ 'admin.configuration.workflow.add_place'|trans }}</twig:Ui:Button>
+                    {% endif %}
                 </twig:block>
                 <twig:block name="content"><twig:Config:Order kind="workflow_places" :workflow="workflow.id" /></twig:block>
                 <twig:block name="footer">{{ 'admin.configuration.workflow.steps_intro'|trans }}</twig:block>
@@ -48,43 +50,6 @@
             <twig:block name="footer">{{ 'admin.configuration.workflow.actions_intro'|trans }}</twig:block>
         </twig:Ui:Panel>
     </div>
-
-    <twig:Workflow:Diagram :workflow="workflow" />
-
-    <section class="space-y-2">
-        <h3 class="font-semibold text-strong">{{ 'admin.configuration.workflow.usage'|trans }}</h3>
-        {% if usage.trackers is empty %}
-            <p class="text-sm text-muted">{{ 'admin.configuration.workflow.unused'|trans }}</p>
-        {% else %}
-            <div class="overflow-x-auto rounded-lg border border-line bg-surface">
-                <table class="w-full text-sm">
-                    <thead class="bg-subtle text-[11px] uppercase tracking-wider text-muted">
-                        <tr>
-                            <th class="px-4 py-2 text-left font-medium">{{ 'admin.configuration.workflow.tracker'|trans }}</th>
-                            {% for place in workflowPlaces %}<th class="px-3 py-2 text-right font-medium whitespace-nowrap">{{ place.label }}</th>{% endfor %}
-                            <th class="px-4 py-2 text-right font-medium">{{ 'admin.configuration.workflow.total'|trans }}</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-line-subtle">
-                        {% for tracker in usage.trackers %}
-                            <tr>
-                                <td class="px-4 py-2 whitespace-nowrap">
-                                    <a href="{{ path('app_project_issues_tracker', { workspaceKey: tracker.project.workspace.key, projectKey: tracker.project.key, tracker: tracker.id }) }}" class="text-strong hover:text-brand">{{ tracker.name }}</a>
-                                    {% if tracker.private %}<twig:ux:icon name="lucide:lock" class="inline h-3 w-3 text-faint" />{% endif %}
-                                    <span class="block text-xs text-muted">{{ tracker.project.issuePrefix }} · {{ tracker.project.name }}</span>
-                                </td>
-                                {% for place in workflowPlaces %}
-                                    {% set placeCount = usage.count(tracker, place.id) %}
-                                    <td class="px-3 py-2 text-right tabular-nums {{ placeCount ? 'text-strong' : 'text-ghost' }}">{{ placeCount }}</td>
-                                {% endfor %}
-                                <td class="px-4 py-2 text-right tabular-nums font-medium text-strong">{{ usage.total(tracker) }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% endif %}
-    </section>
 {% endblock %}
 
 {% block modal %}
@@ -96,10 +61,11 @@
             submitLabel: 'admin.configuration.save'|trans,
             deleteAction: path('app_admin_configuration_workflow_delete', { id: workflow.id }),
             deleteHelp: 'admin.configuration.workflows.delete_help'|trans,
+            deleteRefusal: dialogRefusal ?? null,
         }) }}
     {% elseif dialog == 'place_add' %}
         {{ include('admin/configuration/_dialog.html.twig', {
-            title: 'admin.configuration.workflow.add_place'|trans,
+            title: 'admin.configuration.workflow.add_places'|trans,
             closeHref: modalClose,
             submitLabel: 'admin.configuration.workflow.add'|trans,
         }) }}

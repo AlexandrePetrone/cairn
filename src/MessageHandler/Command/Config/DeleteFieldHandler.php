@@ -8,7 +8,6 @@ use App\Entity\Field;
 use App\Message\Command\Config\DeleteField;
 use App\MessageHandler\Command\Tracker\ListOrder;
 use App\Repository\FieldRepository;
-use App\Repository\WorkflowRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -17,8 +16,8 @@ final class DeleteFieldHandler
 {
     public function __construct(
         private readonly FieldRepository $fields,
-        private readonly WorkflowRepository $workflows,
         private readonly EntityManagerInterface $entityManager,
+        private readonly ConfigDeletions $deletions,
         private readonly ConfigWriting $writing,
     ) {
     }
@@ -27,9 +26,8 @@ final class DeleteFieldHandler
     {
         $field = $this->writing->get(Field::class, $command->id);
 
-        $workflows = $this->workflows->labelsUsingField($field);
-        if ([] !== $workflows) {
-            throw ConfigChangeException::fieldUsed($field->getLabel(), $workflows);
+        if (null !== $refusal = $this->deletions->field($field)) {
+            throw ConfigChangeException::because($refusal);
         }
 
         ListOrder::close($field, $this->fields->findOrdered());

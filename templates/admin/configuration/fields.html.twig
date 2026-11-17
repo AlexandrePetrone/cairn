@@ -35,6 +35,7 @@
             submitLabel: (dialogSubject ? 'admin.configuration.save' : 'admin.configuration.create')|trans,
             deleteAction: dialogSubject ? path('app_admin_configuration_link_delete', { id: dialogSubject.id }) : null,
             deleteHelp: 'admin.configuration.links.delete_help'|trans,
+            deleteRefusal: dialogRefusal ?? null,
         }) }}
     {% else %}
         {{ include('admin/configuration/_dialog.html.twig', {
@@ -43,6 +44,7 @@
             submitLabel: (dialogSubject ? 'admin.configuration.save' : 'admin.configuration.create')|trans,
             deleteAction: dialogSubject ? path('app_admin_configuration_field_delete', { id: dialogSubject.id }) : null,
             deleteHelp: 'admin.configuration.fields.delete_help'|trans,
+            deleteRefusal: dialogRefusal ?? null,
         }) }}
     {% endif %}
 {% endblock %}

@@ -15,7 +15,9 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
  * The dialog of a field. Its type is chosen when it is created (`create`)
- * and kept: the values issues hold of it are of that type.
+ * and kept: the values issues hold of it are of that type. The choices
+ * are asked only of a type that has some (`with_choices`): shown as the
+ * type is chosen for a new field, left out of the dialog of the others.
  *
  * @extends AbstractType<FieldData>
  */
@@ -30,15 +32,20 @@ final class FieldSettingsType extends AbstractType
                 'label' => 'admin.configuration.fields.type',
                 'help' => 'admin.configuration.fields.form.type_help',
                 'choice_label' => static fn (FieldType $type): string => 'field_type.'.$type->value,
+                // The `reveal` controller, on the form, shows the choices for the types that have some.
+                'attr' => ['data-reveal-target' => 'source', 'data-action' => 'reveal#update'],
             ]);
         }
-        $builder
-            ->add('choices', TextareaType::class, [
+        if ($options['with_choices']) {
+            $builder->add('choices', TextareaType::class, [
                 'label' => 'admin.configuration.fields.form.choices',
                 'help' => 'admin.configuration.fields.form.choices_help',
                 'required' => false,
                 'attr' => ['rows' => 4],
-            ])
+                'row_attr' => $options['create'] ? ['data-reveal-target' => 'panel', 'data-reveal-values' => implode(' ', array_map(static fn (FieldType $type): string => $type->value, array_filter(FieldType::cases(), static fn (FieldType $type): bool => $type->hasOptions())))] : [],
+            ]);
+        }
+        $builder
             ->add('placeholder', TextType::class, ['label' => 'admin.configuration.fields.form.placeholder', 'required' => false])
             ->add('help', TextType::class, ['label' => 'admin.configuration.fields.form.help', 'required' => false])
             ->add('internalOnly', ToggleType::class, [
@@ -49,6 +56,6 @@ final class FieldSettingsType extends AbstractType
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        $resolver->setDefaults(['data_class' => FieldData::class, 'create' => false]);
+        $resolver->setDefaults(['data_class' => FieldData::class, 'create' => false, 'with_choices' => true]);
     }
 }

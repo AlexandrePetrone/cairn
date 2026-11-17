@@ -610,9 +610,9 @@ admin:
             deactivated: Désactivé
     configuration:
         intro:
-            roles: 'Qui peut faire quoi : un rôle se donne à quelqu''un sur un projet ou un espace, et porte des droits.'
+            roles: 'Un rôle s''attribue à une personne sur un projet ou sur un espace, et détermine ce qu''elle peut y faire.'
             workflows: 'Chaque catégorie d''un projet suit un workflow : ses étapes, les actions qui mènent de l''une à l''autre, et les champs demandés.'
-            places: 'Une étape a un nom et un statut, les mêmes dans tous les workflows qui l''utilisent.'
+            places: 'Une étape se définit une seule fois, avec son nom et son statut, et garde les mêmes dans chacun des workflows qui l''utilisent.'
             fields: 'Les champs sont déclarés une fois pour l''instance et chaque workflow choisit ceux qu''il demande. Les types de lien relient deux demandes.'
             history: 'Qui a changé quoi dans la configuration, et ce que cela a fait aux demandes. Une trace à lire : rien ici ne revient à une configuration antérieure.'
         nav:
@@ -640,7 +640,7 @@ admin:
             already: 'L''instance a déjà une configuration : rien n''a changé.'
         roles:
             title: 'Rôles'
-            intro: 'Du plus large au plus étroit. Un accès direct sur un projet ne peut qu''élargir le rôle hérité de l''espace.'
+            intro: 'L''ordre des rôles tient lieu de hiérarchie, du plus large au plus étroit : lorsqu''une personne a un rôle sur un espace et un autre sur l''un de ses projets, le plus large s''applique.'
             anyone: 'Internes et externes'
             internal_only: 'Internes seulement'
             follows_new_issues_help: 'Abonné d''office à chaque nouvelle demande du projet'
@@ -656,7 +656,7 @@ admin:
                 follows_new_issues_help: 'Qui le porte sur un projet est abonné à chaque nouvelle demande du projet, et peut se désabonner demande par demande.'
         permissions:
             title: 'Droits hors workflow'
-            intro: 'Une case cochée donne le droit tout de suite. Qui déclenche une action se règle sur l''action, dans son workflow.'
+            intro: 'Cocher une case accorde le droit immédiatement. Les rôles autorisés à déclencher une action se définissent sur l''action elle-même, dans son workflow.'
             permission: 'Droit'
             internal_only: 'Rôles internes'
             internal_only_help: 'Ce droit ouvre ce que les externes ne voient jamais : il ne va qu''à un rôle réservé aux internes.'
@@ -716,6 +716,8 @@ admin:
             tracker_count: '{0}aucune catégorie|{1}1 catégorie|]1,Inf[ %count% catégories'
         workflow:
             initial: 'Une nouvelle demande commence à l''étape « %place% ».'
+            back: 'Tous les workflows'
+            diagram: 'Schéma'
             settings: 'Nom et étape initiale'
             steps: 'Étapes'
             steps_intro: 'Dans l''ordre des colonnes du kanban. On ajoute une étape de l''instance ; celle qui part envoie ses demandes ailleurs.'
@@ -728,8 +730,9 @@ admin:
             initial_badge: 'Initiale'
             comment_required: 'commentaire exigé des externes'
             remove_place: 'Retirer'
-            add_place: 'Ajouter une étape'
-            add: 'Ajouter l''étape'
+            add_place: 'Ajouter des étapes'
+            add_places: 'Ajouter des étapes au workflow'
+            add: 'Ajouter les étapes'
             remove_field: 'Retirer'
             add_field: 'Ajouter'
             choose_field: 'Ajouter un champ…'
@@ -741,7 +744,8 @@ admin:
             form:
                 initial: 'Étape initiale'
                 initial_help: 'Là où commence une nouvelle demande.'
-                place: 'Étape'
+                places: 'Étapes de l''instance'
+                places_help: 'Cochez celles que le workflow gagne : elles arrivent après ses colonnes, dans cet ordre, et se rangent ensuite.'
                 target: 'Où vont ses demandes ?'
                 target_help: 'Elles arrivent en haut de leur colonne. Leur historique garde le nom de l''étape quittée, et personne n''est notifié.'
                 no_target: 'Aucune demande à déplacer'

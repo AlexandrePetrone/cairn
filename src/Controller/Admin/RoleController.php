@@ -12,6 +12,7 @@ use App\Message\Command\Config\CreateRole;
 use App\Message\Command\Config\DeleteRole;
 use App\Message\Command\Config\UpdateRole;
 use App\Message\CommandBus;
+use App\MessageHandler\Command\Config\ConfigDeletions;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -39,6 +40,7 @@ final class RoleController extends AbstractController
         private readonly ConfigRegistry $config,
         private readonly CommandBus $commands,
         private readonly TranslatorInterface $translator,
+        private readonly ConfigDeletions $deletions,
     ) {
     }
 
@@ -98,7 +100,7 @@ final class RoleController extends AbstractController
      */
     private function page(Request $request, ?FormInterface $form, ?RoleDefinition $role): Response
     {
-        return $this->renderWithDialog($request, 'admin/configuration/roles.html.twig', ['form' => $form, 'dialogRole' => $role], fn (): array => [
+        return $this->renderWithDialog($request, 'admin/configuration/roles.html.twig', ['form' => $form, 'dialogRole' => $role, 'dialogRefusal' => null === $role ? null : $this->deletions->role($role->id)?->trans($this->translator)], fn (): array => [
             'definition' => $this->config->definition(),
         ], $form);
     }

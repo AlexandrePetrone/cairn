@@ -10,6 +10,8 @@ use App\Config\Definition\PlaceDefinition;
 use App\Config\Definition\RoleDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use App\Entity\Workflow;
+use App\Form\Config\AddPlacesData;
+use App\Form\Config\AddPlacesType;
 use App\Form\Config\TransitionData;
 use App\Form\Config\TransitionType;
 use App\Form\Config\WorkflowData;
@@ -27,6 +29,7 @@ use App\Message\Command\Config\UpdateWorkflow;
 use App\Message\CommandBus;
 use App\Message\Query\Config\ShowWorkflowUsage;
 use App\Message\QueryBus;
+use App\MessageHandler\Command\Config\ConfigDeletions;
 use App\Repository\IssueRepository;
 use App\Repository\TrackerRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -41,7 +44,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The workflows: their list, and the page of each, where its steps, its
+ * The workflows: their list, and the page of each (its diagram and the
+ * categories that follow it on two pages beside it), where its steps, its
  * actions and the fields it asks for are arranged in place (Config:Order,
  * Config:WorkflowFields) and changed in dialogs that have an address of
  * their own. Taking a step out of a workflow is the one change that
@@ -64,6 +68,7 @@ final class WorkflowController extends AbstractController
         private readonly IssueRepository $issues,
         private readonly RuleReferences $rules,
         private readonly TranslatorInterface $translator,
+        private readonly ConfigDeletions $deletions,
     ) {
     }
 
@@ -96,6 +101,28 @@ final class WorkflowController extends AbstractController
     }
 
     /**
+     * The diagram of the workflow, on a page of its own.
+     */
+    #[Route('/{id}/diagram', name: 'app_admin_configuration_workflow_diagram', requirements: self::ID, methods: ['GET'])]
+    public function diagram(string $id): Response
+    {
+        return $this->render('admin/configuration/workflow_diagram.html.twig', ['definition' => $this->config->definition(), 'workflow' => $this->workflow($id)]);
+    }
+
+    /**
+     * The categories that follow the workflow, with their issues step by step.
+     */
+    #[Route('/{id}/usage', name: 'app_admin_configuration_workflow_usage', requirements: self::ID, methods: ['GET'])]
+    public function usage(string $id): Response
+    {
+        return $this->render('admin/configuration/workflow_usage.html.twig', [
+            'definition' => $this->config->definition(),
+            'workflow' => $this->workflow($id),
+            'usage' => $this->queries->ask(new ShowWorkflowUsage($id)),
+        ]);
+    }
+
+    /**
      * The dialog of the workflow itself: its name, its initial step, and its deletion.
      */
     #[Route('/{id}/edit', name: 'app_admin_configuration_workflow_edit', requirements: self::ID, methods: ['GET', 'POST'])]
@@ -112,7 +139,7 @@ final class WorkflowController extends AbstractController
             return $this->saved($id);
         }
 
-        return $this->page($request, $workflow, $form, 'workflow');
+        return $this->page($request, $workflow, $form, 'workflow', ['dialogRefusal' => $this->deletions->workflow($id)?->trans($this->translator)]);
     }
 
     #[Route('/{id}/delete', name: 'app_admin_configuration_workflow_delete', requirements: self::ID, methods: ['POST'])]
@@ -127,18 +154,23 @@ final class WorkflowController extends AbstractController
     }
 
     /**
-     * The dialog that adds a step of the instance to the workflow.
+     * The dialog that adds steps of the instance to the workflow, several at once.
      */
     #[Route('/{id}/places/add', name: 'app_admin_configuration_workflow_place_add', requirements: self::ID, methods: ['GET', 'POST'])]
     public function addPlace(string $id, Request $request): Response
     {
         $workflow = $this->workflow($id);
         $others = array_filter($this->config->definition()->places, static fn (PlaceDefinition $place): bool => !$workflow->hasPlace($place->id));
-        $data = new WorkflowPlaceData();
+        if ([] === $others) {
+            // Nothing left to add: the page does not offer the dialog.
+            throw new NotFoundHttpException(\sprintf('The workflow "%s" already uses every step of the instance.', $id));
+        }
+        $data = new AddPlacesData();
 
-        $form = $this->createForm(WorkflowPlaceType::class, $data, ['action' => $request->getRequestUri(), 'places' => self::choices($others)]);
+        $form = $this->createForm(AddPlacesType::class, $data, ['action' => $request->getRequestUri(), 'places' => self::choices($others)]);
         $form->handleRequest($request);
-        if ($this->applies($form, static fn (): AddWorkflowPlace => new AddWorkflowPlace($id, (string) $data->place))) {
+        // One command per step, in the order of the instance: each comes after the columns the kanban has.
+        if ($this->applies($form, static fn (): array => array_map(static fn (string $place): AddWorkflowPlace => new AddWorkflowPlace($id, $place), array_values($data->places)))) {
             return $this->saved($id);
         }
 
@@ -287,7 +319,6 @@ final class WorkflowController extends AbstractController
     {
         return $this->renderWithDialog($request, 'admin/configuration/workflow.html.twig', ['form' => $form, 'workflow' => $workflow, 'dialog' => $dialog] + $details, fn (): array => [
             'definition' => $this->config->definition(),
-            'usage' => $this->queries->ask(new ShowWorkflowUsage($workflow->id)),
         ], $form);
     }
 

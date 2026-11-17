@@ -11,6 +11,8 @@ use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
 use App\Factory\UserFactory;
 use App\Message\Command\Automation\CreateRule;
+use App\Message\Command\Config\AddWorkflowPlace;
+use App\Message\Command\Config\CreateWorkflow;
 use App\Message\CommandBus;
 use App\Security\Permission;
 use App\Tests\Scene\ShopScene;
@@ -158,11 +160,11 @@ final class ConfigurationTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('turbo-frame#modal', 'accesses of external users carry the role "Client"');
 
+        // What cannot be deleted says why, beside a button that cannot be pressed.
         $this->client->request('GET', '/admin/configuration/roles/client');
-        $this->client->submitForm('Delete');
-        $this->client->followRedirect();
-        self::assertSelectorTextContains('body', 'accesses carry the role "Client"');
-        self::assertTrue($this->definition()->hasRole('client'));
+        self::assertSelectorTextContains('turbo-frame#modal', 'accesses carry the role "Client"');
+        self::assertSelectorExists('turbo-frame#modal button[disabled]', 'the deletion is not offered');
+        self::assertSelectorNotExists('#configuration-delete');
 
         $this->client->request('GET', '/admin/configuration/roles/nobody');
         self::assertResponseStatusCodeSame(404);
@@ -196,9 +198,9 @@ final class ConfigurationTest extends WebTestCase
 
         // A step workflows use stays; one nothing uses goes.
         $this->client->request('GET', '/admin/configuration/places/to_test');
-        $this->client->submitForm('Delete');
-        $this->client->followRedirect();
-        self::assertSelectorTextContains('body', 'is used by: Bug, Feature, Internal task');
+        self::assertSelectorTextContains('turbo-frame#modal', 'is used by: Bug, Feature, Internal task');
+        self::assertSelectorExists('turbo-frame#modal button[disabled]', 'the deletion is not offered');
+        self::assertSelectorNotExists('#configuration-delete');
 
         $this->client->request('GET', '/admin/configuration/places/on_hold');
         $this->client->submitForm('Delete');
@@ -220,6 +222,20 @@ final class ConfigurationTest extends WebTestCase
         $this->client->submitForm('Create', ['field_settings[label]' => 'Browser', 'field_settings[type]' => 'select', 'field_settings[choices]' => "Chrome\nSafari"]);
         $this->client->followRedirect();
         self::assertSame(['chrome' => 'Chrome', 'safari' => 'Safari'], $this->definition()->field('browser_2')->options, 'the starter configuration already has a field `browser`');
+
+        // Choices are asked only of a type that has some: shown as the type is chosen, left out otherwise.
+        $this->client->request('GET', '/admin/configuration/fields/new');
+        self::assertSelectorExists('form[data-controller="reveal"] [data-reveal-target="panel"][data-reveal-values="select choice"] textarea');
+        // The browser does not send what it hides; sent all the same, choices for a type without any are refused, not dropped.
+        $this->client->submitForm('Create', ['field_settings[label]' => 'Reference', 'field_settings[type]' => 'text', 'field_settings[choices]' => 'Left over']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('turbo-frame#modal', 'Only a list or a single choice has choices');
+        self::assertFalse($this->definition()->hasField('reference'));
+        $this->client->request('GET', '/admin/configuration/fields/url');
+        self::assertSelectorNotExists('[name="field_settings[choices]"]');
+        $this->client->submitForm('Save', ['field_settings[help]' => 'The page.']);
+        $this->client->followRedirect();
+        self::assertSame('The page.', $this->definition()->field('url')->help);
 
         // A choice keeps its value when its label changes; a new line gets one.
         $this->client->request('GET', '/admin/configuration/fields/environment');
@@ -260,7 +276,8 @@ final class ConfigurationTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/admin/configuration/workflows/bug');
         self::assertResponseIsSuccessful();
-        self::assertStringContainsString('to_test -.->|"Refuse 💬"| in_progress', $crawler->filter('[data-workflow-diagram-target="source"]')->text(), 'the graph, drawn by the browser');
+        self::assertSelectorExists('main a[href="/admin/configuration/workflows"]', 'back to the list');
+        self::assertSelectorNotExists('[data-controller="workflow-diagram"]', 'the diagram has a page of its own');
         self::assertSelectorTextContains('main', 'A new issue starts on "New".');
         self::assertSelectorTextContains('#config-workflow_places-new', 'Initial');
         self::assertSelectorNotExists('#config-workflow_places-new a', 'the initial step does not leave');
@@ -269,7 +286,26 @@ final class ConfigurationTest extends WebTestCase
         self::assertSelectorTextContains('#config-transitions-refuse', 'Project manager, Client');
         self::assertSelectorTextContains('#config-transitions-refuse', 'comment required of external users');
         self::assertSelectorTextContains('#workflow-field-environment', 'Environment');
+
+        $crawler = $this->client->clickLink('Diagram');
+        self::assertStringContainsString('to_test -.->|"Refuse 💬"| in_progress', $crawler->filter('[data-workflow-diagram-target="source"]')->text(), 'the graph, drawn by the browser');
+        self::assertSelectorExists('main a[href="/admin/configuration/workflows/bug"]');
+
+        $this->client->request('GET', '/admin/configuration/workflows/bug/usage');
         self::assertSelectorTextContains('main', 'Online shop');
+        self::assertSelectorTextContains('main', 'MD-SPT');
+
+        // A workflow that uses every step of the instance is not offered more.
+        $this->client->request('GET', '/admin/configuration/workflows/bug');
+        self::assertSelectorExists('main a[href="/admin/configuration/workflows/bug/places/add"]');
+        self::getContainer()->get(CommandBus::class)->dispatch(new CreateWorkflow('Everything', 'new'));
+        foreach (array_diff(array_keys($this->definition()->places), ['new']) as $place) {
+            self::getContainer()->get(CommandBus::class)->dispatch(new AddWorkflowPlace('everything', $place));
+        }
+        $this->client->request('GET', '/admin/configuration/workflows/everything');
+        self::assertSelectorNotExists('main a[href="/admin/configuration/workflows/everything/places/add"]');
+        $this->client->request('GET', '/admin/configuration/workflows/everything/places/add');
+        self::assertResponseStatusCodeSame(404);
 
         $this->client->request('GET', '/admin/configuration/workflows/nonsense');
         self::assertResponseStatusCodeSame(404);
@@ -284,9 +320,15 @@ final class ConfigurationTest extends WebTestCase
         self::assertResponseRedirects('/admin/configuration/workflows/support_request');
 
         $this->client->request('GET', '/admin/configuration/workflows/support_request/places/add');
-        self::assertSelectorNotExists('[name="workflow_place[place]"] option[value="new"]', 'the steps it has are not offered again');
-        $this->client->submitForm('Add the step', ['workflow_place[place]' => 'done']);
+        self::assertSelectorNotExists('[name="add_places[places][]"][value="new"]', 'the steps it has are not offered again');
+        $this->client->submitForm('Add the steps');
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('turbo-frame#modal', 'Tick at least one step.');
+
+        // Several at once: they come after its columns, in the order of the instance.
+        $this->client->submitForm('Add the steps', ['add_places[places][5]' => 'in_progress', 'add_places[places][9]' => 'done']);
         $this->client->followRedirect();
+        self::assertSame(['new', 'in_progress', 'done'], $this->definition()->workflow('support_request')->places);
 
         $this->client->request('GET', '/admin/configuration/workflows/support_request/actions/new');
         $this->client->submitForm('Create', ['transition[label]' => 'Answer', 'transition[to]' => 'done']);
@@ -334,10 +376,9 @@ final class ConfigurationTest extends WebTestCase
 
         // A workflow categories follow stays, and says so on its page.
         $this->client->request('GET', '/admin/configuration/workflows/bug/edit');
-        $this->client->submitForm('Delete');
-        self::assertResponseRedirects('/admin/configuration/workflows/bug');
-        $this->client->followRedirect();
-        self::assertSelectorTextContains('body', 'A category follows the workflow "Bug"');
+        self::assertSelectorTextContains('turbo-frame#modal', 'A category follows the workflow "Bug"');
+        self::assertSelectorExists('turbo-frame#modal button[disabled]', 'the deletion is not offered');
+        self::assertSelectorNotExists('#configuration-delete');
     }
 
     public function testAStepLeavesAWorkflowOnceItsIssuesWereSentElsewhere(): void
@@ -410,7 +451,7 @@ final class ConfigurationTest extends WebTestCase
         $this->client->submitForm('Remove the step');
         // A refusal writes nothing.
         $this->client->request('GET', '/admin/configuration/roles/client');
-        $this->client->submitForm('Delete');
+        $this->client->submitForm('Save', ['role[internalOnly]' => true]);
 
         $crawler = $this->client->request('GET', '/admin/configuration/history');
         self::assertSelectorTextContains('aside', 'History');

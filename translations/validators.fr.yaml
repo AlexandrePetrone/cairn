@@ -2,6 +2,8 @@ admin:
     key_invalid: 2 à 5 lettres majuscules.
     delete_mismatch: Ce n'est pas le code de ce que vous vous apprêtez à supprimer.
     configuration:
+        workflow:
+            places_required: 'Cochez au moins une étape.'
         action:
             from_required: 'Une action part d''au moins une étape.'
             roles_required: 'Au moins un rôle déclenche une action.'

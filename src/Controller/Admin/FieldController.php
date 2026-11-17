@@ -19,6 +19,7 @@ use App\Message\Command\Config\DeleteLinkType;
 use App\Message\Command\Config\UpdateField;
 use App\Message\Command\Config\UpdateLinkType;
 use App\Message\CommandBus;
+use App\MessageHandler\Command\Config\ConfigDeletions;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -45,6 +46,7 @@ final class FieldController extends AbstractController
         private readonly ConfigRegistry $config,
         private readonly CommandBus $commands,
         private readonly TranslatorInterface $translator,
+        private readonly ConfigDeletions $deletions,
     ) {
     }
 
@@ -58,7 +60,7 @@ final class FieldController extends AbstractController
     public function newField(Request $request): Response
     {
         $data = new FieldData();
-        $form = $this->createForm(FieldSettingsType::class, $data, ['action' => $request->getRequestUri(), 'create' => true]);
+        $form = $this->createForm(FieldSettingsType::class, $data, ['action' => $request->getRequestUri(), 'create' => true, 'attr' => ['data-controller' => 'reveal']]);
         $form->handleRequest($request);
         if ($this->applies($form, static fn (): CreateField => new CreateField((string) $data->label, $data->type ?? FieldType::Text, $data->options(), $data->placeholder, $data->help, $data->internalOnly))) {
             $this->addFlash('success', $this->translator->trans('admin.configuration.fields.created', ['%name%' => (string) $data->label]));
@@ -82,10 +84,10 @@ final class FieldController extends AbstractController
         $data->help = $field->help;
         $data->internalOnly = $field->internalOnly;
 
-        $form = $this->createForm(FieldSettingsType::class, $data, ['action' => $request->getRequestUri()]);
+        $form = $this->createForm(FieldSettingsType::class, $data, ['action' => $request->getRequestUri(), 'with_choices' => $field->type->hasOptions()]);
         $form->handleRequest($request);
         // An empty placeholder or help erases it; the choices are sent whole, in the order typed.
-        if ($this->applies($form, static fn (): UpdateField => new UpdateField($id, (string) $data->label, $data->options(), (string) $data->placeholder, (string) $data->help, $data->internalOnly))) {
+        if ($this->applies($form, static fn (): UpdateField => new UpdateField($id, (string) $data->label, $field->type->hasOptions() ? $data->options() : null, (string) $data->placeholder, (string) $data->help, $data->internalOnly))) {
             $this->addFlash('success', $this->translator->trans('admin.configuration.saved'));
 
             return $this->redirectToRoute('app_admin_configuration_fields');
@@ -155,7 +157,13 @@ final class FieldController extends AbstractController
      */
     private function page(Request $request, ?FormInterface $form, FieldDefinition|LinkTypeDefinition|null $subject = null, bool $link = false): Response
     {
-        return $this->renderWithDialog($request, 'admin/configuration/fields.html.twig', ['form' => $form, 'dialogSubject' => $subject, 'dialogIsLink' => $link], fn (): array => [
+        $refusal = match (true) {
+            $subject instanceof FieldDefinition => $this->deletions->field($subject->id),
+            $subject instanceof LinkTypeDefinition => $this->deletions->linkType($subject->id),
+            default => null,
+        };
+
+        return $this->renderWithDialog($request, 'admin/configuration/fields.html.twig', ['form' => $form, 'dialogSubject' => $subject, 'dialogIsLink' => $link, 'dialogRefusal' => $refusal?->trans($this->translator)], fn (): array => [
             'definition' => $this->config->definition(),
         ], $form);
     }

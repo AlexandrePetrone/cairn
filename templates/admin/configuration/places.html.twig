@@ -23,5 +23,6 @@
         submitLabel: (dialogPlace ? 'admin.configuration.save' : 'admin.configuration.create')|trans,
         deleteAction: dialogPlace ? path('app_admin_configuration_place_delete', { id: dialogPlace.id }) : null,
         deleteHelp: 'admin.configuration.places.delete_help'|trans,
+        deleteRefusal: dialogRefusal ?? null,
     }) }}
 {% endblock %}

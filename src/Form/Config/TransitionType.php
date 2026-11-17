@@ -33,6 +33,7 @@ final class TransitionType extends AbstractType
                 'choice_translation_domain' => false,
                 'multiple' => true,
                 'expanded' => true,
+                'attr' => ['class' => 'flex-row flex-wrap gap-x-5'],
             ])
             ->add('to', ChoiceType::class, [
                 'label' => 'admin.configuration.action.form.to',
@@ -46,6 +47,7 @@ final class TransitionType extends AbstractType
                 'choice_translation_domain' => false,
                 'multiple' => true,
                 'expanded' => true,
+                'attr' => ['class' => 'flex-row flex-wrap gap-x-5'],
             ])
             ->add('style', EnumType::class, [
                 'class' => TransitionStyle::class,

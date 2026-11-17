@@ -1,8 +1,8 @@
-{# The dialog of a configuration page, in its `modal` frame: the `form` in `project/_form_dialog.html.twig`, with what a dialog that changes something adds under its fields. `note` is said under the fields (what the change does to the issues); `deleteAction` adds the deletion, confirmed in place and sent by a form of its own, with `deleteHelp` saying when it is refused. #}
+{# The dialog of a configuration page, in its `modal` frame: the `form` in `project/_form_dialog.html.twig`, with what a dialog that changes something adds under its fields. `note` is said under the fields (what the change does to the issues); `deleteAction` adds the deletion, confirmed in place and sent by a form of its own, with `deleteHelp` saying what it does; when it cannot be made (`deleteRefusal`, the reason), the reason shows beside a button that cannot be pressed. #}
 {% set dialogDeleteForm = '' %}
 {% set dialogAfter = '' %}
 {% if form %}
-    {% if deleteAction ?? null %}
+    {% if (deleteAction ?? null) and not (deleteRefusal ?? null) %}
         {% set dialogDeleteForm %}
             <form id="configuration-delete" method="post" action="{{ deleteAction }}" class="hidden">
                 <input type="hidden" name="_token" value="{{ csrf_token('submit') }}" data-controller="csrf-protection">
@@ -11,7 +11,12 @@
     {% endif %}
     {% set dialogAfter %}
         {{ note ?? '' }}
-        {% if deleteAction ?? null %}
+        {% if (deleteAction ?? null) and (deleteRefusal ?? null) %}
+            <twig:Ui:Callout size="sm" class="mt-4 flex flex-wrap items-center gap-3">
+                <p class="flex-1 basis-48">{{ deleteRefusal }}</p>
+                <twig:Ui:Button variant="danger" size="sm" icon="trash-2" disabled>{{ 'admin.configuration.delete'|trans }}</twig:Ui:Button>
+            </twig:Ui:Callout>
+        {% elseif deleteAction ?? null %}
             <twig:Ui:Callout tone="danger" size="sm" class="mt-4">
                 <p>{{ deleteHelp }}</p>
                 <twig:Ui:Disclosure :closedLabel="'admin.configuration.delete'|trans" :openLabel="'issue.edit.cancel'|trans" class="mt-1.5">

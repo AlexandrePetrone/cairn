@@ -43,27 +43,23 @@ class TemplateTrackerRepository extends ServiceEntityRepository
     }
 
     /**
-     * The templates that use each workflow: a workflow a template still
-     * names cannot be deleted.
+     * The templates that have a tracker on a workflow: a workflow a template
+     * still names cannot be deleted.
      *
-     * @return array<string, list<string>> workflow id => names of the templates
+     * @return list<string> the names of the templates
      */
-    public function templatesByWorkflow(): array
+    public function templatesUsing(string $workflowId): array
     {
-        /** @var list<array{workflowId: string, name: string}> $rows */
-        $rows = $this->createQueryBuilder('t')
-            ->select('IDENTITY(t.workflow) AS workflowId', 'p.name AS name')
+        $names = $this->createQueryBuilder('t')
+            ->select('p.name')
             ->distinct()
             ->join('t.template', 'p')
+            ->where('t.workflow = :workflow')
+            ->setParameter('workflow', $workflowId)
             ->orderBy('p.name', 'ASC')
             ->getQuery()
-            ->getArrayResult();
+            ->getSingleColumnResult();
 
-        $templates = [];
-        foreach ($rows as $row) {
-            $templates[$row['workflowId']][] = $row['name'];
-        }
-
-        return $templates;
+        return array_values(array_map(static fn (mixed $name): string => \is_string($name) ? $name : '', $names));
     }
 }

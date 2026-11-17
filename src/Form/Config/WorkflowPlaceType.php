@@ -10,9 +10,8 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * A step to choose among `places` (label => id): the one to add to a
- * workflow, or the one that takes the issues of a step that leaves it
- * (`label`, `help`; not `required` when no issue stands there).
+ * The step, among `places` (label => id), that takes the issues of a step
+ * that leaves a workflow; not `place_required` when no issue stands there.
  *
  * @extends AbstractType<WorkflowPlaceData>
  */
@@ -32,6 +31,6 @@ final class WorkflowPlaceType extends AbstractType
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        $resolver->setDefaults(['data_class' => WorkflowPlaceData::class, 'places' => [], 'label_key' => 'admin.configuration.workflow.form.place', 'help_key' => null, 'place_required' => true]);
+        $resolver->setDefaults(['data_class' => WorkflowPlaceData::class, 'places' => [], 'label_key' => 'admin.configuration.workflow.form.target', 'help_key' => null, 'place_required' => true]);
     }
 }

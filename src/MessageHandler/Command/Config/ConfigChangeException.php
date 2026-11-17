@@ -60,66 +60,6 @@ final class ConfigChangeException extends \DomainException implements Translatab
         return new self(\sprintf('The role "%s" holds permissions for internal-only roles.', $role), 'admin.refused.config.role_has_internal_permissions', ['%role%' => $role]);
     }
 
-    public static function roleHeld(string $role, int $count): self
-    {
-        return new self(\sprintf('%d access(es) carry the role "%s".', $count, $role), 'admin.refused.config.role_held', ['%role%' => $role, '%count%' => (string) $count]);
-    }
-
-    /**
-     * @param list<string> $actions
-     */
-    public static function roleTriggersActions(string $role, array $actions): self
-    {
-        return new self(\sprintf('The role "%s" triggers actions of workflows.', $role), 'admin.refused.config.role_in_actions', ['%role%' => $role, '%actions%' => implode(', ', $actions)]);
-    }
-
-    /**
-     * @param list<string> $rules
-     */
-    public static function roleAimedAtByRules(string $role, array $rules): self
-    {
-        return new self(\sprintf('Automation rules aim at the referent of the role "%s".', $role), 'admin.refused.config.role_in_rules', ['%role%' => $role, '%rules%' => implode(', ', $rules)]);
-    }
-
-    /**
-     * @param list<string> $workflows
-     */
-    public static function placeUsed(string $place, array $workflows): self
-    {
-        return new self(\sprintf('The place "%s" is used by workflows.', $place), 'admin.refused.config.place_used', ['%place%' => $place, '%workflows%' => implode(', ', $workflows)]);
-    }
-
-    public static function placeHoldsIssues(string $place, int $count): self
-    {
-        return new self(\sprintf('%d issue(s) stand on the place "%s".', $count, $place), 'admin.refused.config.place_holds_issues', ['%place%' => $place, '%count%' => (string) $count]);
-    }
-
-    /**
-     * @param list<string> $workflows
-     */
-    public static function fieldUsed(string $field, array $workflows): self
-    {
-        return new self(\sprintf('The field "%s" is used by workflows.', $field), 'admin.refused.config.field_used', ['%field%' => $field, '%workflows%' => implode(', ', $workflows)]);
-    }
-
-    public static function linkTypeUsed(string $type, int $count): self
-    {
-        return new self(\sprintf('%d link(s) are of the type "%s".', $count, $type), 'admin.refused.config.link_type_used', ['%type%' => $type, '%count%' => (string) $count]);
-    }
-
-    public static function workflowFollowed(string $workflow, int $trackers): self
-    {
-        return new self(\sprintf('%d tracker(s) follow the workflow "%s".', $trackers, $workflow), 'admin.refused.config.workflow_followed', ['%workflow%' => $workflow, '%count%' => (string) $trackers]);
-    }
-
-    /**
-     * @param list<string> $templates
-     */
-    public static function workflowInTemplates(string $workflow, array $templates): self
-    {
-        return new self(\sprintf('Project templates use the workflow "%s".', $workflow), 'admin.refused.config.workflow_in_templates', ['%workflow%' => $workflow, '%templates%' => implode(', ', $templates)]);
-    }
-
     public static function notAPlaceOf(string $place, string $workflow): self
     {
         return new self(\sprintf('"%s" is not a place of the workflow "%s".', $place, $workflow), 'admin.refused.config.not_a_place_of', ['%place%' => $place, '%workflow%' => $workflow]);
@@ -158,6 +98,14 @@ final class ConfigChangeException extends \DomainException implements Translatab
     public static function choicesNotOffered(): self
     {
         return new self('A field of this type has no choices.', 'admin.refused.config.choices_not_offered');
+    }
+
+    /**
+     * What ConfigDeletions answered, thrown by the handler that deletes.
+     */
+    public static function because(DeletionRefusal $refusal): self
+    {
+        return new self($refusal->message, $refusal->reason, $refusal->parameters);
     }
 
     public function trans(TranslatorInterface $translator, ?string $locale = null): string

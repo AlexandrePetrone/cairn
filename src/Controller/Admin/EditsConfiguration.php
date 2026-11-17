@@ -24,11 +24,11 @@ trait EditsConfiguration
     use OpensDialog;
 
     /**
-     * Dispatches the command a valid submission makes.
+     * Dispatches the command, or the commands, a valid submission makes.
      *
-     * @param FormInterface<mixed> $form
-     * @param \Closure(): object   $command
-     * @param mixed                $result  what the handler returned: the entity a creation made
+     * @param FormInterface<mixed>              $form
+     * @param \Closure(): (object|list<object>) $command
+     * @param mixed                             $result  what the handler returned: the entity a creation made
      *
      * @return bool whether the change is made
      */
@@ -39,7 +39,11 @@ trait EditsConfiguration
         }
 
         try {
-            $result = $this->commands->dispatch($command());
+            // Several commands are sent in their order, each in its own transaction: a refusal stops there.
+            $commands = $command();
+            foreach (\is_array($commands) ? $commands : [$commands] as $each) {
+                $result = $this->commands->dispatch($each);
+            }
         } catch (ConfigChangeException $e) {
             $form->addError(new FormError($e->trans($this->translator)));
 

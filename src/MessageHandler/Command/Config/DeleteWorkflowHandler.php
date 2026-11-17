@@ -7,8 +7,6 @@ namespace App\MessageHandler\Command\Config;
 use App\Entity\Workflow;
 use App\Message\Command\Config\DeleteWorkflow;
 use App\MessageHandler\Command\Tracker\ListOrder;
-use App\Repository\TemplateTrackerRepository;
-use App\Repository\TrackerRepository;
 use App\Repository\TransitionRepository;
 use App\Repository\WorkflowRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -19,10 +17,9 @@ final class DeleteWorkflowHandler
 {
     public function __construct(
         private readonly WorkflowRepository $workflows,
-        private readonly TrackerRepository $trackers,
         private readonly TransitionRepository $transitions,
-        private readonly TemplateTrackerRepository $templateTrackers,
         private readonly EntityManagerInterface $entityManager,
+        private readonly ConfigDeletions $deletions,
         private readonly ConfigWriting $writing,
     ) {
     }
@@ -31,14 +28,8 @@ final class DeleteWorkflowHandler
     {
         $workflow = $this->writing->get(Workflow::class, $command->id);
 
-        // A tracker follows its workflow for good: while one does, of a project or of a template, the workflow stays.
-        $trackers = $this->trackers->countByWorkflow()[$workflow->getId()] ?? 0;
-        if ($trackers > 0) {
-            throw ConfigChangeException::workflowFollowed($workflow->getLabel(), $trackers);
-        }
-        $templates = $this->templateTrackers->templatesByWorkflow()[$workflow->getId()] ?? [];
-        if ([] !== $templates) {
-            throw ConfigChangeException::workflowInTemplates($workflow->getLabel(), $templates);
+        if (null !== $refusal = $this->deletions->workflow($workflow)) {
+            throw ConfigChangeException::because($refusal);
         }
 
         ListOrder::close($workflow, $this->workflows->findOrdered());

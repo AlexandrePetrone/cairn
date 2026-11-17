@@ -7,9 +7,7 @@ namespace App\MessageHandler\Command\Config;
 use App\Entity\Place;
 use App\Message\Command\Config\DeletePlace;
 use App\MessageHandler\Command\Tracker\ListOrder;
-use App\Repository\IssueRepository;
 use App\Repository\PlaceRepository;
-use App\Repository\WorkflowRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -18,9 +16,8 @@ final class DeletePlaceHandler
 {
     public function __construct(
         private readonly PlaceRepository $places,
-        private readonly WorkflowRepository $workflows,
-        private readonly IssueRepository $issues,
         private readonly EntityManagerInterface $entityManager,
+        private readonly ConfigDeletions $deletions,
         private readonly ConfigWriting $writing,
     ) {
     }
@@ -29,14 +26,8 @@ final class DeletePlaceHandler
     {
         $place = $this->writing->get(Place::class, $command->id);
 
-        $workflows = $this->workflows->labelsUsingPlace($place);
-        if ([] !== $workflows) {
-            throw ConfigChangeException::placeUsed($place->getLabel(), $workflows);
-        }
-        // No workflow uses it, so no issue should stand there: checked all the same, an issue names its place by its key alone.
-        $standing = $this->issues->countOnPlace($place->getId());
-        if ($standing > 0) {
-            throw ConfigChangeException::placeHoldsIssues($place->getLabel(), $standing);
+        if (null !== $refusal = $this->deletions->place($place)) {
+            throw ConfigChangeException::because($refusal);
         }
 
         ListOrder::close($place, $this->places->findOrdered());
