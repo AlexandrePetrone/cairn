@@ -152,7 +152,7 @@ castor docker:restart vite      # one service, or all of them without argument
 castor docker:build             # rebuild the PHP image
 castor docker:down --volumes    # remove everything, database included
 
-# Inside the php container (app:*)
+# Inside the cli container (app:*)
 castor console debug:router     # app:console
 castor composer require foo/bar # app:composer
 castor npm install foo          # app:npm

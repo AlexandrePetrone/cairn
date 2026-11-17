@@ -1784,14 +1784,17 @@ journal is never migrated.
 Development runs in Docker (`compose.yaml`, image built from `Dockerfile`),
 driven by Castor (`castor.php` and `.castor/`): Docker with Compose v2 and
 Castor are the only things needed on the host. Commands run inside the
-`php` container, never on the host.
+`cli` container, never on the host.
 
 - `castor install` builds the image, installs the Composer and npm
   dependencies, creates the dev and test databases, applies the schema,
   loads the development data and starts the stack. `castor start` and
   `castor stop` afterwards; `castor list` shows every task.
 - The services: `php` (FrankenPHP, <http://localhost:8000>, with its
-  built-in Mercure hub at `/.well-known/mercure`), `messenger`
+  built-in Mercure hub at `/.well-known/mercure`), `cli` (the same image
+  doing nothing: where castor runs the console, Composer, npm, the tests
+  and the linters, so that the web server restarting never stops them),
+  `messenger`
   (`messenger:consume async scheduler_default`: notification mails,
   real-time signals and scheduled tasks, the automation rules that wait
   for time among them), `vite` (the Vite dev server with hot reload, port 5173),
@@ -1901,7 +1904,7 @@ must pass before handing work over:
 - `castor lint`: `lint:container`, `lint:twig` and `lint:yaml`.
 - `castor lsp`: Symfony Language Tools (`.symfony-lsp.json`), which checks
   routes, services, templates and translation keys against the running
-  `php` container; it downloads the pinned release unless `symfony-lsp`
+  `cli` container; it downloads the pinned release unless `symfony-lsp`
   is on the `PATH`.
 - `castor test`: PHPUnit, Storia snapshots included.
 

@@ -27,7 +27,7 @@ function stop(): void
     compose(['stop']);
 }
 
-#[AsTask(description: 'Restarts one service (php, messenger, vite, storia, database, mailer) or all of them')]
+#[AsTask(description: 'Restarts one service (php, cli, messenger, vite, storia, database, mailer) or all of them')]
 function restart(string $service = ''): void
 {
     compose(['restart', ...('' === $service ? [] : [$service])]);
@@ -57,7 +57,7 @@ function ps(): void
     compose(['ps']);
 }
 
-#[AsTask(description: 'Follows the logs of one service (php, messenger, vite, storia, database, mailer) or of all of them', aliases: ['logs'])]
+#[AsTask(description: 'Follows the logs of one service (php, cli, messenger, vite, storia, database, mailer) or of all of them', aliases: ['logs'])]
 function logs(
     string $service = '',
     #[AsOption(description: 'Number of lines to show from the end of the logs')]

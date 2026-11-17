@@ -35,6 +35,18 @@ services:
     ports:
       - "${HTTP_PORT:-8000}:80"
     tty: true
+    # Comes back by itself if FrankenPHP crashes.
+    restart: unless-stopped
+
+  # Where castor runs everything (console, composer, npm, the tests and the linters): the same
+  # image doing nothing, so that the web server going down or restarting never takes them along.
+  cli:
+    <<: *php
+    healthcheck:
+      disable: true
+    command: sleep infinity
+    init: true
+    restart: unless-stopped
 
   # Notification mails (async) and the daily tasks (scheduler_default). It exits after an hour or on
   # "messenger:stop-workers" ("castor workers:restart"), and compose starts it again.

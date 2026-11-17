@@ -7,7 +7,7 @@ declare(strict_types=1);
  *
  *   install            first run: image, dependencies, databases, fixtures
  *   docker:*           the stack itself (start, stop, logs, ...)   .castor/docker.php
- *   app:*              commands inside the php container           .castor/app.php
+ *   app:*              commands inside the cli container           .castor/app.php
  *   db:*               dev and test databases                      .castor/db.php
  *   qa:*               tests and linters                           .castor/qa.php
  *   assets:*           production build of the assets              .castor/assets.php
@@ -42,7 +42,7 @@ function install(): void
     docker\build();
 
     io()->title('Starting the database and the web server');
-    compose(['up', '-d', '--wait', '--remove-orphans', 'database', 'php']);
+    compose(['up', '-d', '--wait', '--remove-orphans', 'database', 'php', 'cli']);
 
     io()->title('Installing the dependencies');
     composer(['install', '--no-interaction', '--prefer-dist']);
@@ -79,11 +79,12 @@ function compose(array $args): void
 }
 
 /**
- * Runs a command in a running container; returns the exit code when failures are allowed.
+ * Runs a command in the cli container (not the web server's, which may be restarting); returns
+ * the exit code when failures are allowed.
  *
  * @param list<string> $command
  */
-function in_container(array $command, string $service = 'php', bool $allowFailure = false): int
+function in_container(array $command, string $service = 'cli', bool $allowFailure = false): int
 {
     $tty = has_tty();
     $process = run(

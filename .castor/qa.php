@@ -59,10 +59,10 @@ function storia(
     return console(['storia:test', ...($update ? ['--update'] : [])], allowFailure: true);
 }
 
-#[AsTask(description: 'Runs the Symfony Language Tools checker (routes, services, templates, translations...) against the php container', aliases: ['lsp'])]
+#[AsTask(description: 'Runs the Symfony Language Tools checker (routes, services, templates, translations...) against the cli container', aliases: ['lsp'])]
 function lsp(#[AsRawTokens] array $args): int
 {
-    // The checker boots the application through "docker compose exec php" (.symfony-lsp.json), so the stack must be up.
+    // The checker boots the application through "docker compose exec cli" (.symfony-lsp.json), so the stack must be up.
     $process = run([symfony_lsp_binary(), 'check', ...array_values($args)], context: context()->withAllowFailure());
 
     return $process->getExitCode() ?? 0;
