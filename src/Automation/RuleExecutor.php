@@ -14,6 +14,7 @@ use App\Entity\Enum\BudgetLineStatus;
 use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
 use App\Entity\JournalEntry;
+use App\Entity\Place;
 use App\Entity\User;
 use App\Event\CommentAdded;
 use App\Event\IssueMoved;
@@ -125,17 +126,17 @@ final class RuleExecutor
     {
         $definition = $this->config->definition();
         $workflowId = $issue->getTracker()->getWorkflowId();
-        $workflow = $definition->hasWorkflow($workflowId) ? $definition->workflow($workflowId) : null;
-        $from = $definition->findPlace($issue->getPlace());
-        $to = true === $workflow?->hasPlace($action->text('place')) ? $definition->findPlace($action->text('place')) : null;
-        if (null === $from || null === $to) {
+        $from = $definition->place($issue->getPlace());
+        // The rule may name a place its workflow no longer has: skipped, which its executions say.
+        $to = $definition->workflow($workflowId)->hasPlace($action->text('place')) ? $definition->findPlace($action->text('place')) : null;
+        if (null === $to) {
             return StepResult::skipped(ActionType::Move, 'unknown_place', $action->text('place'));
         }
         if ($from->id === $to->id) {
             return StepResult::unchanged(ActionType::Move, $to->label);
         }
 
-        $issue->moveTo($to);
+        $issue->moveTo($this->entityManager->find(Place::class, $to->id) ?? throw new \LogicException('A place of the configuration has a row.'));
         $this->support->arrive($issue);
         $this->support->record(new IssueMoved($issue, null, [JournalEntry::moved($issue, null, $from, $to)->byRule($rule)], $rule));
 

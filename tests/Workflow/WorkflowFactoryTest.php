@@ -26,7 +26,7 @@ final class WorkflowFactoryTest extends TestCase
     protected function setUp(): void
     {
         $this->dispatcher = new EventDispatcher();
-        $this->workflow = (new WorkflowFactory($this->dispatcher))->create(DefinitionFactory::bugWorkflow(), DefinitionFactory::definition()->places);
+        $this->workflow = (new WorkflowFactory($this->dispatcher))->create(DefinitionFactory::bugWorkflow(), DefinitionFactory::placeRow(...));
     }
 
     public function testTheWorkflowIsNamedAfterTheDefinition(): void
@@ -60,8 +60,8 @@ final class WorkflowFactoryTest extends TestCase
 
         self::assertSame('in_progress', $subject->getPlace());
         self::assertNotNull($subject->lastPlace);
-        self::assertSame(PlaceStatus::InProgress, $subject->lastPlace->status);
-        self::assertSame('In progress', $subject->lastPlace->label);
+        self::assertSame(PlaceStatus::InProgress, $subject->lastPlace->getStatus());
+        self::assertSame('In progress', $subject->lastPlace->getLabel());
     }
 
     public function testApplyingAnUnavailableTransitionFails(): void
@@ -82,7 +82,7 @@ final class WorkflowFactoryTest extends TestCase
             transitions: [
                 new TransitionDefinition(id: 'close', label: 'Close', from: ['a', 'b'], to: 'c', roles: ['developer']),
             ],
-        ), []);
+        ), DefinitionFactory::placeRow(...));
 
         self::assertCount(2, $workflow->getDefinition()->getTransitions(), 'one state machine transition per source');
         self::assertSame(['close'], self::names($workflow->getEnabledTransitions(new Subject('a'))));

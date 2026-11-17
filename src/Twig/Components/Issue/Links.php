@@ -222,16 +222,11 @@ final class Links
     }
 
     /**
-     * The label of a link read from this issue; a type that left the
-     * configuration shows its id.
+     * The label of a link read from this issue.
      */
     private function labelOf(IssueLink $link): string
     {
-        $definition = $this->config->definition();
-        if (!$definition->hasLink($link->getTypeId())) {
-            return $link->getTypeId();
-        }
-        $type = $definition->link($link->getTypeId());
+        $type = $this->config->definition()->link($link->getTypeId());
 
         return $link->getSource() === $this->issue ? $type->label : $type->labelFromTarget();
     }

@@ -7,6 +7,7 @@ namespace App\MessageHandler\Command\Membership;
 use App\Config\ConfigRegistry;
 use App\Entity\Membership;
 use App\Entity\Project;
+use App\Entity\Role;
 use App\Entity\User;
 use App\Message\Command\Membership\GrantMembership;
 use App\MessageHandler\Command\ProjectActor;
@@ -47,6 +48,8 @@ final class GrantMembershipHandler
             throw MembershipException::unknownRole($command->role);
         }
         $role = $definition->role($command->role);
+        // The row of the role, which the access points to; what the role says is read from the definition.
+        $granted = $this->entityManager->getReference(Role::class, $role->id) ?? throw new \LogicException('An element of the configuration that the definition has exists.');
         if ($role->internalOnly && !$user->isInternal()) {
             throw MembershipException::internalOnlyRole($role->label, $user->getFullName());
         }
@@ -55,15 +58,15 @@ final class GrantMembershipHandler
             $project = $this->projects->find($command->projectId) ?? throw MembershipException::notFound('Project', $command->projectId);
             $this->actor->denyUnlessGranted($command->actorId, Permission::ProjectManageMembers, $project);
             $this->assertWidensInherited($user, $project, $command->role);
-            $membership = $this->memberships->findOneBy(['user' => $user, 'project' => $project]) ?? Membership::onProject($user, $project, $command->role);
+            $membership = $this->memberships->findOneBy(['user' => $user, 'project' => $project]) ?? Membership::onProject($user, $project, $granted);
         } else {
             $this->actor->denyUnlessGranted($command->actorId, Permission::ProjectManageMembers, null);
             $workspaceId = (int) $command->workspaceId;
             $workspace = $this->workspaces->find($workspaceId) ?? throw MembershipException::notFound('Workspace', $workspaceId);
-            $membership = $this->memberships->findOneBy(['user' => $user, 'workspace' => $workspace]) ?? Membership::onWorkspace($user, $workspace, $command->role);
+            $membership = $this->memberships->findOneBy(['user' => $user, 'workspace' => $workspace]) ?? Membership::onWorkspace($user, $workspace, $granted);
         }
 
-        $membership->changeRole($command->role);
+        $membership->changeRole($granted);
         $this->entityManager->persist($membership);
     }
 
@@ -71,7 +74,7 @@ final class GrantMembershipHandler
     {
         $inherited = $this->memberships->findOneBy(['user' => $user, 'workspace' => $project->getWorkspace()]);
         $definition = $this->config->definition();
-        if (null === $inherited || !$definition->hasRole($inherited->getRole())) {
+        if (null === $inherited) {
             return;
         }
         if ($definition->roleRank($role) >= $definition->roleRank($inherited->getRole())) {

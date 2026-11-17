@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Automation\RuleReferences;
 use App\Config\ConfigRegistry;
 use App\Config\Definition\PlaceDefinition;
 use App\Config\Definition\RoleDefinition;
@@ -61,6 +62,7 @@ final class WorkflowController extends AbstractController
         private readonly CommandBus $commands,
         private readonly QueryBus $queries,
         private readonly IssueRepository $issues,
+        private readonly RuleReferences $rules,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -188,6 +190,7 @@ final class WorkflowController extends AbstractController
             'dialogStanding' => $standing,
             'dialogDeleted' => $deleted,
             'dialogChanged' => $changed,
+            'dialogRules' => $this->rules->toPlace($id, $place),
         ]);
     }
 
@@ -225,7 +228,7 @@ final class WorkflowController extends AbstractController
             return $this->saved($id);
         }
 
-        return $this->page($request, $workflow, $form, 'transition', ['dialogTransition' => $transition]);
+        return $this->page($request, $workflow, $form, 'transition', ['dialogTransition' => $transition, 'dialogRules' => $this->rules->toTransition($id, $key)]);
     }
 
     #[Route('/{id}/actions/{key}/delete', name: 'app_admin_configuration_transition_delete', requirements: self::KEYS, methods: ['POST'])]

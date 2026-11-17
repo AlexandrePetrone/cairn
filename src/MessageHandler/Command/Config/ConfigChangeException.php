@@ -74,6 +74,14 @@ final class ConfigChangeException extends \DomainException implements Translatab
     }
 
     /**
+     * @param list<string> $rules
+     */
+    public static function roleAimedAtByRules(string $role, array $rules): self
+    {
+        return new self(\sprintf('Automation rules aim at the referent of the role "%s".', $role), 'admin.refused.config.role_in_rules', ['%role%' => $role, '%rules%' => implode(', ', $rules)]);
+    }
+
+    /**
      * @param list<string> $workflows
      */
     public static function placeUsed(string $place, array $workflows): self
@@ -142,13 +150,14 @@ final class ConfigChangeException extends \DomainException implements Translatab
         return new self(\sprintf('The action "%s" already leads from "%s" to "%s".', $action, $from, $to), 'admin.refused.config.pair_taken', ['%action%' => $action, '%from%' => $from, '%to%' => $to]);
     }
 
-    /**
-     * The whole configuration, checked once the change is written, would
-     * not hold: what no rule above caught.
-     */
-    public static function invalid(string $detail): self
+    public static function choicesRequired(): self
     {
-        return new self('The configuration would be invalid: '.$detail, 'admin.refused.config.invalid', ['%detail%' => $detail]);
+        return new self('A field of this type needs choices, each with a label.', 'admin.refused.config.choices_required');
+    }
+
+    public static function choicesNotOffered(): self
+    {
+        return new self('A field of this type has no choices.', 'admin.refused.config.choices_not_offered');
     }
 
     public function trans(TranslatorInterface $translator, ?string $locale = null): string

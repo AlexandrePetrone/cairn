@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Workflow\Fixture;
 
-use App\Config\Definition\PlaceDefinition;
+use App\Entity\Place;
 use App\Workflow\HasPlace;
 
 /**
@@ -13,7 +13,7 @@ use App\Workflow\HasPlace;
  */
 final class Subject implements HasPlace
 {
-    public ?PlaceDefinition $lastPlace = null;
+    public ?Place $lastPlace = null;
 
     public function __construct(
         private ?string $place = null,
@@ -25,9 +25,9 @@ final class Subject implements HasPlace
         return $this->place;
     }
 
-    public function moveTo(PlaceDefinition $place): void
+    public function moveTo(Place $place): void
     {
-        $this->place = $place->id;
+        $this->place = $place->getId();
         $this->lastPlace = $place;
     }
 }

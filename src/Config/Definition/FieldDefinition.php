@@ -35,8 +35,9 @@ final readonly class FieldDefinition
             throw new InvalidDefinitionException(\sprintf('fields.%s: a %s field cannot have options.', $id, $type->value));
         }
         foreach ($options as $value => $optionLabel) {
-            if (!\is_string($value) || '' === $value || !\is_string($optionLabel) || '' === $optionLabel) {
-                throw new InvalidDefinitionException(\sprintf('fields.%s.options: options map a string value to a non-empty label.', $id));
+            // A value made of digits comes back from PHP as an integer key: it is a value like another.
+            if ('' === (string) $value || '' === $optionLabel) {
+                throw new InvalidDefinitionException(\sprintf('fields.%s.options: options map a value to a non-empty label.', $id));
             }
         }
     }

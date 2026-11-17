@@ -68,7 +68,7 @@ final class Header extends AbstractController
     ) {
     }
 
-    public function getPlace(): ?PlaceDefinition
+    public function getPlace(): PlaceDefinition
     {
         return $this->workflows->placeOf($this->issue);
     }
@@ -84,7 +84,7 @@ final class Header extends AbstractController
     public function getPath(): array
     {
         $entries = $this->journal->findPlaceChanges($this->issue);
-        $start = ($entries[0] ?? null)?->text('from') ?: ($this->getPlace()->label ?? $this->issue->getPlace());
+        $start = ($entries[0] ?? null)?->text('from') ?: $this->getPlace()->label;
 
         $steps = [['label' => $start, 'moved' => false]];
         foreach ($entries as $entry) {

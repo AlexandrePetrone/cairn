@@ -18,6 +18,7 @@ use App\MessageHandler\Command\User\UserException;
 use App\Repository\MembershipRepository;
 use App\Security\PasswordLinkException;
 use App\Security\PasswordTokens;
+use App\Tests\Config\Fixture\DefinitionFactory;
 use App\Tests\KernelHelpers;
 use App\Tests\Security\AccessFixtures;
 use Doctrine\ORM\EntityManagerInterface;
@@ -276,7 +277,7 @@ final class UserHandlersTest extends KernelTestCase
         self::assertTrue($nadia->isInternal());
         self::assertSame('Nadia', $nadia->getFirstName(), 'nothing changes when one rule refuses');
 
-        self::getContainer()->get(MembershipRepository::class)->findByUser($nadia)[0]->changeRole('client');
+        self::getContainer()->get(MembershipRepository::class)->findByUser($nadia)[0]->changeRole(DefinitionFactory::roleRow('client', self::getContainer()->get(EntityManagerInterface::class)));
         $this->commands->dispatch(new UpdateUser((int) $nadia->getId(), internal: false));
         self::assertFalse($nadia->isInternal());
     }

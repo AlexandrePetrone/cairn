@@ -11,6 +11,7 @@ use App\Message\Command\Issue\ChangeTracker;
 use App\Message\Command\Issue\MoveIssue;
 use App\Message\CommandBus;
 use App\MessageHandler\Command\Issue\IssueException;
+use App\Tests\Config\Fixture\DefinitionFactory;
 use App\Tests\KernelHelpers;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -69,7 +70,7 @@ final class MoveIssueHandlerTest extends KernelTestCase
     public function testTheTrackerMustBelongToTheSameProject(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
-        $elsewhere = new Tracker($this->fixtures->access->otherProject, 'Elsewhere', 'bug');
+        $elsewhere = new Tracker($this->fixtures->access->otherProject, 'Elsewhere', DefinitionFactory::workflowRow('bug', $this->entityManager));
         $this->entityManager->persist($elsewhere);
         $this->entityManager->flush();
 

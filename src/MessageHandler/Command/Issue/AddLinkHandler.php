@@ -7,6 +7,7 @@ namespace App\MessageHandler\Command\Issue;
 use App\Config\ConfigRegistry;
 use App\Entity\IssueLink;
 use App\Entity\JournalEntry;
+use App\Entity\LinkType;
 use App\Event\IssuesLinked;
 use App\Message\Command\Issue\AddLink;
 use App\Repository\IssueLinkRepository;
@@ -67,7 +68,7 @@ final class AddLinkHandler
             throw IssueLinkException::alreadyLinked($issue->getKey(), $other->getKey());
         }
 
-        $link = new IssueLink($issue, $type->id, $other, $actor);
+        $link = new IssueLink($issue, $this->entityManager->getReference(LinkType::class, $type->id) ?? throw new \LogicException('An element of the configuration that the definition has exists.'), $other, $actor);
         $this->entityManager->persist($link);
         $this->support->record(new IssuesLinked($issue, $actor, [JournalEntry::linked($issue, $actor, $type->label, $other)]));
         $this->support->record(new IssuesLinked($other, $actor, [JournalEntry::linked($other, $actor, $type->labelFromTarget(), $issue)]));

@@ -35,9 +35,6 @@ final class RuleContexts
         $trackers = [];
         $workflows = [];
         foreach ($this->trackers->findByProject($project, includeArchived: true) as $tracker) {
-            if (!$definition->hasWorkflow($tracker->getWorkflowId())) {
-                continue;
-            }
             $key = (string) $tracker->getId();
             $trackers[$key] = $tracker->getName();
             $workflows[$key] = $definition->workflow($tracker->getWorkflowId());
@@ -49,7 +46,7 @@ final class RuleContexts
         $people = [];
         foreach ([...$this->memberships->findOnProject($project), ...$this->memberships->findOnWorkspace($project->getWorkspace())] as $membership) {
             $user = $membership->getUser();
-            if ($user->isActive() && $definition->hasRole($membership->getRole())) {
+            if ($user->isActive()) {
                 $people[(int) $user->getId()] = $user->getFullName();
             }
         }
@@ -64,9 +61,6 @@ final class RuleContexts
         $trackers = [];
         $workflows = [];
         foreach ($this->templateTrackers->findByTemplate($template) as $tracker) {
-            if (!$definition->hasWorkflow($tracker->getWorkflowId())) {
-                continue;
-            }
             $key = (string) $tracker->getId();
             $trackers[$key] = $tracker->getName();
             $workflows[$key] = $definition->workflow($tracker->getWorkflowId());

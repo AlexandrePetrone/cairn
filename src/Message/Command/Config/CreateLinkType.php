@@ -11,7 +11,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * reads the same from both sides. Handled by CreateLinkTypeHandler, which
  * returns the LinkType.
  */
-final readonly class CreateLinkType
+final readonly class CreateLinkType implements ConfigurationCommand
 {
     public function __construct(
         #[Assert\NotBlank(normalizer: 'trim')]

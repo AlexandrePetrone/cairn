@@ -161,7 +161,7 @@ final class ImportRunTest extends KernelTestCase
         self::assertSame($carol->getId(), $second->getAuthor()->getId());
         self::assertSame(ReleaseStatus::Delivered, $second->getRelease()?->getStatus());
         self::assertSame('2024-02-16', $second->getRelease()->getDeliveredAt()?->format('Y-m-d'));
-        self::assertNotNull($this->entityManager->getRepository(IssueLink::class)->findOneBy(['source' => $second, 'typeId' => 'blocks', 'target' => $first]));
+        self::assertNotNull($this->entityManager->getRepository(IssueLink::class)->findOneBy(['source' => $second, 'type' => 'blocks', 'target' => $first]));
 
         $third = $this->issue('MD-SPT-13');
         self::assertSame('Support', $third->getTracker()->getName(), 'a tracker created by the import');
@@ -171,7 +171,7 @@ final class ImportRunTest extends KernelTestCase
         self::assertSame(Criticality::Blocking, $third->getCriticality());
         self::assertNull($third->getAssignee(), 'Carol has no role on the project: an open issue is not left with her');
         self::assertSame(['Carol Former was assigned, but has no role on the project.'], $this->entityManager->getRepository(JournalEntry::class)->findOneBy(['issue' => $third])?->getData()['notes']);
-        self::assertNotNull($this->entityManager->getRepository(IssueLink::class)->findOneBy(['source' => $third, 'typeId' => 'related', 'target' => $first]));
+        self::assertNotNull($this->entityManager->getRepository(IssueLink::class)->findOneBy(['source' => $third, 'type' => 'related', 'target' => $first]));
 
         self::assertTrue($bob->isActive());
         self::assertFalse($bob->isInternal());

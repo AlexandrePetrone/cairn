@@ -10,7 +10,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Adds a step of the instance to a workflow, as its last column unless a
  * position is given. Handled by AddWorkflowPlaceHandler.
  */
-final readonly class AddWorkflowPlace
+final readonly class AddWorkflowPlace implements ConfigurationCommand
 {
     public function __construct(
         public string $workflowId,

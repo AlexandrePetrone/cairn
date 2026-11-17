@@ -88,7 +88,7 @@ final class ImportIssueHandler
         $issue = Issue::imported(
             $project,
             $tracker,
-            $place,
+            $this->workflows->row($place),
             $command->number,
             $author,
             $command->title,

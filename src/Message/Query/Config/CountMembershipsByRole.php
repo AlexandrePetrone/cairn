@@ -7,8 +7,7 @@ namespace App\Message\Query\Config;
 use App\Message\Query\Query;
 
 /**
- * How many memberships carry each role id, including roles the
- * configuration no longer declares.
+ * How many memberships carry each role, by its id.
  *
  * @implements Query<array<string, int>>
  */

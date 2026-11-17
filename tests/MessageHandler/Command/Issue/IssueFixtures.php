@@ -9,6 +9,7 @@ use App\Entity\Tracker;
 use App\Entity\User;
 use App\Message\Command\Issue\CreateIssue;
 use App\Message\CommandBus;
+use App\Tests\Config\Fixture\DefinitionFactory;
 use App\Tests\Security\AccessFixtures;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -31,8 +32,8 @@ final class IssueFixtures
     ) {
         $this->access = new AccessFixtures($entityManager);
 
-        $this->bugs = new Tracker($this->access->shop, 'Bug', 'bug');
-        $this->tasks = new Tracker($this->access->shop, 'Internal task', 'bug', 1);
+        $this->bugs = new Tracker($this->access->shop, 'Bug', DefinitionFactory::workflowRow('bug', $entityManager));
+        $this->tasks = new Tracker($this->access->shop, 'Internal task', DefinitionFactory::workflowRow('bug', $entityManager), 1);
         $this->tasks->makePrivate();
         $entityManager->persist($this->bugs);
         $entityManager->persist($this->tasks);

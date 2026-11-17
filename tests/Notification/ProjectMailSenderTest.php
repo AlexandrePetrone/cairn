@@ -17,6 +17,7 @@ use App\Message\Notification\NotifyIssueChange;
 use App\MessageHandler\Notification\NotifyIssueChangeHandler;
 use App\Notification\ProjectMailSender;
 use App\Repository\PendingNotificationRepository;
+use App\Tests\Config\Fixture\DefinitionFactory;
 use App\Tests\KernelHelpers;
 use App\Tests\MessageHandler\Command\Issue\IssueFixtures;
 use Doctrine\ORM\EntityManagerInterface;
@@ -111,7 +112,7 @@ final class ProjectMailSenderTest extends KernelTestCase
     public function testTheIssuesOfAProjectShareAMailAndTwoProjectsDoNot(): void
     {
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        $intranetBugs = new Tracker($this->fixtures->access->intranet, 'Bug', 'bug');
+        $intranetBugs = new Tracker($this->fixtures->access->intranet, 'Bug', DefinitionFactory::workflowRow('bug', $entityManager));
         $entityManager->persist($intranetBugs);
         $entityManager->flush();
 

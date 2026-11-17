@@ -752,12 +752,14 @@ admin:
                 changes: 'Ce qui change avec elle'
                 deleted: 'Supprimée'
                 changed: 'Ne part plus de là'
-                kept: 'L''étape reste dans l''instance, pour les autres workflows. Les règles d''automatisation qui la nomment ne s''appliquent plus aux demandes de ce workflow.'
+                kept: 'L''étape reste dans l''instance, pour les autres workflows.'
+                rules: '{1}Une règle d''automatisation nomme cette étape et n''agira plus sur les demandes de ce workflow :|]1,Inf[ %count% règles d''automatisation nomment cette étape et n''agiront plus sur les demandes de ce workflow :'
                 submit: '{0}Retirer l''étape|{1}Retirer l''étape et déplacer 1 demande|]1,Inf[ Retirer l''étape et déplacer %count% demandes'
         action:
             new: 'Nouvelle action'
             deleted: 'Action supprimée.'
             delete_help: 'Les demandes restent où elles sont ; l''historique garde le nom de l''action.'
+            rules: '{1}Une règle d''automatisation est déclenchée par cette action ; supprimée, l''action ne la déclenche plus :|]1,Inf[ %count% règles d''automatisation sont déclenchées par cette action ; supprimée, l''action ne les déclenche plus :'
             form:
                 label: 'Libellé du bouton'
                 from: 'Depuis les étapes'
@@ -1017,6 +1019,7 @@ admin:
             role_has_internal_permissions: 'Le rôle « %role% » a des droits réservés aux internes : retirez-les d''abord.'
             role_held: '{1}Un accès porte le rôle « %role% » : révoquez-le ou donnez-lui d''abord un autre rôle.|]1,Inf[ %count% accès portent le rôle « %role% » : révoquez-les ou donnez-leur d''abord un autre rôle.'
             role_in_actions: 'Le rôle « %role% » déclenche des actions : %actions%. Retirez-le d''abord de ces actions.'
+            role_in_rules: 'Des règles d''automatisation visent le référent du rôle « %role% » : %rules%. Modifiez-les ou supprimez-les d''abord.'
             place_used: 'L''étape « %place% » est utilisée par : %workflows%. Retirez-la d''abord de ces workflows.'
             place_holds_issues: '{1}Une demande est à l''étape « %place% ».|]1,Inf[ %count% demandes sont à l''étape « %place% ».'
             field_used: 'Le champ « %field% » est demandé par : %workflows%. Retirez-le d''abord de ces workflows.'
@@ -1029,7 +1032,8 @@ admin:
             issues_to_move: '{1}Une demande est à l''étape « %place% » : choisissez l''étape qui la reprend.|]1,Inf[ %count% demandes sont à l''étape « %place% » : choisissez l''étape qui les reprend.'
             other_places: 'L''ordre donné ne reprend pas les étapes du workflow « %workflow% ».'
             pair_taken: 'L''action « %action% » mène déjà de « %from% » à « %to% » : le kanban demande une seule action entre deux étapes.'
-            invalid: 'Ce changement laisserait une configuration qui ne peut pas fonctionner : %detail%'
+            choices_required: 'Une liste ou un choix unique demande au moins un choix, chacun avec un libellé.'
+            choices_not_offered: 'Seuls une liste ou un choix unique ont des choix : laissez-les vides pour ce type.'
 
 project:
     summary:

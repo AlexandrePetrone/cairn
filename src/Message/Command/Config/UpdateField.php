@@ -12,14 +12,14 @@ use Symfony\Component\Validator\Constraints as Assert;
  * value an issue holds of a choice that went is then shown as it is
  * stored). Handled by UpdateFieldHandler.
  */
-final readonly class UpdateField
+final readonly class UpdateField implements ConfigurationCommand
 {
     public function __construct(
         public string $id,
         #[Assert\NotBlank(normalizer: 'trim', allowNull: true)]
         #[Assert\Length(max: 120)]
         public ?string $label = null,
-        /** @var array<string, string>|null value => label, in their order */
+        /** @var array<array-key, string>|null value => label, in their order */
         public ?array $options = null,
         #[Assert\Length(max: 255)]
         public ?string $placeholder = null,

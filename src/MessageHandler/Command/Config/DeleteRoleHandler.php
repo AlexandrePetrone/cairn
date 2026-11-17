@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\Command\Config;
 
+use App\Automation\RuleReferences;
 use App\Entity\Role;
 use App\Entity\Transition;
 use App\Message\Command\Config\DeleteRole;
@@ -21,6 +22,7 @@ final class DeleteRoleHandler
         private readonly RoleRepository $roles,
         private readonly MembershipRepository $memberships,
         private readonly TransitionRepository $transitions,
+        private readonly RuleReferences $rules,
         private readonly EntityManagerInterface $entityManager,
         private readonly ConfigWriting $writing,
     ) {
@@ -38,6 +40,12 @@ final class DeleteRoleHandler
         $actions = array_map(static fn (Transition $transition): string => \sprintf('%s (%s)', $transition->getLabel(), $transition->getWorkflow()->getLabel()), $this->transitions->findNamingRole($role));
         if ([] !== $actions) {
             throw ConfigChangeException::roleTriggersActions($role->getLabel(), $actions);
+        }
+
+        // Nor is it left behind in the rules that hand issues to its referent.
+        $rules = $this->rules->toRole($role->getId());
+        if ([] !== $rules) {
+            throw ConfigChangeException::roleAimedAtByRules($role->getLabel(), $rules);
         }
 
         ListOrder::close($role, $this->roles->findOrdered());

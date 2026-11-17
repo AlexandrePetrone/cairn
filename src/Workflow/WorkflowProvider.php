@@ -8,6 +8,8 @@ use App\Config\ConfigRegistry;
 use App\Config\Definition\PlaceDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use App\Entity\Issue;
+use App\Entity\Place;
+use App\Repository\PlaceRepository;
 use Symfony\Component\Workflow\WorkflowInterface;
 
 /**
@@ -22,12 +24,25 @@ final class WorkflowProvider
     public function __construct(
         private readonly ConfigRegistry $registry,
         private readonly WorkflowFactory $factory,
+        private readonly PlaceRepository $rows,
     ) {
     }
 
     public function get(string $workflowId): WorkflowInterface
     {
-        return $this->workflows[$workflowId] ??= $this->factory->create($this->definition($workflowId), $this->registry->definition()->places);
+        return $this->workflows[$workflowId] ??= $this->factory->create($this->definition($workflowId), $this->row(...));
+    }
+
+    /**
+     * The row of a place, which an issue that moves there points to. What
+     * the place says is read from its definition; the row is what the
+     * database ties the issue to.
+     */
+    public function row(PlaceDefinition|string $place): Place
+    {
+        $id = $place instanceof PlaceDefinition ? $place->id : $place;
+
+        return $this->rows->find($id) ?? throw new \LogicException(\sprintf('The place "%s" of the configuration has a row.', $id));
     }
 
     public function definition(string $workflowId): WorkflowDefinition
@@ -56,11 +71,12 @@ final class WorkflowProvider
     }
 
     /**
-     * The place an issue sits on, null when the configuration no longer
-     * has it.
+     * The place an issue sits on. It is always one of the instance, which
+     * the database holds it to; it may no longer be one of the workflow of
+     * its tracker, when it was moved there in the instant the place left it.
      */
-    public function placeOf(Issue $issue): ?PlaceDefinition
+    public function placeOf(Issue $issue): PlaceDefinition
     {
-        return $this->findPlace($issue->getPlace());
+        return $this->place($issue->getPlace());
     }
 }

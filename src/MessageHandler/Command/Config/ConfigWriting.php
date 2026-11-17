@@ -4,22 +4,14 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\Command\Config;
 
-use App\Config\ConfigException;
 use App\Config\ConfigRegistry;
-use App\Config\ConfigValidator;
-use App\Config\DefinitionLoader;
-use App\Entity\ConfigChange;
-use App\Entity\Field;
-use App\Entity\LinkType;
+use App\Config\FieldType;
 use App\Entity\Place;
 use App\Entity\Role;
-use App\Entity\RolePermission;
 use App\Entity\Transition;
 use App\Entity\TransitionRole;
 use App\Entity\TransitionSource;
 use App\Entity\Workflow;
-use App\Entity\WorkflowField;
-use App\Entity\WorkflowPlace;
 use App\Repository\TransitionRepository;
 use App\Repository\WorkflowRepository;
 use App\Security\Permission;
@@ -32,26 +24,20 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * command names, give a new element its key, and settle the change.
  *
  * There is no draft: a change is in force as soon as its command ends, so
- * every command must leave a configuration the application can run.
- * settle() is what guarantees it, whatever the handler checked itself: it
- * writes the change, reads the whole configuration again and refuses the
- * command when the ConfigValidator finds a fault.
+ * every command must leave a configuration the application can run. Each
+ * handler checks what it is asked against the rules before it writes
+ * anything, as every handler of the application does; nothing is checked
+ * afterwards. The tests are what holds them to it: after every command
+ * they accept, the ConfigValidator must find the configuration sound.
  */
 final class ConfigWriting
 {
     private const int KEY_LENGTH = 60;
 
-    private const array ENTITIES = [
-        Role::class, RolePermission::class, Place::class, Field::class, LinkType::class, Workflow::class,
-        WorkflowPlace::class, WorkflowField::class, Transition::class, TransitionSource::class, TransitionRole::class, ConfigChange::class,
-    ];
-
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly WorkflowRepository $workflows,
         private readonly TransitionRepository $transitions,
-        private readonly DefinitionLoader $loader,
-        private readonly ConfigValidator $validator,
         private readonly ConfigRegistry $registry,
         private readonly ConfigJournal $journal,
         private readonly TranslatorInterface $translator,
@@ -108,6 +94,31 @@ final class ConfigWriting
         }
 
         return $key;
+    }
+
+    /**
+     * A field that offers choices has some, each with a value and a label;
+     * the other types have none.
+     *
+     * @param array<array-key, string> $options value => label
+     */
+    public static function assertChoices(FieldType $type, array $options): void
+    {
+        if (!$type->hasOptions()) {
+            if ([] !== $options) {
+                throw ConfigChangeException::choicesNotOffered();
+            }
+
+            return;
+        }
+        if ([] === $options) {
+            throw ConfigChangeException::choicesRequired();
+        }
+        foreach ($options as $value => $label) {
+            if ('' === trim((string) $value) || '' === trim($label)) {
+                throw ConfigChangeException::choicesRequired();
+            }
+        }
     }
 
     /**
@@ -204,43 +215,15 @@ final class ConfigWriting
     }
 
     /**
-     * Ends a handler: the change is written, with a line of the journal
-     * saying what it was (`admin.configuration.history.<event>`), and the
-     * configuration it makes is read whole and checked. A fault refuses
-     * the command, whose transaction is rolled back.
+     * Ends a handler: a line of the journal says what the change was
+     * (`admin.configuration.history.<event>`), and whoever reads the
+     * configuration after the command reads the tables again.
      *
      * @param array<string, string|int> $parameters what the sentence of the journal names
      */
     public function settle(string $event, array $parameters = []): void
     {
         $this->journal->record($event, $parameters);
-        $this->entityManager->flush();
-        $this->registry->reset();
-
-        try {
-            $violations = $this->validator->validate($this->loader->load());
-        } catch (ConfigException $e) {
-            $this->forget();
-            throw ConfigChangeException::invalid($e->getPrevious()?->getMessage() ?? $e->getMessage());
-        }
-        if ([] !== $violations) {
-            $this->forget();
-            throw ConfigChangeException::invalid(implode(' ', array_map(strval(...), $violations)));
-        }
-    }
-
-    /**
-     * The transaction of a refused command is rolled back, not what the
-     * entity manager holds: the rows it wrote are forgotten, so that
-     * nothing later in the request reads them or writes them again.
-     */
-    private function forget(): void
-    {
-        foreach ($this->entityManager->getUnitOfWork()->getIdentityMap() as $class => $entities) {
-            if (\in_array($class, self::ENTITIES, true)) {
-                array_map($this->entityManager->detach(...), $entities);
-            }
-        }
         $this->registry->reset();
     }
 }

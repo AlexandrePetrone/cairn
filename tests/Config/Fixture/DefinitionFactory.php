@@ -15,7 +15,11 @@ use App\Config\Definition\WorkflowDefinition;
 use App\Config\FieldType;
 use App\Config\TransitionStyle;
 use App\Entity\Enum\PlaceStatus;
+use App\Entity\Place;
+use App\Entity\Role;
+use App\Entity\Workflow;
 use App\Security\Permission;
+use Doctrine\ORM\EntityManagerInterface;
 
 /**
  * Small, valid definitions for tests. Every piece can be replaced.
@@ -157,5 +161,33 @@ final class DefinitionFactory
             places: $places ?? self::placesFor($used),
             workflows: $workflows,
         );
+    }
+
+    /**
+     * The row of a workflow, for a tracker a test builds by hand. A tracker
+     * that is persisted must name a row the entity manager knows: give it,
+     * and the row is the one of the installed configuration. Without it
+     * the row is a detached one, enough for what is never written.
+     */
+    public static function workflowRow(string $id = 'bug', ?EntityManagerInterface $entityManager = null): Workflow
+    {
+        return $entityManager?->getReference(Workflow::class, $id) ?? new Workflow($id, ucfirst($id), new Place('new', 'New', PlaceStatus::Open));
+    }
+
+    /**
+     * The row of a role, for an access a test builds by hand: as for a workflow.
+     */
+    public static function roleRow(string $id, ?EntityManagerInterface $entityManager = null): Role
+    {
+        return $entityManager?->getReference(Role::class, $id) ?? new Role($id, ucfirst($id));
+    }
+
+    /**
+     * The row of a place, for an issue a test builds or moves by hand: as
+     * for a workflow, with the status the place of the tests has.
+     */
+    public static function placeRow(string $id, ?EntityManagerInterface $entityManager = null): Place
+    {
+        return $entityManager?->getReference(Place::class, $id) ?? new Place($id, self::place($id)->label, self::place($id)->status);
     }
 }

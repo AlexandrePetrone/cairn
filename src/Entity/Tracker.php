@@ -36,8 +36,10 @@ class Tracker implements Positioned
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
-    #[ORM\Column(length: 60)]
-    private string $workflowId;
+    /** The workflow, an element of the configuration: only its key is read from here. */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'workflow_id', nullable: false)]
+    private Workflow $workflow;
 
     #[ORM\Column]
     private bool $private = false;
@@ -51,11 +53,11 @@ class Tracker implements Positioned
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
-    public function __construct(Project $project, string $name, string $workflowId, int $position = 0)
+    public function __construct(Project $project, string $name, Workflow $workflow, int $position = 0)
     {
         $this->project = $project;
         $this->name = trim($name);
-        $this->workflowId = $workflowId;
+        $this->workflow = $workflow;
         $this->position = $position;
         $this->createdAt = now();
     }
@@ -92,7 +94,7 @@ class Tracker implements Positioned
 
     public function getWorkflowId(): string
     {
-        return $this->workflowId;
+        return $this->workflow->getId();
     }
 
     public function isPrivate(): bool

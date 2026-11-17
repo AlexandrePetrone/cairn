@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Twig;
 
-use App\Entity\Issue;
 use App\Factory\TrackerFactory;
 use App\Factory\UserFactory;
 use App\Tests\KernelHelpers;
 use App\Tests\MessageHandler\Query\Issue\IssueBuilder;
-use App\Twig\PlaceExtension;
-use App\Workflow\WorkflowProvider;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Twig\Environment;
@@ -30,15 +27,5 @@ final class PlaceExtensionTest extends KernelTestCase
         $html = self::getContainer()->get(Environment::class)->createTemplate('{{ issue_place(issue) }}')->render(['issue' => $issue]);
 
         self::assertSame('To test', $html);
-    }
-
-    public function testFallsBackToThePlaceIdWhenThePlaceNoLongerExists(): void
-    {
-        self::bootKernel();
-        self::applyConfiguration();
-        $issue = (new IssueBuilder(self::getContainer()->get(EntityManagerInterface::class)))->issue(TrackerFactory::createOne(), UserFactory::createOne(), 'Export');
-        (new \ReflectionProperty(Issue::class, 'place'))->setValue($issue, 'removed_place');
-
-        self::assertSame('removed_place', (new PlaceExtension(self::getContainer()->get(WorkflowProvider::class)))->issuePlace($issue));
     }
 }

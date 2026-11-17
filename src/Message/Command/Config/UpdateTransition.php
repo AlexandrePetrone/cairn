@@ -13,7 +13,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * replace the places it starts from and the roles that trigger it.
  * Handled by UpdateTransitionHandler.
  */
-final readonly class UpdateTransition
+final readonly class UpdateTransition implements ConfigurationCommand
 {
     public function __construct(
         public string $workflowId,

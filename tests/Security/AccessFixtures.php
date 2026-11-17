@@ -8,6 +8,7 @@ use App\Entity\Membership;
 use App\Entity\Project;
 use App\Entity\User;
 use App\Entity\Workspace;
+use App\Tests\Config\Fixture\DefinitionFactory;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -51,7 +52,7 @@ final class AccessFixtures
 
     public function grantOnWorkspace(User $user, Workspace $workspace, string $role): Membership
     {
-        $this->entityManager->persist($membership = Membership::onWorkspace($user, $workspace, $role));
+        $this->entityManager->persist($membership = Membership::onWorkspace($user, $workspace, DefinitionFactory::roleRow($role, $this->entityManager)));
         $this->entityManager->flush();
 
         return $membership;
@@ -59,7 +60,7 @@ final class AccessFixtures
 
     public function grantOnProject(User $user, Project $project, string $role): Membership
     {
-        $this->entityManager->persist($membership = Membership::onProject($user, $project, $role));
+        $this->entityManager->persist($membership = Membership::onProject($user, $project, DefinitionFactory::roleRow($role, $this->entityManager)));
         $this->entityManager->flush();
 
         return $membership;

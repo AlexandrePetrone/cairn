@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\Tests\MessageHandler\Command\Config;
 
+use App\Automation\RuleReferences;
 use App\Config\ConfigRegistry;
+use App\Config\ConfigValidator;
 use App\Config\Definition\InstanceDefinition;
 use App\Config\FieldType;
 use App\Config\TransitionStyle;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
+use App\Message\Command\Automation\CreateRule;
+use App\Message\Command\Automation\DeleteRule;
 use App\Message\Command\Config\AddWorkflowPlace;
 use App\Message\Command\Config\CreateField;
 use App\Message\Command\Config\CreateLinkType;
@@ -68,6 +72,16 @@ final class ConfigHandlersTest extends KernelTestCase
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $this->registry = self::getContainer()->get(ConfigRegistry::class);
         $this->fixtures = new IssueFixtures($this->entityManager, $this->commands);
+    }
+
+    /**
+     * No command checks the configuration after it wrote: whatever a test
+     * dispatched, what is left must be a configuration the application can run.
+     */
+    protected function tearDown(): void
+    {
+        self::assertSame([], array_map(strval(...), (new ConfigValidator())->validate($this->definition())), 'the commands left a sound configuration');
+        parent::tearDown();
     }
 
     public function testARoleGetsAKeyFromItsLabelAndComesLast(): void
@@ -137,6 +151,49 @@ final class ConfigHandlersTest extends KernelTestCase
         self::assertSame(['project_manager', 'developer', 'client'], $this->definition()->rolesGranted(Permission::IssueCreate), 'its permissions went with it');
     }
 
+    public function testARoleStaysWhileARuleAimsAtItsReferent(): void
+    {
+        $this->commands->dispatch(new CreateRole('Triage'));
+        $project = (int) $this->fixtures->access->shop->getId();
+        $rule = $this->commands->dispatch(new CreateRule($project, 'Hand over to triage', null, [
+            'trigger' => ['type' => 'issue_created'],
+            'actions' => [['type' => 'assign', 'params' => ['target' => 'referent:triage']]],
+        ]));
+
+        $references = self::getContainer()->get(RuleReferences::class);
+        self::assertSame(['Hand over to triage (Online shop)'], $references->toRole('triage'));
+        self::assertSame([], $references->toRole('client'));
+        $this->refused('admin.refused.config.role_in_rules', new DeleteRole('triage'));
+
+        $this->commands->dispatch(new DeleteRule((int) $rule->getId()));
+        $this->commands->dispatch(new DeleteRole('triage'));
+        self::assertFalse($this->definition()->hasRole('triage'));
+    }
+
+    public function testTheRulesThatNameAStepOrAnActionOfAWorkflowAreFound(): void
+    {
+        $project = (int) $this->fixtures->access->shop->getId();
+        $bugs = (int) $this->fixtures->bugs->getId();
+        $this->commands->dispatch(new CreateRule($project, 'Close what was tested', $bugs, [
+            'trigger' => ['type' => 'inactive_for', 'params' => ['days' => 30]],
+            'conditions' => [['type' => 'place', 'params' => ['is' => ['to_test', 'in_progress']]]],
+            'actions' => [['type' => 'move', 'params' => ['place' => 'done']]],
+        ]));
+        $this->commands->dispatch(new CreateRule($project, 'Thank on delivery', $bugs, [
+            'trigger' => ['type' => 'transition_applied', 'params' => ['transition' => 'deliver']],
+            'actions' => [['type' => 'comment', 'params' => ['body' => 'Delivered.']]],
+        ]));
+        $this->commands->dispatch(new CreateWorkflow('Support', 'new'));
+
+        $references = self::getContainer()->get(RuleReferences::class);
+        self::assertSame(['Close what was tested (Online shop)'], $references->toPlace('bug', 'to_test'));
+        self::assertSame(['Close what was tested (Online shop)'], $references->toPlace('bug', 'done'), 'the step an action moves to counts too');
+        self::assertSame([], $references->toPlace('bug', 'new'));
+        self::assertSame([], $references->toPlace('support', 'to_test'), 'no tracker of the shop follows that workflow');
+        self::assertSame(['Thank on delivery (Online shop)'], $references->toTransition('bug', 'deliver'));
+        self::assertSame([], $references->toTransition('bug', 'start'));
+    }
+
     public function testAStatusGivenToAPlaceGoesToTheIssuesStandingThere(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
@@ -173,8 +230,8 @@ final class ConfigHandlersTest extends KernelTestCase
 
     public function testAFieldKeepsItsTypeAndItsChoicesFollowIt(): void
     {
-        $this->refused('admin.refused.config.invalid', new CreateField('Browser', FieldType::Select));
-        $this->refused('admin.refused.config.invalid', new CreateField('Browser', FieldType::Text, options: ['a' => 'A']));
+        $this->refused('admin.refused.config.choices_required', new CreateField('Browser', FieldType::Select));
+        $this->refused('admin.refused.config.choices_not_offered', new CreateField('Browser', FieldType::Text, options: ['a' => 'A']));
 
         $field = $this->commands->dispatch(new CreateField('Browser', FieldType::Choice, options: ['chrome' => 'Chrome', 'safari' => 'Safari'], help: 'The one you use.'));
         $this->commands->dispatch(new UpdateField($field->getId(), label: 'Web browser', options: ['safari' => 'Safari', 'firefox' => 'Firefox'], help: '', internalOnly: true));
@@ -185,7 +242,11 @@ final class ConfigHandlersTest extends KernelTestCase
         self::assertNull($defined->help, 'an empty help erases it');
         self::assertTrue($defined->internalOnly);
 
-        $this->refused('admin.refused.config.invalid', new UpdateField('environment', options: []));
+        // A value made of digits is a value like another, whatever PHP does of the key.
+        $this->commands->dispatch(new UpdateField('environment', options: ['1' => 'One', 'prod' => 'Production']));
+        self::assertSame('One', $this->definition()->field('environment')->display('1'));
+
+        $this->refused('admin.refused.config.choices_required', new UpdateField('environment', options: []));
         $this->refused('admin.refused.config.field_used', new DeleteField('environment'));
         $this->commands->dispatch(new DeleteField('browser'));
         self::assertFalse($this->definition()->hasField('browser'));

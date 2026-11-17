@@ -11,7 +11,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * without one; its other places, its actions and its fields are added
  * afterwards. Handled by CreateWorkflowHandler, which returns the Workflow.
  */
-final readonly class CreateWorkflow
+final readonly class CreateWorkflow implements ConfigurationCommand
 {
     public function __construct(
         #[Assert\NotBlank(normalizer: 'trim')]

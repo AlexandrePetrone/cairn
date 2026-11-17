@@ -33,8 +33,10 @@ class TemplateTracker implements Positioned
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
-    #[ORM\Column(length: 60)]
-    private string $workflowId;
+    /** The workflow, an element of the configuration: only its key is read from here. */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'workflow_id', nullable: false)]
+    private Workflow $workflow;
 
     #[ORM\Column]
     private bool $private = false;
@@ -42,11 +44,11 @@ class TemplateTracker implements Positioned
     #[ORM\Column]
     private int $position;
 
-    public function __construct(ProjectTemplate $template, string $name, string $workflowId, int $position = 0)
+    public function __construct(ProjectTemplate $template, string $name, Workflow $workflow, int $position = 0)
     {
         $this->template = $template;
         $this->name = trim($name);
-        $this->workflowId = $workflowId;
+        $this->workflow = $workflow;
         $this->position = $position;
     }
 
@@ -82,7 +84,7 @@ class TemplateTracker implements Positioned
 
     public function getWorkflowId(): string
     {
-        return $this->workflowId;
+        return $this->workflow->getId();
     }
 
     public function isPrivate(): bool

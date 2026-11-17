@@ -25,8 +25,8 @@ class IssueLinkRepository extends ServiceEntityRepository
      */
     public function findBetween(Issue $source, string $typeId, Issue $target, bool $eitherWay): ?IssueLink
     {
-        return $this->findOneBy(['source' => $source, 'target' => $target, 'typeId' => $typeId])
-            ?? ($eitherWay ? $this->findOneBy(['source' => $target, 'target' => $source, 'typeId' => $typeId]) : null);
+        return $this->findOneBy(['source' => $source, 'target' => $target, 'type' => $typeId])
+            ?? ($eitherWay ? $this->findOneBy(['source' => $target, 'target' => $source, 'type' => $typeId]) : null);
     }
 
     /**
@@ -36,8 +36,8 @@ class IssueLinkRepository extends ServiceEntityRepository
     {
         /** @var list<array{typeId: string, links: int|string}> $rows */
         $rows = $this->createQueryBuilder('l')
-            ->select('l.typeId AS typeId', 'COUNT(l.id) AS links')
-            ->groupBy('l.typeId')
+            ->select('IDENTITY(l.type) AS typeId', 'COUNT(l.id) AS links')
+            ->groupBy('l.type')
             ->getQuery()
             ->getArrayResult();
 

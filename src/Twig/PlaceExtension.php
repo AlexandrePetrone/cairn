@@ -20,12 +20,11 @@ final class PlaceExtension
     }
 
     /**
-     * The label of the issue's place, or its id when the place no longer
-     * exists in the configuration.
+     * The label of the issue's place.
      */
     #[AsTwigFunction('issue_place')]
     public function issuePlace(Issue $issue): string
     {
-        return $this->workflows->placeOf($issue)->label ?? $issue->getPlace();
+        return $this->workflows->placeOf($issue)->label;
     }
 }

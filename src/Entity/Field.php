@@ -51,7 +51,7 @@ class Field implements Positioned
     private int $position;
 
     /**
-     * @param array<string, string> $options value => label
+     * @param array<array-key, string> $options value => label
      */
     public function __construct(string $id, string $label, FieldType $type, array $options = [], ?string $placeholder = null, ?string $help = null, bool $internalOnly = false, int $position = 0)
     {
@@ -109,7 +109,7 @@ class Field implements Positioned
     }
 
     /**
-     * @param array<string, string> $options value => label, in their order
+     * @param array<array-key, string> $options value => label, in their order
      */
     public function offer(array $options): void
     {
@@ -147,7 +147,7 @@ class Field implements Positioned
     }
 
     /**
-     * @param array<string, string> $options
+     * @param array<array-key, string> $options
      *
      * @return list<array{value: string, label: string}>
      */

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use App\Config\Definition\PlaceDefinition;
 use App\Entity\Enum\Criticality;
 use App\Entity\Enum\PlaceStatus;
 use App\Repository\IssueRepository;
@@ -56,8 +55,10 @@ class Issue implements HasPlace
     #[ORM\Column(type: Types::TEXT)]
     private string $description;
 
-    #[ORM\Column(length: 60)]
-    private string $place;
+    /** The step the issue stands on, an element of the configuration: only its key is read from here. */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'place', nullable: false)]
+    private Place $place;
 
     #[ORM\Column(length: 20, enumType: PlaceStatus::class)]
     private PlaceStatus $status;
@@ -110,9 +111,9 @@ class Issue implements HasPlace
     private ?string $importedRef = null;
 
     /**
-     * @param PlaceDefinition $place where the issue starts, the initial place of the tracker's workflow
+     * @param Place $place where the issue starts, the initial place of the tracker's workflow
      */
-    public function __construct(Project $project, Tracker $tracker, PlaceDefinition $place, int $number, User $author, string $title, string $description)
+    public function __construct(Project $project, Tracker $tracker, Place $place, int $number, User $author, string $title, string $description)
     {
         $this->project = $project;
         $this->tracker = $tracker;
@@ -136,7 +137,7 @@ class Issue implements HasPlace
     public static function imported(
         Project $project,
         Tracker $tracker,
-        PlaceDefinition $place,
+        Place $place,
         int $number,
         User $author,
         string $title,
@@ -161,7 +162,7 @@ class Issue implements HasPlace
         $issue->createdAt = $createdAt;
         $issue->updatedAt = max($createdAt, $updatedAt);
         $issue->lastActivityAt = $issue->updatedAt;
-        $issue->closedAt = PlaceStatus::Closed === $place->status ? ($closedAt ?? $issue->updatedAt) : null;
+        $issue->closedAt = PlaceStatus::Closed === $place->getStatus() ? ($closedAt ?? $issue->updatedAt) : null;
 
         return $issue;
     }
@@ -206,9 +207,12 @@ class Issue implements HasPlace
         return $this->description;
     }
 
+    /**
+     * The key of the step the issue stands on.
+     */
     public function getPlace(): string
     {
-        return $this->place;
+        return $this->place->getId();
     }
 
     public function getStatus(): PlaceStatus
@@ -220,11 +224,11 @@ class Issue implements HasPlace
      * Enters a place: the status follows, `closedAt` is set on entering a
      * closed place and cleared on leaving one.
      */
-    public function moveTo(PlaceDefinition $place): void
+    public function moveTo(Place $place): void
     {
-        $this->place = $place->id;
-        $this->status = $place->status;
-        $this->closedAt = PlaceStatus::Closed === $place->status ? ($this->closedAt ?? now()) : null;
+        $this->place = $place;
+        $this->status = $place->getStatus();
+        $this->closedAt = PlaceStatus::Closed === $place->getStatus() ? ($this->closedAt ?? now()) : null;
         $this->touch();
     }
 
@@ -232,7 +236,7 @@ class Issue implements HasPlace
      * Re-categorises the issue: the workflow changes, so the place is chosen
      * explicitly. Values of fields the new workflow does not use are kept.
      */
-    public function changeTracker(Tracker $tracker, PlaceDefinition $place): void
+    public function changeTracker(Tracker $tracker, Place $place): void
     {
         $this->tracker = $tracker;
         $this->moveTo($place);

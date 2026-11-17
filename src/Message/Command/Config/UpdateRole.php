@@ -11,7 +11,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * `position` moves it among the others (0 is the broadest). Handled by
  * UpdateRoleHandler.
  */
-final readonly class UpdateRole
+final readonly class UpdateRole implements ConfigurationCommand
 {
     public function __construct(
         public string $id,

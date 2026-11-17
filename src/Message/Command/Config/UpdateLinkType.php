@@ -10,7 +10,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Changes a type of link, PATCH style; an empty inverse label makes it
  * symmetric. Handled by UpdateLinkTypeHandler.
  */
-final readonly class UpdateLinkType
+final readonly class UpdateLinkType implements ConfigurationCommand
 {
     public function __construct(
         public string $id,

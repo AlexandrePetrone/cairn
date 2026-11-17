@@ -12,7 +12,7 @@ namespace App\Message\Command\Config;
  * places, or go too when they had none. Handled by
  * RemoveWorkflowPlaceHandler.
  */
-final readonly class RemoveWorkflowPlace
+final readonly class RemoveWorkflowPlace implements ConfigurationCommand
 {
     public function __construct(
         public string $workflowId,

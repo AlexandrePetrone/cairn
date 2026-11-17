@@ -8,7 +8,7 @@ namespace App\Message\Command\Config;
  * Deletes a workflow no tracker follows, of a project or of a project
  * template, with its actions. Handled by DeleteWorkflowHandler.
  */
-final readonly class DeleteWorkflow
+final readonly class DeleteWorkflow implements ConfigurationCommand
 {
     public function __construct(
         public string $id,

@@ -68,7 +68,7 @@ final class IssueOrder
     public static function groupKey(IssueGrouping $group): string
     {
         return match ($group) {
-            IssueGrouping::Place => 'i.place',
+            IssueGrouping::Place => 'IDENTITY(i.place)',
             IssueGrouping::Criticality => 'i.criticality',
             IssueGrouping::Assignee => 'IDENTITY(i.assignee)',
             IssueGrouping::Project => 'p.id',

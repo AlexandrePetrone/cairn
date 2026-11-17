@@ -136,7 +136,7 @@ final class SettingsController extends AbstractController
         return $this->render('project/settings/tracker.html.twig', [
             'project' => $project,
             'tracker' => $tracker,
-            'workflow' => $definition->hasWorkflow($tracker->getWorkflowId()) ? $definition->workflow($tracker->getWorkflowId()) : null,
+            'workflow' => $definition->workflow($tracker->getWorkflowId()),
             'form' => $form,
             'issueCount' => $issues->count(['tracker' => $tracker]),
             'ruleCount' => $rules->count(['tracker' => $tracker]),

@@ -283,7 +283,7 @@ final class Grants
         $inherited = ($this->getInherited()[(int) $membership->getUser()->getId()] ?? null)?->getRole();
         $definition = $this->config->definition();
 
-        return null !== $inherited && $definition->hasRole($inherited) && $definition->roleRank($membership->getRole()) >= $definition->roleRank($inherited);
+        return null !== $inherited && $definition->roleRank($membership->getRole()) >= $definition->roleRank($inherited);
     }
 
     /**
@@ -353,7 +353,7 @@ final class Grants
     {
         $definition = $this->config->definition();
         $inherited = null !== $user ? ($this->getInherited()[(int) $user->getId()] ?? null)?->getRole() : null;
-        $ceiling = null !== $inherited && $definition->hasRole($inherited) ? $definition->roleRank($inherited) : null;
+        $ceiling = null !== $inherited ? $definition->roleRank($inherited) : null;
         $external = $external || (null !== $user && !$user->isInternal());
 
         $roles = [];
@@ -375,9 +375,7 @@ final class Grants
      */
     public function roleLabel(string $role): string
     {
-        $definition = $this->config->definition();
-
-        return $definition->hasRole($role) ? $definition->role($role)->label : $role;
+        return $this->config->definition()->role($role)->label;
     }
 
     /**

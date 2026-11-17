@@ -38,9 +38,6 @@ final class Definitions
     {
         $indexed = [];
         foreach ($items as $item) {
-            if (!$item instanceof $class) {
-                throw new InvalidDefinitionException(\sprintf('%s: expected a list of %s, got %s.', $path, $class, get_debug_type($item)));
-            }
             $id = $item->$idProperty;
             if (isset($indexed[$id])) {
                 throw new InvalidDefinitionException(\sprintf('%s: duplicate identifier "%s".', $path, $id));
@@ -60,9 +57,6 @@ final class Definitions
     {
         $seen = [];
         foreach ($ids as $id) {
-            if (!\is_string($id)) {
-                throw new InvalidDefinitionException(\sprintf('%s: expected a list of identifiers, got %s.', $path, get_debug_type($id)));
-            }
             if (isset($seen[$id])) {
                 throw new InvalidDefinitionException(\sprintf('%s: "%s" is listed twice.', $path, $id));
             }

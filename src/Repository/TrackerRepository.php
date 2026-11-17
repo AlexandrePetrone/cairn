@@ -44,8 +44,8 @@ class TrackerRepository extends ServiceEntityRepository
     {
         /** @var list<array{workflowId: string, trackers: int|string}> $rows */
         $rows = $this->createQueryBuilder('t')
-            ->select('t.workflowId AS workflowId', 'COUNT(t.id) AS trackers')
-            ->groupBy('t.workflowId')
+            ->select('IDENTITY(t.workflow) AS workflowId', 'COUNT(t.id) AS trackers')
+            ->groupBy('t.workflow')
             ->getQuery()
             ->getArrayResult();
 

@@ -12,14 +12,14 @@ use Symfony\Component\Validator\Constraints as Assert;
  * for it until it is added to one. Handled by CreateFieldHandler, which
  * returns the Field.
  */
-final readonly class CreateField
+final readonly class CreateField implements ConfigurationCommand
 {
     public function __construct(
         #[Assert\NotBlank(normalizer: 'trim')]
         #[Assert\Length(max: 120)]
         public string $label,
         public FieldType $type,
-        /** @var array<string, string> value => label, for a Select or a Choice */
+        /** @var array<array-key, string> value => label, for a Select or a Choice */
         public array $options = [],
         #[Assert\Length(max: 255)]
         public ?string $placeholder = null,

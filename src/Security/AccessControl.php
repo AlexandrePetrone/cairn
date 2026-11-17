@@ -49,8 +49,7 @@ final class AccessControl implements ResetInterface
     /**
      * The effective role of a user on a project or a workspace: the broadest
      * of the roles granted directly and inherited from the workspace. A grant
-     * may only widen what is inherited, never narrow it. A membership whose
-     * role no longer exists in the configuration grants nothing. Being
+     * may only widen what is inherited, never narrow it. Being
      * internal grants no role: it only opens every project to reading.
      */
     public function roleOn(User $user, Project|Workspace $scope): ?string
@@ -60,7 +59,7 @@ final class AccessControl implements ResetInterface
 
         foreach ($this->membershipsOf($user) as $membership) {
             $applies = $scope instanceof Project ? $membership->appliesTo($scope) : $membership->isOn($scope);
-            if ($applies && $definition->hasRole($membership->getRole())) {
+            if ($applies) {
                 $best = self::broadest($definition->roleRank(...), $best, $membership->getRole());
             }
         }

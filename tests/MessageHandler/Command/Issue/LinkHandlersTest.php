@@ -13,6 +13,7 @@ use App\Message\Command\Issue\AddLink;
 use App\Message\Command\Issue\RemoveLink;
 use App\Message\CommandBus;
 use App\MessageHandler\Command\Issue\IssueLinkException;
+use App\Tests\Config\Fixture\DefinitionFactory;
 use App\Tests\KernelHelpers;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -94,7 +95,7 @@ final class LinkHandlersTest extends KernelTestCase
     public function testALinkToAPrivateIssueOrAnotherProjectIsJournaledPrivately(): void
     {
         $task = $this->fixtures->createIssue($this->fixtures->manager, $this->fixtures->tasks, title: 'Internal task');
-        $intranetBugs = new Tracker($this->fixtures->access->intranet, 'Bug', 'bug');
+        $intranetBugs = new Tracker($this->fixtures->access->intranet, 'Bug', DefinitionFactory::workflowRow('bug', $this->entityManager));
         $this->entityManager->persist($intranetBugs);
         $this->entityManager->flush();
         $intranetBug = $this->fixtures->createIssue($this->fixtures->manager, $intranetBugs, title: 'Broken menu');

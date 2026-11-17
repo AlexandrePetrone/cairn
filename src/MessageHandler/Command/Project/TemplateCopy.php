@@ -9,6 +9,7 @@ use App\Entity\AutomationRule;
 use App\Entity\Project;
 use App\Entity\ProjectTemplate;
 use App\Entity\Tracker;
+use App\Entity\Workflow;
 use App\Repository\TemplateRuleRepository;
 use App\Repository\TemplateTrackerRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -22,8 +23,8 @@ use Psr\Log\LoggerInterface;
  * CreateProject, not through CreateTracker and CreateRule: those read the
  * database, which does not hold the project yet. A rule was checked when
  * it was written in the template and is copied as it is, switched on or
- * off as it was; one that stopped meaning something since (a place gone
- * from the instance file) blocks nothing, as in a project, and one that
+ * off as it was; one that stopped meaning something since (a step taken
+ * out of its workflow) blocks nothing, as in a project, and one that
  * cannot be read any more is left out, which the logs say.
  */
 final class TemplateCopy
@@ -40,7 +41,7 @@ final class TemplateCopy
     {
         $made = [];
         foreach ($this->trackers->findByTemplate($template) as $position => $source) {
-            $tracker = new Tracker($project, $source->getName(), $source->getWorkflowId(), $position);
+            $tracker = new Tracker($project, $source->getName(), $this->entityManager->getReference(Workflow::class, $source->getWorkflowId()) ?? throw new \LogicException('An element of the configuration that the definition has exists.'), $position);
             $tracker->setDescription($source->getDescription());
             if ($source->isPrivate()) {
                 $tracker->makePrivate();

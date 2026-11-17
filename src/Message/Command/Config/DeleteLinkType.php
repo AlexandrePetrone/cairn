@@ -7,7 +7,7 @@ namespace App\Message\Command\Config;
 /**
  * Deletes a type of link no link is of. Handled by DeleteLinkTypeHandler.
  */
-final readonly class DeleteLinkType
+final readonly class DeleteLinkType implements ConfigurationCommand
 {
     public function __construct(
         public string $id,

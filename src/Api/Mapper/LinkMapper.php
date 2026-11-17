@@ -23,15 +23,14 @@ final class LinkMapper
 
     public function map(IssueLink $link, Issue $issue): LinkResource
     {
-        $definition = $this->config->definition();
-        $type = $definition->hasLink($link->getTypeId()) ? $definition->link($link->getTypeId()) : null;
+        $type = $this->config->definition()->link($link->getTypeId());
         $inverse = $link->getTarget() === $issue && $link->getSource() !== $issue;
 
         return new LinkResource(
             id: (int) $link->getId(),
             issue: $issue->getKey(),
             type: $link->getTypeId(),
-            label: ($inverse ? $type?->labelFromTarget() : $type?->label) ?? $link->getTypeId(),
+            label: $inverse ? $type->labelFromTarget() : $type->label,
             inverse: $inverse,
             other: $this->refs->issue($link->otherThan($issue)),
             createdAt: $link->getCreatedAt(),

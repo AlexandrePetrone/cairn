@@ -33,8 +33,10 @@ class Membership
     #[ORM\ManyToOne]
     private ?Project $project = null;
 
-    #[ORM\Column(length: 60)]
-    private string $role;
+    /** The role, an element of the configuration: only its key is read from here, what it says comes from Config\ConfigRegistry. */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'role', nullable: false)]
+    private Role $role;
 
     /**
      * Whether this person is the one the role answers through where the
@@ -45,13 +47,13 @@ class Membership
     #[ORM\Column(options: ['default' => false])]
     private bool $referent = false;
 
-    private function __construct(User $user, string $role)
+    private function __construct(User $user, Role $role)
     {
         $this->user = $user;
         $this->role = $role;
     }
 
-    public static function onWorkspace(User $user, Workspace $workspace, string $role): self
+    public static function onWorkspace(User $user, Workspace $workspace, Role $role): self
     {
         $membership = new self($user, $role);
         $membership->workspace = $workspace;
@@ -59,7 +61,7 @@ class Membership
         return $membership;
     }
 
-    public static function onProject(User $user, Project $project, string $role): self
+    public static function onProject(User $user, Project $project, Role $role): self
     {
         $membership = new self($user, $role);
         $membership->project = $project;
@@ -87,17 +89,20 @@ class Membership
         return $this->project;
     }
 
+    /**
+     * The key of the role.
+     */
     public function getRole(): string
     {
-        return $this->role;
+        return $this->role->getId();
     }
 
     /**
      * A referent is the referent of a role: another role takes the mark away.
      */
-    public function changeRole(string $role): void
+    public function changeRole(Role $role): void
     {
-        if ($role !== $this->role) {
+        if ($role->getId() !== $this->role->getId()) {
             $this->referent = false;
         }
         $this->role = $role;

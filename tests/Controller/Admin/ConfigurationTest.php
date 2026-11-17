@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace App\Tests\Controller\Admin;
 
 use App\Config\ConfigRegistry;
+use App\Config\ConfigValidator;
 use App\Config\Definition\InstanceDefinition;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
 use App\Factory\UserFactory;
+use App\Message\Command\Automation\CreateRule;
+use App\Message\CommandBus;
 use App\Security\Permission;
 use App\Tests\Scene\ShopScene;
 use Doctrine\ORM\EntityManagerInterface;
@@ -36,6 +39,15 @@ final class ConfigurationTest extends WebTestCase
     protected function setUp(): void
     {
         $this->client = self::createClient();
+    }
+
+    /**
+     * Whatever the pages changed, what is left must be a configuration the application can run.
+     */
+    protected function tearDown(): void
+    {
+        self::assertSame([], array_map(strval(...), (new ConfigValidator())->validate($this->definition())), 'the pages left a sound configuration');
+        parent::tearDown();
     }
 
     public function testOnlyAdministratorsReadIt(): void
@@ -332,7 +344,15 @@ final class ConfigurationTest extends WebTestCase
     {
         $scene = $this->signInAsAdmin();
 
+        self::getContainer()->get(CommandBus::class)->dispatch(new CreateRule((int) $scene->shop->getId(), 'Remind who was asked', (int) $scene->bugs->getId(), [
+            'trigger' => ['type' => 'inactive_for', 'params' => ['days' => 10]],
+            'conditions' => [['type' => 'place', 'params' => ['is' => ['needs_info']]]],
+            'actions' => [['type' => 'comment', 'params' => ['body' => 'Any news?']]],
+        ]));
+
         $this->client->request('GET', '/admin/configuration/workflows/bug/places/needs_info/remove');
+        self::assertSelectorTextContains('turbo-frame#modal', 'An automation rule names this step');
+        self::assertSelectorTextContains('turbo-frame#modal', 'Remind who was asked (Online shop)');
         self::assertSelectorTextContains('turbo-frame#modal', 'Deleted · Ask for details');
         self::assertSelectorTextContains('turbo-frame#modal', 'Deleted · Answer');
         self::assertSelectorTextContains('turbo-frame#modal', 'No longer starts from there · Reject');

@@ -122,6 +122,12 @@
                         </ul>
                     </div>
                 {% endif %}
+                {% if dialogRules is not empty %}
+                    <twig:Ui:Callout tone="amber" size="sm">
+                        <p>{{ 'admin.configuration.workflow.remove.rules'|trans({ '%count%': dialogRules|length }) }}</p>
+                        <ul class="mt-1 list-disc pl-5">{% for rule in dialogRules %}<li>{{ rule }}</li>{% endfor %}</ul>
+                    </twig:Ui:Callout>
+                {% endif %}
                 <p class="text-xs text-muted">{{ 'admin.configuration.workflow.remove.kept'|trans }}</p>
             </div>
         {% endset %}
@@ -132,7 +138,17 @@
             note: modalNote,
         }) }}
     {% elseif dialog == 'transition' %}
+        {% set modalNote = '' %}
+        {% if (dialogRules ?? []) is not empty %}
+            {% set modalNote %}
+                <twig:Ui:Callout tone="amber" size="sm" class="mt-4">
+                    <p>{{ 'admin.configuration.action.rules'|trans({ '%count%': dialogRules|length }) }}</p>
+                    <ul class="mt-1 list-disc pl-5">{% for rule in dialogRules %}<li>{{ rule }}</li>{% endfor %}</ul>
+                </twig:Ui:Callout>
+            {% endset %}
+        {% endif %}
         {{ include('admin/configuration/_dialog.html.twig', {
+            note: modalNote,
             title: (dialogTransition ?? null) ? dialogTransition.label : 'admin.configuration.action.new'|trans,
             closeHref: modalClose,
             submitLabel: ((dialogTransition ?? null) ? 'admin.configuration.save' : 'admin.configuration.create')|trans,

@@ -52,7 +52,7 @@ final class MissingReferents
                 }
                 $holder = $marked[$target->argument] ?? null;
                 $missing[$target->argument] = [
-                    'label' => $definition->hasRole($target->argument) ? $definition->role($target->argument)->label : $target->argument,
+                    'label' => $definition->role($target->argument)->label,
                     'reason' => match (true) {
                         null === $holder => 'none',
                         !$holder->isActive() => 'deactivated',

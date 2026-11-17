@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Repository;
 
-use App\Config\Definition\PlaceDefinition;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
 use App\Entity\Tracker;
@@ -49,10 +48,9 @@ final class IssueRepositoryTest extends KernelTestCase
 
         // An issue of another workflow on a place with the same id must not move.
         $commands->dispatch(new CreateWorkflow('Other', 'new', 'other_workflow'));
-        $otherTracker = new Tracker($this->fixtures->access->otherProject, 'Other', 'other_workflow');
+        $otherTracker = new Tracker($this->fixtures->access->otherProject, 'Other', DefinitionFactory::workflowRow('other_workflow', $this->entityManager));
         $this->entityManager->persist($otherTracker);
-        $other = new Issue($this->fixtures->access->otherProject, $otherTracker, DefinitionFactory::place('new'), 1, $this->fixtures->client, 'Other', '');
-        $other->moveTo(new PlaceDefinition(id: 'new', label: 'New', status: PlaceStatus::Open));
+        $other = new Issue($this->fixtures->access->otherProject, $otherTracker, DefinitionFactory::placeRow('new', $this->entityManager), 1, $this->fixtures->client, 'Other', '');
         $this->entityManager->persist($other);
         $this->entityManager->flush();
 

@@ -63,7 +63,7 @@ final class CreateIssueHandler
         // Lock the project row so that concurrent creations draw distinct numbers.
         $this->entityManager->lock($project, LockMode::PESSIMISTIC_WRITE);
 
-        $issue = new Issue($project, $tracker, $this->workflows->place($workflow->initial), $project->allocateIssueNumber(), $actor, $command->title, $command->description);
+        $issue = new Issue($project, $tracker, $this->workflows->row($workflow->initial), $project->allocateIssueNumber(), $actor, $command->title, $command->description);
         $issue->setCriticality($command->criticality);
         $issue->assignTo($assignee);
         $issue->setFieldValues($command->fields);

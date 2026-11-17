@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Workflow;
 
-use App\Config\Definition\PlaceDefinition;
 use App\Config\Definition\WorkflowDefinition;
+use App\Entity\Place;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Workflow\DefinitionBuilder;
 use Symfony\Component\Workflow\StateMachine;
@@ -27,9 +27,9 @@ final class WorkflowFactory
     }
 
     /**
-     * @param array<string, PlaceDefinition> $places those of the instance, by id
+     * @param \Closure(string): Place $row the row of a place of the instance, by its id: what an issue that moves points to
      */
-    public function create(WorkflowDefinition $definition, array $places): WorkflowInterface
+    public function create(WorkflowDefinition $definition, \Closure $row): WorkflowInterface
     {
         $builder = (new DefinitionBuilder())
             ->addPlaces($definition->places)
@@ -46,7 +46,7 @@ final class WorkflowFactory
 
         return new StateMachine(
             $builder->build(),
-            new PlaceMarkingStore($places),
+            new PlaceMarkingStore($row),
             $this->dispatcher,
             $definition->id,
         );

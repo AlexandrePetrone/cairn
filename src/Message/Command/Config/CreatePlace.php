@@ -12,7 +12,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * until it is added to one. Handled by CreatePlaceHandler, which returns
  * the Place.
  */
-final readonly class CreatePlace
+final readonly class CreatePlace implements ConfigurationCommand
 {
     public function __construct(
         #[Assert\NotBlank(normalizer: 'trim')]

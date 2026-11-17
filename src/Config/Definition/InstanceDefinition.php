@@ -52,9 +52,6 @@ final readonly class InstanceDefinition
         $this->workflows = Definitions::indexById($workflows, WorkflowDefinition::class, 'workflows');
 
         foreach ($permissions as $permission => $roleIds) {
-            if (!\is_string($permission) || !\is_array($roleIds)) {
-                throw new InvalidDefinitionException('permissions: expected a map of permission => list of role ids.');
-            }
             Definitions::assertIdList($roleIds, "permissions.$permission");
         }
     }
@@ -153,8 +150,8 @@ final readonly class InstanceDefinition
     }
 
     /**
-     * The place, or null when it left the configuration (an issue may
-     * still name it).
+     * The place, or null when the instance has none of that id: for an id
+     * that was typed or kept as data (a rule, an import mapping).
      */
     public function findPlace(string $id): ?PlaceDefinition
     {

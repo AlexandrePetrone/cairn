@@ -21,6 +21,8 @@ framework:
             command.bus:
                 middleware:
                     - validation
+                    # Around the transaction: the commands of the configuration run one at a time.
+                    - App\MessageHandler\Command\Config\ConfigurationLock
                     - doctrine_transaction
             # Screen reads (src/Message/Query/): validated, no transaction.
             query.bus:

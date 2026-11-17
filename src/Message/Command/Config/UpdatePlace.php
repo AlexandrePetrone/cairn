@@ -14,7 +14,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * others: the order of the filters and groups of the lists. Handled by
  * UpdatePlaceHandler.
  */
-final readonly class UpdatePlace
+final readonly class UpdatePlace implements ConfigurationCommand
 {
     public function __construct(
         public string $id,

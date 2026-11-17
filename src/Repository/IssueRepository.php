@@ -37,11 +37,11 @@ class IssueRepository extends ServiceEntityRepository
     {
         /** @var list<array{workflowId: string, placeId: string, issues: int|string}> $rows */
         $rows = $this->createQueryBuilder('i')
-            ->select('t.workflowId AS workflowId', 'i.place AS placeId', 'COUNT(i.id) AS issues')
+            ->select('IDENTITY(t.workflow) AS workflowId', 'IDENTITY(i.place) AS placeId', 'COUNT(i.id) AS issues')
             ->join('i.tracker', 't')
-            ->groupBy('t.workflowId', 'i.place')
-            ->orderBy('t.workflowId')
-            ->addOrderBy('i.place')
+            ->groupBy('t.workflow', 'i.place')
+            ->orderBy('workflowId')
+            ->addOrderBy('placeId')
             ->getQuery()
             ->getArrayResult();
 
@@ -252,7 +252,7 @@ class IssueRepository extends ServiceEntityRepository
         $trackers = $this->getEntityManager()->createQueryBuilder()
             ->select('t.id')
             ->from(Tracker::class, 't')
-            ->where('t.workflowId = :workflow');
+            ->where('t.workflow = :workflow');
 
         return $this->createQueryBuilder('i')
             ->andWhere('i.place = :place')

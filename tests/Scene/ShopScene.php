@@ -33,6 +33,7 @@ use App\Message\Command\Project\UpdateProject;
 use App\Message\Command\Release\CreateRelease;
 use App\Message\CommandBus;
 use App\Security\AccessControl;
+use App\Tests\Config\Fixture\DefinitionFactory;
 use App\Workflow\WorkflowProvider;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\TestContainer;
@@ -142,7 +143,7 @@ final class ShopScene
      */
     public function intranetBug(): Issue
     {
-        $tracker = new Tracker($this->intranet, 'Bug', 'bug', 0);
+        $tracker = new Tracker($this->intranet, 'Bug', DefinitionFactory::workflowRow('bug', $this->entityManager), 0);
         $this->entityManager->persist($tracker);
         $this->entityManager->flush();
 
@@ -259,19 +260,19 @@ final class ShopScene
         $travelia = new Workspace('Travelia', 'TR');
         $this->booking = new Project($travelia, 'Booking site', 'RES');
         $this->booking->archive();
-        $this->bugs = new Tracker($this->shop, 'Bug', 'bug', 0);
-        $this->evolutions = new Tracker($this->shop, 'Feature', 'evolution', 1);
-        $this->tasks = new Tracker($this->shop, 'Internal task', 'task', 2);
+        $this->bugs = new Tracker($this->shop, 'Bug', DefinitionFactory::workflowRow('bug', $this->entityManager), 0);
+        $this->evolutions = new Tracker($this->shop, 'Feature', DefinitionFactory::workflowRow('evolution', $this->entityManager), 1);
+        $this->tasks = new Tracker($this->shop, 'Internal task', DefinitionFactory::workflowRow('task', $this->entityManager), 2);
         $this->tasks->makePrivate();
 
         $memberships = [
-            Membership::onWorkspace($this->user('thomas.girard@cairn.test'), $this->dupont, 'project_manager'),
-            Membership::onWorkspace($this->user('claire.martin@maison-dupont.test'), $this->dupont, 'client'),
-            Membership::onWorkspace($this->user('paul.roussel@maison-dupont.test'), $this->dupont, 'client_readonly'),
-            Membership::onProject($this->user('nadia.benali@cairn.test'), $this->shop, 'developer'),
-            Membership::onProject($this->user('lea.fontaine@cairn.test'), $this->shop, 'developer'),
-            Membership::onProject($this->user('marc.petit@cairn.test'), $this->intranet, 'developer'),
-            Membership::onWorkspace($this->user('sophie.bernard@travelia.test'), $travelia, 'client'),
+            Membership::onWorkspace($this->user('thomas.girard@cairn.test'), $this->dupont, DefinitionFactory::roleRow('project_manager', $this->entityManager)),
+            Membership::onWorkspace($this->user('claire.martin@maison-dupont.test'), $this->dupont, DefinitionFactory::roleRow('client', $this->entityManager)),
+            Membership::onWorkspace($this->user('paul.roussel@maison-dupont.test'), $this->dupont, DefinitionFactory::roleRow('client_readonly', $this->entityManager)),
+            Membership::onProject($this->user('nadia.benali@cairn.test'), $this->shop, DefinitionFactory::roleRow('developer', $this->entityManager)),
+            Membership::onProject($this->user('lea.fontaine@cairn.test'), $this->shop, DefinitionFactory::roleRow('developer', $this->entityManager)),
+            Membership::onProject($this->user('marc.petit@cairn.test'), $this->intranet, DefinitionFactory::roleRow('developer', $this->entityManager)),
+            Membership::onWorkspace($this->user('sophie.bernard@travelia.test'), $travelia, DefinitionFactory::roleRow('client', $this->entityManager)),
         ];
         foreach ([$this->dupont, $this->shop, $this->intranet, $travelia, $this->booking, $this->bugs, $this->evolutions, $this->tasks, ...$memberships] as $entity) {
             $this->entityManager->persist($entity);

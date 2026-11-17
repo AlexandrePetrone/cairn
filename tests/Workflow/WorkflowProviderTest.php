@@ -6,6 +6,7 @@ namespace App\Tests\Workflow;
 
 use App\Config\ConfigRegistry;
 use App\Config\Definition\InvalidDefinitionException;
+use App\Repository\PlaceRepository;
 use App\Tests\KernelHelpers;
 use App\Tests\Workflow\Fixture\Subject;
 use App\Workflow\WorkflowFactory;
@@ -29,6 +30,7 @@ final class WorkflowProviderTest extends KernelTestCase
         $this->provider = new WorkflowProvider(
             $container->get(ConfigRegistry::class),
             new WorkflowFactory($container->get(EventDispatcherInterface::class)),
+            $container->get(PlaceRepository::class),
         );
     }
 

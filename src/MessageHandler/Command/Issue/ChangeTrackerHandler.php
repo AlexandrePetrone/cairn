@@ -50,7 +50,7 @@ final class ChangeTrackerHandler
         }
 
         $previous = $this->workflows->definition($current->getWorkflowId());
-        $previousPlace = $this->workflows->placeOf($issue) ?? throw IssueException::unknownPlace($issue->getPlace(), $previous->id);
+        $previousPlace = $this->workflows->placeOf($issue);
 
         $workflow = $this->workflows->definition($tracker->getWorkflowId());
         if (!$workflow->hasPlace($command->placeId)) {
@@ -58,7 +58,7 @@ final class ChangeTrackerHandler
         }
         $place = $this->workflows->place($command->placeId);
 
-        $issue->changeTracker($tracker, $place);
+        $issue->changeTracker($tracker, $this->workflows->row($place));
         $this->support->arrive($issue);
         $this->support->record(new IssueMoved($issue, $actor, [JournalEntry::trackerChanged($issue, $actor, $current, $previousPlace, $tracker, $place)]));
 

@@ -7,7 +7,7 @@ namespace App\Message\Command\Config;
 /**
  * Deletes an action of a workflow. Handled by DeleteTransitionHandler.
  */
-final readonly class DeleteTransition
+final readonly class DeleteTransition implements ConfigurationCommand
 {
     public function __construct(
         public string $workflowId,

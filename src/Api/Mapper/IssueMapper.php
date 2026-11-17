@@ -85,7 +85,7 @@ final class IssueMapper
             description: $description,
             project: $issue->getProject()->getIssuePrefix(),
             tracker: new NamedRef((int) $issue->getTracker()->getId(), $issue->getTracker()->getName()),
-            place: new PlaceRef($issue->getPlace(), $this->workflows->placeOf($issue)->label ?? $issue->getPlace()),
+            place: new PlaceRef($issue->getPlace(), $this->workflows->placeOf($issue)->label),
             closed: PlaceStatus::Closed === $issue->getStatus(),
             criticality: $issue->getCriticality()->value,
             private: $issue->isPrivate(),

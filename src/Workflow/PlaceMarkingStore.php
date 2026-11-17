@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Workflow;
 
-use App\Config\Definition\PlaceDefinition;
+use App\Entity\Place;
 use Symfony\Component\Workflow\Marking;
 use Symfony\Component\Workflow\MarkingStore\MarkingStoreInterface;
 
@@ -16,10 +16,10 @@ use Symfony\Component\Workflow\MarkingStore\MarkingStoreInterface;
 final class PlaceMarkingStore implements MarkingStoreInterface
 {
     /**
-     * @param array<string, PlaceDefinition> $places those of the instance, by id
+     * @param \Closure(string): Place $row the row of a place of the instance, by its id: asked when a subject moves, never kept, since a worker clears its entity manager between two messages
      */
     public function __construct(
-        private readonly array $places,
+        private readonly \Closure $row,
     ) {
     }
 
@@ -40,7 +40,7 @@ final class PlaceMarkingStore implements MarkingStoreInterface
             throw new \LogicException(\sprintf('A %s subject sits on exactly one place, %d given.', HasPlace::class, \count($places)));
         }
 
-        self::subject($subject)->moveTo($this->places[(string) $places[0]] ?? throw new \LogicException(\sprintf('Unknown place "%s".', $places[0])));
+        self::subject($subject)->moveTo(($this->row)((string) $places[0]));
     }
 
     private static function subject(object $subject): HasPlace

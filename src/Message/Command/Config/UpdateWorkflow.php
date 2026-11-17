@@ -12,7 +12,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * kanban; `fields` replaces the fields it asks for, in the order of the
  * form. Handled by UpdateWorkflowHandler.
  */
-final readonly class UpdateWorkflow
+final readonly class UpdateWorkflow implements ConfigurationCommand
 {
     public function __construct(
         public string $id,

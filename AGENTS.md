@@ -1035,8 +1035,9 @@ src/
   (`ListAutomationRuns`); the page of the rules warns of a role its
   active rules aim at that has no referent (`MissingReferents`). A rule
   that stopped meaning something (a step taken out of its workflow)
-  blocks nothing: the configuration commands know nothing of the rules, and
-  the rule is skipped where it cannot act, which its executions say.
+  blocks nothing: the dialog that takes the step out names the rule
+  (`Automation/RuleReferences`), and the rule is skipped where it
+  cannot act, which its executions say.
 - **Time is counted from the last person.** A rule may wait for
   "no activity for N days" instead of an event. `Issue::$lastActivityAt`
   moves when a person or a forge acts, never when a rule does, so the
@@ -1775,12 +1776,22 @@ database.
   `Role` and `RolePermission`, `Place`, `Field` (its choices in a JSON
   list), `LinkType`, `Workflow` with `WorkflowPlace`, `WorkflowField`
   and `Transition` (`TransitionSource`, `TransitionRole`): no entity
-  holds a collection, each row names its owner. The columns of the data
-  that name a role, a workflow or a link type stay plain strings for the
-  entities and the queries, and get a foreign key in the schema
-  (`EventListener/ConfigurationReferences`), so the database refuses an
-  unknown one and the deletion of one in use. The place of an issue has
-  none: a key cannot say "a step of the workflow of its tracker".
+  holds a collection, each row names its owner. The data points to
+  these rows with a relation: the role of an access (`Membership`), the
+  workflow of a tracker (`Tracker`, `TemplateTracker`), the type of a
+  link (`IssueLink`), the place of an issue (`Issue`). So the database
+  refuses a key the configuration does not have and the deletion of a
+  row in use (`ConfigurationReferencesTest`). The entities take the row
+  (`Membership::onProject(…, Role)`, `Issue::moveTo(Place)`) and give
+  back its key only (`getRole()`, `getWorkflowId()`, `getTypeId()`,
+  `getPlace()`): what a role or a place says is read from the
+  definition, never through the relation. A handler gets the row from
+  the entity manager (`getReference()`, or `WorkflowProvider::row()` for
+  a place, whose status an issue copies). A relation cannot say "a step
+  of the workflow of its tracker": the commands hold that, and an issue
+  moved to a step in the instant it leaves its workflow stands on a
+  step its workflow no longer has, which the pages tolerate and an
+  internal user repairs.
 - **The application reads an immutable definition, never the rows.**
   `Config/DefinitionLoader` is the one place that knows how the tables
   fit together: it builds the `InstanceDefinition` (and its
@@ -1809,12 +1820,33 @@ database.
   follows, a link type links use, a step or a field a workflow uses are
   not deleted; an internal-only permission goes to internal-only roles;
   a role becomes internal-only once no external user holds it; a single
-  action leads from one step to another. Then every handler ends with
-  `ConfigWriting::settle()`, which writes the change, reads the whole
-  configuration again and gives it to `ConfigValidator`: a fault refuses
-  the command, whatever the handler forgot to check. A handler removes
-  the rows that hang from what it deletes itself, so that the entity
-  manager does not go on holding them.
+  action leads from one step to another; a field that offers choices has
+  some. A handler checks before it writes, as every handler of the
+  application does, and nothing is checked afterwards: `ConfigValidator`
+  judges a whole definition, which is what `InstallConfiguration` needs,
+  and is what the tests hold the commands to (after every command they
+  accept, `ConfigHandlersTest` and `ConfigurationTest` give it the
+  configuration that is left). A handler ends with
+  `ConfigWriting::settle()`, which writes the line of the journal and
+  resets `ConfigRegistry`, and removes itself the rows that hang from
+  what it deletes, so that the entity manager does not go on holding
+  them. The commands of the configuration implement
+  `ConfigurationCommand` and run one at a time: the middleware
+  `ConfigurationLock`, around their transaction on the `command.bus`,
+  holds a `symfony/lock` lock, so that two administrators never check
+  their change against a configuration the other is changing. With
+  `LOCK_DSN=flock` the lock is one server's; several servers need a
+  shared store.
+- **The automation rules are asked before a change leaves them without
+  their object.** A rule keeps what it says as data, so nothing ties it
+  to the step, the action or the role it names. `Automation/RuleReferences`
+  finds, in the projects and in the templates, the rules that name one,
+  from the kind each parameter declares (`ParameterKind::Place`,
+  `ScopedPlace`, `Transition`, `Target`): a role is not deleted while a
+  rule aims at its referent (`DeleteRole`); the dialogs that take a step
+  out of a workflow and that change an action name the rules that will
+  no longer act, without refusing, since a rule may hold on other
+  trackers.
 - **Two changes touch issues, and say so.** An issue keeps a copy of the
   status of its place (`Issue::$status`, which the lists sort and filter
   on): `UpdatePlace` gives a new status to the issues standing there

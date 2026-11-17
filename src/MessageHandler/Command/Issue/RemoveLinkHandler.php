@@ -44,10 +44,9 @@ final class RemoveLinkHandler
             'remove links',
         );
 
-        $definition = $this->config->definition();
-        $type = $definition->hasLink($link->getTypeId()) ? $definition->link($link->getTypeId()) : null;
+        $type = $this->config->definition()->link($link->getTypeId());
         $this->entityManager->remove($link);
-        $this->support->record(new IssuesUnlinked($source, $actor, [JournalEntry::linked($source, $actor, $type->label ?? $link->getTypeId(), $target, removed: true)]));
-        $this->support->record(new IssuesUnlinked($target, $actor, [JournalEntry::linked($target, $actor, $type?->labelFromTarget() ?? $link->getTypeId(), $source, removed: true)]));
+        $this->support->record(new IssuesUnlinked($source, $actor, [JournalEntry::linked($source, $actor, $type->label, $target, removed: true)]));
+        $this->support->record(new IssuesUnlinked($target, $actor, [JournalEntry::linked($target, $actor, $type->labelFromTarget(), $source, removed: true)]));
     }
 }

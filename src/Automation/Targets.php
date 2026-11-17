@@ -70,8 +70,6 @@ final class Targets
 
     private function roleLabel(string $role): string
     {
-        $definition = $this->config->definition();
-
-        return $definition->hasRole($role) ? $definition->role($role)->label : $role;
+        return $this->config->definition()->role($role)->label;
     }
 }

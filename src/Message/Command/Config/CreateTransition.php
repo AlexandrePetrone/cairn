@@ -13,7 +13,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * unique within the workflow, for good. Handled by CreateTransitionHandler,
  * which returns the Transition.
  */
-final readonly class CreateTransition
+final readonly class CreateTransition implements ConfigurationCommand
 {
     public function __construct(
         public string $workflowId,

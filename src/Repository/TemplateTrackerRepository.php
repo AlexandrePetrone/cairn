@@ -52,7 +52,7 @@ class TemplateTrackerRepository extends ServiceEntityRepository
     {
         /** @var list<array{workflowId: string, name: string}> $rows */
         $rows = $this->createQueryBuilder('t')
-            ->select('t.workflowId AS workflowId', 'p.name AS name')
+            ->select('IDENTITY(t.workflow) AS workflowId', 'p.name AS name')
             ->distinct()
             ->join('t.template', 'p')
             ->orderBy('p.name', 'ASC')

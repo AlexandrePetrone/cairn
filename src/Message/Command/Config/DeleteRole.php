@@ -8,7 +8,7 @@ namespace App\Message\Command\Config;
  * Deletes a role nobody holds and no action of a workflow names. Handled
  * by DeleteRoleHandler.
  */
-final readonly class DeleteRole
+final readonly class DeleteRole implements ConfigurationCommand
 {
     public function __construct(
         public string $id,

@@ -11,7 +11,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * moved. Its key is the one given or one made from the label, for good.
  * Handled by CreateRoleHandler, which returns the Role.
  */
-final readonly class CreateRole
+final readonly class CreateRole implements ConfigurationCommand
 {
     public function __construct(
         #[Assert\NotBlank(normalizer: 'trim')]

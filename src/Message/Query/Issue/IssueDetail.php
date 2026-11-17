@@ -16,13 +16,13 @@ use App\Entity\Issue;
 final readonly class IssueDetail
 {
     /**
-     * @param PlaceDefinition|null $place       the current place, null when it left the configuration
-     * @param list<TimelineEntry>  $timeline    comments and journal entries the viewer may see, oldest first; a comment that came with an action appears once, with its entry
-     * @param list<Attachment>     $attachments the files of the issue and of the comments the viewer may see, oldest first
+     * @param PlaceDefinition     $place       the current place
+     * @param list<TimelineEntry> $timeline    comments and journal entries the viewer may see, oldest first; a comment that came with an action appears once, with its entry
+     * @param list<Attachment>    $attachments the files of the issue and of the comments the viewer may see, oldest first
      */
     public function __construct(
         public Issue $issue,
-        public ?PlaceDefinition $place,
+        public PlaceDefinition $place,
         public array $timeline,
         public array $attachments = [],
     ) {

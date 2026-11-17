@@ -31,7 +31,7 @@ final class ShowWorkflowUsageHandler
                 ->from(Tracker::class, 't')
                 ->join('t.project', 'p')
                 ->join('p.workspace', 'w')
-                ->where('t.workflowId = :workflow')
+                ->where('t.workflow = :workflow')
                 ->setParameter('workflow', $query->workflowId)
                 ->orderBy('w.name')
                 ->addOrderBy('p.name')
@@ -42,10 +42,10 @@ final class ShowWorkflowUsageHandler
 
         /** @var list<array{tracker: int|string, place: string, issues: int|string}> $rows */
         $rows = $this->entityManager->createQueryBuilder()
-            ->select('IDENTITY(i.tracker) AS tracker', 'i.place AS place', 'COUNT(i.id) AS issues')
+            ->select('IDENTITY(i.tracker) AS tracker', 'IDENTITY(i.place) AS place', 'COUNT(i.id) AS issues')
             ->from(Issue::class, 'i')
             ->join('i.tracker', 't')
-            ->where('t.workflowId = :workflow')
+            ->where('t.workflow = :workflow')
             ->setParameter('workflow', $query->workflowId)
             ->groupBy('i.tracker', 'i.place')
             ->getQuery()

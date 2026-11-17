@@ -79,7 +79,7 @@ final class UpdateUserHandler
         $definition = $this->config->definition();
         $where = [];
         foreach ($this->memberships->findByUser($user) as $membership) {
-            if ($definition->hasRole($membership->getRole()) && $definition->role($membership->getRole())->internalOnly) {
+            if ($definition->role($membership->getRole())->internalOnly) {
                 $where[] = $membership->getProject()?->getName() ?? $membership->getWorkspace()?->getName() ?? '';
             }
         }

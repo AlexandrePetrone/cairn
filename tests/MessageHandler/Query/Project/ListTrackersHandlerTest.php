@@ -10,6 +10,7 @@ use App\Entity\User;
 use App\Factory\ProjectFactory;
 use App\Factory\UserFactory;
 use App\Message\Query\Project\ListTrackers;
+use App\Tests\Config\Fixture\DefinitionFactory;
 use App\Tests\KernelHelpers;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -73,11 +74,11 @@ final class ListTrackersHandlerTest extends KernelTestCase
     {
         $project = ProjectFactory::createOne();
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        $tasks = new Tracker($project, 'Internal task', 'bug', 1);
+        $tasks = new Tracker($project, 'Internal task', DefinitionFactory::workflowRow('bug', $entityManager), 1);
         $tasks->makePrivate();
-        $support = new Tracker($project, 'Support', 'bug', 3);
+        $support = new Tracker($project, 'Support', DefinitionFactory::workflowRow('bug', $entityManager), 3);
         $support->archive();
-        foreach ([new Tracker($project, 'Feature', 'bug', 2), $tasks, new Tracker($project, 'Bug', 'bug', 0), $support] as $tracker) {
+        foreach ([new Tracker($project, 'Feature', DefinitionFactory::workflowRow('bug', $entityManager), 2), $tasks, new Tracker($project, 'Bug', DefinitionFactory::workflowRow('bug', $entityManager), 0), $support] as $tracker) {
             $entityManager->persist($tracker);
         }
         $entityManager->flush();

@@ -253,7 +253,7 @@ final class Properties
         if ($this->tryCommand($commands, $command)) {
             $this->moves = null;
             $this->otherTrackers = null;
-            $this->announce($this->translator->trans('issue.move.done', ['%key%' => $this->issue->getKey(), '%place%' => $this->workflows->placeOf($this->issue)->label ?? $place]));
+            $this->announce($this->translator->trans('issue.move.done', ['%key%' => $this->issue->getKey(), '%place%' => $this->workflows->placeOf($this->issue)->label]));
         }
     }
 

@@ -13,7 +13,7 @@ use App\Config\Definition\InstanceDefinition;
  * existing configuration, which changes through its own commands. Handled
  * by InstallConfigurationHandler.
  */
-final readonly class InstallConfiguration
+final readonly class InstallConfiguration implements ConfigurationCommand
 {
     public function __construct(
         public InstanceDefinition $definition,

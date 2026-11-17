@@ -40,7 +40,7 @@ final class JournalEntryTest extends KernelTestCase
         $fixtures = new AccessFixtures(self::getContainer()->get(EntityManagerInterface::class));
         $this->claire = $fixtures->user('claire@client.test');
         $this->nadia = $fixtures->user('nadia@agency.test', internal: true);
-        $this->issue = new Issue($fixtures->shop, new Tracker($fixtures->shop, 'Bug', 'bug'), DefinitionFactory::place('new'), 4, $this->claire, 'Empty export', '');
+        $this->issue = new Issue($fixtures->shop, new Tracker($fixtures->shop, 'Bug', DefinitionFactory::workflowRow('bug')), DefinitionFactory::placeRow('new'), 4, $this->claire, 'Empty export', '');
     }
 
     #[DataProvider('changes')]

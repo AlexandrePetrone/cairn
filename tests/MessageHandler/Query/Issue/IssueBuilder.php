@@ -26,7 +26,7 @@ final class IssueBuilder
 
     public function issue(Tracker $tracker, User $author, string $title, string $place = 'new', Criticality $criticality = Criticality::Normal, ?User $assignee = null, bool $private = false): Issue
     {
-        $issue = new Issue($tracker->getProject(), $tracker, DefinitionFactory::place($place), ++$this->number, $author, $title, '');
+        $issue = new Issue($tracker->getProject(), $tracker, DefinitionFactory::placeRow($place, $this->entityManager), ++$this->number, $author, $title, '');
         $issue->setCriticality($criticality);
         $issue->assignTo($assignee);
         if ($private) {

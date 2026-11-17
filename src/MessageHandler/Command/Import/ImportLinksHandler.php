@@ -6,6 +6,7 @@ namespace App\MessageHandler\Command\Import;
 
 use App\Config\ConfigRegistry;
 use App\Entity\IssueLink;
+use App\Entity\LinkType;
 use App\Message\Command\Import\ImportLinks;
 use App\Repository\IssueLinkRepository;
 use App\Repository\IssueRepository;
@@ -38,7 +39,7 @@ final class ImportLinksHandler
             }
             $symmetric = $this->config->definition()->link($link['typeId'])->isSymmetric();
             if (null === $this->links->findBetween($issue, $link['typeId'], $other, $symmetric)) {
-                $this->entityManager->persist(new IssueLink($issue, $link['typeId'], $other, $createdBy));
+                $this->entityManager->persist(new IssueLink($issue, $this->entityManager->getReference(LinkType::class, $link['typeId']) ?? throw new \LogicException('An element of the configuration that the definition has exists.'), $other, $createdBy));
             }
             $written[$key] = true;
         }

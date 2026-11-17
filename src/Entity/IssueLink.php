@@ -32,9 +32,10 @@ class IssueLink
     #[ORM\JoinColumn(nullable: false)]
     private Issue $target;
 
-    /** Id of a link type of the configuration (LinkTypeDefinition). */
-    #[ORM\Column(length: 60)]
-    private string $typeId;
+    /** The type of the link, an element of the configuration: only its key is read from here. */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'type_id', nullable: false)]
+    private LinkType $type;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
@@ -43,13 +44,13 @@ class IssueLink
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
-    public function __construct(Issue $source, string $typeId, Issue $target, User $createdBy)
+    public function __construct(Issue $source, LinkType $type, Issue $target, User $createdBy)
     {
         if ($source === $target) {
             throw new \InvalidArgumentException('An issue is not linked to itself.');
         }
         $this->source = $source;
-        $this->typeId = $typeId;
+        $this->type = $type;
         $this->target = $target;
         $this->createdBy = $createdBy;
         $this->createdAt = now();
@@ -72,7 +73,7 @@ class IssueLink
 
     public function getTypeId(): string
     {
-        return $this->typeId;
+        return $this->type->getId();
     }
 
     /**

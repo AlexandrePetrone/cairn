@@ -24,7 +24,7 @@ final class CountMembershipsByRoleHandler
     {
         /** @var list<array{role: string, memberships: int|string}> $rows */
         $rows = $this->entityManager->createQueryBuilder()
-            ->select('m.role AS role', 'COUNT(m.id) AS memberships')
+            ->select('IDENTITY(m.role) AS role', 'COUNT(m.id) AS memberships')
             ->from(Membership::class, 'm')
             ->groupBy('m.role')
             ->getQuery()
