@@ -61,8 +61,8 @@ class Place implements Positioned
     }
 
     /**
-     * The issues standing on the place copy its status: whoever changes it
-     * aligns them (IssueRepository::alignStatus()).
+     * The issues standing on the place are open, waiting or closed by it:
+     * nothing copies it, so nothing follows.
      */
     public function changeStatus(PlaceStatus $status): void
     {

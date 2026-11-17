@@ -1847,20 +1847,31 @@ database.
   out of a workflow and that change an action name the rules that will
   no longer act, without refusing, since a rule may hold on other
   trackers.
-- **Two changes touch issues, and say so.** An issue keeps a copy of the
-  status of its place (`Issue::$status`, which the lists sort and filter
-  on): `UpdatePlace` gives a new status to the issues standing there
-  (`IssueRepository::alignStatus()`), closing those that enter the
-  closed status and reopening those that leave it. `RemoveWorkflowPlace`
-  takes a step out of a workflow: the issues standing there, in the
-  trackers that follow it, go in bulk to the step the command names
-  (`moveFromPlace()`), and the command is refused while some stand there
-  and no step is named; the actions that led to the step go with it,
-  those that started from it start from their other steps or go too.
-  The initial step never leaves. Neither writes in the journal of the
-  issues nor notifies anybody. The step stays in the instance, deleted
-  apart once no workflow uses it (`DeletePlace`). Removing a choice of a
-  field is free: an issue that holds it shows the value as stored.
+- **An issue is open or closed by its step, and one change touches
+  issues.** No issue copies the status of its place: a query that
+  filters, sorts or counts by status joins the place as `step` and reads
+  `step.status` (`IssueOrder::step()`, used by `SearchIssues`, the
+  default order, the counts of the navigation and of the projects, the
+  releases, the rules that wait for time); PHP and Twig read it from the
+  definition (`WorkflowProvider::placeOf()`, `issue_status(issue)`),
+  never through the relation. So `UpdatePlace` writes no issue: a step
+  that becomes a closing one closes the issues standing there at once,
+  in every list. `Issue::$closedAt` is a fact of its own, the last time
+  the issue was moved to a closed step: set by a move (an action, a
+  forced step, a change of tracker, the removal of a step), kept when
+  the status of a step changes, and given by the API only while the
+  issue is closed. An issue a change of status closed has none.
+  `RemoveWorkflowPlace` is the one change that writes issues: those
+  standing on the step, in the trackers that follow the workflow, go in
+  bulk to the step the command names (`moveFromPlace()`, which closes
+  them at that moment when they enter a closed step from an open one),
+  and the command is refused while some stand there and no step is
+  named; the actions that led to the step go with it, those that
+  started from it start from their other steps or go too. The initial
+  step never leaves. It writes nothing in the journal of the issues and
+  notifies nobody. The step stays in the instance, deleted apart once no
+  workflow uses it (`DeletePlace`). Removing a choice of a field is
+  free: an issue that holds it shows the value as stored.
 - **A new instance installs its starter configuration, once.**
   `Config/StarterKit` describes it as an `InstanceDefinition` (four
   roles, three workflows, twelve steps, six fields, three link types)

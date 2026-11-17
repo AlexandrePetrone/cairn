@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\AutomationRule;
 use App\Entity\AutomationRun;
+use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
 use App\Entity\Project;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -87,11 +88,13 @@ class AutomationRuleRepository extends ServiceEntityRepository
         $queryBuilder = $this->getEntityManager()->createQueryBuilder()
             ->select('i')
             ->from(Issue::class, 'i')
+            ->join('i.place', 'step')
             ->andWhere('i.project = :project')
-            ->andWhere('i.closedAt IS NULL')
+            ->andWhere('step.status != :closed')
             ->andWhere('COALESCE(i.lastActivityAt, i.updatedAt) <= :before')
             ->andWhere('NOT EXISTS (SELECT n.id FROM '.AutomationRun::class.' n WHERE n.rule = :rule AND n.issue = i AND n.at >= COALESCE(i.lastActivityAt, i.updatedAt))')
             ->setParameter('project', $rule->getProject())
+            ->setParameter('closed', PlaceStatus::Closed)
             ->setParameter('before', $before)
             ->setParameter('rule', $rule);
         if (null !== $rule->getTracker()) {

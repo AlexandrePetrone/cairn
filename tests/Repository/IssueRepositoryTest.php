@@ -60,7 +60,7 @@ final class IssueRepositoryTest extends KernelTestCase
             ['workflowId' => 'other_workflow', 'placeId' => 'new', 'issues' => 1],
         ], $this->issues->countByPlace(), 'only the places in use, by workflow then place');
 
-        $moved = $this->issues->moveFromPlace('bug', 'new', 'done', PlaceStatus::Closed, new \DateTimeImmutable('2026-03-03 10:00:00'));
+        $moved = $this->issues->moveFromPlace('bug', 'new', PlaceStatus::Open, 'done', PlaceStatus::Closed, new \DateTimeImmutable('2026-03-03 10:00:00'));
 
         self::assertSame(2, $moved);
         self::assertSame([
@@ -73,14 +73,13 @@ final class IssueRepositoryTest extends KernelTestCase
         $reloaded = $this->entityManager->find(Issue::class, $a->getId());
         self::assertInstanceOf(Issue::class, $reloaded);
         self::assertSame('done', $reloaded->getPlace());
-        self::assertSame(PlaceStatus::Closed, $reloaded->getStatus());
         self::assertSame('2026-03-03 10:00:00', $reloaded->getClosedAt()?->format('Y-m-d H:i:s'), 'closed by the move');
         self::assertSame($a->getUpdatedAt()->format('Y-m-d H:i:s'), $reloaded->getUpdatedAt()->format('Y-m-d H:i:s'), 'a move is not an activity');
 
         $ranks = $this->entityManager->getRepository(Issue::class)->findBy(['tracker' => $this->fixtures->bugs, 'place' => 'done'], ['boardRank' => 'DESC']);
         self::assertSame(['B', 'A'], array_map(static fn (Issue $issue): string => $issue->getTitle(), $ranks), 'the column that took them keeps their order');
 
-        $this->issues->moveFromPlace('bug', 'done', 'new', PlaceStatus::Open, null);
+        $this->issues->moveFromPlace('bug', 'done', PlaceStatus::Closed, 'new', PlaceStatus::Open, new \DateTimeImmutable('2026-03-04 10:00:00'));
         $this->entityManager->clear();
         $reopened = $this->entityManager->find(Issue::class, $b->getId());
         self::assertInstanceOf(Issue::class, $reopened);
@@ -99,7 +98,7 @@ final class IssueRepositoryTest extends KernelTestCase
         }
 
         // Both columns ranked their two issues 0 and one step.
-        $this->issues->moveFromPlace('bug', 'new', 'in_progress', PlaceStatus::InProgress, null);
+        $this->issues->moveFromPlace('bug', 'new', PlaceStatus::Open, 'in_progress', PlaceStatus::InProgress, new \DateTimeImmutable('2026-03-04 10:00:00'));
 
         $this->entityManager->clear();
         $ranks = array_map(static fn (Issue $issue): int => $issue->getBoardRank(), $this->entityManager->getRepository(Issue::class)->findBy(['place' => 'in_progress']));

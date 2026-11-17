@@ -6,7 +6,6 @@ namespace App\Tests\MessageHandler\Command\Issue;
 
 use App\Entity\Enum\Criticality;
 use App\Entity\Enum\JournalEntryType;
-use App\Entity\Enum\PlaceStatus;
 use App\Entity\JournalEntry;
 use App\Message\Command\Issue\CreateIssue;
 use App\Message\CommandBus;
@@ -43,7 +42,6 @@ final class CreateIssueHandlerTest extends KernelTestCase
         self::assertSame('MD-SPT-1', $first->getKey());
         self::assertSame('MD-SPT-2', $second->getKey());
         self::assertSame('new', $first->getPlace());
-        self::assertSame(PlaceStatus::Open, $first->getStatus());
         self::assertSame(Criticality::Normal, $first->getCriticality());
         self::assertSame('Empty CSV export', $first->getTitle());
         self::assertSame(['environment' => 'prod'], $first->getFieldValues());

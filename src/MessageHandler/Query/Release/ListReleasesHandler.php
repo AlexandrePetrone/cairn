@@ -40,13 +40,14 @@ final class ListReleasesHandler
         }
 
         $counts = $this->entityManager->createQueryBuilder()
-            ->select('IDENTITY(i.release) AS releaseId', 'i.status AS status', 'COUNT(i.id) AS issues')
+            ->select('IDENTITY(i.release) AS releaseId', 'step.status AS status', 'COUNT(i.id) AS issues')
             ->from(Issue::class, 'i')
             ->join('i.tracker', 't')
             ->join('i.project', 'p')
+            ->join('i.place', 'step')
             ->where('i.project = :project')
             ->andWhere('i.release IS NOT NULL')
-            ->groupBy('i.release', 'i.status')
+            ->groupBy('i.release', 'step.status')
             ->setParameter('project', $query->project);
         $this->visibility->restrictIssues($counts, $query->viewer);
 

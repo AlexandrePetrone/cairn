@@ -39,6 +39,7 @@ use App\Message\Command\Config\UpdateWorkflow;
 use App\Message\Command\Issue\AddLink;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\CommandBus;
+use App\Message\Query\Issue\SearchIssues;
 use App\MessageHandler\Command\Config\ConfigChangeException;
 use App\Security\Permission;
 use App\Tests\KernelHelpers;
@@ -194,25 +195,30 @@ final class ConfigHandlersTest extends KernelTestCase
         self::assertSame([], $references->toTransition('bug', 'start'));
     }
 
-    public function testAStatusGivenToAPlaceGoesToTheIssuesStandingThere(): void
+    public function testAStatusGivenToAPlaceIsAtOnceTheStatusOfItsIssuesAndTouchesNone(): void
     {
-        $issue = $this->fixtures->createIssue($this->fixtures->client);
-        $elsewhere = $this->fixtures->createIssue($this->fixtures->client);
-        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->developer->getId(), $elsewhere->getKey(), 'start'));
+        $issue = $this->fixtures->createIssue($this->fixtures->client, title: 'Waiting to be read');
+        $before = $issue->getUpdatedAt()->format('Y-m-d H:i:s');
+        $open = fn (): array => array_map(
+            static fn (Issue $listed): string => $listed->getTitle(),
+            self::queryBus()->ask(new SearchIssues($this->fixtures->manager))->items,
+        );
+        self::assertSame(['Waiting to be read'], $open());
 
         $this->commands->dispatch(new UpdatePlace('new', label: 'Inbox', status: PlaceStatus::Closed));
 
         self::assertSame('Inbox', $this->definition()->place('new')->label);
         self::assertSame(PlaceStatus::Closed, $this->definition()->place('new')->status);
+        self::assertSame([], $open(), 'an issue is finished by the status of its place: the lists follow at once');
+        self::assertSame(['Waiting to be read'], array_map(static fn (Issue $listed): string => $listed->getTitle(), self::queryBus()->ask(new SearchIssues($this->fixtures->manager, closed: true))->items));
+
         $this->entityManager->clear();
-        $closed = $this->reload($issue);
-        self::assertSame(PlaceStatus::Closed, $closed->getStatus());
-        self::assertNotNull($closed->getClosedAt());
-        self::assertSame(PlaceStatus::InProgress, $this->reload($elsewhere)->getStatus(), 'the issues of the other places are left alone');
+        $untouched = $this->reload($issue);
+        self::assertNull($untouched->getClosedAt(), 'nobody closed it: it has no closing date');
+        self::assertSame($before, $untouched->getUpdatedAt()->format('Y-m-d H:i:s'), 'no issue is written');
 
         $this->commands->dispatch(new UpdatePlace('new', status: PlaceStatus::Open));
-        $this->entityManager->clear();
-        self::assertNull($this->reload($issue)->getClosedAt(), 'leaving the closed status reopens them');
+        self::assertSame(['Waiting to be read'], $open());
     }
 
     public function testPlacesAreOrderedAndDeletedOnlyWhenNoWorkflowUsesThem(): void
@@ -365,7 +371,6 @@ final class ConfigHandlersTest extends KernelTestCase
         $this->entityManager->clear();
         $moved = $this->reload($tested);
         self::assertSame('done', $moved->getPlace());
-        self::assertSame(PlaceStatus::Closed, $moved->getStatus());
         self::assertNotNull($moved->getClosedAt());
         self::assertSame('new', $this->reload($untouched)->getPlace());
 

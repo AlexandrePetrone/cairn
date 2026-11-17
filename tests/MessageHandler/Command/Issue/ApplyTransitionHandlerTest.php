@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Tests\MessageHandler\Command\Issue;
 
 use App\Entity\Enum\JournalEntryType;
-use App\Entity\Enum\PlaceStatus;
 use App\Entity\JournalEntry;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\CommandBus;
@@ -43,7 +42,6 @@ final class ApplyTransitionHandlerTest extends KernelTestCase
         $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->developer->getId(), $issue->getKey(), 'start'));
 
         self::assertSame('in_progress', $issue->getPlace());
-        self::assertSame(PlaceStatus::InProgress, $issue->getStatus());
 
         $entry = $this->lastEntry($issue->getId());
         self::assertSame(JournalEntryType::Transitioned, $entry->getType());
@@ -126,7 +124,7 @@ final class ApplyTransitionHandlerTest extends KernelTestCase
 
         $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->manager->getId(), $issue->getKey(), 'accept'));
 
-        self::assertSame(PlaceStatus::Closed, $issue->getStatus());
+        self::assertSame('done', $issue->getPlace());
         self::assertNotNull($issue->getClosedAt());
     }
 

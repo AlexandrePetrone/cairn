@@ -13,6 +13,7 @@ use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
 use App\Entity\User;
 use App\Security\Viewer;
+use App\Workflow\WorkflowProvider;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
@@ -24,6 +25,7 @@ final class Refs
     public function __construct(
         private readonly Viewer $viewer,
         private readonly UrlGeneratorInterface $urls,
+        private readonly WorkflowProvider $workflows,
     ) {
     }
 
@@ -51,7 +53,7 @@ final class Refs
 
     public function issue(Issue $issue): IssueRef
     {
-        return new IssueRef($issue->getKey(), $issue->getTitle(), PlaceStatus::Closed === $issue->getStatus(), $this->issueUrl($issue));
+        return new IssueRef($issue->getKey(), $issue->getTitle(), PlaceStatus::Closed === $this->workflows->placeOf($issue)->status, $this->issueUrl($issue));
     }
 
     /**

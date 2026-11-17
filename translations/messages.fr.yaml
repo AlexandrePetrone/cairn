@@ -669,10 +669,9 @@ admin:
             created: 'Étape « %name% » créée. Ajoutez-la aux workflows qui l''utilisent.'
             deleted: 'Étape « %name% » supprimée.'
             delete_help: 'Une étape se supprime quand plus aucun workflow ne l''utilise.'
-            status_note: '{1}Une demande est à cette étape : donner à l''étape le statut fermé la ferme, le lui retirer la rouvre.|]1,Inf[ %count% demandes sont à cette étape : donner à l''étape le statut fermé les ferme, le lui retirer les rouvre.'
             form:
                 status: 'Statut'
-                status_help: 'La famille de l''étape : elle ordonne les listes, masque les demandes terminées et alimente les statistiques. Les utilisateurs voient l''étape, jamais son statut.'
+                status_help: 'La famille de l''étape : elle ordonne les listes, masque les demandes terminées et alimente les statistiques. Les utilisateurs voient l''étape, jamais son statut. Le changer s''applique tout de suite aux demandes qui s''y trouvent, sans les modifier.'
         fields:
             title: 'Champs'
             intro: 'Chaque workflow choisit les champs qu''il demande, sur sa page.'
@@ -791,7 +790,6 @@ admin:
                 created: 'Étape « %name% » créée.'
                 updated: 'Étape « %name% » modifiée.'
                 deleted: 'Étape « %name% » supprimée.'
-                status: '{0}Étape « %name% » : statut changé.|{1}Étape « %name% » : statut changé, 1 demande l''a suivi.|]1,Inf[ Étape « %name% » : statut changé, %count% demandes l''ont suivi.'
             field:
                 created: 'Champ « %name% » créé.'
                 updated: 'Champ « %name% » modifié.'

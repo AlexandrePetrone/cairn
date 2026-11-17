@@ -8,9 +8,10 @@ use App\Entity\Enum\PlaceStatus;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * Changes a step of the instance, PATCH style. A new status goes to the
- * issues standing on it, in every workflow: entering the closed status
- * closes them, leaving it reopens them. `position` moves it among the
+ * Changes a step of the instance, PATCH style. A new status is at once
+ * the status of the issues standing on it, in every workflow, since they
+ * read it from the step: none is written, and the date an issue was
+ * closed on stays what it was. `position` moves it among the
  * others: the order of the filters and groups of the lists. Handled by
  * UpdatePlaceHandler.
  */

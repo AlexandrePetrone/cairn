@@ -168,7 +168,7 @@ final class ConfigurationTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
-    public function testAStepIsCreatedAndItsStatusGoesToItsIssues(): void
+    public function testAStepIsCreatedAndItsStatusIsThatOfItsIssues(): void
     {
         $scene = $this->signInAsAdmin();
 
@@ -184,7 +184,6 @@ final class ConfigurationTest extends WebTestCase
         self::assertSelectorTextContains('#config-places-on_hold', 'Used by no workflow');
 
         $this->client->request('GET', '/admin/configuration/places/to_test');
-        self::assertSelectorTextContains('turbo-frame#modal', 'An issue stands on this step');
         $this->client->submitForm('Save', ['place[label]' => 'Acceptance', 'place[status]' => 'closed']);
         $this->client->followRedirect();
 
@@ -192,7 +191,8 @@ final class ConfigurationTest extends WebTestCase
         self::getContainer()->get(EntityManagerInterface::class)->clear();
         $tested = self::getContainer()->get(EntityManagerInterface::class)->find(Issue::class, $scene->issue('MD-SPT-4')->getId());
         self::assertInstanceOf(Issue::class, $tested);
-        self::assertSame(PlaceStatus::Closed, $tested->getStatus());
+        self::assertSame(PlaceStatus::Closed, $this->definition()->place($tested->getPlace())->status, 'the issue standing there is finished, by its step');
+        self::assertNull($tested->getClosedAt(), 'and was not touched');
 
         // A step workflows use stays; one nothing uses goes.
         $this->client->request('GET', '/admin/configuration/places/to_test');
@@ -416,7 +416,7 @@ final class ConfigurationTest extends WebTestCase
         self::assertSelectorTextContains('aside', 'History');
         self::assertSame([
             'Julie Admin Workflow "Bug": step "Info requested" removed.',
-            'Julie Admin Step "To test": status changed, and 1 issue followed it.',
+            'Julie Admin Step "To test" changed.',
             'Installation Configuration installed: 4 roles, 3 workflows, 12 steps, 7 fields, 3 link types.',
         ], $crawler->filter('main ol li')->each(static fn ($line): string => $line->filter('span')->eq(0)->text().' '.$line->filter('span')->eq(1)->text()));
     }

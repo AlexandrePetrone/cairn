@@ -28,7 +28,7 @@
                                         <twig:Ui:IssueKey :key="linkOther.key" size="sm" :href="linkHref" class="shrink-0" />
                                         <a href="{{ linkHref }}" class="min-w-0 flex-1 truncate text-[13px] text-body hover:text-brand" title="{{ linkOther.title }}">{{ linkOther.title }}</a>
                                         <span class="inline-flex shrink-0 items-center" title="{{ issue_place(linkOther) }}">
-                                            <twig:Ui:Status:Dot :status="linkOther.status.value" />
+                                            <twig:Ui:Status:Dot :status="issue_status(linkOther)" />
                                             <span class="sr-only">{{ issue_place(linkOther) }}</span>
                                         </span>
                                         {% if linksCanLink %}

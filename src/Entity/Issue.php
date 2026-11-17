@@ -14,15 +14,16 @@ use Doctrine\ORM\Mapping as ORM;
 use function Symfony\Component\Clock\now;
 
 /**
- * The tracked object. Its key (`MD-SPT-128`) is fixed at creation. The
- * place, set from the first moment, is stored as the id of a workflow
- * place, with its status denormalised for sorting and filtering. Nothing
- * is ever deleted.
+ * The tracked object. Its key (`MD-SPT-128`) is fixed at creation. It
+ * stands on a place from the first moment; whether it is open, waiting or
+ * closed is the status of that place, read from the configuration and
+ * never copied here. `closedAt` is a fact of its own: when it was last
+ * moved to a closed place.
  */
 #[ORM\Entity(repositoryClass: IssueRepository::class)]
 #[ORM\UniqueConstraint(name: 'uniq_issue_project_number', columns: ['project_id', 'number'])]
-#[ORM\Index(name: 'idx_issue_project_status', columns: ['project_id', 'status'])]
-#[ORM\Index(name: 'idx_issue_assignee_status', columns: ['assignee_id', 'status'])]
+#[ORM\Index(name: 'idx_issue_project_place', columns: ['project_id', 'place'])]
+#[ORM\Index(name: 'idx_issue_assignee_place', columns: ['assignee_id', 'place'])]
 #[ORM\Index(name: 'idx_issue_board', columns: ['tracker_id', 'place', 'board_rank'])]
 #[ORM\Index(name: 'idx_issue_imported_ref', columns: ['imported_ref'])]
 class Issue implements HasPlace
@@ -59,9 +60,6 @@ class Issue implements HasPlace
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(name: 'place', nullable: false)]
     private Place $place;
-
-    #[ORM\Column(length: 20, enumType: PlaceStatus::class)]
-    private PlaceStatus $status;
 
     /** Where the issue stands in its kanban column, the highest first; compared within one tracker and one place only. */
     #[ORM\Column(type: Types::BIGINT, options: ['default' => 0])]
@@ -125,7 +123,7 @@ class Issue implements HasPlace
         $this->createdAt = now();
         $this->updatedAt = $this->createdAt;
         $this->lastActivityAt = $this->createdAt;
-        $this->moveTo($place);
+        $this->enter($place, false);
     }
 
     /**
@@ -215,20 +213,24 @@ class Issue implements HasPlace
         return $this->place->getId();
     }
 
-    public function getStatus(): PlaceStatus
-    {
-        return $this->status;
-    }
-
     /**
-     * Enters a place: the status follows, `closedAt` is set on entering a
-     * closed place and cleared on leaving one.
+     * Enters a place. Moved from an open place to a closed one, the issue
+     * is closed now; moved to an open one, it no longer has a closing date.
+     * Between two closed places the date stays.
      */
     public function moveTo(Place $place): void
     {
+        $this->enter($place, PlaceStatus::Closed === $this->place->getStatus());
+    }
+
+    private function enter(Place $place, bool $wasClosed): void
+    {
         $this->place = $place;
-        $this->status = $place->getStatus();
-        $this->closedAt = PlaceStatus::Closed === $place->getStatus() ? ($this->closedAt ?? now()) : null;
+        $this->closedAt = match (true) {
+            PlaceStatus::Closed !== $place->getStatus() => null,
+            $wasClosed => $this->closedAt ?? now(),
+            default => now(),
+        };
         $this->touch();
     }
 

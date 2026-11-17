@@ -8,6 +8,6 @@
         {% if reason %}<span class="block text-xs text-amber">{{ reason }}</span>{% endif %}
     </span>
     <twig:Ui:Criticality:Badge :criticality="issue.criticality.value" />
-    <span class="hidden sm:block w-40 shrink-0"><twig:Ui:Status:Step :status="issue.status.value" :label="issue_place(issue)" /></span>
+    <span class="hidden sm:block w-40 shrink-0"><twig:Ui:Status:Step :status="issue_status(issue)" :label="issue_place(issue)" /></span>
     <span class="hidden md:inline w-20 shrink-0 text-right text-xs text-faint">{{ issue.updatedAt|date('d/m/Y') }}</span>
 </li>

@@ -27,4 +27,14 @@ final class PlaceExtension
     {
         return $this->workflows->placeOf($issue)->label;
     }
+
+    /**
+     * The status of the issue's place, as its value (`open`, `closed`…): what
+     * says whether an issue is finished, which no issue keeps for itself.
+     */
+    #[AsTwigFunction('issue_status')]
+    public function issueStatus(Issue $issue): string
+    {
+        return $this->workflows->placeOf($issue)->status->value;
+    }
 }

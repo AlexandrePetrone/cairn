@@ -79,6 +79,8 @@ final class IssueMapper
     {
         $release = $issue->getRelease();
 
+        $closed = PlaceStatus::Closed === $this->workflows->placeOf($issue)->status;
+
         return new IssueResource(
             key: $issue->getKey(),
             title: $issue->getTitle(),
@@ -86,7 +88,7 @@ final class IssueMapper
             project: $issue->getProject()->getIssuePrefix(),
             tracker: new NamedRef((int) $issue->getTracker()->getId(), $issue->getTracker()->getName()),
             place: new PlaceRef($issue->getPlace(), $this->workflows->placeOf($issue)->label),
-            closed: PlaceStatus::Closed === $issue->getStatus(),
+            closed: $closed,
             criticality: $issue->getCriticality()->value,
             private: $issue->isPrivate(),
             author: $this->refs->user($issue->getAuthor()),
@@ -94,7 +96,8 @@ final class IssueMapper
             release: null === $release ? null : new NamedRef((int) $release->getId(), $release->getName()),
             createdAt: $issue->getCreatedAt(),
             updatedAt: $issue->getUpdatedAt(),
-            closedAt: $issue->getClosedAt(),
+            // The date of the last move to a closed step: said only while the issue is closed.
+            closedAt: $closed ? $issue->getClosedAt() : null,
             url: $this->refs->issueUrl($issue),
             importedRef: $issue->getImportedRef(),
             fields: $fields,

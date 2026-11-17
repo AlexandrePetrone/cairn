@@ -669,10 +669,9 @@ admin:
             created: 'Step "%name%" created. Add it to the workflows that use it.'
             deleted: 'Step "%name%" deleted.'
             delete_help: 'A step is deleted once no workflow uses it.'
-            status_note: '{1}An issue stands on this step: giving the step the closed status closes it, taking that status away reopens it.|]1,Inf[ %count% issues stand on this step: giving the step the closed status closes them, taking that status away reopens them.'
             form:
                 status: 'Status'
-                status_help: 'The family of the step: it orders the lists, hides finished issues and feeds the statistics. Users see the step, never its status.'
+                status_help: 'The family of the step: it orders the lists, hides finished issues and feeds the statistics. Users see the step, never its status. Changing it applies at once to the issues standing on the step, without touching them.'
         fields:
             title: 'Fields'
             intro: 'Each workflow picks the fields it asks for, on its page.'
@@ -791,7 +790,6 @@ admin:
                 created: 'Step "%name%" created.'
                 updated: 'Step "%name%" changed.'
                 deleted: 'Step "%name%" deleted.'
-                status: '{0}Step "%name%": status changed.|{1}Step "%name%": status changed, and 1 issue followed it.|]1,Inf[ Step "%name%": status changed, and %count% issues followed it.'
             field:
                 created: 'Field "%name%" created.'
                 updated: 'Field "%name%" changed.'

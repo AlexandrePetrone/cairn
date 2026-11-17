@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\Command\Config;
 
-use App\Entity\Enum\PlaceStatus;
 use App\Entity\Place;
 use App\Entity\Workflow;
 use App\Message\Command\Config\RemoveWorkflowPlace;
@@ -49,7 +48,7 @@ final class RemoveWorkflowPlaceHandler
 
         if (null !== $target && $standing > 0) {
             // In bulk and without a word in their history: entering a closed place closes them, leaving one reopens them.
-            $this->issues->moveFromPlace($workflow->getId(), $place->getId(), $target->getId(), $target->getStatus(), PlaceStatus::Closed === $target->getStatus() ? $this->clock->now() : null);
+            $this->issues->moveFromPlace($workflow->getId(), $place->getId(), $place->getStatus(), $target->getId(), $target->getStatus(), $this->clock->now());
         }
 
         foreach ($this->transitions->findByWorkflow($workflow) as $transition) {

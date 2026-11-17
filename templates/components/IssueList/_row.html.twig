@@ -1,5 +1,5 @@
 {# One row of IssueList:Table: its checkbox, sent to the selection page with the form of the bar, then its cells. `group` is the key of its group in a grouped list, which folds it. #}
-{% set rowClosed = issue.status.value == 'closed' %}
+{% set rowClosed = issue_status(issue) == 'closed' %}
 {% set issueRoute = { workspaceKey: issue.project.workspace.key, projectKey: issue.project.key } %}
 {% set issueHref = path('app_issue_show', issueRoute|merge({ number: issue.number })) %}
 <twig:Ui:Table:Row :closed="rowClosed" class="has-[:checked]:bg-brand-soft/60" data-fold-target="row" data-fold-group="{{ group }}">
@@ -18,7 +18,7 @@
         {% if issue.private %}<twig:Ui:Badge tone="amber" size="sm" icon="lock">{{ 'issue.private'|trans }}</twig:Ui:Badge>{% endif %}
     </td>
     <td class="sm:px-3 sm:py-2.5 order-5 whitespace-nowrap text-xs text-muted">{{ issue.tracker.name }}</td>
-    <td class="sm:px-3 sm:py-2.5 order-6 whitespace-nowrap"><twig:Ui:Status:Step :status="issue.status.value" :label="issue_place(issue)" /></td>
+    <td class="sm:px-3 sm:py-2.5 order-6 whitespace-nowrap"><twig:Ui:Status:Step :status="issue_status(issue)" :label="issue_place(issue)" /></td>
     <td class="sm:px-3 sm:py-2.5 order-2 whitespace-nowrap"><twig:Ui:Criticality:Badge :criticality="issue.criticality.value" /></td>
     <td class="sm:px-3 sm:py-1.5 order-7 whitespace-nowrap leading-none"><twig:User:Avatar :user="issue.assignee" size="md" /></td>
     <td class="sm:px-3 sm:py-2.5 order-3 ml-auto sm:ml-0 text-right whitespace-nowrap text-xs text-faint">{{ issue.updatedAt|date('d/m/Y') }}</td>

@@ -13,7 +13,6 @@ use App\Message\Command\Config\CreatePlace;
 use App\Message\Command\Config\DeletePlace;
 use App\Message\Command\Config\UpdatePlace;
 use App\Message\CommandBus;
-use App\Repository\IssueRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -44,13 +43,13 @@ final class PlaceController extends AbstractController
     }
 
     #[Route('/places', name: 'app_admin_configuration_places', methods: ['GET'])]
-    public function list(Request $request, IssueRepository $issues): Response
+    public function list(Request $request): Response
     {
-        return $this->page($request, $issues, null, null);
+        return $this->page($request, null, null);
     }
 
     #[Route('/places/new', name: 'app_admin_configuration_place_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, IssueRepository $issues): Response
+    public function new(Request $request): Response
     {
         $data = new PlaceData();
         $form = $this->createForm(PlaceType::class, $data, ['action' => $request->getRequestUri()]);
@@ -61,11 +60,11 @@ final class PlaceController extends AbstractController
             return $this->redirectToRoute('app_admin_configuration_places');
         }
 
-        return $this->page($request, $issues, $form, null);
+        return $this->page($request, $form, null);
     }
 
     #[Route('/places/{id}', name: 'app_admin_configuration_place', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['GET', 'POST'])]
-    public function edit(string $id, Request $request, IssueRepository $issues): Response
+    public function edit(string $id, Request $request): Response
     {
         $place = $this->place($id);
         $data = new PlaceData();
@@ -80,7 +79,7 @@ final class PlaceController extends AbstractController
             return $this->redirectToRoute('app_admin_configuration_places');
         }
 
-        return $this->page($request, $issues, $form, $place);
+        return $this->page($request, $form, $place);
     }
 
     #[Route('/places/{id}/delete', name: 'app_admin_configuration_place_delete', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['POST'])]
@@ -96,13 +95,11 @@ final class PlaceController extends AbstractController
      * @param FormInterface<PlaceData>|null $form  the dialog, when it is open
      * @param PlaceDefinition|null          $place the step it changes, none when it creates one
      */
-    private function page(Request $request, IssueRepository $issues, ?FormInterface $form, ?PlaceDefinition $place): Response
+    private function page(Request $request, ?FormInterface $form, ?PlaceDefinition $place): Response
     {
         return $this->renderWithDialog($request, 'admin/configuration/places.html.twig', [
             'form' => $form,
             'dialogPlace' => $place,
-            // What a change of status would close or reopen.
-            'dialogIssueCount' => null === $place ? 0 : $issues->countOnPlace($place->id),
         ], fn (): array => [
             'definition' => $this->config->definition(),
         ], $form);

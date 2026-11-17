@@ -65,33 +65,6 @@ class IssueRepository extends ServiceEntityRepository
     }
 
     /**
-     * Gives the issues of a place the status the place now has, in bulk,
-     * whatever their workflow. Those that become closed are closed at
-     * `$closedAt`, those that no longer are lose their closing date.
-     * Touches nothing else: it is not an activity on the issues.
-     *
-     * @return int number of issues changed
-     */
-    public function alignStatus(string $placeId, PlaceStatus $status, \DateTimeImmutable $closedAt): int
-    {
-        $update = $this->createQueryBuilder('i')
-            ->update()
-            ->set('i.status', ':status')
-            ->andWhere('i.place = :place')
-            ->andWhere('i.status != :status')
-            ->setParameter('place', $placeId)
-            ->setParameter('status', $status);
-
-        if (PlaceStatus::Closed === $status) {
-            $update->set('i.closedAt', ':closedAt')->setParameter('closedAt', $closedAt);
-        } else {
-            $update->set('i.closedAt', 'NULL');
-        }
-
-        return (int) $update->getQuery()->execute();
-    }
-
-    /**
      * Number of issues in each tracker of a project, private ones
      * included: the project configuration is for internal users.
      *
@@ -117,34 +90,30 @@ class IssueRepository extends ServiceEntityRepository
     }
 
     /**
-     * Bulk move of the issues sitting on a place, with the status that
-     * goes with the target place. `closedAt` is set on issues not yet
-     * closed when given, cleared when null. The kanban columns that took
-     * them are ranked anew, the newcomers among the cards already there by
-     * the rank they had: two columns count their ranks alike, so merged
-     * they would hold equal ones. Touches nothing else: a move is not an
-     * activity on the issues.
+     * Bulk move of the issues sitting on a place to another of their
+     * workflow. Those that enter a closed place from an open one are closed
+     * at `$at`, those that leave one lose their closing date. The kanban
+     * columns that took them are ranked anew, the newcomers among the cards
+     * already there by the rank they had: two columns count their ranks
+     * alike, so merged they would hold equal ones. Touches nothing else: a
+     * move is not an activity on the issues.
      *
      * @return int number of issues moved
      */
-    public function moveFromPlace(string $workflowId, string $fromPlaceId, string $toPlaceId, PlaceStatus $toStatus, ?\DateTimeImmutable $closedAt): int
+    public function moveFromPlace(string $workflowId, string $fromPlaceId, PlaceStatus $fromStatus, string $toPlaceId, PlaceStatus $toStatus, \DateTimeImmutable $at): int
     {
-        $closing = $this->onPlace($workflowId, $fromPlaceId)->update();
-        if (null === $closedAt) {
-            $closing->set('i.closedAt', 'NULL');
-        } else {
-            $closing->set('i.closedAt', ':closedAt')->setParameter('closedAt', $closedAt)->andWhere('i.closedAt IS NULL');
+        if (PlaceStatus::Closed !== $toStatus) {
+            $this->onPlace($workflowId, $fromPlaceId)->update()->set('i.closedAt', 'NULL')->getQuery()->execute();
+        } elseif (PlaceStatus::Closed !== $fromStatus) {
+            $this->onPlace($workflowId, $fromPlaceId)->update()->set('i.closedAt', ':at')->setParameter('at', $at)->getQuery()->execute();
         }
-        $closing->getQuery()->execute();
 
         $trackerIds = $this->onPlace($workflowId, $fromPlaceId)->select('DISTINCT IDENTITY(i.tracker)')->getQuery()->getSingleColumnResult();
 
         $moved = (int) $this->onPlace($workflowId, $fromPlaceId)
             ->update()
             ->set('i.place', ':to')
-            ->set('i.status', ':status')
             ->setParameter('to', $toPlaceId)
-            ->setParameter('status', $toStatus)
             ->getQuery()
             ->execute();
 

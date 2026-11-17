@@ -125,14 +125,14 @@ final class SearchIssuesHandler
         }
 
         if ([] !== $query->status) {
-            $queryBuilder->andWhere('i.status IN (:status)')->setParameter('status', $query->status);
+            IssueOrder::step($queryBuilder)->andWhere('step.status IN (:status)')->setParameter('status', $query->status);
         }
         if ([] !== $query->place) {
             $queryBuilder->andWhere('i.place IN (:place)')->setParameter('place', $query->place);
         }
         // Closed issues stay out unless asked for: by the flag, by status, or by choosing places.
         if (!$query->closed && [] === $query->place && !\in_array(PlaceStatus::Closed, $query->status, true)) {
-            $queryBuilder->andWhere('i.status != :closedStatus')->setParameter('closedStatus', PlaceStatus::Closed);
+            IssueOrder::step($queryBuilder)->andWhere('step.status != :closedStatus')->setParameter('closedStatus', PlaceStatus::Closed);
         }
         if ([] !== $query->project) {
             $queryBuilder->andWhere('p.id IN (:project)')->setParameter('project', $query->project);

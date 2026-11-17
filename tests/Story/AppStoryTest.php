@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Story;
 
+use App\Config\ConfigRegistry;
 use App\Entity\CodeReference;
 use App\Entity\Enum\JournalEntryType;
 use App\Entity\Enum\PlaceStatus;
@@ -31,11 +32,12 @@ final class AppStoryTest extends KernelTestCase
         $issues = $entityManager->getRepository(Issue::class)->findAll();
 
         self::assertGreaterThanOrEqual(40, \count($issues));
-        self::assertSame(PlaceStatus::cases(), array_values(array_filter(PlaceStatus::cases(), static fn (PlaceStatus $status) => array_any($issues, static fn (Issue $issue) => $issue->getStatus() === $status))), 'every status is represented');
+        $statusOf = static fn (Issue $issue): PlaceStatus => self::getContainer()->get(ConfigRegistry::class)->definition()->place($issue->getPlace())->status;
+        self::assertSame(PlaceStatus::cases(), array_values(array_filter(PlaceStatus::cases(), static fn (PlaceStatus $status) => array_any($issues, static fn (Issue $issue) => $statusOf($issue) === $status))), 'every status is represented');
 
         foreach ($issues as $issue) {
             self::assertSame($issue->getProject()->getIssuePrefix().'-'.$issue->getNumber(), $issue->getKey());
-            self::assertSame(PlaceStatus::Closed === $issue->getStatus(), null !== $issue->getClosedAt(), $issue->getKey().' closing date');
+            self::assertSame(PlaceStatus::Closed === $statusOf($issue), null !== $issue->getClosedAt(), $issue->getKey().' closing date');
             if ($issue->getTracker()->isPrivate()) {
                 self::assertTrue($issue->isPrivate(), $issue->getKey().' belongs to a private tracker');
             }

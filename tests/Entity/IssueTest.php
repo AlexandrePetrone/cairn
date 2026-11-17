@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Entity;
 
-use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\Tracker;
@@ -25,10 +24,10 @@ final class IssueTest extends TestCase
         self::assertSame('MD-SPT-128', $issue->getKey());
         self::assertSame(128, $issue->getNumber());
         self::assertSame('new', $issue->getPlace(), 'born on the initial place');
-        self::assertSame(PlaceStatus::Open, $issue->getStatus());
+        self::assertNull($issue->getClosedAt());
     }
 
-    public function testMovingToAPlaceSetsTheStatusAndTheClosingDate(): void
+    public function testMovingToAPlaceSetsTheClosingDate(): void
     {
         $workflow = DefinitionFactory::bugWorkflow();
         $issue = $this->issue();
@@ -36,13 +35,11 @@ final class IssueTest extends TestCase
         self::mockTime('2026-03-03 10:00:00');
         $issue->moveTo(DefinitionFactory::placeRow('new'));
         self::assertSame('new', $issue->getPlace());
-        self::assertSame(PlaceStatus::Open, $issue->getStatus());
         self::assertNull($issue->getClosedAt());
         self::assertSame('2026-03-03 10:00:00', $issue->getUpdatedAt()->format('Y-m-d H:i:s'));
 
         self::mockTime('2026-03-04 09:00:00');
         $issue->moveTo(DefinitionFactory::placeRow('done'));
-        self::assertSame(PlaceStatus::Closed, $issue->getStatus());
         self::assertSame('2026-03-04 09:00:00', $issue->getClosedAt()?->format('Y-m-d H:i:s'));
 
         self::mockTime('2026-03-05 09:00:00');

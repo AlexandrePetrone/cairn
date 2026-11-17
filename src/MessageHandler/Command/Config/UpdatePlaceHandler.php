@@ -7,9 +7,7 @@ namespace App\MessageHandler\Command\Config;
 use App\Entity\Place;
 use App\Message\Command\Config\UpdatePlace;
 use App\MessageHandler\Command\Tracker\ListOrder;
-use App\Repository\IssueRepository;
 use App\Repository\PlaceRepository;
-use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler(bus: 'command.bus')]
@@ -17,8 +15,6 @@ final class UpdatePlaceHandler
 {
     public function __construct(
         private readonly PlaceRepository $places,
-        private readonly IssueRepository $issues,
-        private readonly ClockInterface $clock,
         private readonly ConfigWriting $writing,
     ) {
     }
@@ -30,17 +26,13 @@ final class UpdatePlaceHandler
         if (null !== $command->label) {
             $place->rename($command->label);
         }
-        $aligned = null;
-        if (null !== $command->status && $command->status !== $place->getStatus()) {
+        if (null !== $command->status) {
+            // The issues standing there are open or closed by this status, read where it is: none is touched.
             $place->changeStatus($command->status);
-            // An issue copies the status of its place: those standing there follow it, closed or reopened.
-            $aligned = $this->issues->alignStatus($place->getId(), $command->status, $this->clock->now());
         }
         if (null !== $command->position) {
             ListOrder::move($place, $this->places->findOrdered(), $command->position);
         }
-        null === $aligned
-            ? $this->writing->settle('place.updated', ['%name%' => $place->getLabel()])
-            : $this->writing->settle('place.status', ['%name%' => $place->getLabel(), '%count%' => $aligned]);
+        $this->writing->settle('place.updated', ['%name%' => $place->getLabel()]);
     }
 }

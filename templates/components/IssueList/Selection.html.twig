@@ -59,7 +59,7 @@
                                     <span>{{ selectionArrival }}</span>
                                 </span>
                             {% else %}
-                                <twig:Ui:Status:Step :status="issue.status.value" :label="issue_place(issue)" />
+                                <twig:Ui:Status:Step :status="issue_status(issue)" :label="issue_place(issue)" />
                             {% endif %}
                         </td>
                         <td class="sm:px-3 sm:py-2.5 order-5 whitespace-nowrap">

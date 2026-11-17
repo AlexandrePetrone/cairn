@@ -40,7 +40,7 @@
                     <twig:Ui:Table:GroupRow :count="tableGroup.total" :colspan="tableColumns|length + 1"
                         data-action="fold#toggle" data-fold-target="toggle" data-fold-group-param="{{ tableGroup.key }}">
                         {% if tableGrouping.value == 'place' %}
-                            <twig:Ui:Status:Step :status="tableGroupIssue.status.value" :label="tableComponent.placeLabel(tableGroup.key)" />
+                            <twig:Ui:Status:Step :status="issue_status(tableGroupIssue)" :label="tableComponent.placeLabel(tableGroup.key)" />
                         {% elseif tableGrouping.value == 'criticality' %}
                             <twig:Ui:Criticality:Badge :criticality="tableGroupIssue.criticality.value" />
                         {% elseif tableGrouping.value == 'assignee' %}

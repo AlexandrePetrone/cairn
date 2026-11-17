@@ -13,15 +13,26 @@ use Doctrine\ORM\QueryBuilder;
  * grouped, then the column it is sorted by, then the default order:
  * status (open, in progress, waiting, closed), criticality (blocking
  * first), latest activity. The query builder names the issue `i`, its
- * tracker `t`, project `p`, workspace `w`, assignee `a` and release `r`.
+ * tracker `t`, project `p`, workspace `w`, assignee `a` and release `r`;
+ * its place is joined as `step` by whoever reads its status (step()).
  */
 final class IssueOrder
 {
     /** Open first, then in progress, waiting, closed. */
-    private const string STATUS_RANK = "CASE i.status WHEN 'open' THEN 1 WHEN 'in_progress' THEN 2 WHEN 'waiting' THEN 3 ELSE 4 END";
+    private const string STATUS_RANK = "CASE step.status WHEN 'open' THEN 1 WHEN 'in_progress' THEN 2 WHEN 'waiting' THEN 3 ELSE 4 END";
 
     /** Blocking first, then high, normal, low. */
     private const string CRITICALITY_RANK = "CASE i.criticality WHEN 'blocking' THEN 1 WHEN 'high' THEN 2 WHEN 'normal' THEN 3 ELSE 4 END";
+
+    /**
+     * Joins the place of the issue as `step`, once: an issue is open,
+     * waiting or closed by the status of its place (`step.status`), which
+     * no column of the issue copies.
+     */
+    public static function step(QueryBuilder $queryBuilder): QueryBuilder
+    {
+        return \in_array('step', $queryBuilder->getAllAliases(), true) ? $queryBuilder : $queryBuilder->join('i.place', 'step');
+    }
 
     /**
      * @param array<string, int> $placeRanks place id => rank, in the order of the instance (InstanceDefinition::$places), to sort or group by place
@@ -54,6 +65,7 @@ final class IssueOrder
             };
         }
 
+        self::step($queryBuilder);
         self::by($queryBuilder, 'statusOrder', self::STATUS_RANK, \SortDirection::Ascending);
 
         return self::by($queryBuilder, 'criticalityOrder', self::CRITICALITY_RANK, \SortDirection::Ascending)

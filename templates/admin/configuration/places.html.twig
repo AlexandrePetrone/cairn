@@ -1,4 +1,4 @@
-{# The steps of the instance, in the order the issue lists filter and group by. A step is created and changed in a dialog, which says how many issues a change of status closes or reopens. #}
+{# The steps of the instance, in the order the issue lists filter and group by. A step is created and changed in a dialog. #}
 {% extends 'admin/configuration/base.html.twig' %}
 
 {% set configurationSubject = 'places' %}
@@ -17,17 +17,10 @@
 {% endblock %}
 
 {% block modal %}
-    {% set modalNote = '' %}
-    {% if form and dialogPlace and dialogIssueCount > 0 %}
-        {% set modalNote %}
-            <twig:Ui:Callout tone="amber" size="sm" class="mt-4">{{ 'admin.configuration.places.status_note'|trans({ '%count%': dialogIssueCount }) }}</twig:Ui:Callout>
-        {% endset %}
-    {% endif %}
     {{ include('admin/configuration/_dialog.html.twig', {
         title: dialogPlace ? dialogPlace.label : 'admin.configuration.places.new'|trans,
         closeHref: path('app_admin_configuration_places'),
         submitLabel: (dialogPlace ? 'admin.configuration.save' : 'admin.configuration.create')|trans,
-        note: modalNote,
         deleteAction: dialogPlace ? path('app_admin_configuration_place_delete', { id: dialogPlace.id }) : null,
         deleteHelp: 'admin.configuration.places.delete_help'|trans,
     }) }}

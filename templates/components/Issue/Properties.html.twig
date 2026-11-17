@@ -31,7 +31,7 @@
                 <twig:Ui:Callout tone="danger" size="sm" role="alert" class="mb-2">{{ error }}</twig:Ui:Callout>
             {% endif %}
 
-            {% set propertiesPlace %}<twig:Ui:Status:Step :status="issue.status.value" :label="issue_place(issue)" pill />{% endset %}
+            {% set propertiesPlace %}<twig:Ui:Status:Step :status="issue_status(issue)" :label="issue_place(issue)" pill />{% endset %}
             {% if propertiesCanChangePlace %}
                 <div data-controller="panels">
                     <twig:Ui:Dropdown width="sm" class="block">
