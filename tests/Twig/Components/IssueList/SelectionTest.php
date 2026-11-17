@@ -98,6 +98,48 @@ final class SelectionTest extends KernelTestCase
         }
     }
 
+    public function testAStepTheIssuesShareIsTakenByEachInItsOwnTracker(): void
+    {
+        $component = $this->selection('thomas.girard@cairn.test', 'MD-SPT-1', 'MD-SPT-3', 'MD-SPT-6', 'MD-SPT-10');
+
+        $render = (string) $component->render();
+        self::assertSame(1, substr_count($render, 'data-live-action-param="move" data-live-place-param="to_test"'), 'a bug, a task and a feature all have "To test": offered once, without a tracker');
+        self::assertStringNotContainsString('data-live-action-param="move" data-live-place-param="qualified"', $render, 'a place only the bugs have is behind "Change category"');
+        self::assertStringContainsString('Change category…', $render);
+
+        $render = (string) $component->call('move', ['place' => 'to_test'])->render();
+        self::assertStringContainsString('Deliver for testing', $render, 'the bug and the task in progress get there by their action');
+        self::assertStringContainsString('Outside the workflow', $render, 'the new bug and the planned feature have no action that leads there');
+        self::assertStringNotContainsString('changes category', $render);
+
+        $component->call('apply');
+
+        foreach (['MD-SPT-1' => 'Bug', 'MD-SPT-3' => 'Bug', 'MD-SPT-6' => 'Internal task', 'MD-SPT-10' => 'Feature'] as $key => $tracker) {
+            $issue = $this->reloaded($key);
+            self::assertSame($tracker, $issue->getTracker()->getName(), $key.' stays in its tracker');
+            self::assertSame('to_test', $issue->getPlace(), $key);
+        }
+    }
+
+    public function testAStepTheIssuesDoNotShareIsNotTakenWithoutATracker(): void
+    {
+        $component = $this->selection('thomas.girard@cairn.test', 'MD-SPT-1', 'MD-SPT-6');
+
+        $component->call('move', ['place' => 'qualified'])->call('change', ['property' => 'criticality', 'value' => 'high'])->call('apply');
+
+        self::assertSame('new', $this->reloaded('MD-SPT-1')->getPlace(), 'tasks have no "Qualified": the choice is checked against what is offered');
+        self::assertSame('in_progress', $this->reloaded('MD-SPT-6')->getPlace());
+    }
+
+    public function testIssuesOfOneTrackerAreOfferedTheOtherTrackersBehindChangeCategory(): void
+    {
+        $render = (string) $this->selection('thomas.girard@cairn.test', 'MD-SPT-1', 'MD-SPT-2')->render();
+
+        self::assertStringContainsString('data-live-action-param="move" data-live-place-param="qualified"', $render, 'two bugs: every place of their workflow, without a tracker');
+        self::assertStringNotContainsString('data-live-tracker-param="'.$this->scene->bugs->getId().'"', $render, 'their own tracker is not a change of category');
+        self::assertStringContainsString('data-live-tracker-param="'.$this->scene->tasks->getId().'"', $render);
+    }
+
     public function testAListAcrossProjectsChangesNoStep(): void
     {
         $component = $this->selectionOf('thomas.girard@cairn.test', false, 'MD-SPT-1', 'MD-SPT-2');

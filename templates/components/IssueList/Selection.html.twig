@@ -9,6 +9,8 @@
 {% set selectionTargetTracker = this.targetTracker %}
 {% set selectionTargetPlace = this.targetPlace %}
 {% set selectionTrackers = this.trackers %}
+{% set selectionPlaces = this.places %}
+{% set selectionChangeTrackers = this.changeTrackers %}
 {% set selectionAssignee = this.assignee %}
 {% set selectionRelease = this.release %}
 {% set selectionArrivals = {} %}
@@ -43,7 +45,7 @@
                             {% endif %}
                         </td>
                         <td class="sm:px-3 sm:py-2.5 order-2 whitespace-nowrap text-xs text-muted">
-                            {% if selectionArrival and selectionTargetTracker.id != issue.tracker.id %}
+                            {% if selectionArrival and selectionTargetTracker and selectionTargetTracker.id != issue.tracker.id %}
                                 <span class="line-through">{{ issue.tracker.name }}</span> <span class="text-body">{{ selectionTargetTracker.name }}</span>
                             {% else %}
                                 {{ issue.tracker.name }}
@@ -99,15 +101,16 @@
                 <div class="space-y-0.5 p-3.5">
                     {% if error %}<twig:Ui:Callout tone="danger" size="sm" role="alert" class="mb-2">{{ error }}</twig:Ui:Callout>{% endif %}
 
-                    {% if selectionTrackers is not empty %}
+                    {% if selectionPlaces is not empty or selectionChangeTrackers is not empty %}
+                        <div data-controller="panels">
                         <twig:Ui:Dropdown width="sm" class="block">
                             <twig:block name="trigger">
                                 <div class="{{ selectionRowClasses }}">
                                     <div class="{{ selectionLabelClasses }}">{{ 'issue.show.place'|trans }}</div>
                                     <div class="min-w-0 flex-1">
-                                        <button type="button" class="{{ selectionValueClasses }}" aria-expanded="false" aria-haspopup="menu" aria-label="{{ 'issue.show.change_property'|trans({ '%property%': 'issue.show.place'|trans }) }}" data-action="dropdown#toggle">
+                                        <button type="button" class="{{ selectionValueClasses }}" aria-expanded="false" aria-haspopup="menu" aria-label="{{ 'issue.show.change_property'|trans({ '%property%': 'issue.show.place'|trans }) }}" data-action="dropdown#toggle panels#reset">
                                             {% if selectionTargetPlace %}
-                                                <span class="text-xs text-muted">{{ selectionTargetTracker.name }}</span>
+                                                {% if selectionTargetTracker %}<span class="text-xs text-muted">{{ selectionTargetTracker.name }}</span>{% endif %}
                                                 <twig:Ui:Status:Step :status="selectionTargetPlace.status.value" :label="selectionTargetPlace.label" pill />
                                             {% else %}
                                                 {{ selectionUnchanged }}
@@ -118,26 +121,50 @@
                                 </div>
                             </twig:block>
                             <twig:block name="content">
-                                {# Every place the selection may go to, under its tracker: an issue of another tracker changes tracker to get there. #}
-                                <div class="max-h-96 overflow-y-auto">
-                                    <twig:Ui:Dropdown:Item data-action="live#action dropdown#close" data-live-action-param="move">{{ selectionUnchanged }}</twig:Ui:Dropdown:Item>
-                                    {% for tracker in selectionTrackers %}
-                                        <p class="mt-1 flex items-center gap-1.5 border-t border-line-subtle px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
-                                            {{ tracker.name }}
-                                            {% if tracker.private %}<twig:ux:icon name="lucide:lock" class="h-3 w-3 shrink-0 text-faint" />{% endif %}
-                                        </p>
-                                        {% for place in selectionTrackerPlaces['t' ~ tracker.id] %}
-                                            {% set selectionPlaceActive = trackerId == tracker.id and placeId == place.id %}
-                                            <twig:Ui:Dropdown:Item :active="selectionPlaceActive" data-action="live#action dropdown#close" data-live-action-param="move" data-live-tracker-param="{{ tracker.id }}" data-live-place-param="{{ place.id }}">
+                                {# The places every issue has, each staying in its tracker; then, behind "Change category…" (`panels` controller), every place the selection may go to under its tracker, where an issue of another tracker changes tracker. Without a common place the trackers come at once. #}
+                                {% if selectionPlaces is not empty %}
+                                    <div class="max-h-96 overflow-y-auto" data-panels-target="panel" data-panels-name="places">
+                                        <twig:Ui:Dropdown:Item data-action="live#action dropdown#close" data-live-action-param="move">{{ selectionUnchanged }}</twig:Ui:Dropdown:Item>
+                                        {% for place in selectionPlaces %}
+                                            {% set selectionPlaceActive = trackerId is null and placeId == place.id %}
+                                            <twig:Ui:Dropdown:Item :active="selectionPlaceActive" data-action="live#action dropdown#close" data-live-action-param="move" data-live-place-param="{{ place.id }}">
                                                 <twig:Ui:Status:Dot :status="place.status.value" />
                                                 <span class="min-w-0 truncate">{{ place.label }}</span>
                                                 {% if selectionPlaceActive %}{{ selectionCheck }}{% endif %}
                                             </twig:Ui:Dropdown:Item>
                                         {% endfor %}
-                                    {% endfor %}
-                                </div>
+                                        {% if selectionChangeTrackers is not empty %}
+                                            <div class="my-1 border-t border-line-subtle"></div>
+                                            <twig:Ui:Dropdown:Item icon="arrow-left-right" data-action="panels#show" data-panels-name-param="trackers">{{ 'issue.step.change_tracker'|trans }}</twig:Ui:Dropdown:Item>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                                {% if selectionChangeTrackers is not empty %}
+                                    <div class="max-h-96 overflow-y-auto" data-panels-target="panel" data-panels-name="trackers" {{ selectionPlaces is not empty ? 'hidden' }}>
+                                        {% if selectionPlaces is not empty %}
+                                            <twig:Ui:Dropdown:Item icon="chevron-left" class="-mt-1 border-b border-line-subtle font-medium text-strong" data-action="panels#show" data-panels-name-param="places">{{ 'issue.step.change_tracker_title'|trans }}</twig:Ui:Dropdown:Item>
+                                        {% else %}
+                                            <twig:Ui:Dropdown:Item data-action="live#action dropdown#close" data-live-action-param="move">{{ selectionUnchanged }}</twig:Ui:Dropdown:Item>
+                                        {% endif %}
+                                        {% for tracker in selectionChangeTrackers %}
+                                            <p class="{{ loop.first and selectionPlaces is not empty ? '' : 'mt-1 border-t border-line-subtle' }} flex items-center gap-1.5 px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
+                                                {{ tracker.name }}
+                                                {% if tracker.private %}<twig:ux:icon name="lucide:lock" class="h-3 w-3 shrink-0 text-faint" />{% endif %}
+                                            </p>
+                                            {% for place in selectionTrackerPlaces['t' ~ tracker.id] %}
+                                                {% set selectionPlaceActive = trackerId == tracker.id and placeId == place.id %}
+                                                <twig:Ui:Dropdown:Item :active="selectionPlaceActive" data-action="live#action dropdown#close" data-live-action-param="move" data-live-tracker-param="{{ tracker.id }}" data-live-place-param="{{ place.id }}">
+                                                    <twig:Ui:Status:Dot :status="place.status.value" />
+                                                    <span class="min-w-0 truncate">{{ place.label }}</span>
+                                                    {% if selectionPlaceActive %}{{ selectionCheck }}{% endif %}
+                                                </twig:Ui:Dropdown:Item>
+                                            {% endfor %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </twig:block>
                         </twig:Ui:Dropdown>
+                        </div>
                     {% endif %}
 
                     {% if selectionActions.canAssign %}

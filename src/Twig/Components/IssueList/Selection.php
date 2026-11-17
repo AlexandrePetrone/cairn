@@ -39,7 +39,7 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * says which are offered). Changes add up, each left alone until chosen:
  * the step, the properties, following, a comment. Applying dispatches the
  * ordinary commands for each issue, each in its own transaction: the step
- * (MoveIssue, or ChangeTracker for an issue of another tracker), one
+ * (MoveIssue, or ChangeTracker when a tracker was chosen and the issue is of another), one
  * UpdateIssue for the properties, the comment, the subscription. A refusal
  * stops the issue there and leaves the others done; the page then reports
  * what each issue got, and the refused ones can be taken again.
@@ -63,10 +63,11 @@ final class Selection
     #[LiveProp]
     public bool $inProject = false;
 
-    /** The step every issue is taken to, a tracker and a place of its workflow; null leaves it. */
+    /** The tracker every issue is taken to with the step; null leaves each in its own. */
     #[LiveProp]
     public ?int $trackerId = null;
 
+    /** The step every issue is taken to: a place they all have, or one of the tracker chosen; null leaves it. */
     #[LiveProp]
     public ?string $placeId = null;
 
@@ -131,6 +132,33 @@ final class Selection
     }
 
     /**
+     * The trackers listed behind "Change category…": when the issues are
+     * all of one tracker whose places the menu already offers, the others.
+     *
+     * @return list<Tracker>
+     */
+    public function getChangeTrackers(): array
+    {
+        $own = array_unique(array_map(static fn (Issue $issue): ?int => $issue->getTracker()->getId(), $this->getSelection()->issues));
+        if ([] === $this->getPlaces() || 1 !== \count($own)) {
+            return $this->getTrackers();
+        }
+
+        return array_values(array_filter($this->getTrackers(), static fn (Tracker $tracker): bool => !\in_array($tracker->getId(), $own, true)));
+    }
+
+    /**
+     * The places every issue has in its own tracker, which the step menu
+     * offers first: none outside the page of a project.
+     *
+     * @return list<PlaceDefinition>
+     */
+    public function getPlaces(): array
+    {
+        return $this->inProject ? $this->getSelection()->places : [];
+    }
+
+    /**
      * @return list<PlaceDefinition>
      */
     public function placesOf(Tracker $tracker): array
@@ -145,13 +173,15 @@ final class Selection
 
     public function getTargetPlace(): ?PlaceDefinition
     {
-        $tracker = $this->getTargetTracker();
+        if (null === $this->placeId || (null !== $this->trackerId && null === $this->getTargetTracker())) {
+            return null;
+        }
 
-        return null === $tracker || null === $this->placeId ? null : $this->workflows->findPlace($this->placeId);
+        return $this->workflows->findPlace($this->placeId);
     }
 
     /**
-     * How the issue gets to the step chosen: by changing tracker, by the
+     * How the issue gets to the step chosen: by changing tracker when one was chosen, by the
      * action of the viewer that leads there, or outside the workflow.
      * Null when it does not move.
      */
@@ -160,7 +190,7 @@ final class Selection
         if (null === $this->getTargetPlace()) {
             return null;
         }
-        if ($issue->getTracker()->getId() !== $this->trackerId) {
+        if (null !== $this->trackerId && $issue->getTracker()->getId() !== $this->trackerId) {
             return $this->translator->trans('issue.bulk.changes_tracker');
         }
         if ($issue->getPlace() === $this->placeId) {
@@ -213,12 +243,20 @@ final class Selection
     }
 
     /**
-     * Records the step chosen: a place of a tracker the selection may move
-     * to. Anything else leaves the step alone.
+     * Records the step chosen: a place the issues have in common, each
+     * staying in its tracker, or a place of a tracker the selection may
+     * move to. Anything else leaves the step alone.
      */
     #[LiveAction]
     public function move(#[LiveArg] ?int $tracker = null, #[LiveArg] ?string $place = null): void
     {
+        if (null === $tracker) {
+            $this->trackerId = null;
+            $this->placeId = array_any($this->getPlaces(), static fn (PlaceDefinition $offered): bool => $offered->id === $place) ? $place : null;
+
+            return;
+        }
+
         $target = array_find($this->getTrackers(), static fn (Tracker $offered): bool => $offered->getId() === $tracker);
         $known = null !== $target && null !== $place && $this->workflows->definition($target->getWorkflowId())->hasPlace($place);
         $this->trackerId = $known ? $tracker : null;
@@ -296,9 +334,9 @@ final class Selection
         $actorId = (int) $this->viewer->get()->getId();
         $key = $issue->getKey();
 
-        if (null !== $this->trackerId && null !== $this->placeId) {
+        if (null !== $this->placeId) {
             $step = $this->translator->trans('issue.show.place');
-            if ($issue->getTracker()->getId() !== $this->trackerId) {
+            if (null !== $this->trackerId && $issue->getTracker()->getId() !== $this->trackerId) {
                 yield $step => new ChangeTracker($actorId, $key, $this->trackerId, $this->placeId);
             } elseif ($issue->getPlace() !== $this->placeId) {
                 yield $step => new MoveIssue($actorId, $key, $this->placeId);

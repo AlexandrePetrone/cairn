@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\Query\Issue;
 
+use App\Config\ConfigRegistry;
+use App\Config\Definition\PlaceDefinition;
 use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\Tracker;
@@ -27,9 +29,9 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * they may not see is dropped), sorted as the lists sort them, then keeps
  * what may change on all of them: the rights that hold on every project;
  * the people who are members of every project, for the assignment; the
- * open releases and the trackers a move may target, when the selection
- * holds the issues of one project, since releases and trackers belong to
- * one.
+ * open releases, the places the issues have in common and the trackers a
+ * move may target, when the selection holds the issues of one project,
+ * since releases and trackers belong to one.
  */
 #[AsMessageHandler(bus: 'query.bus')]
 final class ListSelectionActionsHandler
@@ -40,6 +42,7 @@ final class ListSelectionActionsHandler
         private readonly AccessControl $access,
         private readonly QueryBus $queries,
         private readonly ReleaseRepository $releases,
+        private readonly ConfigRegistry $config,
     ) {
     }
 
@@ -71,6 +74,7 @@ final class ListSelectionActionsHandler
             canSetPrivate: $everywhere(Permission::IssueSetPrivate),
             releases: null !== $project && $everywhere(Permission::IssueSetRelease) ? $this->releases->findByProject($project, openOnly: true) : [],
             moveTrackers: null === $project ? [] : $this->moveTrackers($viewer, $project, $issues),
+            places: null !== $project && $this->access->isGranted($viewer, Permission::IssueForcePlace, $project) ? $this->commonPlaces($issues) : [],
         );
     }
 
@@ -155,5 +159,25 @@ final class ListSelectionActionsHandler
         }
 
         return array_values($members ?? []);
+    }
+
+    /**
+     * The places every issue may stand on without leaving its tracker: a
+     * place is the same in each workflow that uses it, so the selection is
+     * taken to one whatever the trackers it mixes.
+     *
+     * @param non-empty-list<Issue> $issues
+     *
+     * @return list<PlaceDefinition>
+     */
+    private function commonPlaces(array $issues): array
+    {
+        $definition = $this->config->definition();
+        $workflowIds = array_unique(array_map(static fn (Issue $issue): string => $issue->getTracker()->getWorkflowId(), $issues));
+
+        return array_values(array_filter(
+            $definition->places,
+            static fn (PlaceDefinition $place): bool => array_all($workflowIds, static fn (string $id): bool => $definition->hasWorkflow($id) && $definition->workflow($id)->hasPlace($place->id)),
+        ));
     }
 }

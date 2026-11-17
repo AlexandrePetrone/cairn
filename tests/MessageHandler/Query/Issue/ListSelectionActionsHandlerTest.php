@@ -67,6 +67,24 @@ final class ListSelectionActionsHandlerTest extends KernelTestCase
         self::assertSame([], $names($this->actions('thomas.girard@cairn.test', 'MD-SPT-1', $this->scene->intranetBug()->getKey())), 'trackers belong to one project');
     }
 
+    public function testThePlacesOfferedAreThoseEveryIssueHasInItsOwnTracker(): void
+    {
+        $ids = static fn (SelectionActions $actions): array => array_map(static fn ($place): string => $place->id, $actions->places);
+
+        self::assertSame(
+            ['new', 'in_progress', 'blocked', 'to_test', 'to_release', 'done', 'declined'],
+            $ids($this->actions('thomas.girard@cairn.test', 'MD-SPT-1', 'MD-SPT-6', 'MD-SPT-10')),
+            'a bug, a task and a feature: what their three workflows share, in the order of the instance',
+        );
+        self::assertSame(
+            ['new', 'needs_info', 'qualified', 'in_progress', 'blocked', 'to_test', 'to_release', 'done', 'declined'],
+            $ids($this->actions('thomas.girard@cairn.test', 'MD-SPT-1', 'MD-SPT-2')),
+            'two bugs: every place of their workflow',
+        );
+        self::assertSame([], $ids($this->actions('claire.martin@maison-dupont.test', 'MD-SPT-1', 'MD-SPT-2')), 'a place outside the actions takes issue.force_place');
+        self::assertSame([], $ids($this->actions('thomas.girard@cairn.test', 'MD-SPT-1', $this->scene->intranetBug()->getKey())), 'no step across projects');
+    }
+
     public function testUnknownIdsAreDropped(): void
     {
         $actions = self::getContainer()->get(QueryBus::class)->ask(new ListSelectionActions($this->user('nadia.benali@cairn.test'), [999_999]));

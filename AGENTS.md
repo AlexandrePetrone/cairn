@@ -469,9 +469,11 @@ src/
   dispatches `ChangeTracker` and journals `tracker_changed`: no action
   leads from one workflow to another. No reason is
   asked: the journal line is the trace. The selection page offers the
-  same move (`SelectionActions::$moveTrackers`: the trackers of the
-  project valid for every issue; per issue, `MoveIssue` when it is
-  already in the tracker chosen, `ChangeTracker` otherwise).
+  same move: a place every issue has, each staying in its tracker, or
+  a place of a tracker valid for every issue
+  (`SelectionActions::$places` and `$moveTrackers`; per issue,
+  `MoveIssue` when no tracker was chosen or it is already in it,
+  `ChangeTracker` otherwise).
 - **Links read from each side.** An `IssueLink` goes from a source to a
   target with a link type of the configuration: the source reads its
   label (Blocks), the target its inverse (Blocked by); a symmetric type
@@ -635,15 +637,19 @@ src/
   being the members of all of them, and, when the selection holds one
   project, its open releases and the trackers every issue may go to
   (`SelectionActions::$moveTrackers`). The step is for internal users, and of
-  the page of a project only: its menu lists the places of those
-  trackers, under their tracker, and each line of the list shows how the
-  issue will get there (the action that leads there, outside the
-  workflow, or by changing tracker). No transition is named in bulk: a
+  the page of a project only. Its menu opens on the places every issue
+  has in its own tracker (`SelectionActions::$places`: a place is the
+  same in each workflow that uses it, so a selection mixing trackers
+  goes to "To test" with each issue staying where it is), then, behind
+  "Change category…", the places of those trackers, under their
+  tracker. Each line of the list shows how the issue will get there
+  (the action that leads there, outside the workflow, or by changing
+  tracker). No transition is named in bulk: a
   client answers issue by issue. An issue the viewer no longer sees drops
   out of the selection. Applying dispatches the ordinary commands for
   each issue, in this order and each in its own transaction: the step
-  (`MoveIssue` when the issue is already in the tracker chosen,
-  `ChangeTracker` otherwise), one `UpdateIssue` carrying the properties
+  (`MoveIssue` when no tracker was chosen or the issue is already in
+  it, `ChangeTracker` otherwise), one `UpdateIssue` carrying the properties
   chosen, `AddComment`, then `FollowIssue` or `UnfollowIssue` (last,
   since commenting subscribes its author). There is no bulk
   command: a refusal stops its issue where it is and leaves the others

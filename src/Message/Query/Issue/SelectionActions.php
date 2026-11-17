@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Query\Issue;
 
+use App\Config\Definition\PlaceDefinition;
 use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\Release;
@@ -18,12 +19,14 @@ use App\Entity\User;
 final readonly class SelectionActions
 {
     /**
-     * @param list<Issue>   $issues
-     * @param Project|null  $project      the project of the issues, when the selection holds one
-     * @param list<User>    $assignees    members of every project of the selection
-     * @param list<Release> $releases     the open releases of the project, when the selection holds one project
-     * @param list<Tracker> $moveTrackers the trackers every issue may be moved to (its own with `issue.force_place`,
-     *                                    another with `issue.change_tracker`), when the selection holds one project
+     * @param list<Issue>           $issues
+     * @param Project|null          $project      the project of the issues, when the selection holds one
+     * @param list<User>            $assignees    members of every project of the selection
+     * @param list<Release>         $releases     the open releases of the project, when the selection holds one project
+     * @param list<Tracker>         $moveTrackers the trackers every issue may be moved to (its own with `issue.force_place`,
+     *                                            another with `issue.change_tracker`), when the selection holds one project
+     * @param list<PlaceDefinition> $places       the places every issue may be taken to in its own tracker: those the workflows
+     *                                            of all of them use, in the order of the instance, with `issue.force_place`
      */
     public function __construct(
         public array $issues,
@@ -36,6 +39,7 @@ final readonly class SelectionActions
         public bool $canSetPrivate = false,
         public array $releases = [],
         public array $moveTrackers = [],
+        public array $places = [],
     ) {
     }
 
