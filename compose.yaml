@@ -18,6 +18,8 @@ x-php: &php
     # inside the stack and by the browser at the address of the site.
     MERCURE_URL: http://php/.well-known/mercure
     MERCURE_PUBLIC_URL: http://localhost:${HTTP_PORT:-8000}/.well-known/mercure
+    # Shared by the hub and the application. Not a secret: development only.
+    MERCURE_JWT_SECRET: cairn-dev-mercure-jwt-secret-of-32-characters-or-more
     # Read by vite.config.ts: the address the browser reaches the dev server at.
     VITE_PORT: ${VITE_PORT:-5173}
     # See https://xdebug.org/docs/all_settings#mode
