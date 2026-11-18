@@ -10,7 +10,7 @@ How a feature works is read in the code.
 
 ## Stack and decisions
 
-Symfony 8.1 on PHP 8.4, installed from `webapp-pack`; `composer.json` has
+Symfony 8.2 on PHP 8.4, installed from `webapp-pack`; `composer.json` has
 the exact versions. In place: Doctrine ORM, Messenger (Doctrine transport),
 Form, Validator, Serializer, Security, Twig, Mailer, Translation, Stimulus,
 Turbo, UX Twig/Live Components, Scheduler, Workflow, Lock, Reprise
@@ -43,6 +43,23 @@ without its Doctrine bridge), `symfony/mcp-bundle` and Mercure
   whatever the address. `Security/PasswordTokens` is the only class that
   talks to `symfonycasts/reset-password-bundle`. `bin/console
   app:user:create` creates the first administrator.
+- **Single sign-on**: optional, one OpenID Connect provider per instance,
+  set by the environment (`OIDC_*`) and signed in by Symfony's
+  `oidc_login` on the `main` firewall. `Security/SingleSignOn` is the one
+  place that says whether there is one; without it nothing shows and
+  `/login/sso` does not exist. How an account signs in is the
+  administration's choice (`User::$authMethod`: password or SSO), one or
+  the other: an account of the provider holds no password and gets no
+  password link, and the provider opens no account that has one. Nobody
+  is created at sign-in and no claim grants a role:
+  `Security/OidcUserProvider` finds the account by the subject of the
+  provider, the first time by the address it vouches for, and keeps the
+  subject (`UserRepository::bindSubject()`: authenticating is not a
+  command). Signing out is local, and nothing follows the provider
+  afterwards: whoever left the directory keeps their session and API
+  tokens until their account is deactivated here. Several providers
+  would be a provider chosen on the account and an authenticator of our
+  own: `oidc_login` knows one per firewall, from the configuration.
 - **API**: REST under `/api` and an MCP server on `/mcp`, for internal
   users, over the same commands and queries as the pages (see [API](#api)).
 - **Configuration**: roles, permissions, steps, workflows, fields and link
@@ -80,6 +97,7 @@ translation keys. Never mix them.
 | `internal` flag  | Internal/External | Interne/Externe  | Internal user (who runs the instance) vs external user (a client). |
 | `company`        | Company           | Société          | Free text on a user.                                             |
 | `private`        | Private           | Privé            | Hidden from external users.                                      |
+| `AuthMethod`     | Sign-in method    | Méthode de connexion | Password, or the identity provider of the instance (SSO).    |
 | `Release`        | Release           | Version          | Planned delivery, optional per project.                          |
 | `JournalEntry`   | History           | Historique       | Immutable journal, keeps the labels of the time.                 |
 | `Attachment`     | File              | Fichier          |                                                                  |
@@ -538,14 +556,28 @@ host.
 - Services: `php` (FrankenPHP with its Mercure hub,
   <http://localhost:8000>), `cli`, `messenger` (`messenger:consume async
   scheduler_default`), `vite`, `storia`, `database` (PostgreSQL 18) and
-  `mailer` (Mailpit, <http://localhost:8025>).
+  `mailer` (Mailpit, <http://localhost:8025>) and `authelia` (single
+  sign-on, below).
 - `castor console <command>`, `castor composer …`, `castor npm …`,
   `castor sh`. The `messenger` worker loads the code once: `castor
   workers:restart` after changing what it runs.
 - `castor db:fixtures` resets the dev database and loads
   `src/Story/AppStory` then `VolumeStory`, through the real commands under
   a mocked clock, nothing drawn at random. Every password is `cairn`;
-  `admin@cairn.test` is an administrator.
+  `admin@cairn.test` is an administrator. Léa Fontaine signs in through
+  Authelia instead.
+- Single sign-on: the `authelia` service is the identity provider of the
+  stack (`OIDC_*` in `.env.dev`, `docker/authelia/`), at
+  <https://authelia.localhost:9443>. Both it and `oidc_login` require
+  HTTPS, so the Caddy of `php` serves it with a certificate of its own
+  authority (`CADDY_EXTRA_CONFIG` in `compose.yaml`: the browser warns
+  once), which Caddy installs in the container so that PHP trusts it:
+  nothing in `config/` knows Authelia. A `*.localhost` name is the container for PHP and the host
+  for the browser, hence the same port on both sides. Two people, password
+  `cairn`: `lea` is Léa Fontaine of the development data, the one account
+  that signs in that way and so has no password; `hugo` has no account
+  and is refused. Another provider goes in `.env.local`, with the
+  redirect URI `http://localhost:8000/login/sso/callback`.
 - By hand: `castor console app:notifications:send --now` sends the mails
   that wait, `app:automations:run` the time rules, `app:attachments:prune
   --dry-run` the cleaning of files.
@@ -568,7 +600,10 @@ never assumes an id.
   `tests/Config/Fixture/DefinitionFactory`
   (`KernelHelpers::applyConfiguration()`); page and component tests load
   `tests/Scene/ShopScene`. API tests extend `tests/Api/ApiTestCase`, MCP
-  tests `tests/Api/Mcp/McpTestCase`. The development story is loaded only
+  tests `tests/Api/Mcp/McpTestCase`. The test environment has no identity
+  provider: `tests/Security/SingleSignOnEnvironment` gives a test one
+  (before the kernel boots), `SingleSignOnProvider` also answers as the
+  provider. The development story is loaded only
   by the tests that compare a PHP rule with its SQL, and by `AppStoryTest`.
 - `castor test` runs the suite in parallel (ParaTest), each process with
   its own database, folders, cache pool and locks: a test that touches

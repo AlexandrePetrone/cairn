@@ -90,7 +90,9 @@ jobs:
               run: |
                   bin/console lint:container
                   bin/console lint:twig templates/ storia/
-                  bin/console lint:yaml config/ translations/ storia/
+                  # mcp.yaml apart, syntax only: config/schema.json reads `mcp.servers`, keyed by name, as a list.
+                  bin/console lint:yaml config/ translations/ storia/ --exclude config/packages/mcp.yaml
+                  bin/console lint:yaml config/packages/mcp.yaml --no-check-schema
 
     symfony-lsp:
         name: Symfony Language Tools

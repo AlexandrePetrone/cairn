@@ -41,6 +41,12 @@ final class RequestPasswordResetHandler
             return;
         }
 
+        if ($user->usesSso()) {
+            $this->logger->info('Password reset requested for an account the identity provider signs in.', ['user' => $user->getId()]);
+
+            return;
+        }
+
         try {
             $token = $this->tokens->issueReset($user);
         } catch (TooManyPasswordRequestsException) {

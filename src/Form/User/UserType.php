@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Form\User;
 
+use App\Entity\Enum\AuthMethod;
 use App\Form\Type\CompanyType;
 use App\Form\Type\ToggleType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
+use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -16,7 +18,9 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 /**
  * An account: identity, company and type. An existing one may be
  * deactivated. Nobody types a password here: a new account is invited
- * by mail.
+ * by mail. `sso` is the name of the identity provider when the account
+ * may be told to sign in through it (Security/SingleSignOn), and adds
+ * that choice.
  *
  * @extends AbstractType<UserData>
  */
@@ -43,6 +47,18 @@ final class UserType extends AbstractType
                 'label' => 'admin.user.type.label',
                 'help' => 'admin.user.type.help',
             ]);
+        if (null !== $options['sso']) {
+            $builder->add('authMethod', EnumType::class, [
+                'class' => AuthMethod::class,
+                'choice_label' => static fn (AuthMethod $method): string => 'admin.user.auth_method.'.$method->value,
+                'choice_translation_parameters' => static fn (): array => ['%name%' => $options['sso']],
+                'expanded' => true,
+                'label' => 'admin.user.auth_method.label',
+                'help' => $options['creation'] ? 'admin.user.auth_method.help_new' : 'admin.user.auth_method.help',
+                'help_translation_parameters' => ['%name%' => $options['sso']],
+            ]);
+        }
+
         if (!$options['creation']) {
             $builder->add('active', ToggleType::class, [
                 'label' => 'admin.user.active_label',
@@ -58,7 +74,9 @@ final class UserType extends AbstractType
             ->setDefaults([
                 'data_class' => UserData::class,
                 'creation' => false,
+                'sso' => null,
             ])
-            ->setAllowedTypes('creation', 'bool');
+            ->setAllowedTypes('creation', 'bool')
+            ->setAllowedTypes('sso', ['null', 'string']);
     }
 }

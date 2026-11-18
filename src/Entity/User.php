@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Entity\Enum\AuthMethod;
 use App\Entity\Enum\MailGrouping;
 use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
@@ -19,8 +20,10 @@ use function Symfony\Component\Clock\now;
  * workspaces, users and memberships, and holds every permission. A
  * deactivated account cannot sign in (Security/UserChecker) and loses its
  * open sessions at the next request (isEqualTo). An account is created
- * without a password and gets one from its invitation link; `company`
- * is free text. The person chooses their picture (`avatar`, the name of a
+ * without a password and gets one from its invitation link, unless it
+ * signs in through the identity provider of the instance (`authMethod`):
+ * it then never holds a password, and `oidcSubject` is what the provider
+ * calls it, kept at its first sign-in. `company` is free text. The person chooses their picture (`avatar`, the name of a
  * file of Attachment/AvatarStorage) and how their notification mails are
  * grouped.
  */
@@ -44,6 +47,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Equatab
 
     #[ORM\Column(nullable: true)]
     private ?string $password = null;
+
+    #[ORM\Column(length: 16, enumType: AuthMethod::class, options: ['default' => 'password'])]
+    private AuthMethod $authMethod = AuthMethod::Password;
+
+    #[ORM\Column(length: 255, unique: true, nullable: true)]
+    private ?string $oidcSubject = null;
 
     #[ORM\Column(length: 120, nullable: true)]
     private ?string $company = null;
@@ -232,12 +241,62 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Equatab
     }
 
     /**
-     * Still invited: active, without a password. The screens show it and
-     * offer to send the invitation again.
+     * Still invited: active, without a password and expected to choose
+     * one. The screens show it and offer to send the invitation again.
      */
     public function awaitsPassword(): bool
     {
-        return $this->active && null === $this->password;
+        return $this->active && null === $this->password && !$this->usesSso();
+    }
+
+    public function getAuthMethod(): AuthMethod
+    {
+        return $this->authMethod;
+    }
+
+    public function usesSso(): bool
+    {
+        return AuthMethod::Sso === $this->authMethod;
+    }
+
+    /**
+     * From now on the identity provider signs this account in: its
+     * password goes, which ends its open sessions (isEqualTo) and its
+     * "remember me".
+     */
+    public function signInWithSso(): void
+    {
+        $this->authMethod = AuthMethod::Sso;
+        $this->password = null;
+    }
+
+    /**
+     * Back to a password, which the account does not have yet: it waits
+     * for an invitation. What the provider called it is forgotten.
+     */
+    public function signInWithPassword(): void
+    {
+        $this->authMethod = AuthMethod::Password;
+        $this->oidcSubject = null;
+    }
+
+    public function getOidcSubject(): ?string
+    {
+        return $this->oidcSubject;
+    }
+
+    /**
+     * The first sign-in through the provider ties the account to the
+     * subject it was given there, for good: the email is only what
+     * found it that once.
+     */
+    public function bindSubject(string $subject): void
+    {
+        if (!$this->usesSso()) {
+            throw new \LogicException('Only an account that signs in through the identity provider is bound to a subject.');
+        }
+
+        $this->oidcSubject = $subject;
     }
 
     public function getPassword(): ?string

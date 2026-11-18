@@ -265,7 +265,7 @@ final class AdminTest extends WebTestCase
         $this->client->followRedirect();
         $this->client->submitForm('Resend the invitation');
         self::assertResponseRedirects('/admin/users/'.$ines->getId());
-        self::assertEmailCount(1);
+        self::assertEmailCount(2, message: 'the invitation, then the one sent again');
         $secondLink = self::passwordLink();
         self::assertNotSame($firstLink, $secondLink);
 

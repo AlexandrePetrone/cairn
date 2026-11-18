@@ -57,6 +57,16 @@ final class UserException extends \DomainException implements TranslatableInterf
         return new self(\sprintf('%s already has a password.', $userName), 'admin.refused.already_activated', ['%name%' => $userName]);
     }
 
+    public static function signsInWithSso(string $userName): self
+    {
+        return new self(\sprintf('%s signs in through the identity provider.', $userName), 'admin.refused.signs_in_with_sso', ['%name%' => $userName]);
+    }
+
+    public static function ssoNotConfigured(): self
+    {
+        return new self('The instance has no identity provider.', 'admin.refused.sso_not_configured');
+    }
+
     public static function notMemberOf(string $userName, string $projectName): self
     {
         return new self(\sprintf('%s holds no role on %s.', $userName, $projectName), 'admin.refused.not_member', ['%name%' => $userName, '%project%' => $projectName]);

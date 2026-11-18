@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Command\User;
 
+use App\Entity\Enum\AuthMethod;
 use App\Entity\Enum\MailGrouping;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -15,7 +16,10 @@ use Symfony\Component\Validator\Constraints as Assert;
  * an invitation or a reset link. Without an actor the administration
  * asks; with one, the person changes their own account from its pages,
  * and only how their mails are grouped: who they are (name, email,
- * company, type) stays the administration's. Handled by UpdateUserHandler.
+ * company, type) stays the administration's, and so does how they sign
+ * in (`authMethod`): told to sign in through the identity provider, an
+ * account loses its password and the links still out; back to a
+ * password, it waits for an invitation. Handled by UpdateUserHandler.
  */
 #[Assert\Expression(
     'this.admin !== true or this.internal !== false',
@@ -41,6 +45,7 @@ final readonly class UpdateUser
         public ?bool $admin = null,
         public ?bool $active = null,
         public ?MailGrouping $mailGrouping = null,
+        public ?AuthMethod $authMethod = null,
         public ?int $actorId = null,
     ) {
     }

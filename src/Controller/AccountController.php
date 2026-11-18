@@ -16,6 +16,7 @@ use App\Message\Command\User\UpdateUser;
 use App\Message\CommandBus;
 use App\MessageHandler\Command\User\UserException;
 use App\Security\AccessControl;
+use App\Security\SingleSignOn;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Target;
@@ -93,7 +94,13 @@ final class AccountController extends AbstractController
         Security $security,
         #[Target('password_change.limiter')]
         RateLimiterFactoryInterface $limiter,
+        SingleSignOn $sso,
     ): Response {
+        // No password here to change: the page says where the account signs in.
+        if ($user->usesSso()) {
+            return $this->render('account/security.html.twig', ['form' => null, 'ssoName' => $sso->name()]);
+        }
+
         // Every attempt counts, right or wrong, before the form says anything about the current password.
         if ($request->isMethod('POST') && !$limiter->create((string) $user->getId())->consume()->isAccepted()) {
             $this->addFlash('error', $this->translator->trans('account.security.too_many_attempts'));

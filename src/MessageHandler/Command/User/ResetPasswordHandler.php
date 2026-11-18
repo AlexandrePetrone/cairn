@@ -13,7 +13,8 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 /**
  * The token names the account and is consumed. A new password ends the
  * open sessions of the account (User::isEqualTo) and its remember-me
- * cookies (signed on the password).
+ * cookies (signed on the password). A link still out for an account since
+ * told to sign in through the identity provider is worth nothing.
  */
 #[AsMessageHandler(bus: 'command.bus')]
 final class ResetPasswordHandler
@@ -27,7 +28,7 @@ final class ResetPasswordHandler
     public function __invoke(ResetPassword $command): void
     {
         $user = $this->tokens->consume($command->token);
-        if (!$user->isActive()) {
+        if (!$user->isActive() || $user->usesSso()) {
             throw PasswordLinkException::invalid();
         }
 

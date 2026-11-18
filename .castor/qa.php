@@ -37,7 +37,10 @@ function lint(): int
 {
     return console(['lint:container'], allowFailure: true)
         ?: console(['lint:twig', 'templates/', 'storia/'], allowFailure: true)
-        ?: console(['lint:yaml', 'config/', 'translations/', 'storia/'], allowFailure: true);
+        // The configuration is checked against config/schema.json, except mcp.yaml:
+        // the schema reads `mcp.servers`, which the bundle keys by name, as a list.
+        ?: console(['lint:yaml', 'config/', 'translations/', 'storia/', '--exclude', 'config/packages/mcp.yaml'], allowFailure: true)
+        ?: console(['lint:yaml', 'config/packages/mcp.yaml', '--no-check-schema'], allowFailure: true);
 }
 
 #[AsTask(description: 'Fixes the coding standard with php-cs-fixer; --dry-run only reports the differences', aliases: ['cs'])]

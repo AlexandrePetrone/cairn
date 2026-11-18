@@ -330,6 +330,8 @@ auth:
         remember_me: Rester connecté
         submit: Se connecter
         forgot: Mot de passe oublié ?
+        or: ou
+        sso: Se connecter avec %name%
     logout: Se déconnecter
     password:
         back_to_login: Retour à la connexion
@@ -577,6 +579,15 @@ admin:
         new: Nouvel utilisateur
         new_help: La personne reçoit une invitation par e-mail et y choisit son mot de passe.
         create_and_invite: Créer et inviter
+        create: Créer le compte
+        created_sso: "Compte de %name% créé. Aucun mail n'est parti : la connexion se fait avec %provider%."
+        sso_pending: "Ce compte ne s'est pas encore connecté avec %provider% : il y sera retrouvé par son adresse, %email%."
+        auth_method:
+            label: Méthode de connexion
+            password: Mot de passe
+            sso: '%name%'
+            help_new: "Avec un mot de passe, la personne reçoit une invitation par mail et le choisit. Avec %name%, aucun mail ne part : elle s'y connecte, avec cette adresse e-mail."
+            help: "Passer à %name% supprime le mot de passe du compte et le déconnecte partout. Revenir au mot de passe laisse le compte sans mot de passe : envoyez une invitation."
         created: 'Compte de %name% créé, une invitation a été envoyée à %email%.'
         invitation_pending: "L'invitation envoyée à %email% n'a pas encore été acceptée : le compte n'a pas de mot de passe et ne peut pas se connecter."
         invitation_resend: Renvoyer l'invitation
@@ -1038,6 +1049,8 @@ admin:
         deactivated: "%name% est désactivé : réactivez d'abord le compte."
         already_activated: '%name% a déjà choisi un mot de passe : « Mot de passe oublié ? » sur la page de connexion lui en donne un nouveau.'
         not_member: "%name% n'a aucun rôle sur %project%."
+        signs_in_with_sso: "%name% se connecte par le fournisseur d'identité : il n'y a pas de mot de passe à choisir."
+        sso_not_configured: "Cette instance n'a pas de fournisseur d'identité par lequel se connecter."
         external_only_from_project: Un compte créé depuis un projet est externe.
         config:
             permission_internal_only: 'Le rôle « %role% » est ouvert aux externes : ce droit est pour les rôles réservés aux internes.'
@@ -1286,6 +1299,8 @@ account:
         save: Changer le mot de passe
         saved: Mot de passe modifié.
         too_many_attempts: Trop de tentatives. Réessayez dans quelques minutes.
+        sso_title: 'Vous vous connectez avec %provider%'
+        sso_intro: "Ce compte n'a pas de mot de passe ici : ce qui le protège se gère chez %provider%. Un administrateur peut changer votre méthode de connexion."
     refused:
         wrong_password: Le mot de passe actuel est incorrect.
 

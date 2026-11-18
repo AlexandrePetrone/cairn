@@ -1,2 +1,3 @@
 # Messages of authentication failures, merged with Symfony's own security catalogue.
 auth.account_disabled: This account is disabled.
+auth.sso.no_account: No account here signs in that way with this identity. Ask an administrator.

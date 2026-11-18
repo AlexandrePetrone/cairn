@@ -1,0 +1,58 @@
+# Authelia, the identity provider of the development stack (compose.yaml):
+# what Cairn signs its SSO accounts in through (OIDC_* in .env.dev). It is
+# reached at https://authelia.localhost:9443, served by the Caddy of the
+# `php` service. Nothing here is a secret: development only.
+theme: auto
+
+server:
+  address: tcp://0.0.0.0:9091
+
+log:
+  level: info
+
+identity_validation:
+  reset_password:
+    jwt_secret: cairn-dev-authelia-reset-password-secret
+
+authentication_backend:
+  password_reset:
+    disable: true
+  file:
+    path: /config/users_database.yml
+
+access_control:
+  default_policy: one_factor
+
+session:
+  secret: cairn-dev-authelia-session-secret
+  cookies:
+    - domain: authelia.localhost
+      authelia_url: https://authelia.localhost:9443
+
+storage:
+  encryption_key: cairn-dev-authelia-storage-encryption-key
+  local:
+    path: /data/db.sqlite3
+
+notifier:
+  filesystem:
+    filename: /data/notification.txt
+
+identity_providers:
+  oidc:
+    hmac_secret: cairn-dev-authelia-oidc-hmac-secret
+    jwks:
+      # Made when the container first starts (compose.yaml), kept in its volume.
+      - key: {{ secret "/data/oidc.private.pem" | mindent 10 "|" | msquote }}
+    clients:
+      - client_id: cairn
+        client_name: Cairn
+        # "cairn-dev-oidc-secret", the OIDC_CLIENT_SECRET of .env.dev.
+        client_secret: '$pbkdf2-sha512$310000$9yk5dXlr8GiwzbsqzxM/IQ$94efGXa/W2C.R48PneNk/pG8gDnum5QW.EKmE8UV79maZEBbRBfiwJOsM2SH3WAhYQsuKONEPuxt9KI/9RUsyg'
+        public: false
+        authorization_policy: one_factor
+        consent_mode: implicit
+        redirect_uris:
+          - http://localhost:8000/login/sso/callback
+        scopes: [openid, profile, email]
+        token_endpoint_auth_method: client_secret_basic

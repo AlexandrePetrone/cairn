@@ -2,8 +2,14 @@
 
 {% block page_title %}{{ 'account.nav.security'|trans }}{% endblock %}
 
-{# The password of the signed-in user: `form` asks for the current one, then the new one twice. #}
+{# The password of the signed-in user: `form` asks for the current one, then the new one twice. An account the identity provider signs in has none (`form` is null). #}
 {% block content %}
+    {% if form is null %}
+        <div class="rounded-lg border border-line bg-surface p-4 sm:p-5">
+            <h2 class="font-semibold text-strong">{{ 'account.security.sso_title'|trans({ '%provider%': ssoName }) }}</h2>
+            <p class="mt-1 text-sm text-muted">{{ 'account.security.sso_intro'|trans({ '%provider%': ssoName }) }}</p>
+        </div>
+    {% else %}
     {{ form_start(form, { attr: { class: 'rounded-lg border border-line bg-surface p-4 sm:p-5 space-y-4' } }) }}
         <div>
             <h2 class="font-semibold text-strong">{{ 'account.security.password_title'|trans }}</h2>
@@ -18,4 +24,5 @@
         {{ form_errors(form.newPassword) }}
         <twig:Ui:Button type="submit" variant="primary" size="lg">{{ 'account.security.save'|trans }}</twig:Ui:Button>
     {{ form_end(form) }}
+    {% endif %}
 {% endblock %}

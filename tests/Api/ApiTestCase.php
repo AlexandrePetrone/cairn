@@ -70,7 +70,11 @@ abstract class ApiTestCase extends WebTestCase
         }
         $this->client->request($method, $uri, server: $server, content: null === $json ? null : json_encode($json, \JSON_THROW_ON_ERROR));
         $content = (string) $this->client->getResponse()->getContent();
+        // The firewall refuses a token in plain text (401): nothing to read there.
+        if ('' === $content || !str_contains((string) $this->client->getResponse()->headers->get('Content-Type'), 'json')) {
+            return [];
+        }
 
-        return '' === $content ? [] : (array) json_decode($content, true, flags: \JSON_THROW_ON_ERROR);
+        return (array) json_decode($content, true, flags: \JSON_THROW_ON_ERROR);
     }
 }

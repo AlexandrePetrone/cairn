@@ -18,6 +18,7 @@ function start(): void
         'Cairn: '.app_url().' (admin@cairn.test, password "cairn")',
         'Components: '.app_url().'/storia',
         'Emails: '.mailpit_url(),
+        'Single sign-on: https://authelia.localhost:9443 ("lea" has an account, "hugo" has none, password "cairn")',
     ]);
 }
 

@@ -1,3 +1,5 @@
-_security_logout:
-    resource: security.route_loader.logout
+# The routes the security bundle declares for the firewalls: logout, and the
+# two of the OpenID Connect login (to the identity provider and back).
+_security:
+    resource: security.route_loader
     type: service

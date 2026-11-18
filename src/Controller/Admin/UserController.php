@@ -17,6 +17,7 @@ use App\Message\Query\User\SearchUsers;
 use App\Message\QueryBus;
 use App\MessageHandler\Command\User\UserException;
 use App\Repository\UserRepository;
+use App\Security\SingleSignOn;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -45,6 +46,7 @@ final class UserController extends AbstractController
         private readonly QueryBus $queries,
         private readonly UserRepository $users,
         private readonly TranslatorInterface $translator,
+        private readonly SingleSignOn $sso,
     ) {
     }
 
@@ -63,14 +65,19 @@ final class UserController extends AbstractController
     public function new(Request $request): Response
     {
         $data = new UserData();
-        $form = $this->createForm(UserType::class, $data, ['creation' => true]);
+        $form = $this->createForm(UserType::class, $data, ['creation' => true, 'sso' => $this->sso->enabled() ? $this->sso->name() : null]);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             try {
-                $user = $this->commands->dispatch(new CreateUser((string) $data->email, (string) $data->firstName, (string) $data->lastName, $data->isInternal(), $data->isAdmin(), $data->company));
+                $user = $this->commands->dispatch(new CreateUser((string) $data->email, (string) $data->firstName, (string) $data->lastName, $data->isInternal(), $data->isAdmin(), $data->company, authMethod: $data->authMethod));
                 \assert($user instanceof User);
-                $this->commands->dispatch(new InviteUser((int) $user->getId()));
-                $this->addFlash('success', $this->translator->trans('admin.user.created', ['%name%' => $user->getFullName(), '%email%' => $user->getEmail()]));
+                if ($user->usesSso()) {
+                    // Nothing to choose, so nothing is mailed: the person is told by whoever created the account.
+                    $this->addFlash('success', $this->translator->trans('admin.user.created_sso', ['%name%' => $user->getFullName(), '%provider%' => $this->sso->name()]));
+                } else {
+                    $this->commands->dispatch(new InviteUser((int) $user->getId()));
+                    $this->addFlash('success', $this->translator->trans('admin.user.created', ['%name%' => $user->getFullName(), '%email%' => $user->getEmail()]));
+                }
 
                 return $this->redirectToRoute('app_admin_user', ['id' => $user->getId()]);
             } catch (UserException $e) {
@@ -85,7 +92,8 @@ final class UserController extends AbstractController
     public function edit(#[MapEntity] User $user, Request $request): Response
     {
         $data = UserData::fromUser($user);
-        $form = $this->createForm(UserType::class, $data);
+        // An account already told to sign in through the provider keeps the choice on its page, to be taken back to a password, even once the instance has no provider.
+        $form = $this->createForm(UserType::class, $data, ['sso' => $this->sso->enabled() || $user->usesSso() ? $this->sso->name() : null]);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             try {
@@ -98,6 +106,7 @@ final class UserController extends AbstractController
                     internal: $data->isInternal(),
                     admin: $data->isAdmin(),
                     active: $data->active,
+                    authMethod: $form->has('authMethod') ? $data->authMethod : null,
                 ));
                 $this->addFlash('success', $this->translator->trans('admin.saved'));
 
@@ -107,7 +116,7 @@ final class UserController extends AbstractController
             }
         }
 
-        return $this->render('admin/user.html.twig', ['user' => $user, 'form' => $form, 'hasHistory' => $this->users->hasHistory($user)], new Response(null, $form->isSubmitted() ? 422 : 200));
+        return $this->render('admin/user.html.twig', ['user' => $user, 'form' => $form, 'hasHistory' => $this->users->hasHistory($user), 'ssoName' => $this->sso->name()], new Response(null, $form->isSubmitted() ? 422 : 200));
     }
 
     /**

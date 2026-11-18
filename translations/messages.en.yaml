@@ -330,6 +330,8 @@ auth:
         remember_me: Keep me signed in
         submit: Sign in
         forgot: Forgot password?
+        or: or
+        sso: Sign in with %name%
     logout: Log out
     password:
         back_to_login: Back to sign in
@@ -577,6 +579,15 @@ admin:
         new: New user
         new_help: The person receives an invitation by mail and chooses their password from it.
         create_and_invite: Create and invite
+        create: Create the account
+        created_sso: 'Account of %name% created. Nothing was mailed: they sign in with %provider%.'
+        sso_pending: 'This account has not signed in with %provider% yet: it will be found there by its address, %email%.'
+        auth_method:
+            label: Sign-in method
+            password: Password
+            sso: '%name%'
+            help_new: 'With a password, the person receives an invitation by mail and chooses it. With %name%, nothing is mailed: they sign in there, with this email address.'
+            help: 'Going to %name% removes the password of the account and signs it out everywhere. Going back to a password leaves the account without one: send an invitation.'
         created: 'Account of %name% created, an invitation was sent to %email%.'
         invitation_pending: 'The invitation sent to %email% has not been accepted yet: the account has no password and cannot sign in.'
         invitation_resend: Resend the invitation
@@ -1038,6 +1049,8 @@ admin:
         deactivated: '%name% is deactivated: reactivate the account first.'
         already_activated: '%name% already chose a password: they can use "Forgot password?" on the sign-in page.'
         not_member: '%name% holds no role on %project%.'
+        signs_in_with_sso: '%name% signs in through the identity provider: there is no password to choose.'
+        sso_not_configured: This instance has no identity provider to sign in through.
         external_only_from_project: An account created from a project is external.
         config:
             permission_internal_only: 'The role "%role%" is open to external users: this right is for the roles reserved to internal users.'
@@ -1286,6 +1299,8 @@ account:
         save: Change password
         saved: Password changed.
         too_many_attempts: Too many attempts. Try again in a few minutes.
+        sso_title: 'You sign in with %provider%'
+        sso_intro: 'This account has no password here: what protects it is managed at %provider%. An administrator can change how you sign in.'
     refused:
         wrong_password: The current password is incorrect.
 

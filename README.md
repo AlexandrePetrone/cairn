@@ -15,7 +15,7 @@ The interface ships in English and French; an instance runs in one language (`CA
 
 ## Stack
 
-Symfony 8.1 on PHP 8.4, Doctrine ORM (PostgreSQL, or MariaDB), Messenger for the emails and the scheduled tasks, the Symfony Workflow component for workflows built from the configuration, Twig with Symfony UX (Turbo, Live Components, Stimulus), Tailwind CSS 4 and Vite through [Symfony Reprise](https://github.com/symfony/reprise), [API Platform](https://api-platform.com) for the REST API.
+Symfony 8.2 on PHP 8.4, Doctrine ORM (PostgreSQL, or MariaDB), Messenger for the emails and the scheduled tasks, the Symfony Workflow component for workflows built from the configuration, Twig with Symfony UX (Turbo, Live Components, Stimulus), Tailwind CSS 4 and Vite through [Symfony Reprise](https://github.com/symfony/reprise), [API Platform](https://api-platform.com) for the REST API.
 
 ## Installation
 
@@ -113,18 +113,49 @@ castor install
 
 This builds the PHP image (FrankenPHP), starts the database, installs the Composer and npm dependencies, creates the `dev` and `test` databases, applies the schema and loads the development data, then starts the whole stack.
 
-Cairn is then available at <http://localhost:8000>. Every account of the development data has the password `cairn`:
+Cairn is then available at <http://localhost:8000>.
 
-| Account | Who |
-|---|---|
-| `admin@cairn.test` | Administrator |
-| `thomas.girard@cairn.test` | Project manager of the Maison Dupont and Vallier workspaces |
-| `nadia.benali@cairn.test` | Developer |
-| `claire.martin@maison-dupont.test` | Client of Maison Dupont |
+### Test accounts
+
+`castor db:fixtures` reloads them with the rest of the development data. Every account signs in with its email and the password `cairn`, except Léa, who signs in through the identity provider (see [Single sign-on](#single-sign-on)).
+
+Internal users:
+
+| Account | Who | Where |
+|---|---|---|
+| `admin@cairn.test` | Julien Jacottet, administrator | Everything, and the administration |
+| `thomas.girard@cairn.test` | Thomas Girard, project manager | Maison Dupont (`MD`) and Vallier Group (`GV`) |
+| `yann.leroy@cairn.test` | Yann Leroy, project manager | Natura Cosmetics (`NC`) and Travelia (`TR`, archived) |
+| `nadia.benali@cairn.test` | Nadia Benali, developer | Online shop (`MD-SPT`), Mobile app (`GV-APP`) |
+| `lea.fontaine@cairn.test` | Léa Fontaine, developer, **single sign-on** | Online shop (`MD-SPT`), Supplier portal (`GV-PRT`), Back-office (`NC-BO`) |
+| `marc.petit@cairn.test` | Marc Petit, developer | Intranet (`MD-INT`), Supplier portal (`GV-PRT`), Booking site (`TR-RES`) |
+
+External users (clients):
+
+| Account | Who | Where |
+|---|---|---|
+| `claire.martin@maison-dupont.test` | Claire Martin, client | Maison Dupont |
+| `paul.roussel@maison-dupont.test` | Paul Roussel, client, read-only | Maison Dupont |
+| `ines.garnier@vallier.test` | Inès Garnier, client | Vallier Group |
+| `remi.colin@natura.test` | Rémi Colin, client | Natura Cosmetics |
+| `sophie.bernard@travelia.test` | Sophie Bernard, client | Travelia (archived) |
+
+The online shop of Maison Dupont (`MD-SPT`) is the richest project: releases, budgets, issues in every step. To see what a client sees next to what the team sees, open it as Claire and as Thomas.
+
+### Single sign-on
+
+The stack runs [Authelia](https://www.authelia.com) as the identity provider of the instance (`OIDC_*` in `.env.dev`): the sign-in page has a "Sign in with Authelia" button. It knows two people, both with the password `cairn`:
+
+| Authelia user | Email | In Cairn |
+|---|---|---|
+| `lea` | `lea.fontaine@cairn.test` | Léa Fontaine, the one account told to sign in that way: she gets in |
+| `hugo` | `hugo.marchand@cairn.test` | No account: refused on the sign-in page |
+
+Authelia is served at <https://authelia.localhost:9443> with a certificate of the stack's own authority, so the browser warns the first time: accept it. To make another account sign in that way, change its sign-in method on its page of the administration and add a user with the same email to `docker/authelia/users_database.yml` (`castor docker:restart authelia`). The people and the client are declared in [`docker/authelia/`](docker/authelia/).
 
 ### The stack
 
-`compose.yaml` runs six services:
+`compose.yaml` runs seven services:
 
 | Service | What it does |
 |---|---|
@@ -134,6 +165,7 @@ Cairn is then available at <http://localhost:8000>. Every account of the develop
 | `storia` | Live reload of the component catalogue at <http://localhost:8000/storia> |
 | `database` | PostgreSQL 18 |
 | `mailer` | Mailpit, catching every email sent: <http://localhost:8025> |
+| `authelia` | The identity provider of the single sign-on, at <https://authelia.localhost:9443> through the `php` service |
 
 The ports can be changed with `HTTP_PORT`, `VITE_PORT` and `MAILPIT_PORT` (e.g. in the shell, before `castor start`). Other overrides go in `.env.local` as usual.
 
@@ -145,7 +177,7 @@ Tasks are grouped by namespace; the most frequent ones have a short alias. `cast
 # The stack (docker:*)
 castor start                    # docker:start, alias up
 castor stop                     # docker:stop
-castor logs messenger           # docker:logs: php, messenger, vite, storia, database or mailer
+castor logs messenger           # docker:logs: php, messenger, vite, storia, database, mailer or authelia
 castor ps                       # docker:ps
 castor docker:restart vite      # one service, or all of them without argument
 castor docker:build             # rebuild the PHP image

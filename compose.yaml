@@ -9,7 +9,7 @@ x-php: &php
     # var/ stays in the bind mount on purpose: var/log is readable from the host, and the
     # filesystem cache.app pool must be shared so "messenger:stop-workers" reaches the consumer.
     - ./:/app
-  environment:
+  environment: &php-environment
     DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-!ChangeMe!}@database:5432/${POSTGRES_DB:-app}?serverVersion=${POSTGRES_VERSION:-18}&charset=utf8
     DEFAULT_URI: http://localhost:${HTTP_PORT:-8000}
     # Mailpit (the "mailer" service below); its inbox is http://localhost:8025.
@@ -34,6 +34,18 @@ services:
     <<: *php
     ports:
       - "${HTTP_PORT:-8000}:80"
+      - "9443:9443"
+    environment:
+      <<: *php-environment
+      # One more site for the Caddy of FrankenPHP (docker/Caddyfile): Authelia over HTTPS, which
+      # both it and the OpenID Connect login require. A *.localhost name is this container for
+      # PHP and the host for the browser, hence the same port on both sides. PHP trusts the
+      # certificate because Caddy installs its authority in the container.
+      CADDY_EXTRA_CONFIG: |
+        https://authelia.localhost:9443 {
+            tls internal
+            reverse_proxy authelia:9091
+        }
     tty: true
     # Comes back by itself if FrankenPHP crashes.
     restart: unless-stopped
@@ -105,7 +117,26 @@ services:
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
 ###< symfony/mailer ###
 
+  # The identity provider of the SSO accounts (OIDC_* in .env.dev), at https://authelia.localhost:9443
+  # through the Caddy of `php`: "lea" has an account in the development data, "hugo" has none,
+  # both with the password "cairn" (docker/authelia/).
+  authelia:
+    image: authelia/authelia:4.39
+    environment:
+      X_AUTHELIA_CONFIG_FILTERS: template
+    # The key that signs the ID tokens is made once, in the volume, instead of being committed.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        [ -f /data/oidc.private.pem ] || authelia crypto pair rsa generate --directory /data --file.private-key oidc.private.pem --file.public-key oidc.public.pem
+        exec authelia --config /config/configuration.yml
+    volumes:
+      - ./docker/authelia:/config:ro
+      - authelia_data:/data
+    restart: unless-stopped
+
 volumes:
+  authelia_data:
 ###> doctrine/doctrine-bundle ###
   postgres_data:
 ###< doctrine/doctrine-bundle ###

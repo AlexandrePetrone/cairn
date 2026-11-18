@@ -40,6 +40,16 @@ final class UserFactory extends PersistentObjectFactory
         return $this->with(['internal' => true, 'admin' => true]);
     }
 
+    /**
+     * Signs in through the identity provider: no password.
+     */
+    public function sso(): static
+    {
+        return $this->afterInstantiate(static function (User $user): void {
+            $user->signInWithSso();
+        });
+    }
+
     protected function defaults(): array
     {
         return [

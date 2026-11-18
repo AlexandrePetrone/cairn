@@ -84,7 +84,7 @@ final class PasswordTest extends WebTestCase
         $this->client->request('GET', '/password/forgot');
         $this->client->submitForm('Send me a link', ['password_request[email]' => 'claire@client.test']);
         self::assertResponseRedirects('/password/forgot/sent');
-        self::assertEmailCount(0, message: 'a second request within the throttle sends nothing, says nothing');
+        self::assertEmailCount(1, message: 'a second request within the throttle sends nothing more, says nothing');
     }
 
     public function testAnInvalidAddressIsRefusedOnThePage(): void

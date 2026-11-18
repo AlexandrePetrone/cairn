@@ -16,7 +16,8 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
  * Only an active account without a password is invited: whoever has one
- * uses "Forgot password?". A manager invites from their project a direct
+ * uses "Forgot password?", and an account the identity provider signs in
+ * has none to choose. A manager invites from their project a direct
  * member of it. Issuing the token flushes (the bundle's doing, inside
  * the transaction of the bus) and the mail is queued on the same
  * connection: it leaves only if the command commits.
@@ -48,6 +49,9 @@ final class InviteUserHandler
         }
         if (!$user->isActive()) {
             throw UserException::deactivated($user->getFullName());
+        }
+        if ($user->usesSso()) {
+            throw UserException::signsInWithSso($user->getFullName());
         }
         if ($user->hasPassword()) {
             throw UserException::alreadyActivated($user->getFullName());

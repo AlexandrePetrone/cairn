@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Form\User;
 
+use App\Entity\Enum\AuthMethod;
 use App\Entity\User;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * What the account form collects; the controller turns it into CreateUser
- * or UpdateUser. No password: the person chooses it from the invitation.
+ * or UpdateUser. No password: the person chooses it from the invitation,
+ * or signs in through the identity provider when the instance has one.
  */
 final class UserData
 {
@@ -37,6 +39,8 @@ final class UserData
 
     public bool $active = true;
 
+    public AuthMethod $authMethod = AuthMethod::Password;
+
     public static function fromUser(User $user): self
     {
         $data = new self();
@@ -50,6 +54,7 @@ final class UserData
             default => self::EXTERNAL,
         };
         $data->active = $user->isActive();
+        $data->authMethod = $user->getAuthMethod();
 
         return $data;
     }

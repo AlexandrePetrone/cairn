@@ -26,5 +26,15 @@
         <input type="hidden" name="_csrf_token" data-controller="csrf-protection" value="{{ csrf_token('authenticate') }}">
 
         <twig:Ui:Button variant="primary" size="lg" type="submit" class="w-full">{{ 'auth.login.submit'|trans }}</twig:Ui:Button>
+
+        {% if ssoName %}
+            <div class="flex items-center gap-3 text-xs text-faint">
+                <span class="h-px flex-1 bg-line"></span>
+                {{ 'auth.login.or'|trans }}
+                <span class="h-px flex-1 bg-line"></span>
+            </div>
+            {# Leaves the site: not a Turbo visit. #}
+            <twig:Ui:Button :href="path('_oidc_login_start_main')" size="lg" icon="key-round" class="w-full" data-turbo="false">{{ 'auth.login.sso'|trans({ '%name%': ssoName }) }}</twig:Ui:Button>
+        {% endif %}
     </form>
 {% endblock %}

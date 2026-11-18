@@ -54,7 +54,9 @@ trait KernelHelpers
     {
         $events = self::getContainer()->get('mailer.message_logger_listener')->getEvents();
         \assert($events instanceof MessageEvents);
-        $email = $events->getMessages()[0] ?? null;
+        // Every mail of the test is there, those of earlier requests too: the last one.
+        $messages = $events->getMessages();
+        $email = [] === $messages ? null : $messages[array_key_last($messages)];
         \assert($email instanceof Email, 'a mail was sent');
         // Not inside an assert(): PHP skips its expression when assertions are off, as on the CI.
         if (1 !== preg_match('~href="https?://[^/]+(/password/set/[A-Za-z0-9_-]+)"~', (string) $email->getHtmlBody(), $matches)) {

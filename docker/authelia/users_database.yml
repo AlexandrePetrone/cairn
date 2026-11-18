@@ -1,0 +1,13 @@
+# The people Authelia knows, both with the password "cairn".
+users:
+  # An account of the development data (src/Story/AppStory), told to sign in
+  # through the provider: she gets in.
+  lea:
+    displayname: Léa Fontaine
+    email: lea.fontaine@cairn.test
+    password: '$argon2id$v=19$m=65536,t=3,p=4$7RTAvmyphxMs9JZetbmvvw$89ZZJ77szJJ44Zkg44lj75eSkiAt6Tjs1T8C04QQ688'
+  # Known to the provider, not to Cairn: he is refused on the sign-in page.
+  hugo:
+    displayname: Hugo Marchand
+    email: hugo.marchand@cairn.test
+    password: '$argon2id$v=19$m=65536,t=3,p=4$7RTAvmyphxMs9JZetbmvvw$89ZZJ77szJJ44Zkg44lj75eSkiAt6Tjs1T8C04QQ688'

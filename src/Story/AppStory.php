@@ -133,7 +133,8 @@ final class AppStory extends Story
             'thomas' => ['thomas.girard@cairn.test', 'Thomas', 'Girard', 'internal'],
             'yann' => ['yann.leroy@cairn.test', 'Yann', 'Leroy', 'internal'],
             'nadia' => ['nadia.benali@cairn.test', 'Nadia', 'Benali', 'internal'],
-            'lea' => ['lea.fontaine@cairn.test', 'Léa', 'Fontaine', 'internal'],
+            // Signs in through the identity provider of the stack (docker/authelia/), not with a password.
+            'lea' => ['lea.fontaine@cairn.test', 'Léa', 'Fontaine', 'sso'],
             'marc' => ['marc.petit@cairn.test', 'Marc', 'Petit', 'internal'],
             'claire' => ['claire.martin@maison-dupont.test', 'Claire', 'Martin', 'external', 'Maison Dupont'],
             'paul' => ['paul.roussel@maison-dupont.test', 'Paul', 'Roussel', 'external', 'Maison Dupont'],
@@ -147,6 +148,7 @@ final class AppStory extends Story
             $this->users[$key] = match ($kind) {
                 'admin' => $factory->admin()->create(),
                 'internal' => $factory->internal()->create(),
+                'sso' => $factory->internal()->sso()->create(),
                 default => $factory->create(),
             };
         }

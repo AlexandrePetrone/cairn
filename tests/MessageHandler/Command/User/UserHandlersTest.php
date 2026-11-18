@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\MessageHandler\Command\User;
 
+use App\Entity\Enum\AuthMethod;
 use App\Entity\Enum\MailGrouping;
 use App\Entity\PasswordToken;
 use App\Entity\User;
@@ -59,6 +60,30 @@ final class UserHandlersTest extends KernelTestCase
         self::assertFalse($user->hasPassword(), 'the invitation gives the password');
         self::assertSame('Vallier', $user->getCompany());
         self::assertFalse($user->isInternal());
+    }
+
+    public function testWithoutAnIdentityProviderNoAccountIsToldToSignInThroughOne(): void
+    {
+        $claire = $this->fixtures->user('claire@client.test');
+
+        try {
+            $this->commands->dispatch(new CreateUser('ines@agency.test', 'Inès', 'Garnier', authMethod: AuthMethod::Sso));
+            self::fail('There is no provider to sign in through.');
+        } catch (UserException $e) {
+            self::assertStringContainsString('no identity provider', $e->getMessage());
+        }
+
+        try {
+            $this->commands->dispatch(new UpdateUser((int) $claire->getId(), authMethod: AuthMethod::Sso));
+            self::fail('There is no provider to sign in through.');
+        } catch (UserException $e) {
+            self::assertStringContainsString('no identity provider', $e->getMessage());
+        }
+
+        // An account left on a provider that is gone is still taken back to a password.
+        $claire->signInWithSso();
+        $this->commands->dispatch(new UpdateUser((int) $claire->getId(), authMethod: AuthMethod::Password));
+        self::assertTrue($claire->awaitsPassword());
     }
 
     public function testTheConsoleStillGivesAPassword(): void

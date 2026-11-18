@@ -1,5 +1,6 @@
 {
-	skip_install_trust
+	# No skip_install_trust: Caddy adds its local authority to the certificates of the container,
+	# so PHP trusts the sites it serves over HTTPS (Authelia in the development stack).
 
 	{$CADDY_GLOBAL_OPTIONS}
 

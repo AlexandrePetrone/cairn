@@ -43,7 +43,12 @@ abstract class McpTestCase extends ApiTestCase
             $content = $matches[1];
         }
 
-        return '' === $content ? [] : (array) json_decode($content, true, flags: \JSON_THROW_ON_ERROR);
+        // The firewall refuses a token in plain text (401): nothing to read there.
+        if ('' === $content || str_contains((string) $response->headers->get('Content-Type'), 'text/plain')) {
+            return [];
+        }
+
+        return (array) json_decode($content, true, flags: \JSON_THROW_ON_ERROR);
     }
 
     /**

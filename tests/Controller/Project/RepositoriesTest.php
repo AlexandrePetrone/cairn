@@ -122,7 +122,7 @@ final class RepositoriesTest extends WebTestCase
         $url = \sprintf('/MD/SPT/settings/repositories/%d/', $repository->getId());
 
         $this->client->request('POST', $url.'unlink');
-        self::assertResponseRedirects('/login', message: 'a POST without its token reads as a missing authentication');
+        self::assertResponseStatusCodeSame(403, 'a POST without its token is refused');
         self::assertCount(1, $this->linked());
 
         $this->client->request('GET', '/MD/SPT/settings/repositories');

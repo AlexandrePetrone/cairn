@@ -22,6 +22,7 @@
                     {% else %}
                         <twig:Ui:Badge tone="emerald">{{ 'admin.user.state.active'|trans }}</twig:Ui:Badge>
                     {% endif %}
+                    {% if user.usesSso %}<twig:Ui:Badge tone="blue">{{ ssoName }}</twig:Ui:Badge>{% endif %}
                     {% if user.admin %}<twig:Ui:Badge tone="indigo">{{ 'admin.user.type.admin'|trans }}</twig:Ui:Badge>{% endif %}
                 </div>
                 <p class="mt-0.5 text-sm text-muted">{{ user.email }}{% if user.company %} · {{ user.company }}{% endif %} · {{ (user.internal ? 'admin.user.type.internal' : 'admin.user.type.external')|trans }}</p>
@@ -38,6 +39,10 @@
             <twig:Ui:Callout tone="amber" size="sm">{{ 'admin.user.invitation_pending'|trans({ '%email%': user.email }) }}</twig:Ui:Callout>
         {% endif %}
 
+        {% if user.active and user.usesSso and user.oidcSubject is null %}
+            <twig:Ui:Callout tone="amber" size="sm">{{ 'admin.user.sso_pending'|trans({ '%provider%': ssoName, '%email%': user.email }) }}</twig:Ui:Callout>
+        {% endif %}
+
         {{ form_start(form, { attr: { class: 'rounded-lg border border-line bg-surface p-4 sm:p-5 space-y-4' } }) }}
             {{ form_errors(form) }}
             <div class="grid sm:grid-cols-2 gap-4">
@@ -49,6 +54,7 @@
                 {{ form_row(form.company) }}
             </div>
             {{ form_row(form.type) }}
+            {% if form.authMethod is defined %}{{ form_row(form.authMethod) }}{% endif %}
             {{ form_row(form.active) }}
             <twig:Ui:Button type="submit" variant="primary" size="lg">{{ 'admin.save'|trans }}</twig:Ui:Button>
         {{ form_end(form) }}

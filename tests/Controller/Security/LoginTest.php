@@ -45,6 +45,17 @@ final class LoginTest extends WebTestCase
         self::assertSelectorExists('a[href="/password/forgot"]', 'a way out of a forgotten password');
     }
 
+    public function testWithoutAnIdentityProviderNothingOffersOne(): void
+    {
+        $crawler = $this->client->request('GET', '/login');
+
+        self::assertCount(0, $crawler->filter('a[href="/login/sso"]'));
+        $this->client->request('GET', '/login/sso');
+        self::assertResponseStatusCodeSame(404);
+        $this->client->request('GET', '/login/sso/callback');
+        self::assertResponseStatusCodeSame(404);
+    }
+
     public function testAUserSignsInWithEmailAndPassword(): void
     {
         $this->signIn('Claire@Client.test', UserFactory::DEFAULT_PASSWORD);

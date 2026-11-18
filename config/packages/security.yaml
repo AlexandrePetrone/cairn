@@ -9,6 +9,10 @@ security:
             entity:
                 # Loaded by UserRepository::loadUserByIdentifier(), which normalises the email.
                 class: App\Entity\User
+        # The accounts the identity provider signs in, found by what it
+        # calls them (Security/OidcUserProvider).
+        app_oidc_user_provider:
+            id: App\Security\OidcUserProvider
 
     firewalls:
         dev:
@@ -37,12 +41,30 @@ security:
             lazy: true
             provider: app_user_provider
             user_checker: App\Security\UserChecker
+            # Two ways in: whoever is not signed in is sent to the form,
+            # which offers the other one.
+            entry_point: form_login
             form_login:
                 login_path: app_login
                 check_path: app_login
                 username_parameter: email
                 password_parameter: password
                 enable_csrf: true
+                default_target_path: app_home
+            # Single sign-on, optional (Security/SingleSignOn): one OpenID
+            # Connect provider for the instance, set by the environment, for
+            # the accounts told to sign in through it. Nothing is asked of
+            # the provider until someone starts from the sign-in page.
+            oidc_login:
+                provider: app_oidc_user_provider
+                provider_uri: '%env(OIDC_PROVIDER_URI)%'
+                client_id: '%env(OIDC_CLIENT_ID)%'
+                client_authentication:
+                    client_secret_basic: '%env(OIDC_CLIENT_SECRET)%'
+                scope: ['openid', 'profile', 'email']
+                start_path: /login/sso
+                check_path: /login/sso/callback
+                failure_path: app_login
                 default_target_path: app_home
             remember_me:
                 secret: '%kernel.secret%'
@@ -59,6 +81,7 @@ security:
     # Note: Only the *first* matching rule is applied
     access_control:
         - { path: ^/login$, roles: PUBLIC_ACCESS }
+        - { path: ^/login/sso(/callback)?$, roles: PUBLIC_ACCESS } # to the identity provider and back
         - { path: ^/password, roles: PUBLIC_ACCESS } # forgot password, set the password from a link
         - { path: ^/storia, roles: PUBLIC_ACCESS } # dev only: the bundle is disabled in prod
         # The API: its documentation is read signed in, by those who may use

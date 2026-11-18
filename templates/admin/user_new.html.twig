@@ -24,8 +24,14 @@
                 {{ form_row(form.company) }}
             </div>
             {{ form_row(form.type) }}
+            {% if form.authMethod is defined %}{{ form_row(form.authMethod) }}{% endif %}
             <div class="flex items-center gap-2">
-                <twig:Ui:Button type="submit" variant="primary" size="lg" icon="send">{{ 'admin.user.create_and_invite'|trans }}</twig:Ui:Button>
+                {# With a provider to sign in through, creating does not always invite. #}
+                {% if form.authMethod is defined %}
+                    <twig:Ui:Button type="submit" variant="primary" size="lg">{{ 'admin.user.create'|trans }}</twig:Ui:Button>
+                {% else %}
+                    <twig:Ui:Button type="submit" variant="primary" size="lg" icon="send">{{ 'admin.user.create_and_invite'|trans }}</twig:Ui:Button>
+                {% endif %}
                 <twig:Ui:Button variant="ghost" size="lg" href="{{ path('app_admin_users') }}">{{ 'admin.cancel'|trans }}</twig:Ui:Button>
             </div>
         {{ form_end(form) }}

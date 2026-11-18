@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace App\MessageHandler\Command\User;
 
 use App\Config\ConfigRegistry;
+use App\Entity\Enum\AuthMethod;
 use App\Entity\User;
 use App\Message\Command\User\UpdateUser;
 use App\Repository\MembershipRepository;
 use App\Repository\UserRepository;
+use App\Security\PasswordTokens;
+use App\Security\SingleSignOn;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
@@ -17,7 +20,9 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
  * unique, an external user keeps no internal-only role (the change is
  * refused while they hold one, the administrator decides what to grant
  * instead), the last active administrator stays one. A person acting on
- * their own account changes their mail grouping only.
+ * their own account changes their mail grouping only. An account is told
+ * to sign in through the identity provider only while the instance has
+ * one; going back to a password is always possible.
  */
 #[AsMessageHandler(bus: 'command.bus')]
 final class UpdateUserHandler
@@ -26,6 +31,8 @@ final class UpdateUserHandler
         private readonly UserRepository $users,
         private readonly MembershipRepository $memberships,
         private readonly ConfigRegistry $config,
+        private readonly PasswordTokens $tokens,
+        private readonly SingleSignOn $sso,
     ) {
     }
 
@@ -35,7 +42,8 @@ final class UpdateUserHandler
         if (null !== $command->actorId) {
             $own = $command->actorId === $command->userId
                 && null === $command->email && null === $command->firstName && null === $command->lastName && null === $command->company
-                && null === $command->internal && null === $command->admin && null === $command->active;
+                && null === $command->internal && null === $command->admin && null === $command->active
+                && null === $command->authMethod;
             if (!$own) {
                 throw new AccessDeniedException('Someone changes the mail grouping of their own account only.');
             }
@@ -57,6 +65,10 @@ final class UpdateUserHandler
         if ($user->isInternal() && !$internal) {
             $this->assertNoInternalRole($user);
         }
+        $method = null !== $command->authMethod && $command->authMethod !== $user->getAuthMethod() ? $command->authMethod : null;
+        if (AuthMethod::Sso === $method && !$this->sso->enabled()) {
+            throw UserException::ssoNotConfigured();
+        }
 
         if (null !== $command->email) {
             $user->changeEmail($command->email);
@@ -69,6 +81,12 @@ final class UpdateUserHandler
         }
         if (null !== $command->mailGrouping) {
             $user->groupMails($command->mailGrouping);
+        }
+        if (AuthMethod::Sso === $method) {
+            $user->signInWithSso();
+            $this->tokens->forget($user);
+        } elseif (AuthMethod::Password === $method) {
+            $user->signInWithPassword();
         }
         $internal ? $user->makeInternal($admin) : $user->makeExternal();
         $active ? $user->reactivate() : $user->deactivate();

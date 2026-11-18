@@ -36,6 +36,26 @@ class UserRepository extends ServiceEntityRepository implements UserLoaderInterf
     }
 
     /**
+     * Ties an account to what the identity provider calls it, at its first
+     * sign-in through it. Written here and nowhere else: authentication is
+     * not a command. An account already bound is left as it is.
+     */
+    public function bindSubject(User $user, string $subject): void
+    {
+        $user->bindSubject($subject);
+
+        $this->getEntityManager()->createQueryBuilder()
+            ->update(User::class, 'u')
+            ->set('u.oidcSubject', ':subject')
+            ->where('u.id = :id')
+            ->andWhere('u.oidcSubject IS NULL')
+            ->setParameter('subject', $subject)
+            ->setParameter('id', $user->getId())
+            ->getQuery()
+            ->execute();
+    }
+
+    /**
      * The accounts that may be given a role, by name.
      *
      * @return list<User>

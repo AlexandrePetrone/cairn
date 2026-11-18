@@ -29,6 +29,29 @@ final class UserTest extends TestCase
         self::assertSame('2026-03-03 10:00:00', $user->getCreatedAt()->format('Y-m-d H:i:s'), 'created at the clock time');
     }
 
+    public function testAnAccountSignsInWithAPasswordOrThroughTheProviderNeverBoth(): void
+    {
+        $user = new User('claire@example.com', 'Claire', 'Martin');
+        self::assertFalse($user->usesSso());
+        self::assertTrue($user->awaitsPassword(), 'invited, until it chooses a password');
+
+        $user->setPassword('hashed');
+        $user->signInWithSso();
+        self::assertTrue($user->usesSso());
+        self::assertFalse($user->hasPassword(), 'the password goes');
+        self::assertFalse($user->awaitsPassword(), 'and none is expected');
+
+        $user->bindSubject('acme-42');
+        self::assertSame('acme-42', $user->getOidcSubject());
+
+        $user->signInWithPassword();
+        self::assertNull($user->getOidcSubject(), 'what the provider called it is forgotten');
+        self::assertTrue($user->awaitsPassword());
+
+        $this->expectException(\LogicException::class);
+        $user->bindSubject('acme-42');
+    }
+
     public function testAnAdministratorIsAnInternalUser(): void
     {
         $user = new User('thomas@agency.test', 'Thomas', 'Girard');

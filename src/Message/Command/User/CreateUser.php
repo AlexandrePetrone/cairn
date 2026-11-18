@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Message\Command\User;
 
+use App\Entity\Enum\AuthMethod;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
@@ -14,11 +15,17 @@ use Symfony\Component\Validator\Constraints as Assert;
  * it from the Access page of their project (`project.manage_members`),
  * and such an account is always external. An import creates the accounts
  * of people who left as deactivated: they keep their history and cannot
- * sign in. Handled by CreateUserHandler, which returns the User.
+ * sign in. An account told to sign in through the identity provider
+ * (`authMethod`, the administration's choice, when the instance has one)
+ * gets neither a password nor an invitation. Handled by CreateUserHandler, which returns the User.
  */
 #[Assert\Expression(
     'this.actorId === null or this.projectId !== null',
     message: 'An actor creates an account from a project.',
+)]
+#[Assert\Expression(
+    'this.plainPassword === null or this.authMethod.value === "password"',
+    message: 'An account that signs in through the identity provider has no password.',
 )]
 final readonly class CreateUser
 {
@@ -43,6 +50,7 @@ final readonly class CreateUser
         public ?int $actorId = null,
         public ?int $projectId = null,
         public bool $active = true,
+        public AuthMethod $authMethod = AuthMethod::Password,
     ) {
     }
 }
