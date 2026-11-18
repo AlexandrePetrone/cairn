@@ -36,16 +36,16 @@ final class MermaidDiagram
     public function render(WorkflowDefinition $workflow, array $places): string
     {
         $order = array_flip($workflow->places);
-        $lines = ['flowchart TB', '  start(( )):::start --> '.$workflow->initial];
+        $lines = ['flowchart TB', '  start(( )):::start --> '.self::node($workflow->initial)];
 
         foreach ($places as $place) {
-            $lines[] = \sprintf('  %s("%s"):::%s', $place->id, self::escape($place->label), $place->status->value);
+            $lines[] = \sprintf('  %s("%s"):::%s', self::node($place->id), self::escape($place->label), $place->status->value);
         }
         foreach ($workflow->transitions as $transition) {
             $label = self::escape($transition->label.($transition->requiresComment ? ' 💬' : ''));
             foreach ($transition->from as $from) {
                 $arrow = $order[$transition->to] < $order[$from] ? '-.->' : '-->';
-                $lines[] = \sprintf('  %s %s|"%s"| %s', $from, $arrow, $label, $transition->to);
+                $lines[] = \sprintf('  %s %s|"%s"| %s', self::node($from), $arrow, $label, self::node($transition->to));
             }
         }
 
@@ -55,6 +55,16 @@ final class MermaidDiagram
         $lines[] = '  classDef start fill:var(--color-strong),stroke:var(--color-strong)';
 
         return implode("\n", $lines)."\n";
+    }
+
+    /**
+     * The node of a place. Its key alone could be a word Mermaid reads
+     * (`end`, `class`, `style`…) or the `start` node of the diagram: the
+     * key of a step is made from its label, so any word may come.
+     */
+    private static function node(string $placeId): string
+    {
+        return 'p_'.$placeId;
     }
 
     /**

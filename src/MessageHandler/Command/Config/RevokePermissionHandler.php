@@ -7,7 +7,6 @@ namespace App\MessageHandler\Command\Config;
 use App\Entity\Role;
 use App\Message\Command\Config\RevokePermission;
 use App\Repository\RoleRepository;
-use App\Security\Permission;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -24,7 +23,7 @@ final class RevokePermissionHandler
     public function __invoke(RevokePermission $command): void
     {
         $role = $this->writing->get(Role::class, $command->roleId);
-        $permission = Permission::tryFrom($command->permission) ?? throw ConfigChangeException::unknownPermission($command->permission);
+        $permission = $command->permission;
 
         $grant = $this->roles->findGrant($role, $permission);
         if (null !== $grant) {

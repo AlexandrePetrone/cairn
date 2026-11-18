@@ -9,8 +9,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 /**
  * Creates the import of an archive waiting in the imports directory into
  * an existing project. It waits for its analysis, which StartImport
- * launches. Who creates it is kept, like the author of a configuration
- * sync. Handled by CreateImportHandler, which returns the Import.
+ * launches. Who creates it is kept. Handled by CreateImportHandler, which
+ * returns the Import.
  */
 final readonly class CreateImport
 {

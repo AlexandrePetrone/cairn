@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Workflow;
 
 use App\Config\ConfigRegistry;
+use App\Config\Definition\InstanceDefinition;
 use App\Config\Definition\PlaceDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use App\Entity\Issue;
@@ -14,12 +15,17 @@ use Symfony\Component\Workflow\WorkflowInterface;
 
 /**
  * The workflows of the configuration in force, built on first use and kept
- * for the rest of the process. Trackers reference them by id.
+ * as long as the definition they were built from is the one ConfigRegistry
+ * gives: a change of the configuration, made by this process or read at
+ * its next request, builds them again. Trackers reference them by id.
  */
 final class WorkflowProvider
 {
     /** @var array<string, WorkflowInterface> */
     private array $workflows = [];
+
+    /** The definition the workflows kept were built from. */
+    private ?InstanceDefinition $builtFrom = null;
 
     public function __construct(
         private readonly ConfigRegistry $registry,
@@ -30,7 +36,13 @@ final class WorkflowProvider
 
     public function get(string $workflowId): WorkflowInterface
     {
-        return $this->workflows[$workflowId] ??= $this->factory->create($this->definition($workflowId), $this->row(...));
+        $definition = $this->registry->definition();
+        if ($definition !== $this->builtFrom) {
+            $this->workflows = [];
+            $this->builtFrom = $definition;
+        }
+
+        return $this->workflows[$workflowId] ??= $this->factory->create($definition->workflow($workflowId), $this->row(...));
     }
 
     /**

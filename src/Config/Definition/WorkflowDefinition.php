@@ -17,7 +17,7 @@ final readonly class WorkflowDefinition
     /** @var array<string, TransitionDefinition> id => transition */
     public array $transitions;
 
-    /** @var array<string, FieldUsage> field id => usage, in declaration order */
+    /** @var array<string, FieldUsage> field id => usage, in the order of the form */
     public array $fields;
 
     /**
@@ -37,8 +37,8 @@ final readonly class WorkflowDefinition
         Definitions::assertId($id, 'workflows');
         Definitions::assertLabel($label, "workflows.$id.label");
         $this->places = Definitions::assertIdList($places, "workflows.$id.places");
-        $this->transitions = Definitions::indexById($transitions, TransitionDefinition::class, "workflows.$id.transitions");
-        $this->fields = Definitions::indexById($fields, FieldUsage::class, "workflows.$id.fields", 'field');
+        $this->transitions = Definitions::indexById($transitions, "workflows.$id.transitions");
+        $this->fields = Definitions::indexById($fields, "workflows.$id.fields", 'field');
     }
 
     public function hasPlace(string $id): bool
@@ -52,7 +52,7 @@ final readonly class WorkflowDefinition
     }
 
     /**
-     * Transitions available from a place, in declaration order.
+     * Transitions available from a place, in the order of the workflow.
      *
      * @return list<TransitionDefinition>
      */

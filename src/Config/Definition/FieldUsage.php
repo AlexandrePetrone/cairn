@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Config\Definition;
 
 /**
- * A global field used by a workflow, in declaration order.
+ * A global field used by a workflow, at its place in the form.
  */
 final readonly class FieldUsage
 {

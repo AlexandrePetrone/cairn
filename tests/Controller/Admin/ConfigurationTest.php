@@ -308,7 +308,7 @@ final class ConfigurationTest extends WebTestCase
         self::assertSelectorTextContains('#workflow-field-environment', 'Environment');
 
         $crawler = $this->client->clickLink('Diagram');
-        self::assertStringContainsString('to_test -.->|"Refuse 💬"| in_progress', $crawler->filter('[data-workflow-diagram-target="source"]')->text(), 'the graph, drawn by the browser');
+        self::assertStringContainsString('p_to_test -.->|"Refuse 💬"| p_in_progress', $crawler->filter('[data-workflow-diagram-target="source"]')->text(), 'the graph, drawn by the browser');
         self::assertSelectorExists('main a[href="/admin/configuration/workflow/bug"]');
 
         $this->client->request('GET', '/admin/configuration/workflow/bug/usage');

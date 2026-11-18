@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Tests\MessageHandler\Command\Issue;
 
 use App\Entity\Enum\JournalEntryType;
+use App\Entity\Enum\PlaceStatus;
 use App\Entity\JournalEntry;
+use App\Entity\Place;
+use App\Message\Command\Config\CreatePlace;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\CommandBus;
 use App\MessageHandler\Command\Issue\IssueException;
@@ -74,6 +77,20 @@ final class ApplyTransitionHandlerTest extends KernelTestCase
         $this->expectException(IssueException::class);
         $this->expectExceptionMessage('cannot be applied from place "new"');
         $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->manager->getId(), $issue->getKey(), 'accept'));
+    }
+
+    public function testAnIssueStandingOutsideItsWorkflowTakesNoAction(): void
+    {
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+        // Moved to a step in the instant it left the workflow: the issue stands where no action starts.
+        $parked = $this->commands->dispatch(new CreatePlace('Parked', PlaceStatus::Waiting));
+        self::assertInstanceOf(Place::class, $parked);
+        $issue->moveTo($parked);
+        $this->entityManager->flush();
+
+        $this->expectException(IssueException::class);
+        $this->expectExceptionMessage('cannot be applied from place "parked"');
+        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->developer->getId(), $issue->getKey(), 'start'));
     }
 
     public function testARequiredCommentIsStoredAndLinkedToTheEntry(): void

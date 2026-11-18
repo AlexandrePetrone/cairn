@@ -30,7 +30,7 @@ final readonly class InstanceDefinition
     public array $workflows;
 
     /**
-     * @param list<RoleDefinition>        $roles       declared from the broadest to the narrowest
+     * @param list<RoleDefinition>        $roles       from the broadest to the narrowest
      * @param array<string, list<string>> $permissions Permission value => role ids
      * @param list<FieldDefinition>       $fields
      * @param list<LinkTypeDefinition>    $links
@@ -45,11 +45,11 @@ final readonly class InstanceDefinition
         array $places,
         array $workflows,
     ) {
-        $this->roles = Definitions::indexById($roles, RoleDefinition::class, 'roles');
-        $this->fields = Definitions::indexById($fields, FieldDefinition::class, 'fields');
-        $this->links = Definitions::indexById($links, LinkTypeDefinition::class, 'links');
-        $this->places = Definitions::indexById($places, PlaceDefinition::class, 'places');
-        $this->workflows = Definitions::indexById($workflows, WorkflowDefinition::class, 'workflows');
+        $this->roles = Definitions::indexById($roles, 'roles');
+        $this->fields = Definitions::indexById($fields, 'fields');
+        $this->links = Definitions::indexById($links, 'links');
+        $this->places = Definitions::indexById($places, 'places');
+        $this->workflows = Definitions::indexById($workflows, 'workflows');
 
         foreach ($permissions as $permission => $roleIds) {
             Definitions::assertIdList($roleIds, "permissions.$permission");
@@ -82,7 +82,7 @@ final readonly class InstanceDefinition
     }
 
     /**
-     * Position of the role in the declaration order: 0 is the broadest.
+     * Position of the role in the order of the instance: 0 is the broadest.
      */
     public function roleRank(string $id): int
     {
@@ -197,7 +197,7 @@ final readonly class InstanceDefinition
     }
 
     /**
-     * @return array<string, string> workflow id => label, in declaration order
+     * @return array<string, string> workflow id => label, in the order of the instance
      */
     public function workflowLabels(): array
     {

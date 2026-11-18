@@ -41,28 +41,42 @@ final class MermaidDiagramTest extends TestCase
     public function testEachPlaceIsANodeColouredByItsStatus(): void
     {
         self::assertStringStartsWith("flowchart TB\n", $this->source);
-        self::assertStringContainsString('start(( )):::start --> new', $this->source);
-        self::assertStringContainsString('new("New"):::open', $this->source);
-        self::assertStringContainsString('to_test("To test"):::waiting', $this->source);
+        self::assertStringContainsString('start(( )):::start --> p_new', $this->source);
+        self::assertStringContainsString('p_new("New"):::open', $this->source);
+        self::assertStringContainsString('p_to_test("To test"):::waiting', $this->source);
         self::assertStringContainsString('classDef closed ', $this->source);
         self::assertStringContainsString('fill:var(--color-blue-soft)', $this->source);
         self::assertDoesNotMatchRegularExpression('/#[0-9a-f]{6}/i', $this->source, 'Colours are roles, so that the drawing follows the theme.');
     }
 
+    public function testAPlaceWhoseKeyIsAWordOfMermaidHasItsOwnNode(): void
+    {
+        $source = (new MermaidDiagram())->render(
+            new WorkflowDefinition(id: 'task', label: 'Task', initial: 'start', places: ['start', 'end'], transitions: [
+                new TransitionDefinition(id: 'finish', label: 'Finish', from: ['start'], to: 'end', roles: ['developer']),
+            ]),
+            [new PlaceDefinition(id: 'start', label: 'Start', status: PlaceStatus::Open), new PlaceDefinition(id: 'end', label: 'End', status: PlaceStatus::Closed)],
+        );
+
+        self::assertStringContainsString('start(( )):::start --> p_start', $source, 'the step is not the dot the diagram starts from');
+        self::assertStringContainsString('p_start -->|"Finish"| p_end', $source);
+        self::assertDoesNotMatchRegularExpression('/^\s*end\b/m', $source, '`end` alone closes a block for Mermaid');
+    }
+
     public function testLabelsAreEscaped(): void
     {
-        self::assertStringContainsString('in_progress("In #quot;progress#quot; #35;1"):::in_progress', $this->source);
+        self::assertStringContainsString('p_in_progress("In #quot;progress#quot; #35;1"):::in_progress', $this->source);
     }
 
     public function testForwardArrowsAreSolidAndReturnsDotted(): void
     {
-        self::assertStringContainsString('new -->|"Start"| in_progress', $this->source);
-        self::assertStringContainsString('to_test -.->|"Refuse 💬"| in_progress', $this->source, 'back in the kanban order, comment required');
+        self::assertStringContainsString('p_new -->|"Start"| p_in_progress', $this->source);
+        self::assertStringContainsString('p_to_test -.->|"Refuse 💬"| p_in_progress', $this->source, 'back in the kanban order, comment required');
     }
 
     public function testATransitionFromSeveralPlacesHasAnArrowFromEach(): void
     {
-        self::assertStringContainsString('new -->|"Reject"| rejected', $this->source);
-        self::assertStringContainsString('in_progress -->|"Reject"| rejected', $this->source);
+        self::assertStringContainsString('p_new -->|"Reject"| p_rejected', $this->source);
+        self::assertStringContainsString('p_in_progress -->|"Reject"| p_rejected', $this->source);
     }
 }

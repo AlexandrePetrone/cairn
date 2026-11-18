@@ -6,6 +6,7 @@ namespace App\Tests\Workflow;
 
 use App\Config\ConfigRegistry;
 use App\Config\Definition\InvalidDefinitionException;
+use App\Message\Command\Config\UpdateTransition;
 use App\Repository\PlaceRepository;
 use App\Tests\KernelHelpers;
 use App\Tests\Workflow\Fixture\Subject;
@@ -47,12 +48,27 @@ final class WorkflowProviderTest extends KernelTestCase
         $workflow = $this->provider->get('bug');
 
         self::assertSame('bug', $workflow->getName());
-        self::assertSame($workflow, $this->provider->get('bug'), 'built once per process');
+        self::assertSame($workflow, $this->provider->get('bug'), 'built once for a configuration');
         self::assertSame('Bug', $this->provider->definition('bug')->label);
 
         $subject = new Subject();
         $workflow->apply($subject, 'start');
         self::assertSame('in_progress', $subject->getPlace());
+    }
+
+    public function testAChangeOfTheConfigurationBuildsTheWorkflowsAgain(): void
+    {
+        self::applyConfiguration();
+        $before = $this->provider->get('bug');
+
+        self::commandBus()->dispatch(new UpdateTransition('bug', 'start', to: 'to_test'));
+
+        $workflow = $this->provider->get('bug');
+        self::assertNotSame($before, $workflow, 'the one built from the configuration of before is not kept');
+
+        $subject = new Subject();
+        $workflow->apply($subject, 'start');
+        self::assertSame('to_test', $subject->getPlace(), 'the action leads where the configuration now says');
     }
 
     public function testAnUnknownWorkflowIsAnError(): void

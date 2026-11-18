@@ -1015,7 +1015,6 @@ admin:
         config:
             invalid_key: '"%key%" is not a valid key: lowercase letters, digits and underscores, starting with a letter, 60 characters at most.'
             key_taken: 'The key "%key%" is already used.'
-            unknown_permission: 'The right "%permission%" does not exist.'
             permission_internal_only: 'The role "%role%" is open to external users: this right is for the roles reserved to internal users.'
             role_held_by_externals: '{1}An external user holds the role "%role%": revoke that access first.|]1,Inf[ %count% accesses of external users carry the role "%role%": revoke them first.'
             role_has_internal_permissions: 'The role "%role%" holds rights reserved to internal users: take them away first.'

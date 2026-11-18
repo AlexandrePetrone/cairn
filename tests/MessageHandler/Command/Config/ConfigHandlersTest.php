@@ -116,24 +116,23 @@ final class ConfigHandlersTest extends KernelTestCase
         $this->refused('admin.refused.config.role_has_internal_permissions', new UpdateRole('project_manager', internalOnly: false));
         self::assertTrue($this->definition()->role('project_manager')->internalOnly, 'a refusal changes nothing');
 
-        $this->commands->dispatch(new RevokePermission('developer', Permission::IssueChangeTracker->value));
-        $this->commands->dispatch(new RevokePermission('developer', Permission::IssueDelete->value));
+        $this->commands->dispatch(new RevokePermission('developer', Permission::IssueChangeTracker));
+        $this->commands->dispatch(new RevokePermission('developer', Permission::IssueDelete));
         $this->commands->dispatch(new UpdateRole('developer', internalOnly: false));
         self::assertFalse($this->definition()->role('developer')->internalOnly);
     }
 
     public function testPermissionsAreGrantedOneByOne(): void
     {
-        $this->commands->dispatch(new GrantPermission('client', Permission::IssueRank->value));
-        $this->commands->dispatch(new GrantPermission('client', Permission::IssueRank->value));
+        $this->commands->dispatch(new GrantPermission('client', Permission::IssueRank));
+        $this->commands->dispatch(new GrantPermission('client', Permission::IssueRank));
         self::assertSame(['project_manager', 'developer', 'client'], $this->definition()->rolesGranted(Permission::IssueRank), 'in the order of the roles, once');
 
-        $this->commands->dispatch(new RevokePermission('developer', Permission::IssueRank->value));
+        $this->commands->dispatch(new RevokePermission('developer', Permission::IssueRank));
         self::assertSame(['project_manager', 'client'], $this->definition()->rolesGranted(Permission::IssueRank));
 
-        $this->refused('admin.refused.config.permission_internal_only', new GrantPermission('client', Permission::IssueDelete->value));
-        $this->refused('admin.refused.config.unknown_permission', new GrantPermission('client', 'issue.fly'));
-        $this->refused('admin.refused.not_found', new GrantPermission('nobody', Permission::IssueRank->value));
+        $this->refused('admin.refused.config.permission_internal_only', new GrantPermission('client', Permission::IssueDelete));
+        $this->refused('admin.refused.not_found', new GrantPermission('nobody', Permission::IssueRank));
     }
 
     public function testARoleGoesOnlyOnceNobodyHoldsItAndNoActionNamesIt(): void
@@ -141,7 +140,7 @@ final class ConfigHandlersTest extends KernelTestCase
         $this->refused('admin.refused.config.role_held', new DeleteRole('client'));
 
         $auditor = $this->commands->dispatch(new CreateRole('Auditor'));
-        $this->commands->dispatch(new GrantPermission($auditor->getId(), Permission::IssueCreate->value));
+        $this->commands->dispatch(new GrantPermission($auditor->getId(), Permission::IssueCreate));
         $this->commands->dispatch(new UpdateTransition('bug', 'accept', roles: ['client', 'project_manager', 'auditor']));
         $this->refused('admin.refused.config.role_in_actions', new DeleteRole('auditor'));
 

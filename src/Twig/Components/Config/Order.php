@@ -6,7 +6,6 @@ namespace App\Twig\Components\Config;
 
 use App\Config\ConfigRegistry;
 use App\Config\Definition\InstanceDefinition;
-use App\Config\Definition\PlaceDefinition;
 use App\Message\Command\Config\UpdateField;
 use App\Message\Command\Config\UpdateLinkType;
 use App\Message\Command\Config\UpdatePlace;
@@ -255,13 +254,13 @@ final class Order extends AbstractController
     private function transitions(InstanceDefinition $definition): array
     {
         $workflow = $definition->workflow((string) $this->workflow);
-        $label = static fn (string $placeId): string => $definition->findPlace($placeId) instanceof PlaceDefinition ? $definition->place($placeId)->label : $placeId;
+        $label = static fn (string $placeId): string => $definition->place($placeId)->label;
 
         $rows = [];
         foreach ($workflow->transitions as $transition) {
             $meta = [
                 implode(', ', array_map($label, $transition->from)).' → '.$label($transition->to),
-                implode(', ', array_map(static fn (string $roleId): string => $definition->hasRole($roleId) ? $definition->role($roleId)->label : $roleId, $transition->roles)),
+                implode(', ', array_map(static fn (string $roleId): string => $definition->role($roleId)->label, $transition->roles)),
             ];
             if ($transition->requiresComment) {
                 $meta[] = $this->translator->trans('admin.configuration.workflow.comment_required');

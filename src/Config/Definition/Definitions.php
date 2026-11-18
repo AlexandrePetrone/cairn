@@ -25,16 +25,15 @@ final class Definitions
 
     /**
      * Indexes a list of definitions by their identifier property, keeping
-     * declaration order.
+     * their order.
      *
      * @template T of object
      *
-     * @param list<T>         $items
-     * @param class-string<T> $class
+     * @param list<T> $items
      *
      * @return array<string, T>
      */
-    public static function indexById(array $items, string $class, string $path, string $idProperty = 'id'): array
+    public static function indexById(array $items, string $path, string $idProperty = 'id'): array
     {
         $indexed = [];
         foreach ($items as $item) {

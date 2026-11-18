@@ -8,6 +8,7 @@ use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
 use App\Entity\Tracker;
 use App\Message\Command\Config\CreateWorkflow;
+use App\Message\Command\Config\UpdatePlace;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Repository\IssueRepository;
 use App\Tests\Config\Fixture\DefinitionFactory;
@@ -17,7 +18,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * The bulk operations the configuration sync relies on when a place is
+ * The bulk operations RemoveWorkflowPlace relies on when a place is
  * removed from a workflow.
  */
 final class IssueRepositoryTest extends KernelTestCase
@@ -84,6 +85,29 @@ final class IssueRepositoryTest extends KernelTestCase
         $reopened = $this->entityManager->find(Issue::class, $b->getId());
         self::assertInstanceOf(Issue::class, $reopened);
         self::assertNull($reopened->getClosedAt(), 'reopened by the move');
+    }
+
+    public function testBetweenTwoClosedPlacesTheClosingDateStaysAndAnIssueWithoutOneGetsIt(): void
+    {
+        $commands = self::commandBus();
+        $developer = (int) $this->fixtures->developer->getId();
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+        $commands->dispatch(new ApplyTransition($developer, $issue->getKey(), 'start'));
+        $commands->dispatch(new ApplyTransition($developer, $issue->getKey(), 'deliver'));
+        // The step becomes a closing one: the issue standing there is closed, without a date.
+        $commands->dispatch(new UpdatePlace('to_test', status: PlaceStatus::Closed));
+
+        $this->issues->moveFromPlace('bug', 'to_test', PlaceStatus::Closed, 'done', PlaceStatus::Closed, new \DateTimeImmutable('2026-03-05 10:00:00'));
+        $this->entityManager->clear();
+        $dated = $this->entityManager->find(Issue::class, $issue->getId());
+        self::assertInstanceOf(Issue::class, $dated);
+        self::assertSame('2026-03-05 10:00:00', $dated->getClosedAt()?->format('Y-m-d H:i:s'), 'the move dates an issue that the status of its step had closed');
+
+        $this->issues->moveFromPlace('bug', 'done', PlaceStatus::Closed, 'to_test', PlaceStatus::Closed, new \DateTimeImmutable('2026-03-06 10:00:00'));
+        $this->entityManager->clear();
+        $kept = $this->entityManager->find(Issue::class, $issue->getId());
+        self::assertInstanceOf(Issue::class, $kept);
+        self::assertSame('2026-03-05 10:00:00', $kept->getClosedAt()?->format('Y-m-d H:i:s'), 'the date it has stays');
     }
 
     public function testAColumnThatTakesTheIssuesOfARemovedPlaceHoldsNoTwoAtTheSameRank(): void

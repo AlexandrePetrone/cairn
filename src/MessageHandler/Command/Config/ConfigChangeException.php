@@ -40,11 +40,6 @@ final class ConfigChangeException extends \DomainException implements Translatab
         return new self(\sprintf('The key "%s" is already used.', $key), 'admin.refused.config.key_taken', ['%key%' => $key]);
     }
 
-    public static function unknownPermission(string $permission): self
-    {
-        return new self(\sprintf('Permission "%s" does not exist.', $permission), 'admin.refused.config.unknown_permission', ['%permission%' => $permission]);
-    }
-
     public static function permissionForInternalRoles(string $role): self
     {
         return new self(\sprintf('The role "%s" is open to external users; this permission is for internal-only roles.', $role), 'admin.refused.config.permission_internal_only', ['%role%' => $role]);

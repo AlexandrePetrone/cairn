@@ -18,8 +18,8 @@ use Symfony\Component\Clock\ClockInterface;
  * how to import (ImportMapping) and the import waits for its
  * configuration.
  *
- * Like the configuration sync, a plain service that writes the import it
- * works on itself: one flush per batch, so that the progress shows.
+ * A plain service that writes the import it works on itself: one flush
+ * per batch, so that the progress shows.
  */
 final class ImportAnalyser
 {

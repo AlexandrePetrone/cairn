@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Config\Definition;
 
 /**
- * A role that can be granted on a workspace or a project. Roles are declared
+ * A role that can be granted on a workspace or a project. Roles are ordered
  * from the broadest to the narrowest: a direct grant may only widen a role
  * inherited from the workspace.
  */

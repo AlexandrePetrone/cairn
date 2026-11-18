@@ -62,7 +62,8 @@ final class IssueHandlerSupport
         $this->denyUnless($this->access->canTransition($actor, $transition, $project), \sprintf('apply transition "%s"', $transition->id));
 
         $workflow = $this->workflows->get($workflowId);
-        if (!$workflow->can($issue, $transition->id)) {
+        // An issue may stand on a step its workflow lost in the instant it was moved there: no action starts from it.
+        if (!$definition->hasPlace($issue->getPlace()) || !$workflow->can($issue, $transition->id)) {
             throw IssueException::transitionUnavailable($transition->id, $issue->getPlace());
         }
 

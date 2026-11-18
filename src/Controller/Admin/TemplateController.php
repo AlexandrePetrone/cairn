@@ -146,7 +146,7 @@ final class TemplateController extends AbstractController
             'template' => $template,
             'tracker' => $tracker,
             'form' => $form,
-            'workflow' => $definition->hasWorkflow($tracker->getWorkflowId()) ? $definition->workflow($tracker->getWorkflowId()) : null,
+            'workflow' => $definition->workflow($tracker->getWorkflowId()),
             'ruleCount' => $this->rules->count(['tracker' => $tracker]),
         ], new Response(null, $form->isSubmitted() ? 422 : 200));
     }

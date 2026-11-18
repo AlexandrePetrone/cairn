@@ -79,10 +79,10 @@ final class PermissionMatrix extends AbstractController
     #[LiveAction]
     public function toggle(CommandBus $commands, #[LiveArg] string $role, #[LiveArg] string $permission): void
     {
-        $definition = $this->config->definition();
-        $granted = \in_array($role, $definition->permissions[$permission] ?? [], true);
+        $right = Permission::tryFrom($permission) ?? throw $this->createNotFoundException();
+        $granted = \in_array($role, $this->config->definition()->rolesGranted($right), true);
 
-        $this->tryCommand($commands, $granted ? new RevokePermission($role, $permission) : new GrantPermission($role, $permission));
+        $this->tryCommand($commands, $granted ? new RevokePermission($role, $right) : new GrantPermission($role, $right));
     }
 
     /**

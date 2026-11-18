@@ -89,7 +89,9 @@ class IssueRepository extends ServiceEntityRepository
     /**
      * Bulk move of the issues sitting on a place to another of their
      * workflow. Those that enter a closed place from an open one are closed
-     * at `$at`, those that leave one lose their closing date. The kanban
+     * at `$at`, those that leave one lose their closing date; between two
+     * closed places the date stays, and an issue that had none (closed by
+     * the status its place was given) gets `$at`, as Issue::moveTo() does. The kanban
      * columns that took them are ranked anew, the newcomers among the cards
      * already there by the rank they had: two columns count their ranks
      * alike, so merged they would hold equal ones. Touches nothing else: a
@@ -103,6 +105,8 @@ class IssueRepository extends ServiceEntityRepository
             $this->onPlace($workflowId, $fromPlaceId)->update()->set('i.closedAt', 'NULL')->getQuery()->execute();
         } elseif (PlaceStatus::Closed !== $fromStatus) {
             $this->onPlace($workflowId, $fromPlaceId)->update()->set('i.closedAt', ':at')->setParameter('at', $at)->getQuery()->execute();
+        } else {
+            $this->onPlace($workflowId, $fromPlaceId)->update()->set('i.closedAt', ':at')->andWhere('i.closedAt IS NULL')->setParameter('at', $at)->getQuery()->execute();
         }
 
         $trackerIds = $this->onPlace($workflowId, $fromPlaceId)->select('DISTINCT IDENTITY(i.tracker)')->getQuery()->getSingleColumnResult();

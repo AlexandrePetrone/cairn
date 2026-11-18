@@ -177,7 +177,7 @@ final class ListSelectionActionsHandler
 
         return array_values(array_filter(
             $definition->places,
-            static fn (PlaceDefinition $place): bool => array_all($workflowIds, static fn (string $id): bool => $definition->hasWorkflow($id) && $definition->workflow($id)->hasPlace($place->id)),
+            static fn (PlaceDefinition $place): bool => array_all($workflowIds, static fn (string $id): bool => $definition->workflow($id)->hasPlace($place->id)),
         ));
     }
 }

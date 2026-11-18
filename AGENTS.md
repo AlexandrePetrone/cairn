@@ -1787,7 +1787,8 @@ database.
   `getPlace()`): what a role or a place says is read from the
   definition, never through the relation. A handler gets the row from
   the entity manager (`getReference()`, or `WorkflowProvider::row()` for
-  a place, whose status an issue copies). A relation cannot say "a step
+  a place, whose status says whether the issue that enters it is closed
+  at that moment). A relation cannot say "a step
   of the workflow of its tracker": the commands hold that, and an issue
   moved to a step in the instant it leaves its workflow stands on a
   step its workflow no longer has, which the pages tolerate and an
@@ -1908,9 +1909,10 @@ database.
   one element in the singular, followed by its key (`/place/to_test`,
   `/workflow/bug/action/start`): a key never stands where a word of the
   address may, so any key is allowed, `new` included. The page of a workflow
-  holds its steps, its actions, its fields, its diagram
+  holds its steps, its actions and its fields; its diagram
   (`Workflow/MermaidDiagram`, `Workflow:Diagram`) and the trackers that
-  follow it; the dialog that takes a step out says how many issues stand
+  follow it have a page each (`/diagram`, `/usage`). The dialog that
+  takes a step out says how many issues stand
   there, asks where they go and lists the actions that go or change.
 - **Every change leaves a line.** `ConfigJournal`, called by `settle()`,
   writes a `ConfigChange`: the date, the name of whoever is signed in
@@ -2111,7 +2113,8 @@ must pass before handing work over:
   plus `declare(strict_types=1)` in every file (`--dry-run` to only report).
 - `castor phpstan`: PHPStan level 8 with the Symfony and Doctrine
   extensions (`phpstan.dist.neon`). PHPDoc types are not treated as certain,
-  so runtime checks on hand-written configuration values stay meaningful.
+  so a runtime check on a value that only a PHPDoc types is not reported
+  as useless.
 - `castor lint`: `lint:container`, `lint:twig` and `lint:yaml`.
 - `castor lsp`: Symfony Language Tools (`.symfony-lsp.json`), which checks
   routes, services, templates and translation keys against the running
