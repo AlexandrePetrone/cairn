@@ -105,6 +105,14 @@ final class SingleSignOnTest extends WebTestCase
         self::assertNull($this->account('claire@client.test')->getOidcSubject());
     }
 
+    public function testAnAddressTheProviderSaysNothingOfFindsNobody(): void
+    {
+        $this->signInThroughProvider(['sub' => 'acme-42', 'email' => 'claire@client.test', 'email_verified' => null]);
+
+        $this->assertRefused();
+        self::assertNull($this->account('claire@client.test')->getOidcSubject());
+    }
+
     public function testADeactivatedAccountIsRefused(): void
     {
         $claire = $this->account('claire@client.test');

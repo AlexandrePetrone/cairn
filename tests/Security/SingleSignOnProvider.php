@@ -57,7 +57,8 @@ trait SingleSignOnProvider
         self::assertSame(self::SSO_CLIENT, $query['client_id']);
         self::assertSame('http://localhost/login/sso/callback', $query['redirect_uri']);
 
-        $this->ssoClaims = $claims + ['nonce' => $query['nonce']];
+        // The provider vouches for the address unless the test says otherwise; null leaves the claim out.
+        $this->ssoClaims = array_filter($claims + ['email_verified' => true], static fn (mixed $claim): bool => null !== $claim) + ['nonce' => $query['nonce']];
         $this->client->request('GET', '/login/sso/callback', ['state' => $query['state'], 'code' => 'the-code']);
     }
 

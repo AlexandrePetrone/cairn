@@ -54,7 +54,8 @@ without its Doctrine bridge), `symfony/mcp-bundle`, Mercure
   password link, and the provider opens no account that has one. Nobody
   is created at sign-in and no claim grants a role:
   `Security/OidcUserProvider` finds the account by the subject of the
-  provider, the first time by the address it vouches for, and keeps the
+  provider, the first time by the address it vouches for (`email_verified`
+  sent and true: a provider that says nothing vouches for nothing), and keeps the
   subject (`UserRepository::bindSubject()`: authenticating is not a
   command). Signing out is local, and nothing follows the provider
   afterwards: whoever left the directory keeps their session and API

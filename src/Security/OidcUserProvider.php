@@ -43,8 +43,10 @@ final class OidcUserProvider implements AttributesBasedUserProviderInterface
         }
 
         $email = $attributes['email'] ?? null;
-        // A provider that says the address was not verified vouches for nothing.
-        if (!\is_string($email) || '' === trim($email) || false === ($attributes['email_verified'] ?? null) || 'false' === ($attributes['email_verified'] ?? null)) {
+        // An account is bound for good to whoever comes first with its address: the provider must
+        // say it verified it. One that says nothing vouches for nothing, and some let people
+        // write the address themselves.
+        if (!\is_string($email) || '' === trim($email) || !\in_array($attributes['email_verified'] ?? null, [true, 'true'], true)) {
             throw self::noAccount();
         }
 
