@@ -9,8 +9,8 @@ name: Docker image
 # No "latest": until the schema has migrations, a new version promises no upgrade (README).
 # A pull request builds and starts the image without publishing it.
 #
-# Nothing to set: the token of the workflow signs in. The package is private when first
-# published; it is made public once, in its settings on GitHub.
+# Nothing to set: the token of the workflow signs in, and the package is as public as the
+# repository it is published from.
 
 on:
     push:
