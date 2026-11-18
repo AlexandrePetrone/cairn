@@ -10,6 +10,7 @@ use App\Message\Command\Config\GrantPermission;
 use App\Message\Command\Config\RevokePermission;
 use App\Message\CommandBus;
 use App\Security\Permission;
+use App\Security\PermissionGroup;
 use App\Twig\Components\DispatchesCommands;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -59,11 +60,11 @@ final class PermissionMatrix extends AbstractController
     }
 
     /**
-     * @return list<Permission>
+     * @return list<PermissionGroup>
      */
-    public function getPermissions(): array
+    public function getGroups(): array
     {
-        return Permission::cases();
+        return PermissionGroup::cases();
     }
 
     public function holds(RoleDefinition $role, Permission $permission): bool

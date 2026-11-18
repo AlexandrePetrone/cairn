@@ -1948,7 +1948,9 @@ database.
   deletion. A list is the live component `Config:Order` (`kind` says
   which: roles, steps, fields, link types, the steps and the actions of
   a workflow), dragged to reorder, each row leading to its dialog; the
-  rights are ticked in `Config:PermissionMatrix`, one command per box;
+  rights are ticked in `Config:PermissionMatrix`, one command per box,
+  listed group by group (`Permission::group()`, a `PermissionGroup`: only
+  a way to read them, in the order of the two enums);
   the fields a workflow asks for are arranged in `Config:WorkflowFields`,
   and the choices of a field in `Config:Choices`, on a page of their own
   (`/field/{id}/choices`) since their rows come and go: typed one label

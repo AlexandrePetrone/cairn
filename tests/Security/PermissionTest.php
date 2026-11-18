@@ -22,6 +22,7 @@ final class PermissionTest extends KernelTestCase
         foreach (['fr', 'en'] as $locale) {
             $catalogue = $translator->getCatalogue($locale);
             foreach (Permission::cases() as $permission) {
+                self::assertTrue($catalogue->defines($group = 'admin.configuration.permissions.group.'.$permission->group()->value), \sprintf('%s is missing in %s.', $group, $locale));
                 foreach (['label', 'help'] as $part) {
                     $key = \sprintf('permission.%s.%s', $permission->value, $part);
                     self::assertTrue($catalogue->defines($key), \sprintf('%s is missing in %s.', $key, $locale));

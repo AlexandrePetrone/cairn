@@ -661,6 +661,12 @@ admin:
             permission: 'Right'
             internal_only: 'Internal roles'
             internal_only_help: 'Using this right takes seeing what external users never see: it only goes to a role reserved to internal users.'
+            group:
+                issues: 'Issues'
+                tracking: 'Tracking'
+                comments: 'Comments'
+                project: 'Project'
+                budgets: 'Budgets'
         places:
             title: 'Steps'
             new: 'New step'

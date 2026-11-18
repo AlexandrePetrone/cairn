@@ -1,4 +1,4 @@
-{# The rights outside the workflows as a grid of boxes, a row per right and a column per role: a box ticked grants the right at once (`toggle`). A right for internal roles only shows no box under a role open to external users. Administrators hold every right. #}
+{# The rights outside the workflows as a grid of boxes, a row per right, group by group (`PermissionGroup`), and a column per role: a box ticked grants the right at once (`toggle`). A right for internal roles only shows no box under a role open to external users. Administrators hold every right. #}
 {% set matrixRoles = this.roles %}
 <div {{ attributes }} data-loading="addClass(opacity-60)">
     {% if error %}
@@ -13,8 +13,12 @@
                     <th class="px-3 py-2 text-center font-medium whitespace-nowrap">{{ 'admin.user.type.admin'|trans }}</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-line-subtle">
-                {% for permission in this.permissions %}
+            {% for group in this.groups %}
+            <tbody class="divide-y divide-line-subtle border-t border-line">
+                <tr class="bg-subtle/60">
+                    <th scope="colgroup" colspan="{{ matrixRoles|length + 2 }}" class="px-4 py-1.5 text-left text-xs font-semibold text-body">{{ ('admin.configuration.permissions.group.' ~ group.value)|trans }}</th>
+                </tr>
+                {% for permission in group.permissions %}
                     {% set matrixLabel = ('permission.' ~ permission.value ~ '.label')|trans %}
                     <tr>
                         <td class="px-4 py-2.5">
@@ -39,6 +43,7 @@
                     </tr>
                 {% endfor %}
             </tbody>
+            {% endfor %}
         </table>
     </div>
 </div>

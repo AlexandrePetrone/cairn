@@ -661,6 +661,12 @@ admin:
             permission: 'Droit'
             internal_only: 'Rôles internes'
             internal_only_help: 'Exercer ce droit suppose de voir ce que les externes ne voient jamais : il ne va qu''à un rôle réservé aux internes.'
+            group:
+                issues: 'Demandes'
+                tracking: 'Suivi'
+                comments: 'Commentaires'
+                project: 'Projet'
+                budgets: 'Budgets'
         places:
             title: 'Étapes'
             new: 'Nouvelle étape'
