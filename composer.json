@@ -1,6 +1,14 @@
 {
+    "name": "julienj/cairn",
+    "description": "An issue tracker for a web agency and its clients: one instance, a workspace per client, each seeing what their role allows.",
     "type": "project",
-    "license": "proprietary",
+    "license": "MIT",
+    "keywords": ["issue tracker", "symfony", "helpdesk", "kanban"],
+    "homepage": "https://github.com/julienj/cairn",
+    "support": {
+        "issues": "https://github.com/julienj/cairn/issues",
+        "source": "https://github.com/julienj/cairn"
+    },
     "minimum-stability": "beta",
     "prefer-stable": true,
     "require": {
