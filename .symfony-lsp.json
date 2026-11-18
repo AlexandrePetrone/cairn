@@ -3,5 +3,9 @@
     "phpCommand": ["docker", "compose", "exec", "-T", "cli", "php"],
     "containerProjectRoot": "/app",
     "environment": "dev",
-    "translationDiagnostics": true
+    "translationDiagnostics": true,
+    "excludePaths": [
+        "config/reference.php",
+        "config/schema.json"
+    ]
 }
