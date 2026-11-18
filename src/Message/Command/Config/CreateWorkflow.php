@@ -19,7 +19,6 @@ final readonly class CreateWorkflow implements ConfigurationCommand
         public string $label,
         #[Assert\NotBlank]
         public string $initial,
-        public ?string $id = null,
     ) {
     }
 }

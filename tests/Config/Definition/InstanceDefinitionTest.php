@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
 
 final class InstanceDefinitionTest extends TestCase
 {
-    public function testCollectionsAreIndexedByIdInDeclarationOrder(): void
+    public function testCollectionsAreIndexedByIdInTheirOrder(): void
     {
         $definition = DefinitionFactory::definition();
 
@@ -41,19 +41,13 @@ final class InstanceDefinitionTest extends TestCase
         ]);
     }
 
-    public function testInvalidIdentifiersAreRejected(): void
+    public function testADefinitionSaysWhatItIsGivenAndJudgesNothing(): void
     {
-        $this->expectException(InvalidDefinitionException::class);
+        $action = new TransitionDefinition(id: 'Start it', label: ' ', from: [], to: 'nowhere', roles: [], commentPrompt: 'Why?');
 
-        new RoleDefinition(id: 'Project manager', label: 'Project manager');
-    }
-
-    public function testLabelsCannotBeBlank(): void
-    {
-        $this->expectException(InvalidDefinitionException::class);
-        $this->expectExceptionMessage('places.new.label: a label is required.');
-
-        new PlaceDefinition(id: 'new', label: '  ', status: PlaceStatus::Open);
+        self::assertSame([], $action->from, 'whether this is a sound action is ConfigValidator\'s to say');
+        self::assertSame('Why?', $action->commentPrompt);
+        self::assertSame('  ', (new PlaceDefinition(id: 'new', label: '  ', status: PlaceStatus::Open))->label);
     }
 
     public function testWorkflowNavigation(): void
@@ -63,21 +57,6 @@ final class InstanceDefinitionTest extends TestCase
         self::assertSame(['deliver'], array_map(static fn ($t) => $t->id, $workflow->transitionsFrom('in_progress')));
         self::assertSame(['environment', 'url'], array_keys($workflow->fields));
         self::assertTrue($workflow->fields['environment']->required);
-    }
-
-    public function testTransitionNeedsSourcesAndRoles(): void
-    {
-        $this->expectException(InvalidDefinitionException::class);
-        $this->expectExceptionMessage('at least one role');
-
-        new TransitionDefinition(id: 'start', label: 'Start', from: ['new'], to: 'done', roles: []);
-    }
-
-    public function testCommentPromptRequiresAComment(): void
-    {
-        $this->expectException(InvalidDefinitionException::class);
-
-        new TransitionDefinition(id: 'refuse', label: 'Refuse', from: ['new'], to: 'done', roles: ['client'], commentPrompt: 'Why?');
     }
 
     public function testUnknownPlaceLookupThrows(): void

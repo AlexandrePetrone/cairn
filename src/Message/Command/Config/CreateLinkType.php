@@ -19,7 +19,6 @@ final readonly class CreateLinkType implements ConfigurationCommand
         public string $label,
         #[Assert\Length(max: 120)]
         public ?string $inverseLabel = null,
-        public ?string $id = null,
     ) {
     }
 }

@@ -5,27 +5,14 @@ declare(strict_types=1);
 namespace App\Config\Definition;
 
 /**
- * Helpers shared by the definition constructors.
+ * What the definition constructors share: a list turned into a map by id.
  */
 final class Definitions
 {
-    public static function assertId(string $id, string $path): void
-    {
-        if (!preg_match('/^[a-z][a-z0-9_]*$/', $id)) {
-            throw new InvalidDefinitionException(\sprintf('%s: "%s" is not a valid identifier (lowercase letters, digits and underscores, starting with a letter).', $path, $id));
-        }
-    }
-
-    public static function assertLabel(string $label, string $path): void
-    {
-        if ('' === trim($label)) {
-            throw new InvalidDefinitionException(\sprintf('%s: a label is required.', $path));
-        }
-    }
-
     /**
      * Indexes a list of definitions by their identifier property, keeping
-     * their order.
+     * their order. Two elements of one id cannot be held: the one thing a
+     * definition refuses, which no table gives it, where a key is unique.
      *
      * @template T of object
      *
@@ -45,23 +32,5 @@ final class Definitions
         }
 
         return $indexed;
-    }
-
-    /**
-     * @param list<string> $ids
-     *
-     * @return list<string>
-     */
-    public static function assertIdList(array $ids, string $path): array
-    {
-        $seen = [];
-        foreach ($ids as $id) {
-            if (isset($seen[$id])) {
-                throw new InvalidDefinitionException(\sprintf('%s: "%s" is listed twice.', $path, $id));
-            }
-            $seen[$id] = true;
-        }
-
-        return array_values($ids);
     }
 }

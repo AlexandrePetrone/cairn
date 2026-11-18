@@ -22,7 +22,7 @@ final class CreateRoleHandler
 
     public function __invoke(CreateRole $command): Role
     {
-        $id = $this->writing->key($command->id, $command->label, fn (string $id): bool => null !== $this->roles->find($id));
+        $id = $this->writing->key($command->label, fn (string $id): bool => null !== $this->roles->find($id));
         $role = new Role($id, $command->label, $command->internalOnly, $command->followsNewIssues, \count($this->roles->findOrdered()));
         $this->entityManager->persist($role);
         $this->writing->settle('role.created', ['%name%' => $role->getLabel()]);

@@ -52,18 +52,34 @@ class WorkflowRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return list<string> labels of the workflows that use the place
+     * @return list<string> labels of the workflows that use the place, in the order of the instance
      */
     public function labelsUsingPlace(Place $place): array
     {
-        return array_map(static fn (WorkflowPlace $used): string => $used->getWorkflow()->getLabel(), $this->getEntityManager()->getRepository(WorkflowPlace::class)->findBy(['place' => $place]));
+        return self::labels($this->getEntityManager()->getRepository(WorkflowPlace::class)->findBy(['place' => $place]));
     }
 
     /**
-     * @return list<string> labels of the workflows that ask for the field
+     * @return list<string> labels of the workflows that ask for the field, in the order of the instance
      */
     public function labelsUsingField(Field $field): array
     {
-        return array_map(static fn (WorkflowField $used): string => $used->getWorkflow()->getLabel(), $this->getEntityManager()->getRepository(WorkflowField::class)->findBy(['field' => $field]));
+        return self::labels($this->getEntityManager()->getRepository(WorkflowField::class)->findBy(['field' => $field]));
+    }
+
+    /**
+     * The labels of the workflows some rows name, in the order people gave
+     * the workflows: the database gives the rows in no order of its own.
+     *
+     * @param list<WorkflowPlace|WorkflowField> $used
+     *
+     * @return list<string>
+     */
+    private static function labels(array $used): array
+    {
+        $workflows = array_map(static fn (WorkflowPlace|WorkflowField $each): Workflow => $each->getWorkflow(), $used);
+        usort($workflows, static fn (Workflow $a, Workflow $b): int => [$a->getPosition(), $a->getId()] <=> [$b->getPosition(), $b->getId()]);
+
+        return array_map(static fn (Workflow $workflow): string => $workflow->getLabel(), $workflows);
     }
 }

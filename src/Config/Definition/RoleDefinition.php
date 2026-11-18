@@ -23,7 +23,5 @@ final readonly class RoleDefinition
         public bool $internalOnly = false,
         public bool $followsNewIssues = false,
     ) {
-        Definitions::assertId($id, 'roles');
-        Definitions::assertLabel($label, "roles.$id.label");
     }
 }

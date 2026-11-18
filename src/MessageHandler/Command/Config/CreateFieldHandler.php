@@ -22,7 +22,7 @@ final class CreateFieldHandler
 
     public function __invoke(CreateField $command): Field
     {
-        $id = $this->writing->key($command->id, $command->label, fn (string $id): bool => null !== $this->fields->find($id));
+        $id = $this->writing->key($command->label, fn (string $id): bool => null !== $this->fields->find($id));
         ConfigWriting::assertChoices($command->type, $command->options);
 
         $field = new Field($id, $command->label, $command->type, $command->options, $command->placeholder, $command->help, $command->internalOnly, \count($this->fields->findOrdered()));

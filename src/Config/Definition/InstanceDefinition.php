@@ -9,8 +9,9 @@ use App\Security\Permission;
 
 /**
  * The whole instance configuration, as Config\DefinitionLoader reads it
- * from its tables. Immutable; cross-references are checked by the
- * ConfigValidator, not here.
+ * from its tables. Immutable, and it judges nothing: it says what it was
+ * given, and whether that is a sound configuration is ConfigValidator's
+ * to say.
  */
 final readonly class InstanceDefinition
 {
@@ -50,10 +51,6 @@ final readonly class InstanceDefinition
         $this->links = Definitions::indexById($links, 'links');
         $this->places = Definitions::indexById($places, 'places');
         $this->workflows = Definitions::indexById($workflows, 'workflows');
-
-        foreach ($permissions as $permission => $roleIds) {
-            Definitions::assertIdList($roleIds, "permissions.$permission");
-        }
     }
 
     /**

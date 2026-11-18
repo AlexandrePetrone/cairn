@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Config;
 
 /**
- * One cross-validation failure, located by a dotted path such as
- * `workflows.bug.transitions.refuse.to`.
+ * One thing ConfigValidator finds wrong in a definition, located by a
+ * dotted path such as `workflows.bug.transitions.refuse.to`.
  */
 final readonly class ConfigViolation implements \Stringable
 {

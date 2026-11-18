@@ -18,11 +18,6 @@ final readonly class LinkTypeDefinition
         public string $label,
         public ?string $inverseLabel = null,
     ) {
-        Definitions::assertId($id, 'links');
-        Definitions::assertLabel($label, "links.$id.label");
-        if (null !== $inverseLabel) {
-            Definitions::assertLabel($inverseLabel, "links.$id.inverseLabel");
-        }
     }
 
     public function isSymmetric(): bool

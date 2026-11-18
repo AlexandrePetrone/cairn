@@ -24,7 +24,7 @@ final class CreateWorkflowHandler
 
     public function __invoke(CreateWorkflow $command): Workflow
     {
-        $id = $this->writing->key($command->id, $command->label, fn (string $id): bool => null !== $this->workflows->find($id));
+        $id = $this->writing->key($command->label, fn (string $id): bool => null !== $this->workflows->find($id));
         $initial = $this->writing->get(Place::class, $command->initial);
 
         $workflow = new Workflow($id, $command->label, $initial, \count($this->workflows->findOrdered()));

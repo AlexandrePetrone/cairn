@@ -62,25 +62,14 @@ final class ConfigWriting
     }
 
     /**
-     * The key of a new element: the one given, when it is well formed and
-     * free, otherwise one made from the label ("À recetter" gives
-     * `a_recetter`, then `a_recetter_2`). A key is never changed afterwards.
+     * The key of a new element, made from its label: "À recetter" gives
+     * `a_recetter`, then `a_recetter_2` when that one is taken. A key is
+     * never changed afterwards.
      *
      * @param \Closure(string): bool $taken
      */
-    public function key(?string $given, string $label, \Closure $taken): string
+    public function key(string $label, \Closure $taken): string
     {
-        if (null !== $given) {
-            if (1 !== preg_match('/^[a-z][a-z0-9_]*$/', $given) || \strlen($given) > self::KEY_LENGTH) {
-                throw ConfigChangeException::invalidKey($given);
-            }
-            if ($taken($given)) {
-                throw ConfigChangeException::keyTaken($given);
-            }
-
-            return $given;
-        }
-
         $base = (new AsciiSlugger())->slug($label, '_')->lower()->toString();
         $base = (string) preg_replace('/[^a-z0-9_]/', '', $base);
         if (1 !== preg_match('/^[a-z]/', $base)) {
@@ -135,43 +124,80 @@ final class ConfigWriting
     }
 
     /**
+     * The places an action is triggered from, which must be places of its
+     * workflow. Found before anything is written, as its roles are: what a
+     * refused handler left in the entity manager, the next command of the
+     * process would write.
+     *
+     * @param list<string> $placeIds
+     *
+     * @return array<string, Place> by id
+     */
+    public function places(Workflow $workflow, array $placeIds): array
+    {
+        $places = [];
+        foreach ($placeIds as $placeId) {
+            $places[$placeId] = $this->placeOf($workflow, $placeId);
+        }
+
+        return $places;
+    }
+
+    /**
+     * The roles that trigger an action, which must be roles of the instance.
+     *
+     * @param list<string> $roleIds
+     *
+     * @return array<string, Role> by id
+     */
+    public function roles(array $roleIds): array
+    {
+        $roles = [];
+        foreach ($roleIds as $roleId) {
+            $roles[$roleId] = $this->get(Role::class, $roleId);
+        }
+
+        return $roles;
+    }
+
+    /**
      * Gives an action the places it may be triggered from: those it no
      * longer has go, those it gains are added, the others are left alone.
+     * It only writes, and refuses nothing.
      *
-     * @param list<string> $placeIds places of the workflow of the action
+     * @param array<string, Place> $places by id, as places() found them
      */
-    public function triggerFrom(Transition $transition, array $placeIds): void
+    public function triggerFrom(Transition $transition, array $places): void
     {
-        $wanted = array_flip($placeIds);
-        foreach ($this->transitions->sourcesOf($transition) as $source) {
-            if (isset($wanted[$source->getPlace()->getId()])) {
-                unset($wanted[$source->getPlace()->getId()]);
+        // A new action has no row yet, nor an id to ask for them.
+        foreach (null === $transition->getId() ? [] : $this->transitions->sourcesOf($transition) as $source) {
+            if (isset($places[$source->getPlace()->getId()])) {
+                unset($places[$source->getPlace()->getId()]);
             } else {
                 $this->entityManager->remove($source);
             }
         }
-        foreach (array_keys($wanted) as $placeId) {
-            $this->entityManager->persist(new TransitionSource($transition, $this->placeOf($transition->getWorkflow(), $placeId)));
+        foreach ($places as $place) {
+            $this->entityManager->persist(new TransitionSource($transition, $place));
         }
     }
 
     /**
      * Gives an action the roles that may trigger it, the same way.
      *
-     * @param list<string> $roleIds
+     * @param array<string, Role> $roles by id, as roles() found them
      */
-    public function allow(Transition $transition, array $roleIds): void
+    public function allow(Transition $transition, array $roles): void
     {
-        $wanted = array_flip($roleIds);
-        foreach ($this->transitions->rolesOf($transition) as $allowed) {
-            if (isset($wanted[$allowed->getRole()->getId()])) {
-                unset($wanted[$allowed->getRole()->getId()]);
+        foreach (null === $transition->getId() ? [] : $this->transitions->rolesOf($transition) as $allowed) {
+            if (isset($roles[$allowed->getRole()->getId()])) {
+                unset($roles[$allowed->getRole()->getId()]);
             } else {
                 $this->entityManager->remove($allowed);
             }
         }
-        foreach (array_keys($wanted) as $roleId) {
-            $this->entityManager->persist(new TransitionRole($transition, $this->get(Role::class, $roleId)));
+        foreach ($roles as $role) {
+            $this->entityManager->persist(new TransitionRole($transition, $role));
         }
     }
 

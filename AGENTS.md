@@ -1797,7 +1797,10 @@ database.
   `Config/DefinitionLoader` is the one place that knows how the tables
   fit together: it builds the `InstanceDefinition` (and its
   `WorkflowDefinition`s, `PlaceDefinition`s…) that everything else asks
-  `ConfigRegistry` for. It is read once per request, and per message for
+  `ConfigRegistry` for. The definition judges nothing: it says what the
+  rows say, so a row no command would have written (a migration, SQL by
+  hand) is read as it is, and the administration still opens to put it
+  right. It is read once per request, and per message for
   a worker, without a shared cache, so a change made anywhere is seen by
   every process at its next request. An instance nobody configured has
   an empty definition (`InstanceDefinition::isEmpty()`): no page fails,
@@ -1826,11 +1829,18 @@ database.
   a role becomes internal-only once no external user holds it; a single
   action leads from one step to another; a field that offers choices has
   some. A handler checks before it writes, as every handler of the
-  application does, and nothing is checked afterwards: `ConfigValidator`
-  judges a whole definition, which is what `InstallConfiguration` needs,
-  and is what the tests hold the commands to (after every command they
-  accept, `ConfigHandlersTest` and `ConfigurationTest` give it the
-  configuration that is left). A handler ends with
+  application does: what a refused one left in the entity manager, the
+  next command of the process would write (`ConfigHandlersTest::refused()`
+  flushes after each refusal to see that nothing was). Nothing is
+  checked afterwards: `ConfigValidator`
+  judges a whole definition (each element well formed, every reference
+  known, a structure the workflow engine and the kanban can run), which
+  is what `InstallConfiguration` needs, and is what the tests hold the
+  commands to (after every command they accept, `ConfigHandlersTest` and
+  `ConfigurationTest` give it the configuration that is left). So a rule
+  of the configuration is written twice, in the handler that refuses a
+  change and in the validator that refuses a whole definition: change
+  both together. A handler ends with
   `ConfigWriting::settle()`, which writes the line of the journal and
   resets `ConfigRegistry`, and removes itself the rows that hang from
   what it deletes, so that the entity manager does not go on holding

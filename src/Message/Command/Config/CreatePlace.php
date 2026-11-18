@@ -19,7 +19,6 @@ final readonly class CreatePlace implements ConfigurationCommand
         #[Assert\Length(max: 120)]
         public string $label,
         public PlaceStatus $status,
-        public ?string $id = null,
     ) {
     }
 }

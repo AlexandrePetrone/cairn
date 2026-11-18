@@ -22,7 +22,7 @@ final class CreateLinkTypeHandler
 
     public function __invoke(CreateLinkType $command): LinkType
     {
-        $id = $this->writing->key($command->id, $command->label, fn (string $id): bool => null !== $this->types->find($id));
+        $id = $this->writing->key($command->label, fn (string $id): bool => null !== $this->types->find($id));
         $type = new LinkType($id, $command->label, $command->inverseLabel, \count($this->types->findOrdered()));
         $this->entityManager->persist($type);
         $this->writing->settle('link.created', ['%name%' => $type->getLabel()]);

@@ -5,10 +5,16 @@ declare(strict_types=1);
 namespace App\Tests\Config;
 
 use App\Config\ConfigValidator;
+use App\Config\Definition\FieldDefinition;
 use App\Config\Definition\FieldUsage;
 use App\Config\Definition\InstanceDefinition;
+use App\Config\Definition\LinkTypeDefinition;
+use App\Config\Definition\PlaceDefinition;
+use App\Config\Definition\RoleDefinition;
 use App\Config\Definition\TransitionDefinition;
 use App\Config\Definition\WorkflowDefinition;
+use App\Config\FieldType;
+use App\Entity\Enum\PlaceStatus;
 use App\Tests\Config\Fixture\DefinitionFactory;
 use PHPUnit\Framework\TestCase;
 
@@ -24,6 +30,78 @@ final class ConfigValidatorTest extends TestCase
     public function testAValidDefinitionHasNoViolation(): void
     {
         self::assertSame([], $this->validator->validate(DefinitionFactory::definition()));
+    }
+
+    public function testEveryElementHasAWellFormedKeyAndALabel(): void
+    {
+        $workflow = new WorkflowDefinition(id: 'My workflow', label: '', initial: 'a', places: ['a'], transitions: [
+            new TransitionDefinition(id: 'Go!', label: ' ', from: ['a'], to: 'a', roles: ['developer']),
+        ]);
+        $definition = DefinitionFactory::definition(
+            workflows: [$workflow],
+            roles: [new RoleDefinition(id: 'developer', label: 'Developer'), new RoleDefinition(id: 'Project manager', label: 'Project manager')],
+            fields: [new FieldDefinition(id: 'url', label: '   ', type: FieldType::Url)],
+            permissions: [],
+            links: [new LinkTypeDefinition(id: '2nd', label: 'Second'), new LinkTypeDefinition(id: 'blocks', label: 'Blocks', inverseLabel: ' ')],
+            places: [new PlaceDefinition(id: 'a', label: "\t", status: PlaceStatus::Open)],
+        );
+
+        self::assertSame([
+            'roles: "Project manager" is not a valid identifier (lowercase letters, digits and underscores, starting with a letter).',
+            'places.a.label: a label is required.',
+            'fields.url.label: a label is required.',
+            'links: "2nd" is not a valid identifier (lowercase letters, digits and underscores, starting with a letter).',
+            'links.blocks.inverseLabel: cannot be blank, leave it null for a link that reads the same from both sides.',
+            'workflows: "My workflow" is not a valid identifier (lowercase letters, digits and underscores, starting with a letter).',
+            'workflows.My workflow.label: a label is required.',
+            'workflows.My workflow.transitions: "Go!" is not a valid identifier (lowercase letters, digits and underscores, starting with a letter).',
+            'workflows.My workflow.transitions.Go!.label: a label is required.',
+        ], $this->messages($definition));
+    }
+
+    public function testAFieldThatOffersChoicesHasSomeAndTheOthersNone(): void
+    {
+        $definition = DefinitionFactory::definition(fields: [
+            new FieldDefinition(id: 'environment', label: 'Environment', type: FieldType::Choice),
+            new FieldDefinition(id: 'url', label: 'URL', type: FieldType::Url, options: ['a' => 'A']),
+            new FieldDefinition(id: 'browser', label: 'Browser', type: FieldType::Select, options: ['chrome' => 'Chrome', 'safari' => ' ']),
+        ]);
+
+        self::assertSame([
+            'fields.environment.options: a choice field needs options.',
+            'fields.url.options: a url field cannot have options.',
+            'fields.browser.options: options map a value to a non-empty label.',
+        ], $this->messages($definition));
+    }
+
+    public function testAnActionStartsSomewhereAndSomeoneTriggersIt(): void
+    {
+        $workflow = new WorkflowDefinition(id: 'w', label: 'W', initial: 'a', places: ['a', 'b'], transitions: [
+            new TransitionDefinition(id: 'orphan', label: 'Orphan', from: [], to: 'b', roles: []),
+            new TransitionDefinition(id: 'back', label: 'Back', from: ['b'], to: 'a', roles: ['developer'], commentPrompt: 'Why?', description: '  '),
+        ]);
+
+        self::assertSame([
+            'workflows.w.transitions.orphan.from: at least one source place is required.',
+            'workflows.w.transitions.orphan.roles: at least one role is required.',
+            'workflows.w.transitions.back.commentPrompt: only makes sense when a comment is required.',
+            'workflows.w.transitions.back.description: cannot be blank, leave it null instead.',
+        ], $this->messages(DefinitionFactory::definition(workflows: [$workflow])));
+    }
+
+    public function testNothingIsListedTwice(): void
+    {
+        $workflow = new WorkflowDefinition(id: 'w', label: 'W', initial: 'a', places: ['a', 'b', 'a'], transitions: [
+            new TransitionDefinition(id: 'go', label: 'Go', from: ['a', 'a'], to: 'b', roles: ['developer', 'developer']),
+        ]);
+        $definition = DefinitionFactory::definition(workflows: [$workflow], permissions: ['issue.create' => ['client', 'client']]);
+
+        self::assertSame([
+            'permissions.issue.create: "client" is listed twice.',
+            'workflows.w.places: "a" is listed twice.',
+            'workflows.w.transitions.go.from: "a" is listed twice.',
+            'workflows.w.transitions.go.roles: "developer" is listed twice.',
+        ], $this->messages($definition));
     }
 
     public function testUnknownPermissionAndRoleInPermissions(): void

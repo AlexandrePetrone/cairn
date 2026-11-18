@@ -13,6 +13,5 @@ final readonly class FieldUsage
         public string $field,
         public bool $required = false,
     ) {
-        Definitions::assertId($field, 'fields');
     }
 }

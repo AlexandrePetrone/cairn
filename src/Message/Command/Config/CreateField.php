@@ -25,7 +25,6 @@ final readonly class CreateField implements ConfigurationCommand
         public ?string $placeholder = null,
         public ?string $help = null,
         public bool $internalOnly = false,
-        public ?string $id = null,
     ) {
     }
 }

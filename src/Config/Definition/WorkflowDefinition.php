@@ -11,9 +11,6 @@ namespace App\Config\Definition;
  */
 final readonly class WorkflowDefinition
 {
-    /** @var list<string> ids of places of the instance, in the order of the kanban columns */
-    public array $places;
-
     /** @var array<string, TransitionDefinition> id => transition */
     public array $transitions;
 
@@ -22,7 +19,7 @@ final readonly class WorkflowDefinition
 
     /**
      * @param string                     $initial     place of a newly created issue
-     * @param list<string>               $places      ids of places of the instance
+     * @param list<string>               $places      ids of places of the instance, in the order of the kanban columns
      * @param list<TransitionDefinition> $transitions
      * @param list<FieldUsage>           $fields
      */
@@ -30,13 +27,10 @@ final readonly class WorkflowDefinition
         public string $id,
         public string $label,
         public string $initial,
-        array $places,
+        public array $places,
         array $transitions,
         array $fields = [],
     ) {
-        Definitions::assertId($id, 'workflows');
-        Definitions::assertLabel($label, "workflows.$id.label");
-        $this->places = Definitions::assertIdList($places, "workflows.$id.places");
         $this->transitions = Definitions::indexById($transitions, "workflows.$id.transitions");
         $this->fields = Definitions::indexById($fields, "workflows.$id.fields", 'field');
     }

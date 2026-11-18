@@ -30,16 +30,6 @@ final class ConfigChangeException extends \DomainException implements Translatab
         return new self(\sprintf('%s "%s" not found.', $what, $id), 'admin.refused.not_found');
     }
 
-    public static function invalidKey(string $key): self
-    {
-        return new self(\sprintf('"%s" is not a valid key.', $key), 'admin.refused.config.invalid_key', ['%key%' => $key]);
-    }
-
-    public static function keyTaken(string $key): self
-    {
-        return new self(\sprintf('The key "%s" is already used.', $key), 'admin.refused.config.key_taken', ['%key%' => $key]);
-    }
-
     public static function permissionForInternalRoles(string $role): self
     {
         return new self(\sprintf('The role "%s" is open to external users; this permission is for internal-only roles.', $role), 'admin.refused.config.permission_internal_only', ['%role%' => $role]);

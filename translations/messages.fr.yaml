@@ -1013,8 +1013,6 @@ admin:
         not_member: "%name% n'a aucun rôle sur %project%."
         external_only_from_project: Un compte créé depuis un projet est externe.
         config:
-            invalid_key: '« %key% » n''est pas une clé valide : minuscules, chiffres et tirets bas, en commençant par une lettre, 60 caractères au plus.'
-            key_taken: 'La clé « %key% » est déjà utilisée.'
             permission_internal_only: 'Le rôle « %role% » est ouvert aux externes : ce droit est pour les rôles réservés aux internes.'
             role_held_by_externals: '{1}Un utilisateur externe porte le rôle « %role% » : révoquez d''abord cet accès.|]1,Inf[ %count% accès d''utilisateurs externes portent le rôle « %role% » : révoquez-les d''abord.'
             role_has_internal_permissions: 'Le rôle « %role% » a des droits réservés aux internes : retirez-les d''abord.'

@@ -22,7 +22,7 @@ final class CreatePlaceHandler
 
     public function __invoke(CreatePlace $command): Place
     {
-        $id = $this->writing->key($command->id, $command->label, fn (string $id): bool => null !== $this->places->find($id));
+        $id = $this->writing->key($command->label, fn (string $id): bool => null !== $this->places->find($id));
         $place = new Place($id, $command->label, $command->status, \count($this->places->findOrdered()));
         $this->entityManager->persist($place);
         $this->writing->settle('place.created', ['%name%' => $place->getLabel()]);

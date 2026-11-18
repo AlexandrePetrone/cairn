@@ -12,6 +12,7 @@ use App\Config\FieldType;
 use App\Config\TransitionStyle;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
+use App\Entity\Transition;
 use App\Message\Command\Automation\CreateRule;
 use App\Message\Command\Automation\DeleteRule;
 use App\Message\Command\Config\AddWorkflowPlace;
@@ -41,6 +42,7 @@ use App\Message\Command\Issue\ApplyTransition;
 use App\Message\CommandBus;
 use App\Message\Query\Issue\SearchIssues;
 use App\MessageHandler\Command\Config\ConfigChangeException;
+use App\MessageHandler\Command\Config\ConfigDeletions;
 use App\Security\Permission;
 use App\Tests\KernelHelpers;
 use App\Tests\MessageHandler\Command\Issue\IssueFixtures;
@@ -93,9 +95,6 @@ final class ConfigHandlersTest extends KernelTestCase
         self::assertSame('client_lecture_seule', $role->getId());
         self::assertSame('client_lecture_seule_2', $twin->getId());
         self::assertSame(['project_manager', 'developer', 'client', 'client_lecture_seule', 'client_lecture_seule_2'], $this->definition()->roleIds());
-
-        $this->refused('admin.refused.config.key_taken', new CreateRole('Client', id: 'client'));
-        $this->refused('admin.refused.config.invalid_key', new CreateRole('Client', id: 'Not a key'));
     }
 
     public function testARoleIsRenamedAndMovedAmongTheOthers(): void
@@ -300,16 +299,35 @@ final class ConfigHandlersTest extends KernelTestCase
         self::assertSame('Support', $this->definition()->workflow('support_request')->label);
     }
 
+    public function testARefusalListsTheWorkflowsInTheOrderOfTheInstance(): void
+    {
+        $this->commands->dispatch(new CreateWorkflow('Support', 'new'));
+        $this->commands->dispatch(new UpdateWorkflow('support', fields: ['environment' => false]));
+        // Written after Bug, and moved before it.
+        $this->commands->dispatch(new UpdateWorkflow('support', position: 0));
+
+        $deletions = self::getContainer()->get(ConfigDeletions::class);
+        self::assertSame('Support, Bug', $deletions->place('new')?->parameters['%workflows%']);
+        self::assertSame('Support, Bug', $deletions->field('environment')?->parameters['%workflows%']);
+    }
+
     public function testAnActionKeepsToThePlacesOfItsWorkflowAndToOnePerPairOfPlaces(): void
     {
         $this->commands->dispatch(new CreateWorkflow('Support', 'new'));
+
+        // A key is unique within its workflow: a second "Start" gets another.
+        $again = $this->commands->dispatch(new CreateTransition('bug', 'Start', ['done'], 'new', ['developer']));
+        self::assertInstanceOf(Transition::class, $again);
+        self::assertSame('start_2', $again->getKey());
 
         $this->refused('admin.refused.config.not_a_place_of', new CreateTransition('support', 'Close', ['new'], 'done', ['developer']));
         $this->refused('admin.refused.not_found', new CreateTransition('bug', 'Close', ['new'], 'done', ['nobody']));
         // "Start" already leads from new to in_progress.
         $this->refused('admin.refused.config.pair_taken', new CreateTransition('bug', 'Take', ['new', 'to_test'], 'in_progress', ['developer']));
         $this->refused('admin.refused.config.pair_taken', new UpdateTransition('bug', 'refuse', from: ['new']));
-        $this->refused('admin.refused.config.key_taken', new CreateTransition('bug', 'Start again', ['done'], 'new', ['developer'], id: 'start'));
+        // Refused for a place or a role it names, an action keeps its name and where it starts.
+        $this->refused('admin.refused.not_found', new UpdateTransition('bug', 'start', label: 'Begin', from: ['ghost']));
+        $this->refused('admin.refused.not_found', new UpdateTransition('bug', 'start', label: 'Begin', roles: ['nobody']));
 
         try {
             $this->commands->dispatch(new CreateTransition('bug', 'Close', [], 'done', ['developer']));
@@ -431,6 +449,10 @@ final class ConfigHandlersTest extends KernelTestCase
             // The key of the reason, not its sentence.
             self::assertSame($reason, $e->trans(new IdentityTranslator()), $e->getMessage());
         }
-        self::assertEquals($before, $this->definition(), 'a refused command leaves the configuration as it was');
+        // A handler checks before it writes: what a refused one left in the
+        // entity manager, the next command of the process would write.
+        $this->entityManager->flush();
+        $this->registry->reset();
+        self::assertEquals($before, $this->definition(), 'a refused command leaves the configuration as it was, and nothing to write');
     }
 }

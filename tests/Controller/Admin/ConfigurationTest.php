@@ -228,6 +228,30 @@ final class ConfigurationTest extends WebTestCase
         self::assertCount($steps, $this->definition()->places, 'no step was created');
     }
 
+    /**
+     * The commands keep the rows sound. One written otherwise (a migration,
+     * SQL by hand) is read as it is: the pages open, and it is put right there.
+     */
+    public function testARowNoCommandWouldHaveWrittenIsReadAndPutRightFromTheAdministration(): void
+    {
+        $this->signInAsAdmin();
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->getConnection()->executeStatement("UPDATE config_place SET label = '' WHERE id = 'to_test'");
+        $entityManager->clear();
+        self::getContainer()->get(ConfigRegistry::class)->reset();
+
+        self::assertSame('', $this->definition()->place('to_test')->label, 'read as the row says');
+        self::assertSame(['places.to_test.label: a label is required.'], array_map(strval(...), (new ConfigValidator())->validate($this->definition())), 'which is not a sound configuration');
+
+        $this->client->request('GET', '/admin/configuration/places');
+        self::assertResponseIsSuccessful();
+
+        $this->client->request('GET', '/admin/configuration/place/to_test');
+        $this->client->submitForm('Save', ['place[label]' => 'To test']);
+        $this->client->followRedirect();
+        self::assertSame('To test', $this->definition()->place('to_test')->label);
+    }
+
     public function testFieldsAndLinkTypesAreManagedOnOnePage(): void
     {
         $this->signInAsAdmin();

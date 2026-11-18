@@ -25,9 +25,11 @@ final class UpdateTransitionHandler
         $transition = $this->writing->transition($workflow, $command->id);
 
         $target = null === $command->to ? null : $this->writing->placeOf($workflow, $command->to);
+        $from = null === $command->from ? null : $this->writing->places($workflow, $command->from);
+        $roles = null === $command->roles ? null : $this->writing->roles($command->roles);
         if (null !== $command->from || null !== $command->to) {
-            $from = $command->from ?? array_map(static fn ($source): string => $source->getPlace()->getId(), $this->transitions->sourcesOf($transition));
-            $this->writing->assertPairsFree($workflow, $transition->getKey(), $from, $command->to ?? $transition->getTarget()->getId());
+            $starts = $command->from ?? array_map(static fn ($source): string => $source->getPlace()->getId(), $this->transitions->sourcesOf($transition));
+            $this->writing->assertPairsFree($workflow, $transition->getKey(), $starts, $command->to ?? $transition->getTarget()->getId());
         }
 
         if (null !== $command->label) {
@@ -36,11 +38,11 @@ final class UpdateTransitionHandler
         if (null !== $target) {
             $transition->leadTo($target);
         }
-        if (null !== $command->from) {
-            $this->writing->triggerFrom($transition, $command->from);
+        if (null !== $from) {
+            $this->writing->triggerFrom($transition, $from);
         }
-        if (null !== $command->roles) {
-            $this->writing->allow($transition, $command->roles);
+        if (null !== $roles) {
+            $this->writing->allow($transition, $roles);
         }
         if (null !== $command->style) {
             $transition->restyle($command->style);

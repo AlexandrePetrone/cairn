@@ -19,7 +19,5 @@ final readonly class PlaceDefinition
         public string $label,
         public PlaceStatus $status,
     ) {
-        Definitions::assertId($id, 'places');
-        Definitions::assertLabel($label, "places.$id.label");
     }
 }

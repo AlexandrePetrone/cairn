@@ -33,7 +33,6 @@ final readonly class CreateTransition implements ConfigurationCommand
         #[Assert\Length(max: 255)]
         public ?string $commentPrompt = null,
         public ?string $description = null,
-        public ?string $id = null,
     ) {
     }
 }

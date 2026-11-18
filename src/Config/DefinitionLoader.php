@@ -7,7 +7,6 @@ namespace App\Config;
 use App\Config\Definition\FieldDefinition;
 use App\Config\Definition\FieldUsage;
 use App\Config\Definition\InstanceDefinition;
-use App\Config\Definition\InvalidDefinitionException;
 use App\Config\Definition\LinkTypeDefinition;
 use App\Config\Definition\PlaceDefinition;
 use App\Config\Definition\RoleDefinition;
@@ -31,6 +30,11 @@ use Doctrine\ORM\EntityManagerInterface;
  * Reads the configuration tables into the immutable definition the
  * application reasons on. The one place that knows how the rows fit
  * together: everything else asks ConfigRegistry for the definition.
+ *
+ * It judges nothing: the definition says what the rows say. The commands
+ * that write them keep them sound; a row written otherwise (a migration,
+ * SQL by hand) is read as it is, so that the administration still opens
+ * to put it right.
  */
 final class DefinitionLoader
 {
@@ -39,19 +43,7 @@ final class DefinitionLoader
     ) {
     }
 
-    /**
-     * @throws ConfigException when the rows do not make a definition, which the commands that write them prevent
-     */
     public function load(): InstanceDefinition
-    {
-        try {
-            return $this->build();
-        } catch (InvalidDefinitionException $e) {
-            throw new ConfigException('The configuration stored in database cannot be read: '.$e->getMessage(), 0, $e);
-        }
-    }
-
-    private function build(): InstanceDefinition
     {
         $roles = $this->ordered(Role::class);
 
