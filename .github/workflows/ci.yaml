@@ -221,5 +221,6 @@ jobs:
             - name: Install the dependencies
               uses: ramsey/composer-install@v4
 
+            # As "castor test" does: one process per core, each with its own database (TEST_TOKEN).
             - name: PHPUnit
-              run: php -d memory_limit=-1 bin/phpunit
+              run: php -d memory_limit=-1 vendor/bin/paratest
