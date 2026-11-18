@@ -1,13 +1,16 @@
-# Development stack, driven by castor.php ("castor install", "castor start", ...).
-# Production runs on a plain server: see the README.
+# Development stack, driven by castor.php ("castor install", "castor start", ...), on the "dev"
+# target of the Dockerfile. Production runs its "prod" target (compose.prod.yaml) or a plain
+# server: see the README.
 
 # Everything the PHP services share: image, code bind mount and environment.
 x-php: &php
-  build: .
+  build:
+    context: .
+    target: dev
   image: cairn-php-dev
   volumes:
-    # var/ stays in the bind mount on purpose: var/log is readable from the host, and the
-    # filesystem cache.app pool must be shared so "messenger:stop-workers" reaches the consumer.
+    # var/ stays in the bind mount on purpose: var/log is readable from the host. Nothing the
+    # services share is in it: sessions, locks and the cache.app pool are in the database.
     - ./:/app
   environment: &php-environment
     DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-!ChangeMe!}@database:5432/${POSTGRES_DB:-app}?serverVersion=${POSTGRES_VERSION:-18}&charset=utf8

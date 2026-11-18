@@ -3,7 +3,11 @@ framework:
     secret: '%env(APP_SECRET)%'
 
     # Note that the session will be started ONLY if you read or write from it.
-    session: true
+    # Kept in the database, like the locks (lock.yaml) and the cache.app pool (cache.yaml):
+    # nothing that must last is written under var/, so a container may be thrown away and
+    # several of them answer for the same instance.
+    session:
+        handler_id: '%env(resolve:DATABASE_URL)%'
 
     #esi: true
     #fragments: true
@@ -12,4 +16,6 @@ when@test:
     framework:
         test: true
         session:
+            # No handler: the mock storage keeps the sessions of a test in files of its own.
+            handler_id: ~
             storage_factory_id: session.storage.factory.mock_file

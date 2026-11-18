@@ -3,16 +3,11 @@ framework:
         # Unique name of your app: used to compute stable namespaces for cache keys.
         #prefix_seed: your_vendor_name/app_name
 
-        # The "app" cache stores to the filesystem by default.
-        # The data in this cache should persist between deploys.
-        # Other options include:
-
-        # Redis
-        #app: cache.adapter.redis
-        #default_redis_provider: redis://localhost
-
-        # APCu (not recommended with heavy random-write workloads as memory fragmentation can cause perf issues)
-        #app: cache.adapter.apcu
+        # The "app" pool holds what the processes of an instance share and what must outlive
+        # them: the state of the schedule (App\Schedule), the rate limiters, the signal of
+        # "messenger:stop-workers". In the database, so that the web server and the worker need
+        # no folder in common.
+        app: cache.adapter.doctrine_dbal
 
         # Namespaced pools use the above "app" backend by default
         #pools:
@@ -21,5 +16,7 @@ framework:
 when@test:
     framework:
         cache:
-            # One pool per ParaTest worker (TEST_TOKEN): tests clear the rate limiters they count on.
+            # One pool per ParaTest worker (TEST_TOKEN): tests clear the rate limiters they count on,
+            # which the transaction around each test would not let them do in the database.
+            app: cache.adapter.filesystem
             directory: '%kernel.cache_dir%/pools/app%env(default::TEST_TOKEN)%'

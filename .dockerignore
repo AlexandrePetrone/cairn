@@ -1,3 +1,36 @@
-# The code is bind-mounted at runtime: only the image configuration enters the build context.
-*
-!docker/
+# What the production image is built from: the application, without what is installed or built
+# in the image (vendor/, node_modules/, public/build/), what a machine holds for itself (.env.local,
+# var/) and what only development needs. The development image copies docker/ alone.
+.git/
+.github/
+.idea/
+.claude/
+.castor/
+.castor.stub.php
+castor.php
+compose*.yaml
+
+/var/
+/vendor/
+/node_modules/
+/public/build/
+/public/bundles/
+
+.env.local
+.env.local.php
+.env.*.local
+.env.dev
+.env.test
+
+/tests/
+/storia/
+/docker/authelia/
+.php-cs-fixer*
+.phpunit.cache/
+phpunit.dist.xml
+phpstan.dist.neon
+.symfony-lsp.json
+.editorconfig
+
+**/.DS_Store
+*.md

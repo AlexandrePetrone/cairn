@@ -1,0 +1,98 @@
+# An instance of Cairn from the published image: the web server, the worker and PostgreSQL.
+# An example to start from, see the README ("With Docker"). The values come from a .env file
+# next to this one:
+#
+#   APP_SECRET=            a random string, e.g. "openssl rand -hex 32"
+#   MERCURE_JWT_SECRET=    another one, of 32 characters or more
+#   POSTGRES_PASSWORD=     the password of the database
+#   DEFAULT_URI=           the public address, e.g. https://cairn.example.com
+#   SERVER_NAME=           its domain name, e.g. cairn.example.com
+#
+# The image writes nothing by itself. Once the stack is up, and after every new version:
+#
+#   docker compose -f compose.prod.yaml exec web bin/console doctrine:schema:update --force
+#
+# and once, for the first administrator:
+#
+#   docker compose -f compose.prod.yaml exec web bin/console app:user:create
+
+x-cairn: &cairn
+  image: ${CAIRN_IMAGE:-ghcr.io/julienj/cairn:edge}
+  restart: unless-stopped
+  environment:
+    APP_SECRET: ${APP_SECRET:?set APP_SECRET}
+    DATABASE_URL: postgresql://cairn:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@database:5432/cairn?serverVersion=18&charset=utf8
+    # The public address: the links of the emails, of the forge webhooks, and the host the MCP
+    # server answers.
+    DEFAULT_URI: ${DEFAULT_URI:?set DEFAULT_URI}
+    # The domain name ("cairn.example.com"): the web server gets its certificate by itself, the
+    # ports 80 and 443 being open to the Internet. Behind a proxy that holds the certificate:
+    # ":80", with SYMFONY_TRUSTED_PROXIES (e.g. "private_ranges").
+    SERVER_NAME: ${SERVER_NAME:?set SERVER_NAME}
+    SYMFONY_TRUSTED_PROXIES: ${SYMFONY_TRUSTED_PROXIES:-}
+    SYMFONY_TRUSTED_HEADERS: ${SYMFONY_TRUSTED_HEADERS:-x-forwarded-for,x-forwarded-proto,x-forwarded-host,x-forwarded-port}
+    MAILER_DSN: ${MAILER_DSN:-null://null}
+    MAILER_FROM: ${MAILER_FROM:-Cairn <no-reply@cairn.example>}
+    # en or fr, for the whole instance.
+    CAIRN_LOCALE: ${CAIRN_LOCALE:-en}
+    # The timezone the dates are shown and stored in ("Europe/Paris"). Choose it before the
+    # first issue: changing it later moves every date already written.
+    TZ: ${TZ:-UTC}
+    # Real time, through the hub built into the web server: where the worker publishes, and
+    # where the browsers listen, always a full address. The worker goes by the public address
+    # too; behind a proxy "http://web/.well-known/mercure" spares the way round. Another hub:
+    # its two addresses here. None: an empty MERCURE_URL.
+    MERCURE_URL: ${MERCURE_URL-${DEFAULT_URI}/.well-known/mercure}
+    MERCURE_PUBLIC_URL: ${MERCURE_PUBLIC_URL:-${DEFAULT_URI}/.well-known/mercure}
+    MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET:?set MERCURE_JWT_SECRET}
+    MERCURE_JWT_ISSUER: ${DEFAULT_URI}
+    # Optional: single sign-on and the GitLab webhooks (README).
+    OIDC_PROVIDER_URI: ${OIDC_PROVIDER_URI:-}
+    OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+    OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+    OIDC_NAME: ${OIDC_NAME:-SSO}
+    FORGE_GITLAB_URL: ${FORGE_GITLAB_URL:-https://gitlab.com}
+    FORGE_GITLAB_TOKEN: ${FORGE_GITLAB_TOKEN:-}
+  volumes:
+    # The attachments, the import archives and the certificates of Caddy: with the database,
+    # all there is to back up.
+    - cairn_data:/data
+  depends_on:
+    database:
+      condition: service_healthy
+
+services:
+  web:
+    <<: *cairn
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTPS_PORT:-443}:443/udp"
+
+  # Sends the emails, publishes the real time signal and runs the scheduled tasks. It leaves
+  # every hour and comes back with fresh memory.
+  worker:
+    <<: *cairn
+    command: bin/console messenger:consume async scheduler_default --time-limit=3600
+    healthcheck:
+      disable: true
+
+  database:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cairn
+      POSTGRES_USER: cairn
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD", "pg_isready", "-d", "cairn", "-U", "cairn"]
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    volumes:
+      # PostgreSQL 18 keeps its data in a version folder under /var/lib/postgresql.
+      - database_data:/var/lib/postgresql
+
+volumes:
+  cairn_data:
+  database_data:

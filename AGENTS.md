@@ -599,6 +599,32 @@ host.
 - Prefer `castor console make:*` with every argument and
   `--no-interaction`; a maker that prompts hangs a non-interactive shell.
 
+## Production image
+
+- **One `Dockerfile`, two targets**: `dev` is what `compose.yaml` runs,
+  `prod` what is published (`.github/workflows/docker.yaml`), with
+  `compose.prod.yaml` as its example. The `prod` image is the web server
+  and the worker alike: the command chooses. It serves in worker mode, as
+  `dev` does.
+- **A container keeps nothing.** Sessions, locks and the `cache.app` pool
+  (the state of the schedule, the rate limiters, the restart signal of the
+  workers, the MCP sessions) are in the database, in every environment but
+  `test`; logs go to stderr; files live under `/data` (`ATTACHMENTS_DIR`,
+  `IMPORTS_DIR`), the one volume. Nothing that must last, or that two
+  processes share, is written under `var/`.
+- **The entrypoint writes nothing.** It refuses to start without its
+  secrets and that is all: the schema is the operator's command, nothing
+  is installed nor migrated at startup.
+- The image is configured by its environment alone, runs unprivileged and
+  on a read-only root filesystem (`/data` and `/tmp` apart).
+  `docker/Caddyfile.prod` has one site address: an address per scheme
+  would be a Mercure hub per scheme. The hub checks who a token was signed
+  for, so `MERCURE_PUBLIC_URL` is a full address, which the entrypoint
+  names the hub by.
+- `docker/smoke-test.sh` starts the image the way `compose.prod.yaml`
+  tells an operator to; the CI runs it before publishing. The three change
+  together.
+
 ## Testing
 
 Functional tests extend `WebTestCase`; handler and service tests extend

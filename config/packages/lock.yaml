@@ -1,2 +1,10 @@
 framework:
-    lock: '%env(LOCK_DSN)%'
+    # In the database, on a connection of its own: a lock is taken and released around the
+    # transaction of a command, never inside it. Shared by every process of the instance,
+    # wherever it runs.
+    lock: '%env(resolve:DATABASE_URL)%'
+
+when@test:
+    framework:
+        # Each ParaTest worker changes its own configuration, in its own database.
+        lock: in-memory

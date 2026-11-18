@@ -1,0 +1,40 @@
+#!/bin/sh
+# Entrypoint of the production image. It checks what the instance cannot run without and writes
+# nothing: the schema of the database is the operator's command (README, "With Docker").
+set -eu
+
+refuse() {
+	echo "cairn: $1" >&2
+	exit 1
+}
+
+# The web server and the console need the secrets; a shell opened to look around does not.
+case "${1:-}" in
+	frankenphp | bin/console | php)
+		[ -n "${APP_SECRET:-}" ] \
+			|| refuse 'APP_SECRET is not set. Give the instance a random string of its own, e.g. "openssl rand -hex 32".'
+
+		if [ -n "${MERCURE_JWT_SECRET:-}" ]; then
+			[ "${#MERCURE_JWT_SECRET}" -ge 32 ] \
+				|| refuse 'MERCURE_JWT_SECRET is too short: a random string of 32 characters or more.'
+		elif [ -n "${MERCURE_URL:-}" ]; then
+			refuse 'MERCURE_URL is set without MERCURE_JWT_SECRET: a random string of 32 characters or more, shared with the hub.'
+		else
+			# No real time: nothing publishes nor subscribes, and the hub of this server gets a key
+			# nobody knows.
+			MERCURE_JWT_SECRET="$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+			export MERCURE_JWT_SECRET
+		fi
+
+		# A token is signed for the public address of the hub (its audience), which the hub of
+		# this server would otherwise read from each request: wrong behind a proxy that holds
+		# the certificate, where the requests arrive over plain HTTP.
+		case "${MERCURE_PUBLIC_URL:-}" in
+			http://* | https://*)
+				export MERCURE_EXTRA_DIRECTIVES="${MERCURE_EXTRA_DIRECTIVES:-resource_identifier $MERCURE_PUBLIC_URL}"
+				;;
+		esac
+		;;
+esac
+
+exec docker-php-entrypoint "$@"

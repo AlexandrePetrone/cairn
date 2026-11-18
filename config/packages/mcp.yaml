@@ -12,6 +12,10 @@ mcp:
                 A category is named by its id, a step by its id (in_progress); get_project lists the categories of a project and the steps of each.
                 Clients read the issues too: a comment is private (internal users only) unless you are asked to answer the client.
             registry: '*'
+            # With the cache.app pool (cache.yaml) rather than in a folder of this machine:
+            # whichever process answers the next request of an assistant knows its session.
+            session:
+                store: cache
             http:
                 path: /mcp
                 # The bundle only answers the hosts listed: the one of the instance.

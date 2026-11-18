@@ -36,16 +36,55 @@ Cairn has no release yet, and is not meant for production until it has one:
 
 ## Installation
 
-How to run Cairn on a server of your own. For development, use the Docker stack described in [Local development](#local-development) instead: its image is for development only, and there is no production image yet.
+How to run Cairn for real: from its Docker image, or on a server of your own. For development, use the Docker stack described in [Local development](#local-development) instead.
 
-### Requirements
+### With Docker
+
+The image `ghcr.io/julienj/cairn` holds the application, its dependencies and the built assets, served by FrankenPHP. The same image is the web server and the worker; it runs on PostgreSQL or MariaDB, on amd64 and arm64. [`compose.prod.yaml`](compose.prod.yaml) is an example to start from: the web server, the worker and PostgreSQL.
+
+Put it in a folder, with a `.env` file next to it:
+
+```dotenv
+APP_SECRET=<random string, e.g. openssl rand -hex 32>
+MERCURE_JWT_SECRET=<another one, of 32 characters or more>
+POSTGRES_PASSWORD=<password of the database>
+DEFAULT_URI=https://cairn.example.com
+SERVER_NAME=cairn.example.com
+TZ=Europe/Paris
+```
+
+`TZ` is the timezone the dates are shown and stored in (UTC without it). Choose it before the first issue is written: changing it later moves every date already there.
+
+Then start it, create the schema and the first administrator:
+
+```bash
+docker compose -f compose.prod.yaml up -d
+docker compose -f compose.prod.yaml exec web bin/console doctrine:schema:update --force
+docker compose -f compose.prod.yaml exec web bin/console app:user:create
+```
+
+The worker restarts until the schema is there. Sign in: the administration offers to install the starter configuration.
+
+**HTTPS.** With a domain name as `SERVER_NAME`, the web server gets its certificate by itself; the ports 80 and 443 must be reachable from the Internet. Behind a proxy that holds the certificate instead: `SERVER_NAME=:80`, `SYMFONY_TRUSTED_PROXIES=private_ranges` and `MERCURE_URL=http://web/.well-known/mercure`. The same three, with `DEFAULT_URI=http://localhost:8080` and `HTTP_PORT=8080`, try it on a laptop.
+
+**Updating.** `docker compose pull`, `up -d`, then `doctrine:schema:update --force` again. The image never writes to the database by itself: the schema is always your command. `edge` follows the main branch and `0.x.y` is a release; there is no `latest`. Until 1.0 the schema has no migrations: `schema:update` adds what a version needs, but cannot rename nor convert, so back up before updating.
+
+**Data.** Two things to back up: the database, and the `/data` volume (the attachments, the import archives, the certificates). The containers keep nothing else: sessions, locks and the shared cache are in the database, logs go to the standard output.
+
+**Configuration.** Every variable of [Environment](#environment) is an environment variable of both containers; `compose.prod.yaml` lists the usual ones. Real time is on, through the hub built into the web server; for another hub give its addresses, in full, as `MERCURE_URL` and `MERCURE_PUBLIC_URL`, and for none an empty `MERCURE_URL`. For MariaDB, replace the `database` service and give a `DATABASE_URL` such as `mysql://user:password@database:3306/cairn?serverVersion=11.4.2-MariaDB&charset=utf8mb4`.
+
+**Without Compose.** The image runs as an unprivileged user, on a read-only root filesystem if `/data` and `/tmp` are writable, and listens on port 8080 over plain HTTP unless `SERVER_NAME` says otherwise. `/healthz` answers without PHP nor the database. The worker is the same image with the command `bin/console messenger:consume async scheduler_default --time-limit=3600`; it shares `/data` with the web server and finishes its message when asked to stop. The built-in hub serves one web container: several need a hub of their own.
+
+### On a server
+
+#### Requirements
 
 - PHP 8.5 with the `intl`, `pdo_pgsql` (or `pdo_mysql`), `ctype`, `iconv` and `zip` extensions, and Composer
 - PostgreSQL 16+ (or MariaDB 10.11+)
 - Node.js 22, only to build the assets
 - A web server pointing at `public/` (Caddy, FrankenPHP, nginx + PHP-FPM…), with PHP's upload limits allowing 10 MB files (`upload_max_filesize`, `post_max_size`)
 
-### Steps
+#### Steps
 
 ```bash
 composer install --no-dev --optimize-autoloader
@@ -69,7 +108,7 @@ Roles and their rights, workflows, steps, fields and link types live in the data
 
 ### Environment
 
-`.env` holds the defaults. Put the real values in `.env.local` (git-ignored):
+`.env` holds the defaults. Put the real values in `.env.local` (git-ignored); with Docker they are the environment variables of the containers:
 
 ```dotenv
 APP_ENV=prod

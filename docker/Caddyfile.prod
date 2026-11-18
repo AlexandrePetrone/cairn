@@ -1,0 +1,61 @@
+{
+	# The image runs without privileges, and writes under /data alone: nothing is added to the
+	# certificates of the system, and the configuration it runs is not saved aside.
+	skip_install_trust
+	persist_config off
+
+	{$CADDY_GLOBAL_OPTIONS}
+
+	frankenphp {
+		{$FRANKENPHP_CONFIG}
+	}
+}
+
+{$CADDY_EXTRA_CONFIG}
+
+# ":8080" (the default) answers any host over plain HTTP, for a proxy that holds the certificate.
+# A domain name ("cairn.example.com") makes Caddy get a certificate, listen on 80 and 443 and
+# redirect to HTTPS. One address only: each scheme would get a hub of its own, and what is
+# published to one is not heard on the other.
+{$SERVER_NAME::8080} {
+	log {
+		{$CADDY_SERVER_LOG_OPTIONS}
+	}
+
+	root /app/public
+	encode zstd br gzip
+
+	# Says that the server is up, without PHP nor the database: for whatever restarts the container.
+	respond /healthz 200
+
+	{$CADDY_SERVER_EXTRA_DIRECTIVES}
+
+	# The Mercure hub built into FrankenPHP, at /.well-known/mercure: it tells the pages that an
+	# issue changed (src/Realtime/). It trusts the tokens the application signs with
+	# MERCURE_JWT_SECRET as MERCURE_JWT_ISSUER; no anonymous subscriber, no history. It sits idle
+	# when the instance has no real time (no MERCURE_URL) or names another hub.
+	mercure {
+		transport local
+		# The entrypoint names the hub by its public address here: behind a proxy the requests
+		# no longer say it, and the tokens are signed for that address alone.
+		{$MERCURE_EXTRA_DIRECTIVES}
+		issuer {$MERCURE_JWT_ISSUER:https://localhost} {
+			publisher {
+				jwt "{$MERCURE_JWT_SECRET}"
+			}
+			subscriber {
+				jwt "{$MERCURE_JWT_SECRET}"
+			}
+		}
+	}
+
+	# Worker mode, as in development (docker/Caddyfile): the kernel boots once per thread and
+	# serves every request after, its services reset in between (ResetInterface).
+	php_server {
+		worker {
+			file ./public/index.php
+			{$FRANKENPHP_WORKER_CONFIG}
+		}
+		{$FRANKENPHP_SITE_CONFIG}
+	}
+}
