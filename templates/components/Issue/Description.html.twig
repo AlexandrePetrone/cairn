@@ -19,10 +19,10 @@
         </form>
     {% elseif this.canEdit %}
         <div class="group flex items-start gap-2 p-2">
-            <div class="min-w-0 flex-1">{% if issue.description is not empty %}<div class="prose prose-sm max-w-none">{{ issue.description|markdown }}</div>{% else %}<span class="text-faint">{{ 'issue.show.no_description'|trans }}</span>{% endif %}</div>
+            <div class="min-w-0 flex-1">{% if issue.description is not empty %}<div class="prose prose-sm max-w-none">{{ issue.description|markdown(issue.project) }}</div>{% else %}<span class="text-faint">{{ 'issue.show.no_description'|trans }}</span>{% endif %}</div>
             <twig:Ui:IconButton icon="pencil" :label="'issue.edit.edit_description'|trans" class="hover-actions -mt-1 -mr-1" data-action="live#action" data-live-action-param="editDescription" />
         </div>
     {% else %}
-        <div class="p-2">{% if issue.description is not empty %}<div class="prose prose-sm max-w-none">{{ issue.description|markdown }}</div>{% else %}<span class="text-faint">{{ 'issue.show.no_description'|trans }}</span>{% endif %}</div>
+        <div class="p-2">{% if issue.description is not empty %}<div class="prose prose-sm max-w-none">{{ issue.description|markdown(issue.project) }}</div>{% else %}<span class="text-faint">{{ 'issue.show.no_description'|trans }}</span>{% endif %}</div>
     {% endif %}
 </div>

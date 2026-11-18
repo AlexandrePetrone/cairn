@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Twig;
 
+use App\Entity\Project;
 use App\Markdown\MarkdownRenderer;
 use App\Security\Viewer;
 use Twig\Attribute\AsTwigFilter;
@@ -21,8 +22,8 @@ final class MarkdownExtension
     }
 
     #[AsTwigFilter('markdown', isSafe: ['html'])]
-    public function markdown(string $markdown): string
+    public function markdown(string $markdown, Project $project): string
     {
-        return $this->renderer->render($markdown, $this->viewer->get());
+        return $this->renderer->render($markdown, $this->viewer->get(), $project);
     }
 }

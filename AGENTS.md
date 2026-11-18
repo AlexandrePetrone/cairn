@@ -446,7 +446,9 @@ src/
   placeholder.
 - **Text users write is markdown**, edited in `Ui:Form:Editor`
   (`Form/Type/MarkdownType`) and displayed with the `markdown` filter,
-  never raw. `#MD-SPT-12` links an issue only for a reader who may see it.
+  never raw. `#MD-SPT-12` links an issue only for a reader who may see it,
+  and a mention names a member of the project only. An address shown as a
+  link is one of the web (`http://`, `https://`), checked where it enters.
 - **Files are attachments**: pending while what they go with is being
   written, then claimed by the command that saves the text
   (`IssueHandlerSupport::claimAttachments()`). A file follows what it goes

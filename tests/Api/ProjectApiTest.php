@@ -60,7 +60,7 @@ final class ProjectApiTest extends ApiTestCase
         self::assertSame('The gates stay closed', $this->api('GET', '/api/issues/3V-SP2K-1', $secret)['title']);
         self::assertResponseIsSuccessful();
 
-        $html = self::getContainer()->get(MarkdownRenderer::class)->render('See #3V-SP2K-1.', $this->scene->user(self::DEVELOPER));
+        $html = self::getContainer()->get(MarkdownRenderer::class)->render('See #3V-SP2K-1.', $this->scene->user(self::DEVELOPER), $project);
         self::assertStringContainsString('<a class="issue-reference" href="/3V/SP2K/issues/1"', $html);
     }
 

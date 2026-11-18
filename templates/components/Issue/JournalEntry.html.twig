@@ -45,14 +45,14 @@
         {% if journalVersions %}
             <twig:Ui:Disclosure :closedLabel="'issue.event.versions'|trans" :openLabel="'issue.event.hide_versions'|trans" class="mt-1">
                 <div class="grid gap-3 text-sm sm:grid-cols-2">
-                    <div class="rounded-md border border-red-line bg-red-soft/50 p-3"><div class="mb-1 text-xs font-medium uppercase text-red">{{ 'issue.event.before'|trans }}</div><div class="prose prose-sm max-w-none">{{ journalVersions.from|markdown }}</div></div>
-                    <div class="rounded-md border border-emerald-line bg-emerald-soft/50 p-3"><div class="mb-1 text-xs font-medium uppercase text-emerald">{{ 'issue.event.after'|trans }}</div><div class="prose prose-sm max-w-none">{{ journalVersions.to|markdown }}</div></div>
+                    <div class="rounded-md border border-red-line bg-red-soft/50 p-3"><div class="mb-1 text-xs font-medium uppercase text-red">{{ 'issue.event.before'|trans }}</div><div class="prose prose-sm max-w-none">{{ journalVersions.from|markdown(entry.issue.project) }}</div></div>
+                    <div class="rounded-md border border-emerald-line bg-emerald-soft/50 p-3"><div class="mb-1 text-xs font-medium uppercase text-emerald">{{ 'issue.event.after'|trans }}</div><div class="prose prose-sm max-w-none">{{ journalVersions.to|markdown(entry.issue.project) }}</div></div>
                 </div>
             </twig:Ui:Disclosure>
         {% endif %}
         {% if journalDeletedBody is not null %}
             <twig:Ui:Disclosure :closedLabel="'issue.event.deleted_comment'|trans" :openLabel="'issue.event.hide_deleted_comment'|trans" class="mt-1">
-                <div class="rounded-md border border-line bg-subtle p-3 text-sm"><div class="prose prose-sm max-w-none">{{ journalDeletedBody|markdown }}</div></div>
+                <div class="rounded-md border border-line bg-subtle p-3 text-sm"><div class="prose prose-sm max-w-none">{{ journalDeletedBody|markdown(entry.issue.project) }}</div></div>
             </twig:Ui:Disclosure>
         {% endif %}
     {% endif %}

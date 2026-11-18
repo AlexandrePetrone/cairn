@@ -19,6 +19,24 @@ import { Placeholder } from '@tiptap/extensions';
  * are only fetched on a page that has an editor.
  */
 
+/*
+ * Only the attachments of this instance are drawn as images, as on the
+ * page that shows the text (MarkdownRenderer): a remote image would tell
+ * its host who opens the editor. Another address is drawn as its text;
+ * the markdown written back is left as it was.
+ */
+const ATTACHMENT_URL = /^\/attachments\/[0-9a-f-]{36}\/[A-Za-z0-9._-]+$/i;
+
+const AttachmentImage = Image.extend({
+    renderHTML({ HTMLAttributes }) {
+        if (ATTACHMENT_URL.test(HTMLAttributes.src ?? '')) {
+            return this.parent({ HTMLAttributes });
+        }
+
+        return ['span', { class: 'text-muted' }, String(HTMLAttributes.src ?? '')];
+    },
+});
+
 const COMMANDS = {
     bold: (chain) => chain.toggleBold(),
     italic: (chain) => chain.toggleItalic(),
@@ -109,7 +127,7 @@ export default class extends Controller {
             extensions: [
                 StarterKit.configure({ underline: false, heading: { levels: [2, 3] }, link: { openOnClick: false } }),
                 Markdown,
-                Image,
+                AttachmentImage,
                 Placeholder.configure({ placeholder: this.placeholderValue }),
                 IssueReference.configure({ suggestion: this.suggestion('#', this.issuesUrlValue, (issue) => ({ id: issue.key, label: issue.key, hint: issue.title })) }),
                 UserMention.configure({ suggestion: this.suggestion('@', this.usersUrlValue, (user) => ({ id: String(user.id), label: user.name })) }),

@@ -80,7 +80,7 @@
                                     </span>
                                 </div>
                             {% endif %}
-                            <div class="prose prose-sm mt-1.5 max-w-none">{{ entryComment.body|markdown }}</div>
+                            <div class="prose prose-sm mt-1.5 max-w-none">{{ entryComment.body|markdown(issue.project) }}</div>
                             {% set commentFiles = activityDetail.commentAttachments(entryComment) %}
                             {% if commentFiles is not empty %}
                                 <div class="mt-2 flex flex-wrap gap-2">

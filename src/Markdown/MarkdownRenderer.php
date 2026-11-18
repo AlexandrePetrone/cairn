@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Markdown;
 
 use App\Entity\Issue;
+use App\Entity\Project;
 use App\Entity\User;
+use App\Message\Query\Project\ListProjectMembers;
+use App\Message\QueryBus;
 use App\Repository\IssueRepository;
-use App\Repository\UserRepository;
 use App\Security\AccessControl;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Extension\Autolink\AutolinkExtension;
@@ -33,20 +35,23 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  * are parsed into nodes, then resolved in one query each: `#MD-SPT-12`
  * becomes a link when the reader may see that issue and stays text
  * otherwise, so that a private issue cannot be probed; `@[Name](user:12)`
- * shows the user's current name. Links and images are paths of the site,
+ * shows the current name of a member of the project the text belongs to,
+ * and stays the text typed for anyone else: an id written by hand must
+ * not tell who holds an account. Links and images are paths of the site,
  * as the pages need them; a text read away from it, in a mail, asks for
  * absolute URLs and gets them from the request context, like `absolute_url()`.
  */
 final class MarkdownRenderer
 {
-    private const string ATTACHMENTS_PATH = '/attachments/';
+    /** The address of an attachment and nothing else of the site: `/attachments/../logout` is not one. Also in editor_controller.js. */
+    private const string ATTACHMENT_URL = '#^/attachments/[0-9a-f-]{36}/[A-Za-z0-9._-]+$#i';
 
     private readonly MarkdownParser $parser;
     private readonly HtmlRenderer $renderer;
 
     public function __construct(
         private readonly IssueRepository $issues,
-        private readonly UserRepository $users,
+        private readonly QueryBus $queries,
         private readonly AccessControl $access,
         private readonly UrlGeneratorInterface $urls,
         private readonly UrlHelper $urlHelper,
@@ -68,12 +73,12 @@ final class MarkdownRenderer
         $this->renderer = new HtmlRenderer($environment);
     }
 
-    public function render(string $markdown, User $reader, bool $absoluteUrls = false): string
+    public function render(string $markdown, User $reader, Project $project, bool $absoluteUrls = false): string
     {
         $document = $this->parser->parse($markdown);
         $this->dropRemoteImages($document);
         $this->resolveIssueReferences($document, $reader);
-        $this->resolveMentions($document);
+        $this->resolveMentions($document, $project);
         if ($absoluteUrls) {
             $this->absolutizeUrls($document);
         }
@@ -142,22 +147,26 @@ final class MarkdownRenderer
     private function dropRemoteImages(Document $document): void
     {
         foreach ($this->nodes($document, Image::class) as $image) {
-            if (!str_starts_with($image->getUrl(), self::ATTACHMENTS_PATH)) {
+            if (1 !== preg_match(self::ATTACHMENT_URL, $image->getUrl())) {
                 $image->replaceWith(new Text($image->getUrl()));
             }
         }
     }
 
-    private function resolveMentions(Document $document): void
+    private function resolveMentions(Document $document, Project $project): void
     {
         $mentions = $this->nodes($document, Mention::class);
         if ([] === $mentions) {
             return;
         }
 
+        // The people the editor offers, and nobody else.
+        $mentioned = array_column($mentions, 'userId');
         $names = [];
-        foreach ($this->users->findBy(['id' => array_column($mentions, 'userId')]) as $user) {
-            $names[$user->getId()] = $user->getFullName();
+        foreach ($this->queries->ask(new ListProjectMembers($project)) as $user) {
+            if (\in_array($user->getId(), $mentioned, true)) {
+                $names[$user->getId()] = $user->getFullName();
+            }
         }
 
         foreach ($mentions as $mention) {

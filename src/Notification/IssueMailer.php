@@ -48,7 +48,7 @@ final class IssueMailer
             foreach ($card->changes as $change) {
                 $changes[] = [
                     'change' => $change,
-                    'commentHtml' => null === $change->comment ? null : $this->markdown->render($change->comment->getBody(), $recipient, absoluteUrls: true),
+                    'commentHtml' => null === $change->comment ? null : $this->markdown->render($change->comment->getBody(), $recipient, $project, absoluteUrls: true),
                 ];
             }
             $cards[] = [
@@ -59,7 +59,7 @@ final class IssueMailer
                     'number' => $issue->getNumber(),
                 ], UrlGeneratorInterface::ABSOLUTE_URL),
                 'changes' => $changes,
-                'descriptionHtml' => $card->created() && '' !== trim($issue->getDescription()) ? $this->markdown->render($issue->getDescription(), $recipient, absoluteUrls: true) : null,
+                'descriptionHtml' => $card->created() && '' !== trim($issue->getDescription()) ? $this->markdown->render($issue->getDescription(), $recipient, $project, absoluteUrls: true) : null,
             ];
         }
 
