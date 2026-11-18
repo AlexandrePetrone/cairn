@@ -7,6 +7,7 @@ namespace App\Controller\Project;
 use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\User;
+use App\Entity\Workspace;
 use App\Message\Query\Issue\SearchIssues;
 use App\Message\Query\Project\ListProjectMembers;
 use App\Message\QueryBus;
@@ -21,7 +22,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * What the editor offers after `#` (issues of the project the user may
  * see, closed ones included) and after `@` (the project's members).
  */
-#[Route('/{workspaceKey}/{projectKey}/suggest', requirements: ['workspaceKey' => '[A-Z]{2,5}', 'projectKey' => '[A-Z]{2,5}'])]
+#[Route('/{workspaceKey}/{projectKey}/suggest', requirements: ['workspaceKey' => Workspace::KEY_FORMAT, 'projectKey' => Project::KEY_FORMAT])]
 #[IsGranted('view', subject: 'project')]
 final class SuggestController extends AbstractController
 {

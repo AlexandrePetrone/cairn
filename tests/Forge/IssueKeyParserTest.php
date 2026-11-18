@@ -33,6 +33,9 @@ final class IssueKeyParserTest extends TestCase
         yield 'inside a word' => ['exportMD-SPT-12 and MD-SPT-12a', ['MD-SPT-12']];
         yield 'number continues' => ['MD-SPT-1234 is not MD-SPT-123', ['MD-SPT-1234', 'MD-SPT-123']];
         yield 'two keys of two projects' => ["MD-SPT-1\nNC-CAT-3", ['MD-SPT-1', 'NC-CAT-3']];
+        yield 'digits in the keys' => ['Fix 3V-SP2K-12', ['3V-SP2K-12']];
+        yield 'digits in a lowercase branch' => ['fix/3v-sp2k-12-export', ['3V-SP2K-12']];
+        yield 'a date' => ['Released on 2024-11-18, see 10-20-30', []];
         yield 'nothing' => ['chore: bump dependencies', []];
     }
 

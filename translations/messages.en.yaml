@@ -489,7 +489,7 @@ admin:
         workspace: Workspace
         name: Project name
         key: Key
-        key_help: 2 to 5 letters, unique within the workspace. It never changes afterwards.
+        key_help: 2 to 5 letters or digits, unique within the workspace. It never changes afterwards.
         state:
             active: Active
             archived: Archived
@@ -504,7 +504,7 @@ admin:
         no_project: No project in this workspace.
         name: Workspace name
         key: Key
-        key_help: 2 to 5 letters, unique. It prefixes issue identifiers and never changes afterwards.
+        key_help: 2 to 5 letters or digits, unique. It prefixes issue identifiers and never changes afterwards.
         key_fixed: 'The key %key% is part of the issue identifiers: it does not change.'
         archived_label: Archived
         archive_help: All of its projects become read-only. Reversible.

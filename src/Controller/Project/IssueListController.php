@@ -8,6 +8,7 @@ use App\Controller\ShowsIssueList;
 use App\Entity\Project;
 use App\Entity\Tracker;
 use App\Entity\User;
+use App\Entity\Workspace;
 use App\Twig\Components\IssueList\ListScope;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,7 +26,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * tracker also shows as a kanban, one column per place of its workflow:
  * a view of the same list, under the same filters.
  */
-#[Route('/{workspaceKey}/{projectKey}/issues', requirements: ['workspaceKey' => '[A-Z]{2,5}', 'projectKey' => '[A-Z]{2,5}'])]
+#[Route('/{workspaceKey}/{projectKey}/issues', requirements: ['workspaceKey' => Workspace::KEY_FORMAT, 'projectKey' => Project::KEY_FORMAT])]
 #[IsGranted('view', subject: 'project')]
 final class IssueListController extends AbstractController
 {

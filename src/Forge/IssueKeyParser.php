@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Forge;
 
+use App\Entity\Project;
+use App\Entity\Workspace;
+
 /**
  * Finds issue keys (`MD-SPT-12`) in plain text: commit messages, merge
  * request titles and descriptions, branch names. Case-insensitive, since
@@ -14,7 +17,7 @@ namespace App\Forge;
  */
 final class IssueKeyParser
 {
-    private const string PATTERN = '/(?<![A-Z0-9])([A-Z]{2,5}-[A-Z]{2,5}-\d+)(?!\d)/i';
+    private const string PATTERN = '/(?<![A-Z0-9])('.Workspace::KEY_FORMAT.'-'.Project::KEY_FORMAT.'-\d+)(?!\d)/i';
 
     /**
      * The keys found, upper-cased, each once, in order of first appearance.

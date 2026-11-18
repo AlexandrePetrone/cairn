@@ -16,7 +16,7 @@ final class IssueReferenceParser implements InlineParserInterface
 {
     public function getMatchDefinition(): InlineParserMatch
     {
-        return InlineParserMatch::regex('#([A-Z][A-Z0-9]*-[A-Z][A-Z0-9]*-[0-9]+)\b');
+        return InlineParserMatch::regex('#([A-Z0-9]+-[A-Z0-9]+-[0-9]+)\b');
     }
 
     public function parse(InlineParserContext $inlineContext): bool

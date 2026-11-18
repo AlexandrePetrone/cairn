@@ -9,6 +9,7 @@ use App\Entity\Enum\ReleaseStatus;
 use App\Entity\Project;
 use App\Entity\Release;
 use App\Entity\User;
+use App\Entity\Workspace;
 use App\Form\Release\ReleaseData;
 use App\Form\Release\ReleaseType;
 use App\Message\Command\Release\CreateRelease;
@@ -40,7 +41,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * the list with it open. Issues are scheduled in a release from their own page or
  * the selection page.
  */
-#[Route('/{workspaceKey}/{projectKey}/releases', requirements: ['workspaceKey' => '[A-Z]{2,5}', 'projectKey' => '[A-Z]{2,5}'])]
+#[Route('/{workspaceKey}/{projectKey}/releases', requirements: ['workspaceKey' => Workspace::KEY_FORMAT, 'projectKey' => Project::KEY_FORMAT])]
 #[IsGranted('view', subject: 'project')]
 final class ReleaseController extends AbstractController
 {

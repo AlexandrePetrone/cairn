@@ -19,7 +19,14 @@ use function Symfony\Component\Clock\now;
 #[ORM\Entity(repositoryClass: WorkspaceRepository::class)]
 class Workspace
 {
-    public const string KEY_PATTERN = '/^[A-Z]{2,5}$/';
+    /**
+     * What a workspace key is made of: 2 to 5 uppercase letters
+     * or digits, one letter at least, so that a date (`2024-11-18`) never
+     * reads as an issue key. Without anchors, for routes and longer patterns.
+     */
+    public const string KEY_FORMAT = '(?=[0-9]*[A-Z])[A-Z0-9]{2,5}';
+
+    public const string KEY_PATTERN = '/^'.self::KEY_FORMAT.'$/';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -45,7 +52,7 @@ class Workspace
     public function __construct(string $name, string $key)
     {
         if (!preg_match(self::KEY_PATTERN, $key)) {
-            throw new \InvalidArgumentException(\sprintf('"%s" is not a valid workspace key (2 to 5 uppercase letters).', $key));
+            throw new \InvalidArgumentException(\sprintf('"%s" is not a valid workspace key (2 to 5 uppercase letters or digits, with a letter).', $key));
         }
 
         $this->name = trim($name);

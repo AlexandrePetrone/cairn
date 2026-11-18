@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Project;
 
 use App\Entity\Project;
+use App\Entity\Workspace;
 use App\Form\Issue\IssueSelectionRequest;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,7 +18,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * same page as the application's (issue/selection.html.twig), in the
  * project's layout, coming back to the list, or to the project's issues.
  */
-#[Route('/{workspaceKey}/{projectKey}/issues/selection', requirements: ['workspaceKey' => '[A-Z]{2,5}', 'projectKey' => '[A-Z]{2,5}'])]
+#[Route('/{workspaceKey}/{projectKey}/issues/selection', requirements: ['workspaceKey' => Workspace::KEY_FORMAT, 'projectKey' => Project::KEY_FORMAT])]
 #[IsGranted('view', subject: 'project')]
 final class IssueSelectionController extends AbstractController
 {

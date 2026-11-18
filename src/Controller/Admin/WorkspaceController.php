@@ -84,7 +84,7 @@ final class WorkspaceController extends AbstractController
         return $this->render('admin/workspace_new.html.twig', ['form' => $form], new Response(null, $form->isSubmitted() ? 422 : 200));
     }
 
-    #[Route('/{key}', name: 'app_admin_workspace', requirements: ['key' => '[A-Z]{2,5}'], methods: ['GET'])]
+    #[Route('/{key}', name: 'app_admin_workspace', requirements: ['key' => Workspace::KEY_FORMAT], methods: ['GET'])]
     public function projects(#[MapEntity(mapping: ['key' => 'key'])] Workspace $workspace): Response
     {
         return $this->render('admin/workspace/projects.html.twig', [
@@ -93,13 +93,13 @@ final class WorkspaceController extends AbstractController
         ]);
     }
 
-    #[Route('/{key}/access', name: 'app_admin_workspace_access', requirements: ['key' => '[A-Z]{2,5}'], methods: ['GET'])]
+    #[Route('/{key}/access', name: 'app_admin_workspace_access', requirements: ['key' => Workspace::KEY_FORMAT], methods: ['GET'])]
     public function access(#[MapEntity(mapping: ['key' => 'key'])] Workspace $workspace): Response
     {
         return $this->render('admin/workspace/access.html.twig', ['workspace' => $workspace]);
     }
 
-    #[Route('/{key}/settings', name: 'app_admin_workspace_settings', requirements: ['key' => '[A-Z]{2,5}'], methods: ['GET', 'POST'])]
+    #[Route('/{key}/settings', name: 'app_admin_workspace_settings', requirements: ['key' => Workspace::KEY_FORMAT], methods: ['GET', 'POST'])]
     public function settings(#[MapEntity(mapping: ['key' => 'key'])] Workspace $workspace, Request $request): Response
     {
         $data = new WorkspaceData();
@@ -122,7 +122,7 @@ final class WorkspaceController extends AbstractController
      * deletes it all for good once its key is typed again: for an archived
      * workspace only.
      */
-    #[Route('/{key}/delete', name: 'app_admin_workspace_delete', requirements: ['key' => '[A-Z]{2,5}'], methods: ['GET', 'POST'])]
+    #[Route('/{key}/delete', name: 'app_admin_workspace_delete', requirements: ['key' => Workspace::KEY_FORMAT], methods: ['GET', 'POST'])]
     public function delete(#[MapEntity(mapping: ['key' => 'key'])] Workspace $workspace, Request $request, MembershipRepository $memberships): Response
     {
         if (!$workspace->isArchived()) {

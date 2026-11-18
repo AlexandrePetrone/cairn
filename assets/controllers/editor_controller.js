@@ -66,7 +66,7 @@ const reference = ({ name, cssClass, pattern, attrs, markdown, text }) => {
 const IssueReference = reference({
     name: 'issueReference',
     cssClass: 'issue-reference',
-    pattern: /#([A-Z][A-Z0-9]*-[A-Z][A-Z0-9]*-\d+)\b/,
+    pattern: /#([A-Z0-9]+-[A-Z0-9]+-\d+)\b/,
     attrs: (match) => ({ id: match[1], label: match[1] }),
     markdown: ({ id }) => `#${id}`,
     text: ({ id }) => `#${id}`,

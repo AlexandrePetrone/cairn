@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Project;
 
 use App\Entity\Project;
+use App\Entity\Workspace;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -20,7 +21,7 @@ final class CreateIssueController extends AbstractController
     #[Route(
         '/{workspaceKey}/{projectKey}/issues/new',
         name: 'app_issue_new',
-        requirements: ['workspaceKey' => '[A-Z]{2,5}', 'projectKey' => '[A-Z]{2,5}'],
+        requirements: ['workspaceKey' => Workspace::KEY_FORMAT, 'projectKey' => Project::KEY_FORMAT],
         methods: ['GET'],
     )]
     #[IsGranted('issue.create', subject: 'project')]

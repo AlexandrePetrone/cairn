@@ -7,6 +7,7 @@ namespace App\Controller\Project;
 use App\Entity\Attachment;
 use App\Entity\Project;
 use App\Entity\User;
+use App\Entity\Workspace;
 use App\Message\Command\Attachment\UploadAttachment;
 use App\Message\CommandBus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -34,7 +35,7 @@ final class UploadAttachmentController extends AbstractController
     #[Route(
         '/{workspaceKey}/{projectKey}/attachments',
         name: 'app_attachment_upload',
-        requirements: ['workspaceKey' => '[A-Z]{2,5}', 'projectKey' => '[A-Z]{2,5}'],
+        requirements: ['workspaceKey' => Workspace::KEY_FORMAT, 'projectKey' => Project::KEY_FORMAT],
         methods: ['POST'],
     )]
     public function __invoke(

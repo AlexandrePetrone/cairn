@@ -49,10 +49,24 @@ final class WorkspaceHandlersTest extends KernelTestCase
         $this->commands->dispatch(new CreateWorkspace('Mobilier Durable', 'MD'));
     }
 
-    public function testAKeyIsTwoToFiveUppercaseLetters(): void
+    public function testAKeyIsUppercase(): void
     {
         $this->expectException(ValidationFailedException::class);
         $this->commands->dispatch(new CreateWorkspace('Atelier Morel', 'am'));
+    }
+
+    public function testAKeyMayHoldDigits(): void
+    {
+        $workspace = $this->commands->dispatch(new CreateWorkspace('Trois Vallées', '3V'));
+
+        self::assertInstanceOf(Workspace::class, $workspace);
+        self::assertSame('3V', $workspace->getKey());
+    }
+
+    public function testAKeyOfDigitsAloneIsRefused(): void
+    {
+        $this->expectException(ValidationFailedException::class);
+        $this->commands->dispatch(new CreateWorkspace('Trois Vallées', '12'));
     }
 
     public function testRenamingKeepsTheKey(): void

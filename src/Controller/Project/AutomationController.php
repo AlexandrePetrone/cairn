@@ -10,6 +10,7 @@ use App\Entity\AutomationRule;
 use App\Entity\Enum\RunOutcome;
 use App\Entity\Project;
 use App\Entity\User;
+use App\Entity\Workspace;
 use App\Message\Command\Automation\UpdateRule;
 use App\Message\CommandBus;
 use App\Message\Query\Automation\ListAutomationRuns;
@@ -33,7 +34,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * live component Automation:RuleForm does the writing) and the history
  * of their executions.
  */
-#[Route('/{workspaceKey}/{projectKey}/settings/automations', requirements: ['workspaceKey' => '[A-Z]{2,5}', 'projectKey' => '[A-Z]{2,5}'])]
+#[Route('/{workspaceKey}/{projectKey}/settings/automations', requirements: ['workspaceKey' => Workspace::KEY_FORMAT, 'projectKey' => Project::KEY_FORMAT])]
 #[IsGranted('project.configure', subject: 'project')]
 final class AutomationController extends AbstractController
 {

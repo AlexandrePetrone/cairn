@@ -80,12 +80,36 @@ final class AdminTest extends WebTestCase
         self::assertNotNull($this->entity(Project::class, ['key' => 'APP']));
     }
 
+    public function testKeysMayHoldDigits(): void
+    {
+        $this->signInAsAdmin();
+        $this->client->request('GET', '/admin/workspaces/new');
+        $this->client->submitForm('Create', ['workspace[name]' => 'Trois Vallées', 'workspace[key]' => '3v']);
+        self::assertResponseRedirects('/admin/workspaces/3V');
+
+        $this->client->request('GET', '/admin/projects/new?workspace=3V');
+        $this->client->submitForm('Create', ['project[name]' => 'Ski pass 2000', 'project[key]' => 'sp2k']);
+        self::assertResponseRedirects('/admin/workspaces/3V');
+
+        $this->client->request('GET', '/admin/workspaces/3V');
+        self::assertResponseIsSuccessful();
+        $this->client->request('GET', '/3V/SP2K/issues');
+        self::assertResponseIsSuccessful();
+        $this->client->request('GET', '/12/SP2K/issues');
+        self::assertResponseStatusCodeSame(404);
+    }
+
     public function testAWorkspaceIsCreatedRenamedAndArchived(): void
     {
         $this->signInAsAdmin();
         $this->client->request('GET', '/admin/workspaces/new');
         $this->client->submitForm('Create', ['workspace[name]' => 'Atelier Morel', 'workspace[key]' => 'am']);
         self::assertResponseRedirects('/admin/workspaces/AM');
+
+        $this->client->request('GET', '/admin/workspaces/new');
+        $this->client->submitForm('Create', ['workspace[name]' => 'Numbers', 'workspace[key]' => '12']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('form', 'at least one letter');
 
         $this->client->request('GET', '/admin/workspaces/MD/settings');
         $this->client->submitForm('Save', ['workspace[name]' => 'Maison Dupont & fils', 'workspace[archived]' => true]);

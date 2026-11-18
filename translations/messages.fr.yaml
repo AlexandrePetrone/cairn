@@ -489,7 +489,7 @@ admin:
         workspace: Espace
         name: Nom du projet
         key: Code
-        key_help: 2 à 5 lettres, unique dans l'espace. Il ne change plus ensuite.
+        key_help: 2 à 5 lettres ou chiffres, unique dans l'espace. Il ne change plus ensuite.
         state:
             active: Actif
             archived: Archivé
@@ -504,7 +504,7 @@ admin:
         no_project: Aucun projet dans cet espace.
         name: Nom de l'espace
         key: Code
-        key_help: 2 à 5 lettres, unique. Il préfixe les identifiants des demandes et ne change plus ensuite.
+        key_help: 2 à 5 lettres ou chiffres, unique. Il préfixe les identifiants des demandes et ne change plus ensuite.
         key_fixed: 'Le code %key% fait partie des identifiants des demandes : il ne change pas.'
         archived_label: Archivé
         archive_help: Tous ses projets passent en lecture seule. Réversible.

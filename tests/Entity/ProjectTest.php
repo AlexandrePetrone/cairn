@@ -18,7 +18,22 @@ final class ProjectTest extends TestCase
         self::assertFalse($project->isArchived());
     }
 
-    public function testKeysAreUppercaseLetters(): void
+    public function testKeysMayHoldDigits(): void
+    {
+        $project = new Project(new Workspace('Trois Vallées', '3V'), 'Ski pass 2000', 'SP2K');
+
+        self::assertSame('3V-SP2K', $project->getIssuePrefix());
+    }
+
+    public function testAKeyHoldsALetter(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('"12" is not a valid workspace key');
+
+        new Workspace('Trois Vallées', '12');
+    }
+
+    public function testKeysAreUppercase(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('"spt" is not a valid project key');
@@ -26,7 +41,7 @@ final class ProjectTest extends TestCase
         new Project(new Workspace('Maison Dupont', 'MD'), 'Online shop', 'spt');
     }
 
-    public function testWorkspaceKeysAreUppercaseLetters(): void
+    public function testAKeyHasTwoCharactersAtLeast(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 

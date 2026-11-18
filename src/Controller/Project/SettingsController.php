@@ -11,6 +11,7 @@ use App\Entity\Enum\Forge;
 use App\Entity\Project;
 use App\Entity\Tracker;
 use App\Entity\User;
+use App\Entity\Workspace;
 use App\Forge\ForgeApiLocator;
 use App\Form\Forge\CodeRepositoryData;
 use App\Form\Forge\CodeRepositoryType;
@@ -53,7 +54,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * linking one). A dialog has an address of its own, which renders the
  * list with it open. Archiving the project stays in the administration.
  */
-#[Route('/{workspaceKey}/{projectKey}/settings', requirements: ['workspaceKey' => '[A-Z]{2,5}', 'projectKey' => '[A-Z]{2,5}'])]
+#[Route('/{workspaceKey}/{projectKey}/settings', requirements: ['workspaceKey' => Workspace::KEY_FORMAT, 'projectKey' => Project::KEY_FORMAT])]
 #[IsGranted('project.configure', subject: 'project')]
 final class SettingsController extends AbstractController
 {

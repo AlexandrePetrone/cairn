@@ -13,6 +13,7 @@ use App\Entity\Enum\BudgetUnit;
 use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\User;
+use App\Entity\Workspace;
 use App\Form\Budget\BudgetData;
 use App\Form\Budget\BudgetLineData;
 use App\Form\Budget\BudgetLineType;
@@ -55,7 +56,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The status of a line is also marked in place, by `Budget:Card`. Nothing
  * here touches the issues the lines name.
  */
-#[Route('/{workspaceKey}/{projectKey}/budgets', requirements: ['workspaceKey' => '[A-Z]{2,5}', 'projectKey' => '[A-Z]{2,5}', 'budget' => '\d+', 'line' => '\d+'])]
+#[Route('/{workspaceKey}/{projectKey}/budgets', requirements: ['workspaceKey' => Workspace::KEY_FORMAT, 'projectKey' => Project::KEY_FORMAT, 'budget' => '\d+', 'line' => '\d+'])]
 #[IsGranted('view', subject: 'project')]
 final class BudgetController extends AbstractController
 {

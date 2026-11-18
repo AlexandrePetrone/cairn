@@ -11,7 +11,7 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * The key of a workspace or a project: a few letters, uppercase whatever
+ * The key of a workspace or a project: a few letters or digits, uppercase whatever
  * is typed. Rendered as a text field.
  *
  * @extends AbstractType<string> */

@@ -20,7 +20,16 @@ use function Symfony\Component\Clock\now;
 #[ORM\UniqueConstraint(name: 'uniq_project_workspace_key', columns: ['workspace_id', 'key'])]
 class Project
 {
-    public const string KEY_PATTERN = '/^[A-Z]{2,5}$/';
+    /**
+     * What a project key is made of: 2 to 5 uppercase letters or digits,
+     * one letter at least, so that a date (`2024-11-18`) never reads as an
+     * issue key. The same as a workspace key today, written apart since
+     * each may change on its own. Without anchors, for routes and longer
+     * patterns.
+     */
+    public const string KEY_FORMAT = '(?=[0-9]*[A-Z])[A-Z0-9]{2,5}';
+
+    public const string KEY_PATTERN = '/^'.self::KEY_FORMAT.'$/';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -61,7 +70,7 @@ class Project
     public function __construct(Workspace $workspace, string $name, string $key)
     {
         if (!preg_match(self::KEY_PATTERN, $key)) {
-            throw new \InvalidArgumentException(\sprintf('"%s" is not a valid project key (2 to 5 uppercase letters).', $key));
+            throw new \InvalidArgumentException(\sprintf('"%s" is not a valid project key (2 to 5 uppercase letters or digits, with a letter).', $key));
         }
 
         $this->workspace = $workspace;

@@ -9,6 +9,7 @@ use App\Entity\Comment;
 use App\Entity\Issue;
 use App\Entity\IssueLink;
 use App\Entity\Project;
+use App\Entity\Workspace;
 use App\Message\Query\Issue\IssueDetail;
 use App\Message\Query\Issue\ShowIssue;
 use App\Message\QueryBus;
@@ -30,7 +31,7 @@ use Symfony\Component\Uid\Uuid;
  */
 final class Lookup
 {
-    private const string PROJECT = '/^([A-Z]{2,5})-([A-Z]{2,5})$/';
+    private const string PROJECT = '/^('.Workspace::KEY_FORMAT.')-('.Project::KEY_FORMAT.')$/';
 
     public function __construct(
         private readonly Viewer $viewer,

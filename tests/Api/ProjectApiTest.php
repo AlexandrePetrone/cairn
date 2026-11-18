@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Api;
 
+use App\Markdown\MarkdownRenderer;
+use App\Message\Command\Issue\CreateIssue;
+use App\Message\Command\Project\CreateProject;
+use App\Message\Command\Tracker\CreateTracker;
 use App\Message\Command\Tracker\UpdateTracker;
+use App\Message\Command\Workspace\CreateWorkspace;
 use App\Message\CommandBus;
 
 final class ProjectApiTest extends ApiTestCase
@@ -38,6 +43,25 @@ final class ProjectApiTest extends ApiTestCase
 
         $this->api('GET', '/api/projects/XX-YY', $secret);
         self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testKeysMayHoldDigits(): void
+    {
+        $commands = self::getContainer()->get(CommandBus::class);
+        $workspace = $commands->dispatch(new CreateWorkspace('Trois Vallées', '3V'));
+        $project = $commands->dispatch(new CreateProject((int) $workspace->getId(), 'Ski pass 2000', 'SP2K'));
+        $tracker = $commands->dispatch(new CreateTracker(null, (int) $project->getId(), 'Bugs', 'bug'));
+        $admin = $this->scene->user('julie.admin@cairn.test');
+        $commands->dispatch(new CreateIssue((int) $admin->getId(), (int) $project->getId(), (int) $tracker->getId(), 'The gates stay closed', fields: ['environment' => 'prod']));
+        $secret = $this->tokenFor(self::DEVELOPER)->secret;
+
+        self::assertSame('3V-SP2K', $this->api('GET', '/api/projects/3V-SP2K', $secret)['key']);
+        self::assertResponseIsSuccessful();
+        self::assertSame('The gates stay closed', $this->api('GET', '/api/issues/3V-SP2K-1', $secret)['title']);
+        self::assertResponseIsSuccessful();
+
+        $html = self::getContainer()->get(MarkdownRenderer::class)->render('See #3V-SP2K-1.', $this->scene->user(self::DEVELOPER));
+        self::assertStringContainsString('<a class="issue-reference" href="/3V/SP2K/issues/1"', $html);
     }
 
     public function testTheTrackersSayWhatAnIssueNeeds(): void

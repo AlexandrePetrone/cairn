@@ -6,6 +6,7 @@ namespace App\Controller\Project;
 
 use App\Entity\Project;
 use App\Entity\User;
+use App\Entity\Workspace;
 use App\Message\Query\Issue\ShowIssue;
 use App\Message\QueryBus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -23,7 +24,7 @@ final class IssueController extends AbstractController
     #[Route(
         '/{workspaceKey}/{projectKey}/issues/{number}',
         name: 'app_issue_show',
-        requirements: ['workspaceKey' => '[A-Z]{2,5}', 'projectKey' => '[A-Z]{2,5}', 'number' => '\d+'],
+        requirements: ['workspaceKey' => Workspace::KEY_FORMAT, 'projectKey' => Project::KEY_FORMAT, 'number' => '\d+'],
         methods: ['GET'],
     )]
     #[IsGranted('view', subject: 'project')]

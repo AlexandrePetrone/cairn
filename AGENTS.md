@@ -125,7 +125,7 @@ columns are what the English and the French catalogues show.
 
 | Code             | UI (en)           | UI (fr)          | Meaning                                                          |
 |------------------|-------------------|------------------|------------------------------------------------------------------|
-| `Issue`          | Issue             | Demande          | The tracked object. Key `WORKSPACE-PROJECT-123`.                 |
+| `Issue`          | Issue             | Demande          | The tracked object. Key `WORKSPACE-PROJECT-123`; a workspace or project key is 2 to 5 uppercase letters or digits, one letter at least (`Workspace::KEY_FORMAT` and `Project::KEY_FORMAT`, alike today and written apart since each may change on its own). |
 | `Tracker`        | Category          | Catégorie        | Type of an issue within a project, bound to one workflow. In DB. |
 | `Workflow`       | Workflow          | Workflow         | Places + transitions + the fields asked. Managed in the administration. |
 | `Place`          | Step              | Étape            | Where an issue stands (Symfony Workflow term). Declared once for the instance, used by the workflows that name it. |

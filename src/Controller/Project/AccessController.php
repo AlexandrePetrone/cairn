@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Project;
 
 use App\Entity\Project;
+use App\Entity\Workspace;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,7 +22,7 @@ final class AccessController extends AbstractController
     #[Route(
         '/{workspaceKey}/{projectKey}/access',
         name: 'app_project_access',
-        requirements: ['workspaceKey' => '[A-Z]{2,5}', 'projectKey' => '[A-Z]{2,5}'],
+        requirements: ['workspaceKey' => Workspace::KEY_FORMAT, 'projectKey' => Project::KEY_FORMAT],
         methods: ['GET'],
     )]
     #[IsGranted('project.manage_members', subject: 'project')]
