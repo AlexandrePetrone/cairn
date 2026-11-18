@@ -53,6 +53,7 @@ final class Properties
     use ComponentToolsTrait;
     use DefaultActionTrait;
     use DispatchesCommands;
+    use GuardsIssue;
 
     #[LiveProp]
     public Issue $issue;

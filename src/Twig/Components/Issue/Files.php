@@ -34,6 +34,7 @@ final class Files
     use ComponentToolsTrait;
     use DefaultActionTrait;
     use DispatchesCommands;
+    use GuardsIssue;
     use HandlesAttachments;
 
     #[LiveProp]

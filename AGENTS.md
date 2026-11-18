@@ -246,7 +246,8 @@ src/
   to any role an administrator chooses.
 - **A live component that shows private data checks who draws it, each
   time** (`guard()`): its endpoint is not under the route of its page, so
-  neither `/admin` nor the page's `#[IsGranted]` protects it.
+  neither `/admin` nor the page's `#[IsGranted]` protects it. The components
+  of the page of an issue share `Issue/GuardsIssue`.
 
 ### Issues, lists and kanban
 

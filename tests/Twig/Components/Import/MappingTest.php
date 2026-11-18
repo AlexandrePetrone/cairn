@@ -12,6 +12,7 @@ use App\Tests\Scene\ShopScene;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
 
@@ -109,6 +110,12 @@ final class MappingTest extends KernelTestCase
         $mapping = ImportMapping::fromArray($this->reloadImport($import)->getMapping());
         self::assertSame('new:task', $mapping->trackers['3']['target']);
         self::assertSame(['2'], array_map(strval(...), array_keys($mapping->places['task']['1'])));
+    }
+
+    public function testTheMappingIsDrawnOnlyForAnAdministrator(): void
+    {
+        $this->expectException(AccessDeniedException::class);
+        $this->createLiveComponent('Import:Mapping', ['import' => $this->import()])->actingAs($this->scene->user('thomas.girard@cairn.test'))->render();
     }
 
     private function import(?callable $change = null): Import

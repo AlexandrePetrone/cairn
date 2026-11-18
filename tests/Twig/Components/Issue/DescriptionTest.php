@@ -6,7 +6,6 @@ namespace App\Tests\Twig\Components\Issue;
 
 use App\Entity\Issue;
 use App\Tests\Scene\ShopScene;
-use App\Twig\Components\Issue\Description;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
@@ -52,9 +51,7 @@ final class DescriptionTest extends KernelTestCase
         $developer = $this->description('nadia.benali@cairn.test');
         self::assertStringNotContainsString('data-live-action-param="editDescription"', (string) $developer->render(), 'Nadia did not write it and may not edit the issues of others');
         $developer->call('editDescription');
-        $description = $developer->component();
-        self::assertInstanceOf(Description::class, $description);
-        self::assertFalse($description->editingDescription);
+        self::assertStringNotContainsString('saveDescription', (string) $developer->render(), 'and the editor does not open for her');
     }
 
     private function description(string $email): TestLiveComponent

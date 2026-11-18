@@ -39,6 +39,7 @@ final class Links
     use ComponentToolsTrait;
     use DefaultActionTrait;
     use DispatchesCommands;
+    use GuardsIssue;
 
     /** The other issue shown first in the choice of the link to add. */
     private const int SUGGESTIONS = 6;

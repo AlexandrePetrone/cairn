@@ -42,6 +42,7 @@ final class Header extends AbstractController
     use ComponentToolsTrait;
     use DefaultActionTrait;
     use DispatchesCommands;
+    use GuardsIssue;
 
     #[LiveProp]
     public Issue $issue;

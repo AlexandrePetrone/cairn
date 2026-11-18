@@ -28,6 +28,7 @@ final class Description
     use ComponentToolsTrait;
     use DefaultActionTrait;
     use DispatchesCommands;
+    use GuardsIssue;
 
     #[LiveProp]
     public Issue $issue;

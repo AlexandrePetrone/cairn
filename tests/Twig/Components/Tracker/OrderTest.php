@@ -8,6 +8,7 @@ use App\Entity\Tracker;
 use App\Repository\TrackerRepository;
 use App\Tests\Scene\ShopScene;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
 /**
@@ -38,14 +39,10 @@ final class OrderTest extends KernelTestCase
         self::assertSame(['Internal task', 'Bug', 'Feature'], $this->names());
     }
 
-    public function testARefusalIsShownInPlace(): void
+    public function testTheListIsDrawnOnlyForWhoConfiguresTheProject(): void
     {
-        $component = $this->createLiveComponent('Tracker:Order', ['project' => $this->scene->shop])->actingAs($this->scene->user('nadia.benali@cairn.test'));
-
-        $component->call('move', ['tracker' => $this->scene->tasks->getId(), 'position' => 0]);
-
-        self::assertStringContainsString('role="alert"', (string) $component->render());
-        self::assertSame(['Bug', 'Feature', 'Internal task'], $this->names());
+        $this->expectException(AccessDeniedException::class);
+        $this->createLiveComponent('Tracker:Order', ['project' => $this->scene->shop])->actingAs($this->scene->user('nadia.benali@cairn.test'))->render();
     }
 
     /**

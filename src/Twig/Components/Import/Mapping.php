@@ -24,9 +24,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\Attribute\PostHydrate;
 use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\ComponentWithFormTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
+use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
  * The correspondences of an import: where each tracker of the archive
@@ -54,6 +56,16 @@ final class Mapping extends AbstractController
         private readonly FormFactoryInterface $forms,
         private readonly TranslatorInterface $translator,
     ) {
+    }
+
+    /**
+     * The live endpoint is not under `/admin`, and the command carries no actor.
+     */
+    #[PostMount]
+    #[PostHydrate]
+    public function guard(): void
+    {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
     }
 
     public function getManifest(): ImportManifest

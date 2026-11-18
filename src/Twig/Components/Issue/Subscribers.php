@@ -21,6 +21,7 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 final class Subscribers
 {
     use DefaultActionTrait;
+    use GuardsIssue;
 
     #[LiveProp]
     public Issue $issue;

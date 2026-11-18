@@ -11,7 +11,9 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\Attribute\PostHydrate;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
+use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
  * Where an import stands while a worker is on it: its phases, and how
@@ -38,6 +40,16 @@ final class Progress extends AbstractController
     {
         $this->import = $import;
         $this->drawnStatus = $import->getStatus()->value;
+    }
+
+    /**
+     * The live endpoint is not under `/admin`.
+     */
+    #[PostMount]
+    #[PostHydrate]
+    public function guard(): void
+    {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
     }
 
     #[LiveAction]

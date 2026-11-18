@@ -37,6 +37,7 @@ final class Fields
     use ComponentWithFormTrait;
     use DefaultActionTrait;
     use DispatchesCommands;
+    use GuardsIssue;
 
     #[LiveProp]
     public Issue $issue;
