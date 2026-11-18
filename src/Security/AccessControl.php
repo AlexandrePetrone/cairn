@@ -108,15 +108,15 @@ final class AccessControl implements ResetInterface
 
     /**
      * The quantity of a line to estimate is a draft, or an estimate to do
-     * again: internal users read it, and whoever manages the budgets of
-     * the project, who writes it. Everyone else reads it once the line
-     * waits for an approval. The one place that says so, for the budgets
+     * again: whoever manages the budgets of the project reads it, since
+     * they write it. Everyone else reads it once the line waits for an
+     * approval. The one place that says so, for the budgets
      * pages and the card of an issue; like reading the budgets, it
      * outlives the archiving of the project.
      */
     public function canSeeQuantity(User $user, BudgetLine $line): bool
     {
-        if (BudgetLineStatus::ToEstimate !== $line->getStatus() || $user->isInternal() || $user->isAdmin()) {
+        if (BudgetLineStatus::ToEstimate !== $line->getStatus() || $user->isAdmin()) {
             return true;
         }
         $role = $this->roleOn($user, $line->getBudget()->getProject());
@@ -222,13 +222,13 @@ final class AccessControl implements ResetInterface
     }
 
     /**
-     * Whether the comment a transition asks for is required of this user:
-     * external users must explain themselves, internal users never have to (and
-     * may leave the workflow altogether with MoveIssue).
+     * Whether the comment a transition asks for is required of this user
+     * on this project: of everyone but those whose role holds
+     * `issue.bypass_workflow`.
      */
-    public function commentRequired(User $user, TransitionDefinition $transition): bool
+    public function commentRequired(User $user, TransitionDefinition $transition, Project $project): bool
     {
-        return $transition->requiresComment && !$user->isInternal();
+        return $transition->requiresComment && !$this->isGranted($user, Permission::IssueBypassWorkflow, $project);
     }
 
     /**
@@ -252,7 +252,7 @@ final class AccessControl implements ResetInterface
      * Where the user may take the issue from where it stands, in the order
      * of its workflow: the workflow first, one move per action that leads
      * to a place; a place no action of theirs leads to is offered outside
-     * the workflow to whoever holds `issue.force_place`. The step menu of
+     * the workflow to whoever holds `issue.bypass_workflow`. The step menu of
      * the issue page and the kanban both read this, so that an action is
      * applied whenever there is one.
      *
@@ -262,7 +262,7 @@ final class AccessControl implements ResetInterface
     {
         $workflow = $this->config->definition()->workflow($issue->getTracker()->getWorkflowId());
         $transitions = $this->transitionsFor($user, $issue);
-        $force = $this->isGranted($user, Permission::IssueForcePlace, $issue->getProject());
+        $force = $this->isGranted($user, Permission::IssueBypassWorkflow, $issue->getProject());
 
         $moves = [];
         foreach ($this->config->definition()->placesOf($workflow) as $place) {

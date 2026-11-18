@@ -112,7 +112,7 @@ final class BudgetQueriesTest extends KernelTestCase
         ];
 
         self::assertSame([840, 840], $read('thomas.girard@cairn.test'), 'who manages the budgets wrote it');
-        self::assertSame([840, 840], $read('nadia.benali@cairn.test'), 'an internal user reads it');
+        self::assertSame([null, null], $read('nadia.benali@cairn.test'), 'being internal is not managing the budgets');
         self::assertSame([null, null], $read('claire.martin@maison-dupont.test'), 'the client reads the line, not what it may amount to');
         self::assertEquals($this->statement('thomas.girard@cairn.test')->summary, $this->statement('claire.martin@maison-dupont.test')->summary, 'it counts for nothing, so the balance is the same');
 

@@ -51,7 +51,7 @@ issue:
             unknown_type: Ce type de lien n'existe plus dans la configuration.
             itself: Une demande ne se lie pas à elle-même.
             already: 'Déjà liée ainsi à %key%.'
-            other_project: '%key% appartient à un autre projet : seuls les internes lient entre projets.'
+            other_project: '%key% appartient à un autre projet, où vous ne pouvez pas lier de demandes.'
             read_only: 'Le projet de %key% est archivé.'
     delete:
         title: Supprimer la demande
@@ -660,7 +660,7 @@ admin:
             intro: 'Cocher une case accorde le droit immédiatement. Les rôles autorisés à déclencher une action se définissent sur l''action elle-même, dans son workflow.'
             permission: 'Droit'
             internal_only: 'Rôles internes'
-            internal_only_help: 'Ce droit ouvre ce que les externes ne voient jamais : il ne va qu''à un rôle réservé aux internes.'
+            internal_only_help: 'Exercer ce droit suppose de voir ce que les externes ne voient jamais : il ne va qu''à un rôle réservé aux internes.'
         places:
             title: 'Étapes'
             new: 'Nouvelle étape'
@@ -1344,15 +1344,12 @@ permission:
         edit:
             label: Modifier les demandes des autres
             help: Titre, description, champs et fichiers d'une demande écrite par quelqu'un d'autre. L'auteur modifie toujours la sienne.
-        change_tracker:
-            label: Changer la catégorie d'une demande
-            help: Déplacer une demande vers une autre catégorie du projet, en choisissant son étape dans le nouveau workflow.
         delete:
             label: Supprimer une demande
             help: Effacer définitivement une demande, avec ses commentaires, ses fichiers, ses liens et son historique. Personne n'est prévenu.
-        force_place:
-            label: Déplacer une demande sur n'importe quelle étape
-            help: Placer une demande sur une étape de son workflow sans passer par une action, pour corriger une erreur ; l'historique garde le déplacement.
+        bypass_workflow:
+            label: Sortir du workflow
+            help: "Placer une demande sur n'importe quelle étape sans passer par une action, la déplacer vers une autre catégorie du projet, et appliquer une action sans le commentaire qu'elle demande ; l'historique garde chaque déplacement."
         rank:
             label: Ranger le kanban
             help: 'Glisser les cartes d''une colonne du kanban dans l''ordre voulu ; tout le monde voit le même ordre.'
@@ -1367,7 +1364,7 @@ permission:
             help: La cacher aux externes, ou la leur montrer à nouveau.
         link:
             label: Lier des demandes
-            help: Lier une demande à une autre, ou retirer un lien. Entre projets pour les internes seulement.
+            help: Lier une demande à une autre, ou retirer un lien. Entre projets quand le droit est détenu sur les deux.
         set_release:
             label: Rattacher une demande à une version
             help: Placer une demande dans une version ouverte du projet, ou l'en retirer.

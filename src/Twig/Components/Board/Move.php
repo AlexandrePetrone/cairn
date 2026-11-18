@@ -93,7 +93,7 @@ final class Move
             return;
         }
         $transition = $moves[0]->transition;
-        if (1 === \count($moves) && (null === $transition || !$this->isCommentRequired($transition))) {
+        if (1 === \count($moves) && (null === $transition || !$this->isCommentRequired($issue, $transition))) {
             // Nothing to ask: MoveIssue takes the action when there is one, forces the place otherwise.
             $done = null === $transition
                 ? $this->translator->trans('issue.move.done', ['%key%' => $issue->getKey(), '%place%' => $moves[0]->place->label])
@@ -146,7 +146,7 @@ final class Move
             return;
         }
         $comment = '' === trim($this->comment) ? null : $this->comment;
-        if ($this->isCommentRequired($transition) && null === $comment) {
+        if ($this->isCommentRequired($issue, $transition) && null === $comment) {
             $this->error = $transition->commentPrompt ?? $this->translator->trans('issue.transition.comment_required');
 
             return;
@@ -189,9 +189,9 @@ final class Move
         return array_find($this->getTransitions(), fn (TransitionDefinition $transition): bool => $transition->id === $this->transitionId);
     }
 
-    public function isCommentRequired(TransitionDefinition $transition): bool
+    public function isCommentRequired(Issue $issue, TransitionDefinition $transition): bool
     {
-        return $this->access->commentRequired($this->viewer->get(), $transition);
+        return $this->access->commentRequired($this->viewer->get(), $transition, $issue->getProject());
     }
 
     public function canCommentPrivately(Issue $issue): bool

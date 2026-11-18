@@ -207,7 +207,7 @@ final class Activity
 
             return;
         }
-        if ($this->access->commentRequired($this->viewer->get(), $chosen)) {
+        if ($this->access->commentRequired($this->viewer->get(), $chosen, $this->issue->getProject())) {
             $this->awaiting = $chosen->id;
             $this->reason = '';
 

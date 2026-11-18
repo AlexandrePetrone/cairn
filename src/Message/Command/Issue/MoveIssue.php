@@ -9,7 +9,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 /**
  * Takes an issue to a place of its workflow, whichever way the actor may:
  * by the action of theirs that leads there when there is one, otherwise
- * outside the workflow (`issue.force_place`). A caller that names the
+ * outside the workflow (`issue.bypass_workflow`). A caller that names the
  * action, or sends a comment with it, dispatches ApplyTransition instead;
  * another tracker is ChangeTracker.
  * Handled by MoveIssueHandler, which returns the Issue.

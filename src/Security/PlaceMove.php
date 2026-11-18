@@ -10,7 +10,7 @@ use App\Config\Definition\TransitionDefinition;
 /**
  * One way a user may take an issue to another place of its workflow: by
  * an action of the workflow, or, without one, outside it
- * (`issue.force_place`). AccessControl::movesFor() lists them.
+ * (`issue.bypass_workflow`). AccessControl::movesFor() lists them.
  */
 final readonly class PlaceMove
 {

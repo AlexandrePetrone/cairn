@@ -84,8 +84,10 @@ final class ConfigurationTest extends WebTestCase
         // Project manager, Developer, Client, Client (read-only)
         self::assertSame([true, true, false, false], $assign->filter('input[type=checkbox]')->each(static fn ($box): bool => null !== $box->attr('checked')));
 
+        $private = $crawler->filter('main tbody tr')->reduce(static fn ($row): bool => str_contains($row->text(), 'Make an issue private'));
+        self::assertCount(2, $private->filter('input[type=checkbox]'), 'a right for internal roles is not offered to the roles open to external users');
         $delete = $crawler->filter('main tbody tr')->reduce(static fn ($row): bool => str_contains($row->text(), 'Delete an issue'));
-        self::assertCount(2, $delete->filter('input[type=checkbox]'), 'a right for internal roles is not offered to the roles open to external users');
+        self::assertCount(4, $delete->filter('input[type=checkbox]'), 'deleting is for the administrators to grant, to any role');
     }
 
     public function testARightIsTickedInPlace(): void
@@ -99,7 +101,7 @@ final class ConfigurationTest extends WebTestCase
         $matrix->call('toggle', ['role' => 'client', 'permission' => Permission::IssueRank->value]);
         self::assertNotContains('client', $this->definition()->rolesGranted(Permission::IssueRank));
 
-        $matrix->call('toggle', ['role' => 'client', 'permission' => Permission::IssueDelete->value]);
+        $matrix->call('toggle', ['role' => 'client', 'permission' => Permission::IssueSetPrivate->value]);
         self::assertStringContainsString('open to external users', $matrix->render()->toString(), 'a refusal is said in place');
     }
 

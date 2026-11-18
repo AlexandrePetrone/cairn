@@ -62,7 +62,7 @@ final class MoveTest extends KernelTestCase
         $mover->call('move', ['key' => 'MD-SPT-1', 'place' => 'done']);
         $render = $mover->render();
 
-        self::assertSame('done', $this->reloaded('MD-SPT-1')->getPlace(), 'issue.force_place, without a dialog');
+        self::assertSame('done', $this->reloaded('MD-SPT-1')->getPlace(), 'issue.bypass_workflow, without a dialog');
         $moved = $mover->getDispatchedBrowserEvent($render, 'board:moved')['payload'] ?? [];
         self::assertTrue($moved['applied'] ?? false);
         self::assertContains('in_progress', $moved['places'] ?? [], '"Reopen" leads there');

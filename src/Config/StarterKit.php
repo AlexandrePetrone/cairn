@@ -160,9 +160,8 @@ final class StarterKit
                 // Authors always edit their own issues and comments; these two
                 // grant editing the content written by others.
                 Permission::IssueEdit->value => self::MANAGERS,
-                Permission::IssueChangeTracker->value => self::INTERNAL,
                 Permission::IssueDelete->value => self::INTERNAL,
-                Permission::IssueForcePlace->value => self::INTERNAL,
+                Permission::IssueBypassWorkflow->value => self::INTERNAL,
                 Permission::IssueAssign->value => self::INTERNAL,
                 // The order of a kanban column is shared: a client role may be given it to order its backlog.
                 Permission::IssueRank->value => self::INTERNAL,

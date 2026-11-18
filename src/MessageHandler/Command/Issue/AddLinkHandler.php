@@ -57,7 +57,7 @@ final class AddLinkHandler
             throw IssueLinkException::itself($issue->getKey());
         }
         if ($other->getProject() !== $issue->getProject()) {
-            if (!$actor->isInternal()) {
+            if (!$this->access->isGranted($actor, Permission::IssueLink, $other->getProject())) {
                 throw IssueLinkException::otherProject($other->getKey());
             }
             if ($other->getProject()->isReadOnly()) {

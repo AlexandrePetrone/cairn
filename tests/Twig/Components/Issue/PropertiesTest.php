@@ -111,7 +111,7 @@ final class PropertiesTest extends KernelTestCase
         self::assertNotSame('sophie.bernard@travelia.test', $this->reloaded()->getAssignee()?->getEmail());
     }
 
-    public function testTheStepIsAMenuForInternalUsersOnly(): void
+    public function testTheStepIsAMenuOfWhereTheViewerMayTakeTheIssue(): void
     {
         $manager = (string) $this->properties('thomas.girard@cairn.test')->render();
         self::assertStringContainsString('data-live-action-param="transition" data-live-id-param="accept"', $manager, 'an action leads to "To release"');
@@ -128,9 +128,10 @@ final class PropertiesTest extends KernelTestCase
         self::assertStringContainsString('Internal task', $developer, 'private, but Nadia is internal');
 
         $client = (string) $this->properties('claire.martin@maison-dupont.test')->render();
-        self::assertStringContainsString('To test', $client, 'read, not chosen');
-        self::assertStringNotContainsString('data-live-action-param="transition"', $client, 'clients act from the response box');
-        self::assertStringNotContainsString('data-controller="panels"', $client);
+        self::assertStringContainsString('data-live-action-param="transition" data-live-id-param="accept"', $client, 'her action leads to "To release"');
+        self::assertStringNotContainsString('data-live-id-param="refuse"', $client, 'refusing asks her for a comment: from the response box');
+        self::assertStringNotContainsString('data-live-action-param="move"', $client, 'she does not leave the workflow');
+        self::assertStringNotContainsString('Change category…', $client);
     }
 
     public function testAnActionOfTheWorkflowIsAppliedFromTheMenu(): void
@@ -169,16 +170,19 @@ final class PropertiesTest extends KernelTestCase
         self::assertSame('to_test', $this->reloaded()->getPlace());
     }
 
-    public function testTheMenuIsNotAWayInForAClient(): void
+    public function testTheMenuGivesAClientHerActionsAndNothingMore(): void
     {
         $component = $this->properties('claire.martin@maison-dupont.test');
 
-        $component->call('transition', ['id' => 'accept']);
-        self::assertStringContainsString('could not be applied', (string) $component->render(), 'her action, but from the response box');
+        $component->call('transition', ['id' => 'refuse']);
+        self::assertStringContainsString('could not be applied', (string) $component->render(), 'it asks her for a comment, which the response box takes');
         self::assertSame('to_test', $this->reloaded()->getPlace());
 
         $component->call('move', ['place' => 'to_estimate', 'tracker' => $this->scene->evolutions->getId()]);
         self::assertSame('Bug', $this->reloaded()->getTracker()->getName());
+
+        $component->call('transition', ['id' => 'accept']);
+        self::assertSame('to_release', $this->reloaded()->getPlace(), 'her action, from the menu as from the response box');
     }
 
     public function testTheTrackerChangesWithAPlaceOfTheNewWorkflow(): void

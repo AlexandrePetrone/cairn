@@ -194,7 +194,7 @@ final class AccessControlTest extends KernelTestCase
 
         $moves = static fn (array $moves): array => array_map(static fn (PlaceMove $move): string => $move->place->id.':'.($move->transition->id ?? 'forced'), $moves);
         self::assertSame(['in_progress:refuse', 'done:accept'], $moves($this->access->movesFor($client, $issue)), 'the actions of the role, in the order of the places');
-        self::assertSame([], $this->access->movesFor($developer, $issue), 'no action, and no issue.force_place');
+        self::assertSame([], $this->access->movesFor($developer, $issue), 'no action, and no issue.bypass_workflow');
         self::assertSame(
             ['new:forced', 'in_progress:refuse', 'done:accept'],
             $moves($this->access->movesFor($manager, $issue)),

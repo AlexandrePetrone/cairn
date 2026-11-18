@@ -32,7 +32,7 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * cards come in the order of the column (IssueSort::Rank), which whoever
  * holds `issue.rank` changes by dragging. Each
  * card says which places the viewer may move it to, and which of them lie
- * outside the workflow (`issue.force_place`); Board:Move moves it
+ * outside the workflow (`issue.bypass_workflow`); Board:Move moves it
  * and the `board` controller keeps the columns right without asking them
  * again.
  */

@@ -58,8 +58,8 @@ final class RankIssueHandlerTest extends KernelTestCase
         self::assertSame(['C', 'B', 'A'], $this->column('in_progress'), 'by an action found for the place, or outside the workflow');
 
         [$task] = $this->issues('Task');
-        $this->commands->dispatch(new ChangeTracker($developer, $task->getKey(), (int) $this->fixtures->tasks->getId(), 'new'));
-        $this->commands->dispatch(new ChangeTracker($developer, $a->getKey(), (int) $this->fixtures->tasks->getId(), 'new'));
+        $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->manager->getId(), $task->getKey(), (int) $this->fixtures->tasks->getId(), 'new'));
+        $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->manager->getId(), $a->getKey(), (int) $this->fixtures->tasks->getId(), 'new'));
         self::assertSame(['A', 'Task'], $this->column('new', $this->fixtures->tasks), 'from another tracker');
         self::assertSame(['C', 'B'], $this->column('in_progress'));
     }

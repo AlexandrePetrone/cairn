@@ -23,10 +23,10 @@ final readonly class SelectionActions
      * @param Project|null          $project      the project of the issues, when the selection holds one
      * @param list<User>            $assignees    members of every project of the selection
      * @param list<Release>         $releases     the open releases of the project, when the selection holds one project
-     * @param list<Tracker>         $moveTrackers the trackers every issue may be moved to (its own with `issue.force_place`,
-     *                                            another with `issue.change_tracker`), when the selection holds one project
+     * @param list<Tracker>         $moveTrackers the trackers every issue may be moved to (`issue.bypass_workflow`),
+     *                                            when the selection holds one project
      * @param list<PlaceDefinition> $places       the places every issue may be taken to in its own tracker: those the workflows
-     *                                            of all of them use, in the order of the instance, with `issue.force_place`
+     *                                            of all of them use, in the order of the instance, with the same right
      */
     public function __construct(
         public array $issues,

@@ -36,8 +36,12 @@ final class ChangeTrackerHandler
         $project = $issue->getProject();
         $current = $issue->getTracker();
 
-        $this->support->denyUnless($this->access->isGranted($actor, Permission::IssueChangeTracker, $project), 'change the tracker');
+        $this->support->denyUnless($this->access->isGranted($actor, Permission::IssueBypassWorkflow, $project), 'change the tracker');
         $tracker = $this->trackers->find($command->trackerId) ?? throw IssueException::notFound('Tracker', $command->trackerId);
+        // A tracker the actor does not see does not exist for them, as in the lists: nothing of it is said.
+        if ($tracker->isPrivate() && !$actor->isInternal()) {
+            throw IssueException::notFound('Tracker', $command->trackerId);
+        }
 
         if ($tracker->getId() === $current->getId()) {
             throw IssueException::sameTracker($tracker->getName());

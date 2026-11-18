@@ -118,7 +118,22 @@ final class ApplyTransitionHandlerTest extends KernelTestCase
         self::assertSame($this->fixtures->client->getId(), $comment->getAuthor()?->getId());
     }
 
-    public function testAnInternalUserAppliesATransitionWithoutTheCommentItAsksOfClients(): void
+    public function testTheCommentIsAskedOfWhoeverMayNotSkipItInternalOrNot(): void
+    {
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+        $developer = (int) $this->fixtures->developer->getId();
+        $this->commands->dispatch(new ApplyTransition($developer, $issue->getKey(), 'start'));
+        $this->commands->dispatch(new ApplyTransition($developer, $issue->getKey(), 'deliver'));
+        // An internal user who holds the role of client there: being internal exempts nobody.
+        $tester = $this->fixtures->access->user('lea@agency.test', internal: true);
+        $this->fixtures->access->grantOnProject($tester, $this->fixtures->access->shop, 'client');
+
+        $this->expectException(IssueException::class);
+        $this->expectExceptionMessage('requires a comment');
+        $this->commands->dispatch(new ApplyTransition((int) $tester->getId(), $issue->getKey(), 'refuse'));
+    }
+
+    public function testWhoMaySkipTheCommentAppliesATransitionWithoutIt(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
         $developer = (int) $this->fixtures->developer->getId();

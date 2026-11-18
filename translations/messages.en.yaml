@@ -51,7 +51,7 @@ issue:
             unknown_type: This kind of link no longer exists in the configuration.
             itself: An issue is not linked to itself.
             already: 'Already linked so to %key%.'
-            other_project: '%key% belongs to another project: only internal users link across projects.'
+            other_project: '%key% belongs to another project, where you may not link issues.'
             read_only: 'The project of %key% is archived.'
     delete:
         title: Delete the issue
@@ -660,7 +660,7 @@ admin:
             intro: 'Ticking a box grants the right immediately. The roles allowed to trigger an action are set on the action itself, in its workflow.'
             permission: 'Right'
             internal_only: 'Internal roles'
-            internal_only_help: 'This right opens what external users never see: it only goes to a role reserved to internal users.'
+            internal_only_help: 'Using this right takes seeing what external users never see: it only goes to a role reserved to internal users.'
         places:
             title: 'Steps'
             new: 'New step'
@@ -1344,15 +1344,12 @@ permission:
         edit:
             label: Edit the issues of others
             help: Title, description, fields and files of an issue written by someone else. Authors always edit their own.
-        change_tracker:
-            label: Change the category of an issue
-            help: Move an issue to another category of the project, choosing its place in the new workflow.
         delete:
             label: Delete an issue
             help: Erase an issue for good, with its comments, files, links and history. Nobody is told.
-        force_place:
-            label: Move an issue to any step
-            help: Put an issue on any step of its workflow without going through an action, to fix a mistake; the history keeps the move.
+        bypass_workflow:
+            label: Leave the workflow
+            help: "Put an issue on any step without going through an action, move it to another category of the project, and apply an action without the comment it asks for; the history keeps every move."
         rank:
             label: Arrange the kanban
             help: 'Drag the cards of a kanban column into the order wanted; everyone sees the same order.'
@@ -1367,7 +1364,7 @@ permission:
             help: Hide it from external users, or show it to them again.
         link:
             label: Link issues
-            help: Link an issue to another one, or remove a link. Across projects for internal users only.
+            help: Link an issue to another one, or remove a link. Across projects when held on both.
         set_release:
             label: Schedule issues in a release
             help: Put an issue in an open release of the project, or take it out.

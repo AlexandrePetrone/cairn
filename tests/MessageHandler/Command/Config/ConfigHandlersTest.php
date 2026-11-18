@@ -116,8 +116,8 @@ final class ConfigHandlersTest extends KernelTestCase
         $this->refused('admin.refused.config.role_has_internal_permissions', new UpdateRole('project_manager', internalOnly: false));
         self::assertTrue($this->definition()->role('project_manager')->internalOnly, 'a refusal changes nothing');
 
-        $this->commands->dispatch(new RevokePermission('developer', Permission::IssueChangeTracker));
-        $this->commands->dispatch(new RevokePermission('developer', Permission::IssueDelete));
+        // Deleting issues or leaving the workflow does not hold a role back: only what takes seeing the private does.
+        $this->commands->dispatch(new RevokePermission('developer', Permission::CommentSetPrivate));
         $this->commands->dispatch(new UpdateRole('developer', internalOnly: false));
         self::assertFalse($this->definition()->role('developer')->internalOnly);
     }
@@ -131,7 +131,10 @@ final class ConfigHandlersTest extends KernelTestCase
         $this->commands->dispatch(new RevokePermission('developer', Permission::IssueRank));
         self::assertSame(['project_manager', 'client'], $this->definition()->rolesGranted(Permission::IssueRank));
 
-        $this->refused('admin.refused.config.permission_internal_only', new GrantPermission('client', Permission::IssueDelete));
+        $this->refused('admin.refused.config.permission_internal_only', new GrantPermission('client', Permission::IssueSetPrivate));
+        $this->refused('admin.refused.config.permission_internal_only', new GrantPermission('client', Permission::CommentSetPrivate));
+        $this->commands->dispatch(new GrantPermission('client', Permission::IssueDelete));
+        self::assertContains('client', $this->definition()->rolesGranted(Permission::IssueDelete), 'what is only risky is for the administrators to grant');
         $this->refused('admin.refused.not_found', new GrantPermission('nobody', Permission::IssueRank));
     }
 

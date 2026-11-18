@@ -5,7 +5,7 @@
         {% set boardMoveChosen = this.chosen %}
         {% set boardMoveTransitions = this.transitions %}
         {% set boardMovePrivately = this.canCommentPrivately(boardMoveIssue) %}
-        {% set boardMoveNeedsComment = boardMoveChosen and this.isCommentRequired(boardMoveChosen) %}
+        {% set boardMoveNeedsComment = boardMoveChosen and this.isCommentRequired(boardMoveIssue, boardMoveChosen) %}
         <twig:Ui:Dialog :title="boardMoveChosen ? boardMoveChosen.label : 'issue.board.choose'|trans" closeAction="cancel">
             <twig:block name="description">
                 <p class="truncate"><span class="font-mono">{{ boardMoveIssue.key }}</span> · {{ boardMoveIssue.title }}</p>

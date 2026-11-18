@@ -7,10 +7,12 @@ namespace App\Tests\MessageHandler\Command\Issue;
 use App\Entity\Enum\JournalEntryType;
 use App\Entity\JournalEntry;
 use App\Entity\Tracker;
+use App\Message\Command\Config\GrantPermission;
 use App\Message\Command\Issue\ChangeTracker;
 use App\Message\Command\Issue\MoveIssue;
 use App\Message\CommandBus;
 use App\MessageHandler\Command\Issue\IssueException;
+use App\Security\Permission;
 use App\Tests\Config\Fixture\DefinitionFactory;
 use App\Tests\KernelHelpers;
 use Doctrine\ORM\EntityManagerInterface;
@@ -38,7 +40,7 @@ final class MoveIssueHandlerTest extends KernelTestCase
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
 
-        $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->developer->getId(), $issue->getKey(), (int) $this->fixtures->tasks->getId(), 'in_progress'));
+        $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->manager->getId(), $issue->getKey(), (int) $this->fixtures->tasks->getId(), 'in_progress'));
 
         self::assertSame($this->fixtures->tasks->getId(), $issue->getTracker()->getId());
         self::assertSame('in_progress', $issue->getPlace());
@@ -58,13 +60,28 @@ final class MoveIssueHandlerTest extends KernelTestCase
         $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->client->getId(), $issue->getKey(), (int) $this->fixtures->tasks->getId(), 'new'));
     }
 
+    public function testATrackerTheActorDoesNotSeeIsNotOneToMoveTo(): void
+    {
+        $this->commands->dispatch(new GrantPermission('client', Permission::IssueBypassWorkflow));
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+
+        try {
+            $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->client->getId(), $issue->getKey(), (int) $this->fixtures->tasks->getId(), 'new'));
+            self::fail('The private tracker does not exist for a client, whatever her role grants.');
+        } catch (IssueException $e) {
+            self::assertStringNotContainsString('Internal task', $e->getMessage(), 'nor is it named');
+        }
+        self::assertSame($this->fixtures->bugs->getId(), $issue->getTracker()->getId());
+        self::assertFalse($issue->isPrivate());
+    }
+
     public function testThePlaceMustExistInTheNewWorkflow(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
 
         $this->expectException(IssueException::class);
         $this->expectExceptionMessage('Place "nowhere"');
-        $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->developer->getId(), $issue->getKey(), (int) $this->fixtures->tasks->getId(), 'nowhere'));
+        $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->manager->getId(), $issue->getKey(), (int) $this->fixtures->tasks->getId(), 'nowhere'));
     }
 
     public function testTheTrackerMustBelongToTheSameProject(): void
@@ -76,7 +93,7 @@ final class MoveIssueHandlerTest extends KernelTestCase
 
         $this->expectException(IssueException::class);
         $this->expectExceptionMessage('does not belong');
-        $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->developer->getId(), $issue->getKey(), (int) $elsewhere->getId(), 'new'));
+        $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->manager->getId(), $issue->getKey(), (int) $elsewhere->getId(), 'new'));
     }
 
     public function testAManagerPutsTheIssueOnAnyPlaceWithoutAnAction(): void
@@ -101,7 +118,7 @@ final class MoveIssueHandlerTest extends KernelTestCase
 
         $this->expectException(IssueException::class);
         $this->expectExceptionMessage('already in tracker');
-        $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->developer->getId(), $issue->getKey(), (int) $this->fixtures->bugs->getId(), 'new'));
+        $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->manager->getId(), $issue->getKey(), (int) $this->fixtures->bugs->getId(), 'new'));
     }
 
     public function testTheWorkflowComesFirstWhenAnActionOfTheActorLeadsThere(): void

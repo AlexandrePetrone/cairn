@@ -16,7 +16,7 @@ final readonly class OfferedTransition
         public ?string $description,
         /** Whether this user must comment to apply it. */
         public bool $commentRequired,
-        /** Where it leads; clients are asked to choose an action, not shown the step. */
+        /** Where it leads. */
         public ?PlaceRef $to = null,
     ) {
     }

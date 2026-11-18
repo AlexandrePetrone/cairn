@@ -47,7 +47,9 @@ final class IssueTest extends WebTestCase
         self::assertSelectorTextContains('main', 'changed the assignee: Nobody → Nadia Benali', 'assigned through the command in the fixtures');
         self::assertSelectorTextContains('main [aria-label="Path"]', 'New');
         self::assertSelectorExists('main [data-live-name-value="Issue:Activity"] [data-live-transition-param="accept"]', 'her actions are in the response box');
-        self::assertSelectorNotExists('main aside [data-live-action-param="transition"]', 'a client does not pick a step in the side panel');
+        self::assertSelectorExists('main aside [data-live-action-param="transition"][data-live-id-param="accept"]', 'and in the step menu, where they lead');
+        self::assertSelectorNotExists('main aside [data-live-action-param="transition"][data-live-id-param="refuse"]', 'but not the one that asks her for a comment');
+        self::assertSelectorNotExists('main aside [data-live-action-param="move"]', 'she does not leave the workflow');
 
         $this->signInAs('thomas.girard@cairn.test');
         $this->client->request('GET', '/MD/SPT/issues/4');

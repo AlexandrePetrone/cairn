@@ -75,7 +75,7 @@ final class IssueHandlerSupport
         }
 
         $body = trim((string) $comment);
-        if ('' === $body && $this->access->commentRequired($actor, $transition)) {
+        if ('' === $body && $this->access->commentRequired($actor, $transition, $project)) {
             throw IssueException::commentRequired($transition->id);
         }
 

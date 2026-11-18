@@ -74,23 +74,32 @@ final class Properties
     }
 
     /**
-     * Whether the step is a menu: for internal users, when it leads somewhere.
+     * Whether the step is a menu: when it leads the viewer somewhere.
      */
     public function canChangePlace(): bool
     {
-        return $this->viewer->get()->isInternal() && ([] !== $this->getMoves() || [] !== $this->getOtherTrackers());
+        return [] !== $this->getMoves() || [] !== $this->getOtherTrackers();
     }
 
     /**
+     * The moves the menu applies at once: an action that asks this viewer
+     * for a comment is taken from the decision of the thread, which asks
+     * for it.
+     *
      * @return list<PlaceMove>
      */
     public function getMoves(): array
     {
-        return $this->moves ??= $this->access->movesFor($this->viewer->get(), $this->issue);
+        $viewer = $this->viewer->get();
+
+        return $this->moves ??= array_values(array_filter(
+            $this->access->movesFor($viewer, $this->issue),
+            fn (PlaceMove $move): bool => null === $move->transition || !$this->access->commentRequired($viewer, $move->transition, $this->issue->getProject()),
+        ));
     }
 
     /**
-     * The trackers the issue may change to (`issue.change_tracker`): the
+     * The trackers the issue may change to (`issue.bypass_workflow`): the
      * other active ones of the project the viewer sees.
      *
      * @return list<Tracker>
@@ -100,7 +109,7 @@ final class Properties
         if (null !== $this->otherTrackers) {
             return $this->otherTrackers;
         }
-        if (!$this->access->isGranted($this->viewer->get(), Permission::IssueChangeTracker, $this->issue->getProject())) {
+        if (!$this->access->isGranted($this->viewer->get(), Permission::IssueBypassWorkflow, $this->issue->getProject())) {
             return $this->otherTrackers = [];
         }
         $current = $this->issue->getTracker()->getId();

@@ -55,7 +55,7 @@ final class IssueLinkException extends \DomainException implements TranslatableI
 
     public static function otherProject(string $otherKey): self
     {
-        return new self(\sprintf('%s belongs to another project: internal users only link across projects.', $otherKey), 'issue.links.refused.other_project', ['%key%' => $otherKey]);
+        return new self(\sprintf('%s belongs to another project, where the actor may not link issues.', $otherKey), 'issue.links.refused.other_project', ['%key%' => $otherKey]);
     }
 
     public static function readOnlyProject(string $otherKey): self

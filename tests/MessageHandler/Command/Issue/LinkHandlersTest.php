@@ -109,6 +109,25 @@ final class LinkHandlersTest extends KernelTestCase
         self::assertSame('MD-INT-1', $this->lastEntry($this->export, JournalEntryType::Linked)->getData()['key']);
     }
 
+    public function testLinkingAcrossProjectsTakesTheRightOnBoth(): void
+    {
+        $admin = $this->fixtures->access->user('julie@agency.test', internal: true, admin: true);
+        $portalBugs = new Tracker($this->fixtures->access->otherProject, 'Bug', DefinitionFactory::workflowRow('bug', $this->entityManager));
+        $this->entityManager->persist($portalBugs);
+        $this->entityManager->flush();
+        $portalBug = $this->fixtures->createIssue($admin, $portalBugs, title: 'Portal down');
+
+        try {
+            $this->link($this->export, 'related', $portalBug);
+            self::fail('The developer sees the portal, being internal, but holds no role there.');
+        } catch (IssueLinkException) {
+        }
+
+        $this->fixtures->access->grantOnProject($this->fixtures->developer, $this->fixtures->access->otherProject, 'developer');
+        $this->link($this->export, 'related', $portalBug);
+        self::assertSame(1, $this->entityManager->getRepository(IssueLink::class)->count([]));
+    }
+
     public function testRemovingALinkDeletesItAndJournalsBothSides(): void
     {
         $link = $this->link($this->export, 'blocks', $this->accounting);

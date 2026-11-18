@@ -193,7 +193,7 @@ final class IssueApiTest extends ApiTestCase
         self::assertResponseStatusCodeSame(200);
         self::assertSame('done', $issue['place']['id']);
         $history = $this->api('GET', '/api/issues/MD-SPT-1/history', $secret);
-        self::assertSame('moved', array_last($history['member'])['type'], 'no action of a developer leads there: issue.force_place');
+        self::assertSame('moved', array_last($history['member'])['type'], 'no action of a developer leads there: issue.bypass_workflow');
 
         $issue = $this->api('PUT', '/api/issues/MD-SPT-1/step', $secret, ['place' => 'done']);
         self::assertResponseStatusCodeSame(200, 'A PUT may be repeated.');

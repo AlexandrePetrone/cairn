@@ -14,11 +14,14 @@ enum Permission: string
     case IssueCreate = 'issue.create';
     /** Edit the content of issues written by others; authors always edit their own. */
     case IssueEdit = 'issue.edit';
-    case IssueChangeTracker = 'issue.change_tracker';
     /** Delete an issue for good, with its comments, files, links and history. */
     case IssueDelete = 'issue.delete';
-    /** Put an issue on any place of its workflow without an action; journaled as `moved`. */
-    case IssueForcePlace = 'issue.force_place';
+    /**
+     * Not be held to the workflow: put an issue on any place without an
+     * action (journaled as `moved`), move it to another tracker of its
+     * project, and apply an action without the comment it asks for.
+     */
+    case IssueBypassWorkflow = 'issue.bypass_workflow';
     case IssueAssign = 'issue.assign';
     /** Arrange the cards of a kanban column by hand; the order is everyone's. */
     case IssueRank = 'issue.rank';
@@ -44,18 +47,19 @@ enum Permission: string
     case BudgetView = 'budget.view';
 
     /**
-     * Whether the permission opens what external users never see: the
-     * project configuration shows private trackers and their private
-     * issues, managing members shows every account of the instance; or
-     * what leaves the workflow clients are shown: forcing a place,
-     * changing the tracker; or what cannot be undone: deleting an issue.
-     * The configuration grants these to
-     * internal-only roles, which ConfigValidator enforces.
+     * Whether using the permission takes seeing what external users never
+     * see: the project configuration shows private trackers, managing
+     * members shows every account of the instance, and what is made
+     * private is hidden from an external user who made it so. That is the
+     * one reason: what is only risky (deleting an issue, leaving the
+     * workflow) is for the administrators to grant as they see fit. The
+     * configuration grants these to internal-only roles, which
+     * ConfigValidator enforces.
      */
     public function internalOnly(): bool
     {
         return match ($this) {
-            self::ProjectConfigure, self::ProjectManageMembers, self::IssueForcePlace, self::IssueChangeTracker, self::IssueDelete => true,
+            self::ProjectConfigure, self::ProjectManageMembers, self::IssueSetPrivate, self::CommentSetPrivate => true,
             default => false,
         };
     }

@@ -394,6 +394,28 @@ src/
   membership or workspace membership, the broadest wins; being internal
   opens every project to reading but grants no role). Handlers call it directly. Voters are
   thin adapters over it for `#[IsGranted]` and Twig.
+- **The account says what one sees, the role what one does.** A user is
+  external, internal or administrator (`User::$internal`, `$admin`).
+  Being internal opens every project to reading, what is private
+  included (private issues, trackers, comments and journal lines,
+  internal-only fields, code references), and the API; it lets one hold
+  the internal-only roles and grants nothing else: every action is asked
+  of `isGranted()` or `canTransition()`, never of `isInternal()`. An
+  internal user without a role follows and reads, and the budgets, which
+  a permission opens, are not theirs to read. An administrator holds
+  every permission and every action on every project, without being a
+  member: not offered for assignment, not subscribed by their role. A
+  test on `isInternal()` in a handler is visibility (a private tracker,
+  an internal-only field) or a mistake.
+- **One right says who is not held to the workflow.**
+  `issue.bypass_workflow` puts an issue on a place no action of the
+  actor leads to (`MoveIssue`), moves it to another tracker of its
+  project on the place chosen (`ChangeTracker`, to a tracker the actor
+  sees only: a private one does not exist for an external user) and
+  applies an action without the comment it asks for
+  (`commentRequired()`). They are one permission because each gives the
+  others: an issue sent to another tracker and back stands wherever one
+  wants, without an action nor its comment.
 - **Visibility is written twice and tested as one.** `AccessControl::canSee()`
   decides for one issue, `Security/Visibility::restrictIssues()` applies
   the same rule in SQL; `canView()` and `restrictProjects()` do the same
@@ -430,17 +452,17 @@ src/
   (project managers and developers in the example) erases an issue for
   what should never have been written: a test, a mistake, a secret pasted
   in a description. The bin of `Issue:Header` asks in a dialog, saying how
-  many comments and files go, then leads to the list of the project. A
-  client never deletes, even their own issue; they ask.
+  many comments and files go, then leads to the list of the project. In
+  the example a client never deletes, even their own issue; they ask.
 
 ### The issue page
 
-- **The workflow is the contract with the client; internal users may
+- **The workflow is the contract with the client; a right lets one
   leave it, and one rule says how.** `AccessControl::movesFor()` lists where a
   user may take an issue from its place, in the order of the workflow:
   one `PlaceMove` per action of their role that leads to a place and,
   for a place no action of theirs leads to, a move outside the workflow
-  when they hold `issue.force_place` (internal-only). The step menu and
+  when they hold `issue.bypass_workflow`. The step menu and
   the kanban read it to show what is offered; `MoveIssue` ("take the
   issue to this place") is the one place that applies it: its handler
   takes the action of the actor that leads there when there is one
@@ -457,25 +479,28 @@ src/
   the transition and its `description`. An action applies at once,
   without a comment; when its `requiresComment` binds the viewer, the
   decision turns into the `commentPrompt`, an editor and the button, and
-  the comment is sent with the action. `requiresComment` binds external
-  users only (`AccessControl::commentRequired()`, the one place that
-  says so): an internal user applies any transition without a word. The
+  the comment is sent with the action. `requiresComment` binds everyone
+  but those whose role holds `issue.bypass_workflow`, the internal
+  roles in the example (`AccessControl::commentRequired()`, the one
+  place that says so). The
   comment box below is a comment and nothing else; whoever wants both
-  does both. The actions of others are never shown, nor the place an
-  action leads to: clients act because they are asked to choose, not
-  for the step. There is no "whose turn" indicator: the action offered
+  does both. The actions of others are never shown, and the decision
+  does not name the place an action leads to: clients act because they
+  are asked to choose, not for the step. There is no "whose turn" indicator: the action offered
   says it. The header
   shows the path the issue took, as `JournalEntryRepository::findPlaceChanges()`
   reads it from the journal with the labels of the time, private entries
   included: a transition made with a private comment hides its comment
   and its journal line from external users, never the place it led to,
   which they read in the properties. In the side panel the step is the
-  first row of `Issue:Properties`: read by external users, a menu for
-  internal users, listing the places of the workflow in its order, the
+  first row of `Issue:Properties`: a menu for whoever may take the issue
+  somewhere (`Properties::canChangePlace()`, as on the kanban), read by
+  the others, listing the places of the workflow in its order, the
   current one checked, a place an action leads to named after the
   action (one row per action when several lead there), the others
-  greyed. Its last row, for whoever holds `issue.change_tracker`
-  (internal-only too), leads
+  greyed. The menu applies at once, so an action that asks its viewer
+  for a comment is not in it: the decision takes it. Its last row, for
+  whoever holds `issue.bypass_workflow`, leads
   to the other trackers of the project and then to the places of the
   chosen one (the `panels` controller, everything in the page), which
   dispatches `ChangeTracker` and journals `tracker_changed`: no action
@@ -490,7 +515,7 @@ src/
   target with a link type of the configuration: the source reads its
   label (Blocks), the target its inverse (Blocked by); a symmetric type
   exists once whatever the direction. `AddLink` and `RemoveLink` need
-  `issue.link`; linking across projects is for internal users, and the
+  `issue.link`; linking across projects takes it on both, and the
   journal entry of a link (`linked`, `unlinked`, on both issues, with
   the other's key and title of the time) is private when the other issue
   is private or of another project. `Issue:Links` offers the inverse
@@ -648,8 +673,8 @@ src/
   on every project of the selection, the people offered for assignment
   being the members of all of them, and, when the selection holds one
   project, its open releases and the trackers every issue may go to
-  (`SelectionActions::$moveTrackers`). The step is for internal users, and of
-  the page of a project only. Its menu opens on the places every issue
+  (`SelectionActions::$moveTrackers`). The step is for whoever holds
+  `issue.bypass_workflow`, and of the page of a project only. Its menu opens on the places every issue
   has in its own tracker (`SelectionActions::$places`: a place is the
   same in each workflow that uses it, so a selection mixing trackers
   goes to "To test" with each issue staying where it is), then, behind
@@ -769,7 +794,7 @@ src/
   without key nor title (`BudgetStatement::hides()`, decided by
   `AccessControl::canSee()` in `ShowBudgetHandler`), and the quantity of
   a line to estimate, which counts for nothing: a draft, read by
-  internal users and by whoever manages the budgets, shown greyed, and
+  whoever manages the budgets, shown greyed, and
   as "—" to the others until the line is to approve
   (`AccessControl::canSeeQuantity()`, the one place that says so, through
   `BudgetStatement::quantityOf()` and `IssueBudgetLines::quantityOf()`).
@@ -1374,12 +1399,14 @@ src/
   gives the accounts of the instance to whoever asks its endpoint, so it
   checks who draws it each time (`Grants::guard()`:
   `project.manage_members` on a project, `ROLE_ADMIN` otherwise). Both permissions show what external users never see (private
-  trackers, every account of the instance), and `issue.force_place` and
-  `issue.change_tracker` leave the workflow clients are shown, so the
-  configuration grants
-  them to internal-only roles: `Permission::internalOnly()` says which,
-  `GrantPermission` refuses the rest; `issue.delete`, which cannot be
-  undone, is internal-only too. A tracker is archived
+  trackers, every account of the instance), and whoever makes an issue
+  or a comment private must still see it (`issue.set_private`,
+  `comment.set_private`), so the configuration grants these four to
+  internal-only roles: `Permission::internalOnly()` says which,
+  `GrantPermission` refuses the rest. Seeing what is private is the one
+  reason: what is only risky (`issue.delete`, `issue.bypass_workflow`)
+  goes to any role an administrator chooses,
+  and to the internal ones in the example. A tracker is archived
   (`UpdateTracker::$archived`: no new issue, out of the creation form and
   of the trackers an issue may change to, but still in the navigation,
   at its place, with its list and its kanban), moved (`position`), or
@@ -1795,7 +1822,7 @@ database.
   of the workflow of its tracker": the commands hold that, and an issue
   moved to a step in the instant it leaves its workflow stands on a
   step its workflow no longer has, which the pages tolerate and an
-  internal user repairs.
+  user who holds `issue.bypass_workflow` repairs.
 - **The application reads an immutable definition, never the rows.**
   `Config/DefinitionLoader` is the one place that knows how the tables
   fit together: it builds the `InstanceDefinition` (and its

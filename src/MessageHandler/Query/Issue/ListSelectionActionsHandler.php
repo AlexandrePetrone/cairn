@@ -74,7 +74,7 @@ final class ListSelectionActionsHandler
             canSetPrivate: $everywhere(Permission::IssueSetPrivate),
             releases: null !== $project && $everywhere(Permission::IssueSetRelease) ? $this->releases->findByProject($project, openOnly: true) : [],
             moveTrackers: null === $project ? [] : $this->moveTrackers($viewer, $project, $issues),
-            places: null !== $project && $this->access->isGranted($viewer, Permission::IssueForcePlace, $project) ? $this->commonPlaces($issues) : [],
+            places: null !== $project && $this->access->isGranted($viewer, Permission::IssueBypassWorkflow, $project) ? $this->commonPlaces($issues) : [],
         );
     }
 
@@ -105,10 +105,9 @@ final class ListSelectionActionsHandler
     }
 
     /**
-     * The trackers of the project every issue may be moved to: an issue
-     * stays in its own tracker with `issue.force_place`, goes to another
-     * with `issue.change_tracker`, so a tracker is offered only when the
-     * viewer holds the right it takes for each issue.
+     * The trackers of the project every issue may be moved to, with
+     * `issue.bypass_workflow`: those the viewer sees and those the issues
+     * are in; an archived one keeps its issues and takes no other.
      *
      * @param non-empty-list<Issue> $issues
      *
@@ -116,9 +115,7 @@ final class ListSelectionActionsHandler
      */
     private function moveTrackers(User $viewer, Project $project, array $issues): array
     {
-        $force = $this->access->isGranted($viewer, Permission::IssueForcePlace, $project);
-        $change = $this->access->isGranted($viewer, Permission::IssueChangeTracker, $project);
-        if (!$force && !$change) {
+        if (!$this->access->isGranted($viewer, Permission::IssueBypassWorkflow, $project)) {
             return [];
         }
 
@@ -130,16 +127,10 @@ final class ListSelectionActionsHandler
             $candidates[(int) $issue->getTracker()->getId()] ??= $issue->getTracker();
         }
 
-        return array_values(array_filter($candidates, static function (Tracker $tracker) use ($issues, $force, $change): bool {
-            foreach ($issues as $issue) {
-                $own = $issue->getTracker()->getId() === $tracker->getId();
-                if ($own ? !$force : (!$change || $tracker->isArchived())) {
-                    return false;
-                }
-            }
-
-            return true;
-        }));
+        return array_values(array_filter(
+            $candidates,
+            static fn (Tracker $tracker): bool => !$tracker->isArchived() || array_all($issues, static fn (Issue $issue): bool => $issue->getTracker()->getId() === $tracker->getId()),
+        ));
     }
 
     /**
