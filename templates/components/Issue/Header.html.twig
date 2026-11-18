@@ -1,9 +1,13 @@
-{# The top of the issue page: key, tracker, author, privacy, title and the path the issue took, and for whoever may delete the issue a bin that asks in a dialog first. Redrawn on `issue:changed`. #}
+{# The top of the issue page: key and the button that copies it, tracker, author, privacy, title and the path the issue took, and for whoever may delete the issue a bin that asks in a dialog first. Redrawn on `issue:changed`. #}
 {% set headerPath = this.path %}
 <div {{ attributes }}>
     <div>
         <div class="flex flex-wrap items-center gap-2 text-xs text-muted">
-            <twig:Ui:IssueKey :key="issue.key" size="lg" />
+            <span class="inline-flex items-center gap-0.5" data-controller="clipboard">
+                <twig:Ui:IssueKey :key="issue.key" size="lg" data-clipboard-target="source" />
+                <twig:Ui:IconButton icon="copy" size="sm" :label="'issue.show.copy_key'|trans" data-action="clipboard#copy" />
+                <span class="inline-flex items-center gap-1 text-emerald" role="status" data-clipboard-target="done" hidden>{{ ux_icon('lucide:check', { class: 'h-3.5 w-3.5' }) }}{{ 'issue.show.key_copied'|trans }}</span>
+            </span>
             <span class="text-ghost">·</span>
             <span>{{ issue.tracker.name }}</span>
             <span class="text-ghost">·</span>

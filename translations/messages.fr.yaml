@@ -63,6 +63,8 @@ issue:
     show:
         path: Parcours
         moved_step: Déplacée sans action
+        copy_key: Copier l'identifiant
+        key_copied: Copié
         created_by: 'créée par %name% le %date%'
         formerly: 'anciennement %ref%'
         no_description: Aucune description.

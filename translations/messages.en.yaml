@@ -63,6 +63,8 @@ issue:
     show:
         path: Path
         moved_step: Moved without an action
+        copy_key: Copy the identifier
+        key_copied: Copied
         created_by: 'created by %name% on %date%'
         formerly: 'formerly %ref%'
         no_description: No description.
