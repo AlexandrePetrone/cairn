@@ -15,8 +15,9 @@ the exact versions. In place: Doctrine ORM, Messenger (Doctrine transport),
 Form, Validator, Serializer, Security, Twig, Mailer, Translation, Stimulus,
 Turbo, UX Twig/Live Components, Scheduler, Workflow, Lock, Reprise
 (`symfony/reprise`) for the assets, API Platform (`api-platform/symfony`,
-without its Doctrine bridge), `symfony/mcp-bundle` and Mercure
-(`symfony/mercure-bundle`) for the optional real time.
+without its Doctrine bridge), `symfony/mcp-bundle`, Mercure
+(`symfony/mercure-bundle`) for the optional real time and
+`nelmio/security-bundle` for the security headers of every answer.
 
 - **Persistence**: Doctrine ORM, schema compatible with both MariaDB and
   PostgreSQL. No soft delete, no bin, no anonymising: what is deleted is

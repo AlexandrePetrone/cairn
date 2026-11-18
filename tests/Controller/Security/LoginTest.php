@@ -36,6 +36,15 @@ final class LoginTest extends WebTestCase
         self::assertResponseRedirects('/login');
     }
 
+    public function testAPageIsNeverFramedNorSniffed(): void
+    {
+        $this->client->request('GET', '/login');
+
+        self::assertResponseHeaderSame('X-Frame-Options', 'DENY');
+        self::assertResponseHeaderSame('X-Content-Type-Options', 'nosniff');
+        self::assertResponseHeaderSame('Referrer-Policy', 'no-referrer, strict-origin-when-cross-origin');
+    }
+
     public function testThePageIsInTheLanguageOfTheInstance(): void
     {
         $this->client->request('GET', '/login');
