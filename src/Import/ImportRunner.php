@@ -63,7 +63,7 @@ final class ImportRunner
 
     private const int ITEMS = 50;
 
-    /** That many issues in a row failing for no reason of theirs: the trouble is not the issues. */
+    /** That many issues in a row, in one batch, failing for no reason of theirs: the trouble is not the issues. */
     private const int UNEXPECTED = 5;
 
     private int $unexpected = 0;
@@ -94,6 +94,8 @@ final class ImportRunner
      */
     public function advance(Import $import): bool
     {
+        // The runner outlives its batch in a worker: what another batch or import left is not this one's.
+        $this->unexpected = 0;
         $until = $this->clock->now()->modify('+'.self::SECONDS.' seconds');
         $manifest = ImportManifest::fromArray($import->getManifest());
         $mapping = ImportMapping::fromArray($import->getMapping());

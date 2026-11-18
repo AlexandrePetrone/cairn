@@ -566,6 +566,12 @@ host.
 - `castor console <command>`, `castor composer …`, `castor npm …`,
   `castor sh`. The `messenger` worker loads the code once: `castor
   workers:restart` after changing what it runs.
+- `php` runs FrankenPHP in worker mode: the kernel and its services
+  outlive the request, as they outlive the message in `messenger`. A
+  service that remembers something implements `ResetInterface`, or
+  forgets it where its work starts. The workers start again by themselves
+  when the code changes (`FRANKENPHP_WORKER_CONFIG` in `compose.yaml`); a
+  path they should follow is added there.
 - `castor db:fixtures` resets the dev database and loads
   `src/Story/AppStory` then `VolumeStory`, through the real commands under
   a mocked clock, nothing drawn at random. Every password is `cairn`;

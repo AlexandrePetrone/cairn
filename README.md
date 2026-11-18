@@ -286,7 +286,7 @@ Schema changes go through `doctrine:schema:update` (`castor db:reset`) until the
 
 ### Code changes and the worker
 
-FrankenPHP, Vite and the Storia watcher pick up changes immediately. The `messenger` worker loads the code once: after changing something it uses, reload it.
+FrankenPHP runs in worker mode: the kernel stays in memory between requests, and its workers start again by themselves when a file of `src/`, `config/`, `translations/`, an `.env` file or `composer.lock` changes (`FRANKENPHP_WORKER_CONFIG` in [`compose.yaml`](compose.yaml)). Vite and the Storia watcher pick up changes immediately. The `messenger` worker loads the code once: after changing something it uses, reload it.
 
 ```bash
 castor workers:restart    # messenger:stop-workers; compose starts it again

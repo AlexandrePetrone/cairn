@@ -21,6 +21,7 @@ use App\Entity\Release;
 use App\Entity\Tracker;
 use App\Entity\User;
 use App\Import\ImportMapping;
+use App\Import\ImportRunner;
 use App\Message\Command\Import\AbandonImport;
 use App\Message\Command\Import\ConfigureImport;
 use App\Message\Command\Import\CreateImport;
@@ -346,6 +347,20 @@ final class ImportRunTest extends KernelTestCase
         self::assertSame(['The menu overlaps the logo'], array_map(static fn ($record) => $record->getLabel(), $refused));
         self::assertStringStartsWith('Unexpected error:', (string) $refused[0]->getProblem());
         self::assertSame(['1002', '1003'], array_map(static fn (Issue $issue): ?string => $issue->getImportedRef(), $this->entityManager->getRepository(Issue::class)->findBy(['importedRef' => ['1001', '1002', '1003']], ['number' => 'ASC'])));
+    }
+
+    public function testTheFailuresOfAnotherBatchAreNotCountedAgainstThisOne(): void
+    {
+        $import = $this->configured();
+        // The runner is one service for the life of a worker: an earlier batch left it one failure short of giving up.
+        $runner = self::getContainer()->get(ImportRunner::class);
+        \Closure::bind(fn () => $this->unexpected = 4, $runner, ImportRunner::class)();
+        self::getContainer()->set(AttachmentStorage::class, new AttachmentStorage(__FILE__.'/nowhere'));
+        $this->launch($import);
+
+        $import = $this->reload($import);
+        self::assertSame(ImportStatus::Completed, $import->getStatus(), (string) $import->getError());
+        self::assertCount(1, $this->leftOut($import));
     }
 
     public function testAnArchiveThatNamesAMissingFileIsRefusedByTheAnalysis(): void

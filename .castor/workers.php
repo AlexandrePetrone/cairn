@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 /*
  * The messenger service is a long-running consumer: it loads the code once.
- * FrankenPHP (classic mode), Vite and the Storia watcher need nothing after a code change.
+ * FrankenPHP runs in worker mode but watches the code itself (compose.yaml); Vite and the
+ * Storia watcher need nothing after a code change either.
  */
 
 namespace workers;
