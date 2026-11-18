@@ -2,6 +2,12 @@
 
 Cairn is an issue tracker for a web agency and its clients. One instance holds every client: each client is a workspace grouping its projects, and the people of the agency and of the client work on the same issues, each seeing what their role allows.
 
+![The issues of a project, with their category, step, criticality and assignee](docs/screenshots/issues.jpg)
+
+| An issue | The kanban of a category |
+|---|---|
+| ![An issue: description, files, activity, fields and links](docs/screenshots/issue.jpg) | ![The kanban of the bugs of a project, one column per step](docs/screenshots/kanban.jpg) |
+
 - **Issues by category**: each project has its trackers (bug, feature, internal task…), each bound to a workflow whose places and actions are defined in the instance configuration. Clients are asked to choose an action (accept, refuse…), never to move a status.
 - **Clients and agency side by side**: private issues, comments and trackers stay internal; roles are granted on a workspace or a project.
 - **Lists, kanban and bulk actions**: filters, sorting and grouping kept in the address, a kanban per tracker, a selection page to act on many issues at once.
@@ -9,7 +15,11 @@ Cairn is an issue tracker for a web agency and its clients. One instance holds e
 - **Notifications by email**: whoever follows an issue receives what they may see of each change, threaded per issue.
 - **GitLab integration**: commits and merge requests mentioning an issue key show on the issue (GitHub to come).
 - **Import from another tracker**: an export archive (a zip in a documented format, written by a script of your own for Redmine, Jira…) is brought into a project from the administration, with its issues, comments and files, their dates and authors. You match its trackers, statuses, fields and roles with yours, choose which accounts to create, and follow the import; nobody is notified.
-- **REST API**: the people of the agency connect their scripts with personal tokens; a program reads and does what its user may.
+- **Automations**: per project, rules made of a trigger (an issue created, a comment, an action, a step reached, a change of criticality, no activity for some time), conditions and actions (assign, move, set the criticality, subscribe, comment, make private), from closed lists: no script.
+- **Budgets**: an amount of time a client committed to on a project, in days or hours, debited by lines written by hand; a line counts once approved, and the client reads the same balance as the team.
+- **Project templates**: the trackers and the rules of a template are copied into a new project.
+- **Single sign-on**: optionally, an OpenID Connect provider (Google, Entra, Keycloak…) signs in the accounts an administrator chose; the others keep their password.
+- **REST API and MCP server**: the people of the agency connect their scripts and their AI assistants with personal tokens; a program reads and does what its user may.
 
 The interface ships in English and French; an instance runs in one language (`CAIRN_LOCALE`).
 
@@ -17,9 +27,16 @@ The interface ships in English and French; an instance runs in one language (`CA
 
 Symfony 8.2 on PHP 8.4, Doctrine ORM (PostgreSQL, or MariaDB), Messenger for the emails and the scheduled tasks, the Symfony Workflow component for workflows built from the configuration, Twig with Symfony UX (Turbo, Live Components, Stimulus), Tailwind CSS 4 and Vite through [Symfony Reprise](https://github.com/symfony/reprise), [API Platform](https://api-platform.com) for the REST API.
 
+## Status
+
+Cairn has no release yet, and is not meant for production until it has one:
+
+- The database schema is derived from the entities (`doctrine:schema:update`) and may change at any commit, without a migration: there is no upgrade path, and an instance installed today may have to be created again. Migrations start with the first release.
+- Symfony 8.2 is still a beta: until its stable release, Cairn installs beta versions of the framework (`minimum-stability: beta` in `composer.json`).
+
 ## Installation
 
-How to run Cairn on a server of your own. For development, use the Docker stack described in [Local development](#local-development) instead.
+How to run Cairn on a server of your own. For development, use the Docker stack described in [Local development](#local-development) instead: its image is for development only, and there is no production image yet.
 
 ### Requirements
 
@@ -60,6 +77,11 @@ APP_SECRET=<random string>
 DATABASE_URL="postgresql://user:password@127.0.0.1:5432/cairn?serverVersion=18&charset=utf8"
 # Public URL, used in the links of the emails and of the forge webhooks
 DEFAULT_URI=https://cairn.example
+# Behind a reverse proxy or a load balancer: without them every request
+# comes from the proxy, so sign-in throttling counts everyone as one
+# address, and HTTPS is not seen
+SYMFONY_TRUSTED_PROXIES=private_ranges
+SYMFONY_TRUSTED_HEADERS=x-forwarded-for,x-forwarded-proto,x-forwarded-host,x-forwarded-port
 MAILER_DSN=smtp://user:password@smtp.example.com:587
 MAILER_FROM="Cairn <no-reply@cairn.example>"
 # Language of the instance (en or fr)
@@ -71,12 +93,23 @@ FORGE_GITLAB_URL=https://gitlab.example
 FORGE_GITLAB_TOKEN=<token with the api scope>
 # Where the archives to import wait (Administration > Imports)
 IMPORTS_DIR=/var/lib/cairn/imports
+# Optional: single sign-on, see below
+OIDC_PROVIDER_URI=https://accounts.google.com
+OIDC_CLIENT_ID=<client id>
+OIDC_CLIENT_SECRET=<client secret>
+OIDC_NAME=Google
 # Optional: real time, see below
 MERCURE_URL=http://127.0.0.1/.well-known/mercure
 MERCURE_PUBLIC_URL=https://cairn.example/.well-known/mercure
 MERCURE_JWT_SECRET=<random string of 32 characters or more>
 MERCURE_JWT_ISSUER=https://cairn.example
 ```
+
+### Single sign-on (optional)
+
+An instance may have one OpenID Connect provider. It is off unless `OIDC_PROVIDER_URI` (the issuer) is set: no page then offers it and `/login/sso` does not exist. Register Cairn at the provider with the redirect URI `DEFAULT_URI` + `/login/sso/callback`, over HTTPS; `OIDC_NAME` is how the button of the sign-in page names the provider.
+
+How an account signs in is chosen on its page of the administration, one way or the other: an account of the provider holds no password and gets no password link. Nobody is created at sign-in and no claim grants a role: the provider signs in the accounts that exist, found the first time by the email it vouches for. The provider must send `email_verified: true` with that email: one that leaves the claim out (Entra ID does) binds no account. Signing out is local, and someone who left the directory keeps their session and API tokens until their account is deactivated in Cairn.
 
 ### Real time (optional)
 
@@ -87,6 +120,37 @@ The hub only carries a signal (an issue of this project changed); each page then
 - be reachable by the browsers at `MERCURE_PUBLIC_URL`. FrankenPHP and Caddy have the hub built in (a `mercure` directive, see [`docker/Caddyfile`](docker/Caddyfile)), on the same origin as Cairn; a hub on another origin must allow Cairn's with `cors_origins`;
 - trust the tokens signed with `MERCURE_JWT_SECRET` by the issuer `MERCURE_JWT_ISSUER`, for publishing and for subscribing: each page is given a token for the topics it may listen to;
 - refuse anonymous subscribers (no `anonymous` directive).
+
+### Operations
+
+**The worker.** A systemd unit that keeps it running; `--time-limit` makes it leave every hour, and systemd starts it again with fresh code and memory:
+
+```ini
+# /etc/systemd/system/cairn-worker.service
+[Unit]
+Description=Cairn worker (emails, scheduled tasks)
+After=network.target postgresql.service
+
+[Service]
+User=www-data
+WorkingDirectory=/var/www/cairn
+ExecStart=/usr/bin/php bin/console messenger:consume async scheduler_default --time-limit=3600
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+After deploying new code, `bin/console messenger:stop-workers` makes it restart.
+
+**Backups.** Two things hold the data, and they go together: the database, and the folder of `ATTACHMENTS_DIR` (the files sent with issues and comments, and the pictures of the accounts). A file missing from a backup leaves an attachment that cannot be downloaded. `IMPORTS_DIR` only holds archives already imported or waiting to be.
+
+**HTTPS.** Serve Cairn over HTTPS only: sessions, password links and API tokens travel with every request. Cairn sets the headers that depend on it (no framing, no content sniffing, referrer policy); `Strict-Transport-Security` belongs to the web server, which knows whether every subdomain is ready for it. Caddy and FrankenPHP redirect to HTTPS by themselves; with nginx:
+
+```nginx
+add_header Strict-Transport-Security "max-age=31536000" always;
+```
 
 ## API
 
@@ -100,6 +164,10 @@ curl -H "Authorization: Bearer cairn_…" -H "Content-Type: application/ld+json"
 ```
 
 Projects (`MD-SPT`) and issues (`MD-SPT-12`) are named by their key. An issue lists the `transitions` its user may apply; `GET /api/projects/{key}/trackers` says which fields a new issue needs. Answers are JSON-LD, or plain JSON with `Accept: application/json`. The operations are documented at `/api/docs`, for internal users signed in to Cairn; paste a token in "Authorize" to try them there. A user's tokens are limited, together, to 300 requests a minute.
+
+### MCP server
+
+The same tokens open an [MCP](https://modelcontextprotocol.io) server at `/mcp` (over HTTP, the token in the `Authorization: Bearer` header), for an AI assistant to work on the issues as its user: `search_issues`, `get_issue`, `get_project` and `get_attachment` read; `create_issue`, `update_issue`, `move_issue`, `change_tracker` and `add_comment` write and need a token that may. A comment written through it is private unless the assistant is asked to answer the client.
 
 ## Local development
 
@@ -123,7 +191,7 @@ Internal users:
 
 | Account | Who | Where |
 |---|---|---|
-| `admin@cairn.test` | Julien Jacottet, administrator | Everything, and the administration |
+| `admin@cairn.test` | Camille Vasseur, administrator | Everything, and the administration |
 | `thomas.girard@cairn.test` | Thomas Girard, project manager | Maison Dupont (`MD`) and Vallier Group (`GV`) |
 | `yann.leroy@cairn.test` | Yann Leroy, project manager | Natura Cosmetics (`NC`) and Travelia (`TR`, archived) |
 | `nadia.benali@cairn.test` | Nadia Benali, developer | Online shop (`MD-SPT`), Mobile app (`GV-APP`) |
@@ -233,3 +301,7 @@ Without `FORGE_GITLAB_TOKEN`, a repository linked in a project's settings shows 
 
 - `var/log/dev.log` and the web profiler at <http://localhost:8000/_profiler>.
 - Xdebug is installed but off; start the stack with `XDEBUG_MODE=debug castor start` and let the IDE listen on port 9003.
+
+## License
+
+Cairn is released under the [MIT License](LICENSE).
