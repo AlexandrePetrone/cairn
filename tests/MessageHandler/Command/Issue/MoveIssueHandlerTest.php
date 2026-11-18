@@ -43,7 +43,7 @@ final class MoveIssueHandlerTest extends KernelTestCase
         self::assertSame($this->fixtures->tasks->getId(), $issue->getTracker()->getId());
         self::assertSame('in_progress', $issue->getPlace());
         self::assertTrue($issue->isPrivate(), 'the new tracker is private');
-        self::assertSame(['environment' => 'prod'], $issue->getFieldValues());
+        self::assertSame(['environment' => 'prod'], self::fieldValues($issue), 'what it holds of its fields is kept');
 
         $entry = $this->lastEntry($issue);
         self::assertSame(JournalEntryType::TrackerChanged, $entry->getType());

@@ -29,6 +29,13 @@
 
 {% block modal %}
     {% if dialogIsLink %}
+        {# How a type of link reads from the other issue was chosen when it was created: said, not asked again. #}
+        {% set modalNote = '' %}
+        {% if dialogSubject %}
+            {% set modalNote %}
+                <p class="mt-4 text-xs text-muted">{{ (dialogSubject.symmetric ? 'admin.configuration.links.kept_same' : 'admin.configuration.links.kept_directed')|trans }}</p>
+            {% endset %}
+        {% endif %}
         {{ include('admin/configuration/_dialog.html.twig', {
             title: dialogSubject ? dialogSubject.label : 'admin.configuration.links.new'|trans,
             closeHref: path('app_admin_configuration_fields'),
@@ -36,14 +43,26 @@
             deleteAction: dialogSubject ? path('app_admin_configuration_link_delete', { id: dialogSubject.id }) : null,
             deleteHelp: 'admin.configuration.links.delete_help'|trans,
             deleteRefusal: dialogRefusal ?? null,
+            note: modalNote,
         }) }}
     {% else %}
+        {# The choices of a field are a list of their own: the dialog names them and leads to their page. #}
+        {% set modalNote = '' %}
+        {% if dialogSubject and dialogSubject.type.hasOptions %}
+            {% set modalNote %}
+                <p class="mt-4 text-xs text-muted">
+                    {{ 'admin.configuration.fields.choices.summary'|trans({ '%choices%': dialogSubject.options|join(', ') }) }}
+                    <a href="{{ path('app_admin_configuration_field_choices', { id: dialogSubject.id }) }}" data-turbo-frame="_top" class="text-brand hover:underline">{{ 'admin.configuration.fields.choices.change'|trans }}</a>
+                </p>
+            {% endset %}
+        {% endif %}
         {{ include('admin/configuration/_dialog.html.twig', {
+            note: modalNote,
             title: dialogSubject ? dialogSubject.label : 'admin.configuration.fields.new'|trans,
             closeHref: path('app_admin_configuration_fields'),
             submitLabel: (dialogSubject ? 'admin.configuration.save' : 'admin.configuration.create')|trans,
             deleteAction: dialogSubject ? path('app_admin_configuration_field_delete', { id: dialogSubject.id }) : null,
-            deleteHelp: 'admin.configuration.fields.delete_help'|trans,
+            deleteHelp: 'admin.configuration.fields.delete_help'|trans({ '%count%': dialogValues ?? 0 }),
             deleteRefusal: dialogRefusal ?? null,
         }) }}
     {% endif %}

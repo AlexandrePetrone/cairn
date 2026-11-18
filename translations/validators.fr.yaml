@@ -4,6 +4,8 @@ admin:
     configuration:
         workflow:
             places_required: 'Cochez au moins une étape.'
+        links:
+            inverse_required: 'Dites comment un lien qui a un sens se lit depuis l''autre demande.'
         action:
             from_required: 'Une action part d''au moins une étape.'
             roles_required: 'Au moins un rôle déclenche une action.'

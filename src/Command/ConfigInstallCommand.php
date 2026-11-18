@@ -34,7 +34,7 @@ final class ConfigInstallCommand extends Command
 
         try {
             $installed = $this->kit->install();
-        } catch (ConfigException $e) {
+        } catch (ConfigException|\DomainException $e) {
             $io->error($e->getMessage());
 
             return Command::FAILURE;

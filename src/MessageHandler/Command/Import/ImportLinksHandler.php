@@ -39,7 +39,7 @@ final class ImportLinksHandler
             }
             $symmetric = $this->config->definition()->link($link['typeId'])->isSymmetric();
             if (null === $this->links->findBetween($issue, $link['typeId'], $other, $symmetric)) {
-                $this->entityManager->persist(new IssueLink($issue, $this->entityManager->getReference(LinkType::class, $link['typeId']) ?? throw new \LogicException('An element of the configuration that the definition has exists.'), $other, $createdBy));
+                $this->entityManager->persist(new IssueLink($issue, $this->config->row(LinkType::class, $link['typeId']), $other, $createdBy));
             }
             $written[$key] = true;
         }

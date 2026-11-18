@@ -97,13 +97,13 @@ final class UpdateIssueHandlerTest extends KernelTestCase
         $client = (int) $this->fixtures->client->getId();
 
         $this->commands->dispatch(new UpdateIssue($client, $issue->getKey(), fields: ['environment' => 'preprod']));
-        self::assertSame(['environment' => 'preprod', 'url' => 'https://shop.test/a'], $issue->getFieldValues());
+        self::assertEquals(['environment' => 'preprod', 'url' => 'https://shop.test/a'], self::fieldValues($issue));
         $entry = $this->lastEntry($issue, JournalEntryType::FieldChanged);
         self::assertSame(['field' => 'environment', 'label' => 'Environment', 'from' => 'Production', 'to' => 'Pre-production'], $entry->getData());
         self::assertFalse($entry->isPrivate());
 
         $this->commands->dispatch(new UpdateIssue($client, $issue->getKey(), fields: ['url' => '', 'environment' => 'preprod']));
-        self::assertSame(['environment' => 'preprod'], $issue->getFieldValues(), 'an emptied field is removed, an unchanged one untouched');
+        self::assertSame(['environment' => 'preprod'], self::fieldValues($issue), 'an emptied field is removed, an unchanged one untouched');
         self::assertSame(['field' => 'url', 'label' => 'URL', 'from' => 'https://shop.test/a', 'to' => null], $this->lastEntry($issue, JournalEntryType::FieldChanged)->getData());
     }
 

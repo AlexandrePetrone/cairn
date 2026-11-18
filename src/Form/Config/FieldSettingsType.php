@@ -15,9 +15,9 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
  * The dialog of a field. Its type is chosen when it is created (`create`)
- * and kept: the values issues hold of it are of that type. The choices
- * are asked only of a type that has some (`with_choices`): shown as the
- * type is chosen for a new field, left out of the dialog of the others.
+ * and kept: the values issues hold of it are of that type. The choices of
+ * a type that has some are typed with it, one label per line, shown as
+ * the type is chosen; afterwards they have a page of their own.
  *
  * @extends AbstractType<FieldData>
  */
@@ -35,14 +35,13 @@ final class FieldSettingsType extends AbstractType
                 // The `reveal` controller, on the form, shows the choices for the types that have some.
                 'attr' => ['data-reveal-target' => 'source', 'data-action' => 'reveal#update'],
             ]);
-        }
-        if ($options['with_choices']) {
+            // The choices of a field that offers some, one label per line; changed afterwards on a page of their own.
             $builder->add('choices', TextareaType::class, [
                 'label' => 'admin.configuration.fields.form.choices',
                 'help' => 'admin.configuration.fields.form.choices_help',
                 'required' => false,
                 'attr' => ['rows' => 4],
-                'row_attr' => $options['create'] ? ['data-reveal-target' => 'panel', 'data-reveal-values' => implode(' ', array_map(static fn (FieldType $type): string => $type->value, array_filter(FieldType::cases(), static fn (FieldType $type): bool => $type->hasOptions())))] : [],
+                'row_attr' => ['data-reveal-target' => 'panel', 'data-reveal-values' => implode(' ', array_map(static fn (FieldType $type): string => $type->value, array_filter(FieldType::cases(), static fn (FieldType $type): bool => $type->hasOptions())))],
             ]);
         }
         $builder
@@ -56,6 +55,6 @@ final class FieldSettingsType extends AbstractType
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        $resolver->setDefaults(['data_class' => FieldData::class, 'create' => false, 'with_choices' => true]);
+        $resolver->setDefaults(['data_class' => FieldData::class, 'create' => false]);
     }
 }

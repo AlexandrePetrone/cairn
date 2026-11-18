@@ -23,9 +23,10 @@ final class CreateFieldHandler
     public function __invoke(CreateField $command): Field
     {
         $id = $this->writing->key($command->label, fn (string $id): bool => null !== $this->fields->find($id));
-        ConfigWriting::assertChoices($command->type, $command->options);
+        $options = $this->writing->choices(array_map(static fn (string $label): array => ['value' => null, 'label' => $label], $command->options));
+        ConfigWriting::assertChoices($command->type, $options);
 
-        $field = new Field($id, $command->label, $command->type, $command->options, $command->placeholder, $command->help, $command->internalOnly, \count($this->fields->findOrdered()));
+        $field = new Field($id, $command->label, $command->type, $options, $command->placeholder, $command->help, $command->internalOnly, \count($this->fields->findOrdered()));
         $this->entityManager->persist($field);
         $this->writing->settle('field.created', ['%name%' => $field->getLabel()]);
 

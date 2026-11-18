@@ -21,6 +21,7 @@ use App\Message\Command\Template\CreateTemplateRule;
 use App\Message\Command\Template\CreateTemplateTracker;
 use App\Message\CommandBus;
 use App\Security\Permission;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -46,13 +47,17 @@ final class StarterKit
         private readonly TranslatorInterface $translator,
         private readonly ConfigRegistry $registry,
         private readonly CommandBus $commands,
+        private readonly EntityManagerInterface $entityManager,
     ) {
     }
 
     /**
      * Installs the kit, unless the instance already has a configuration.
+     * The configuration and its template come together or not at all:
+     * each command has its transaction, and this one holds them all, so a
+     * template that cannot be made leaves an instance still to install.
      *
-     * @return bool false when there was one, left as it is
+     * @return bool false when there was a configuration, left as it is
      */
     public function install(): bool
     {
@@ -61,8 +66,20 @@ final class StarterKit
         }
 
         $definition = $this->definition();
-        $this->commands->dispatch(new InstallConfiguration($definition));
-        $this->installTemplate($definition);
+        $connection = $this->entityManager->getConnection();
+        $connection->beginTransaction();
+        try {
+            $this->commands->dispatch(new InstallConfiguration($definition));
+            $this->installTemplate($definition);
+            $connection->commit();
+        } catch (\Throwable $e) {
+            $connection->rollBack();
+            // What was written was taken back: neither the entity manager nor the registry may go on holding it.
+            $this->entityManager->clear();
+            $this->registry->reset();
+
+            throw $e;
+        }
 
         return true;
     }

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Entity;
 
+use App\Entity\Field;
 use App\Entity\Issue;
+use App\Entity\IssueFieldValue;
 use App\Entity\IssueLink;
 use App\Entity\LinkType;
 use App\Entity\Membership;
@@ -49,6 +51,7 @@ final class ConfigurationReferencesTest extends KernelTestCase
         yield 'the workflow of a tracker' => ['workflow'];
         yield 'the type of a link' => ['link'];
         yield 'the place of an issue' => ['place'];
+        yield 'the field of a value an issue holds' => ['field'];
     }
 
     #[DataProvider('references')]
@@ -63,6 +66,7 @@ final class ConfigurationReferencesTest extends KernelTestCase
             'role' => Membership::onProject($this->fixtures->access->user('new@client.test'), $shop, $this->missing(Role::class)),
             'workflow' => new Tracker($shop, 'Ghost', $this->missing(Workflow::class)),
             'link' => new IssueLink($a, $this->missing(LinkType::class), $b, $this->fixtures->developer),
+            'field' => new IssueFieldValue($a, $this->missing(Field::class), 'https://shop.test'),
             default => $this->moved($a),
         };
         $this->entityManager->persist($entity);

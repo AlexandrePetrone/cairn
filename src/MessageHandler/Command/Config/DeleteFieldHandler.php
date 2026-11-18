@@ -8,6 +8,7 @@ use App\Entity\Field;
 use App\Message\Command\Config\DeleteField;
 use App\MessageHandler\Command\Tracker\ListOrder;
 use App\Repository\FieldRepository;
+use App\Repository\IssueFieldValueRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -16,6 +17,7 @@ final class DeleteFieldHandler
 {
     public function __construct(
         private readonly FieldRepository $fields,
+        private readonly IssueFieldValueRepository $held,
         private readonly EntityManagerInterface $entityManager,
         private readonly ConfigDeletions $deletions,
         private readonly ConfigWriting $writing,
@@ -31,7 +33,9 @@ final class DeleteFieldHandler
         }
 
         ListOrder::close($field, $this->fields->findOrdered());
+        // The values issues hold of it go with it, in bulk and without a word in their history.
+        $erased = $this->held->eraseOf($field->getId());
         $this->entityManager->remove($field);
-        $this->writing->settle('field.deleted', ['%name%' => $field->getLabel()]);
+        $this->writing->settle('field.deleted', ['%name%' => $field->getLabel(), '%count%' => $erased]);
     }
 }

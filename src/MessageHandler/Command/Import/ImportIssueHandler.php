@@ -97,7 +97,6 @@ final class ImportIssueHandler
             $assignee,
             $release,
             $command->private,
-            $command->fieldValues,
             $command->importedRef,
             $command->createdAt,
             $command->updatedAt,
@@ -105,6 +104,7 @@ final class ImportIssueHandler
         );
         $this->support->arrive($issue);
         $this->entityManager->persist($issue);
+        $this->support->writeFieldValues($issue, $command->fieldValues);
         foreach ($issueFiles as $attachment) {
             $attachment->attachTo($issue);
         }

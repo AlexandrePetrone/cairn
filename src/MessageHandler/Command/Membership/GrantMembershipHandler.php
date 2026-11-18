@@ -49,7 +49,7 @@ final class GrantMembershipHandler
         }
         $role = $definition->role($command->role);
         // The row of the role, which the access points to; what the role says is read from the definition.
-        $granted = $this->entityManager->getReference(Role::class, $role->id) ?? throw new \LogicException('An element of the configuration that the definition has exists.');
+        $granted = $this->config->row(Role::class, $role->id);
         if ($role->internalOnly && !$user->isInternal()) {
             throw MembershipException::internalOnlyRole($role->label, $user->getFullName());
         }

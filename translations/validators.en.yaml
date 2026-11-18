@@ -4,6 +4,8 @@ admin:
     configuration:
         workflow:
             places_required: 'Tick at least one step.'
+        links:
+            inverse_required: 'Say how a link that has a direction reads from the other issue.'
         action:
             from_required: 'An action starts from at least one step.'
             roles_required: 'At least one role triggers an action.'

@@ -10,7 +10,6 @@ use App\Config\Definition\PlaceDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use App\Entity\Issue;
 use App\Entity\Place;
-use App\Repository\PlaceRepository;
 use Symfony\Component\Workflow\WorkflowInterface;
 
 /**
@@ -30,7 +29,6 @@ final class WorkflowProvider
     public function __construct(
         private readonly ConfigRegistry $registry,
         private readonly WorkflowFactory $factory,
-        private readonly PlaceRepository $rows,
     ) {
     }
 
@@ -52,9 +50,7 @@ final class WorkflowProvider
      */
     public function row(PlaceDefinition|string $place): Place
     {
-        $id = $place instanceof PlaceDefinition ? $place->id : $place;
-
-        return $this->rows->find($id) ?? throw new \LogicException(\sprintf('The place "%s" of the configuration has a row.', $id));
+        return $this->registry->row(Place::class, $place instanceof PlaceDefinition ? $place->id : $place);
     }
 
     public function definition(string $workflowId): WorkflowDefinition

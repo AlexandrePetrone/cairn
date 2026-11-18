@@ -19,7 +19,7 @@ final readonly class CreateField implements ConfigurationCommand
         #[Assert\Length(max: 120)]
         public string $label,
         public FieldType $type,
-        /** @var array<array-key, string> value => label, for a Select or a Choice */
+        /** @var list<string> the labels of its choices, for a Select or a Choice: each gets its value from its label */
         public array $options = [],
         #[Assert\Length(max: 255)]
         public ?string $placeholder = null,

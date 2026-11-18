@@ -13,6 +13,7 @@ use App\Config\ConfigRegistry;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
 use App\Message\Query\Issue\IssueDetail;
+use App\Repository\IssueFieldValueRepository;
 use App\Security\AccessControl;
 use App\Security\Viewer;
 use App\Workflow\WorkflowProvider;
@@ -30,6 +31,7 @@ final class IssueMapper
         private readonly AccessControl $access,
         private readonly ConfigRegistry $config,
         private readonly WorkflowProvider $workflows,
+        private readonly IssueFieldValueRepository $held,
     ) {
     }
 
@@ -50,7 +52,7 @@ final class IssueMapper
         $viewer = $this->viewer->get();
         $issue = $detail->issue;
         $workflow = $this->workflows->definition($issue->getTracker()->getWorkflowId());
-        $raw = $issue->getFieldValues();
+        $raw = $this->held->valuesOf($issue);
 
         $fields = [];
         foreach ($this->config->definition()->fieldValues($workflow, $raw, $viewer->isInternal()) as $fieldValue) {

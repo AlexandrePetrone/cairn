@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests;
 
+use App\Entity\Issue;
 use App\Message\Command\Config\InstallConfiguration;
 use App\Message\CommandBus;
 use App\Message\QueryBus;
+use App\Repository\IssueFieldValueRepository;
 use App\Tests\Config\Fixture\DefinitionFactory;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Mailer\Event\MessageEvents;
@@ -20,6 +22,16 @@ use Symfony\Component\Mime\Email;
  */
 trait KernelHelpers
 {
+    /**
+     * What an issue holds of its fields, as the application reads it.
+     *
+     * @return array<string, mixed> field id => value
+     */
+    protected static function fieldValues(Issue $issue): array
+    {
+        return self::getContainer()->get(IssueFieldValueRepository::class)->valuesOf($issue);
+    }
+
     /**
      * The buses have no consumer in the container yet (controllers will),
      * so they are built from the `command.bus` and `query.bus` services.

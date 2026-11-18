@@ -23,10 +23,15 @@ final class UpdateLinkTypeHandler
     {
         $type = $this->writing->get(LinkType::class, $command->id);
 
+        // Links of the type exist either way: one that reads the same from both issues gains no direction, nor loses one.
+        if (null !== $command->inverseLabel && (null === $type->getInverseLabel()) !== ('' === trim($command->inverseLabel))) {
+            throw ConfigChangeException::linkNatureKept($type->getLabel());
+        }
+
         if (null !== $command->label) {
             $type->rename($command->label);
         }
-        if (null !== $command->inverseLabel) {
+        if (null !== $command->inverseLabel && null !== $type->getInverseLabel()) {
             $type->setInverseLabel($command->inverseLabel);
         }
         if (null !== $command->position) {

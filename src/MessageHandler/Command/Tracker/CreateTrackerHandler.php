@@ -36,7 +36,7 @@ final class CreateTrackerHandler
         }
 
         $position = \count($this->trackers->findByProject($project, includeArchived: true));
-        $tracker = new Tracker($project, $command->name, $this->entityManager->getReference(Workflow::class, $command->workflowId) ?? throw new \LogicException('An element of the configuration that the definition has exists.'), $position);
+        $tracker = new Tracker($project, $command->name, $this->config->row(Workflow::class, $command->workflowId), $position);
         $tracker->setDescription($command->description);
         if ($command->private) {
             $tracker->makePrivate();

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\MessageHandler\Command\Project;
 
 use App\Automation\AutomationException;
+use App\Config\ConfigRegistry;
 use App\Entity\AutomationRule;
 use App\Entity\Project;
 use App\Entity\ProjectTemplate;
@@ -32,6 +33,7 @@ final class TemplateCopy
     public function __construct(
         private readonly TemplateTrackerRepository $trackers,
         private readonly TemplateRuleRepository $rules,
+        private readonly ConfigRegistry $config,
         private readonly EntityManagerInterface $entityManager,
         private readonly LoggerInterface $logger,
     ) {
@@ -41,7 +43,7 @@ final class TemplateCopy
     {
         $made = [];
         foreach ($this->trackers->findByTemplate($template) as $position => $source) {
-            $tracker = new Tracker($project, $source->getName(), $this->entityManager->getReference(Workflow::class, $source->getWorkflowId()) ?? throw new \LogicException('An element of the configuration that the definition has exists.'), $position);
+            $tracker = new Tracker($project, $source->getName(), $this->config->row(Workflow::class, $source->getWorkflowId()), $position);
             $tracker->setDescription($source->getDescription());
             if ($source->isPrivate()) {
                 $tracker->makePrivate();

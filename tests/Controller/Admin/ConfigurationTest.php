@@ -13,6 +13,7 @@ use App\Factory\UserFactory;
 use App\Message\Command\Automation\CreateRule;
 use App\Message\Command\Config\AddWorkflowPlace;
 use App\Message\Command\Config\CreateWorkflow;
+use App\Message\Command\Template\CreateTemplate;
 use App\Message\CommandBus;
 use App\Security\Permission;
 use App\Tests\Scene\ShopScene;
@@ -100,6 +101,38 @@ final class ConfigurationTest extends WebTestCase
 
         $matrix->call('toggle', ['role' => 'client', 'permission' => Permission::IssueDelete->value]);
         self::assertStringContainsString('open to external users', $matrix->render()->toString(), 'a refusal is said in place');
+    }
+
+    public function testTheChoicesOfAFieldAreArrangedInPlace(): void
+    {
+        $scene = ShopScene::load(self::getContainer());
+        $choices = $this->createLiveComponent('Config:Choices', ['field' => 'environment'])->actingAs($scene->user('julie.admin@cairn.test'));
+        $options = fn (): array => $this->definition()->field('environment')->options;
+
+        // A choice keeps the value issues store when its label changes; a new one gets it from its label, and comes last.
+        $choices->call('edit', ['value' => 'prod'])->set('label', 'Live')->call('rename');
+        $choices->set('adding', 'Local machine')->call('add');
+        self::assertSame(['prod' => 'Live', 'preprod' => 'Pre-production', 'local_machine' => 'Local machine'], $options());
+
+        $choices->call('move', ['id' => 'local_machine', 'position' => 0]);
+        self::assertSame(['local_machine', 'prod', 'preprod'], array_keys($options()));
+
+        // A label is needed, and said so in place.
+        $choices->call('edit', ['value' => 'prod'])->set('label', ' ')->call('rename');
+        self::assertStringContainsString('each with a label', $choices->render()->toString());
+        self::assertSame('Live', $options()['prod']);
+
+        // Taken out once confirmed; the last one stays, a field that offers choices having some.
+        $choices->call('askRemove', ['value' => 'preprod']);
+        self::assertStringContainsString('The issues that hold it will show its value', $choices->render()->toString(), 'asked before it is taken out');
+        $choices->call('remove');
+        $choices->call('askRemove', ['value' => 'prod'])->call('remove');
+        $choices->call('askRemove', ['value' => 'local_machine'])->call('remove');
+        self::assertStringContainsString('needs at least one choice', $choices->render()->toString());
+        self::assertSame(['local_machine'], array_keys($options()));
+
+        $this->expectException(AccessDeniedException::class);
+        $this->createLiveComponent('Config:Choices', ['field' => 'environment'])->actingAs($scene->user('thomas.girard@cairn.test'))->render();
     }
 
     public function testAListIsReorderedInPlace(): void
@@ -266,6 +299,9 @@ final class ConfigurationTest extends WebTestCase
         $this->client->submitForm('Create', ['field_settings[label]' => 'Browser', 'field_settings[type]' => 'select', 'field_settings[choices]' => "Chrome\nSafari"]);
         $this->client->followRedirect();
         self::assertSame(['chrome' => 'Chrome', 'safari' => 'Safari'], $this->definition()->field('browser_2')->options, 'the starter configuration already has a field `browser`');
+        // No workflow asks for it yet: it may be deleted, and the dialog says what would go with it.
+        $this->client->request('GET', '/admin/configuration/field/browser_2');
+        self::assertSelectorTextContains('turbo-frame#modal', 'No issue holds a value of this one.');
 
         // Choices are asked only of a type that has some: shown as the type is chosen, left out otherwise.
         $this->client->request('GET', '/admin/configuration/fields/new');
@@ -281,27 +317,45 @@ final class ConfigurationTest extends WebTestCase
         $this->client->followRedirect();
         self::assertSame('The page.', $this->definition()->field('url')->help);
 
-        // A choice keeps its value when its label changes; a new line gets one.
+        // The choices are a list of their own: the dialog names them and leads to their page.
         $this->client->request('GET', '/admin/configuration/field/environment');
         self::assertSelectorNotExists('[name="field_settings[type]"]', 'the type is chosen once');
-        $this->client->submitForm('Save', ['field_settings[choices]' => "prod = Live\npreprod = Pre-production\nLocal", 'field_settings[help]' => 'Where it happens.']);
+        self::assertSelectorNotExists('[name="field_settings[choices]"]');
+        self::assertSelectorTextContains('turbo-frame#modal', 'Choices: Production, Pre-production.');
+        self::assertSelectorExists('turbo-frame#modal a[href="/admin/configuration/field/environment/choices"]');
+        $this->client->submitForm('Save', ['field_settings[help]' => 'Where it happens.']);
         $this->client->followRedirect();
-        self::assertSame(['prod' => 'Live', 'preprod' => 'Pre-production', 'local' => 'Local'], $this->definition()->field('environment')->options);
         self::assertSame('Where it happens.', $this->definition()->field('environment')->help);
+        self::assertSame(['prod' => 'Production', 'preprod' => 'Pre-production'], $this->definition()->field('environment')->options, 'left as they were');
+        self::assertSelectorTextContains('#config-fields-environment', '2 choices');
 
-        $this->client->request('GET', '/admin/configuration/field/environment');
-        $this->client->submitForm('Save', ['field_settings[choices]' => '']);
-        self::assertResponseStatusCodeSame(422);
+        $this->client->request('GET', '/admin/configuration/field/environment/choices');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('#config-choice-prod', 'Production');
+        $this->client->request('GET', '/admin/configuration/field/url/choices');
+        self::assertResponseStatusCodeSame(404);
 
         $this->client->request('GET', '/admin/configuration/links/new');
-        $this->client->submitForm('Create', ['link_type[label]' => 'Follows', 'link_type[inverseLabel]' => 'Followed by']);
+        // How a link reads from the other issue is chosen when its type is created: a direction needs its second label.
+        $this->client->submitForm('Create', ['link_type[label]' => 'Follows', 'link_type[nature]' => 'directed', 'link_type[inverseLabel]' => ' ']);
+        self::assertResponseStatusCodeSame(422);
+        $this->client->submitForm('Create', ['link_type[label]' => 'Follows', 'link_type[nature]' => 'directed', 'link_type[inverseLabel]' => 'Followed by']);
         $this->client->followRedirect();
         self::assertSame('Followed by', $this->definition()->link('follows')->inverseLabel);
 
+        // Afterwards only its labels change: the dialog says which it is, and asks for the second label of one that has a direction.
         $this->client->request('GET', '/admin/configuration/link/follows');
+        self::assertSelectorNotExists('[name="link_type[nature]"]');
+        self::assertSelectorTextContains('turbo-frame#modal', 'This link has a direction');
         $this->client->submitForm('Save', ['link_type[inverseLabel]' => '']);
+        self::assertResponseStatusCodeSame(422);
+        $this->client->submitForm('Save', ['link_type[label]' => 'Comes after', 'link_type[inverseLabel]' => 'Comes before']);
         $this->client->followRedirect();
-        self::assertTrue($this->definition()->link('follows')->isSymmetric());
+        self::assertSame('Comes before', $this->definition()->link('follows')->inverseLabel);
+
+        $this->client->request('GET', '/admin/configuration/link/related');
+        self::assertSelectorNotExists('[name="link_type[inverseLabel]"]');
+        self::assertSelectorTextContains('turbo-frame#modal', 'This link reads the same from both issues');
 
         $this->client->request('GET', '/admin/configuration/link/follows');
         $this->client->submitForm('Delete');
@@ -520,6 +574,24 @@ final class ConfigurationTest extends WebTestCase
         self::assertSelectorTextContains('body', 'Starter configuration installed.');
         self::assertSelectorTextContains('#bug', 'Bug');
         self::assertSame(['project_manager', 'developer', 'client', 'client_readonly'], $this->definition()->roleIds());
+    }
+
+    /**
+     * The configuration comes with its template or not at all, and the page says so in its own words.
+     */
+    public function testAStarterConfigurationThatCannotBeInstalledLeavesNothing(): void
+    {
+        $this->client->loginUser(UserFactory::new()->admin()->create(['email' => 'first.admin@cairn.test']));
+        // The kit makes a template of that name: it will be refused, once the configuration is written.
+        self::getContainer()->get(CommandBus::class)->dispatch(new CreateTemplate('Web project'));
+
+        $this->client->request('GET', '/admin/configuration/roles');
+        $this->client->submitForm('Install the starter configuration');
+        $this->client->followRedirect();
+
+        self::assertSelectorTextContains('body', 'The starter configuration could not be installed, and nothing changed.');
+        self::assertTrue($this->definition()->isEmpty(), 'the configuration was taken back with the template');
+        self::assertSelectorTextContains('main', 'This instance has no configuration yet');
     }
 
     private function signInAsAdmin(): ShopScene

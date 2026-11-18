@@ -75,6 +75,11 @@ final class ConfigChangeException extends \DomainException implements Translatab
         return new self(\sprintf('The action "%s" already leads from "%s" to "%s".', $action, $from, $to), 'admin.refused.config.pair_taken', ['%action%' => $action, '%from%' => $from, '%to%' => $to]);
     }
 
+    public static function linkNatureKept(string $type): self
+    {
+        return new self(\sprintf('The link type "%s" keeps the way it reads from the other issue.', $type), 'admin.refused.config.link_nature_kept', ['%type%' => $type]);
+    }
+
     public static function choicesRequired(): self
     {
         return new self('A field of this type needs choices, each with a label.', 'admin.refused.config.choices_required');

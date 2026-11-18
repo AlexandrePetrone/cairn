@@ -136,7 +136,7 @@ final class RuleExecutor
             return StepResult::unchanged(ActionType::Move, $to->label);
         }
 
-        $issue->moveTo($this->entityManager->find(Place::class, $to->id) ?? throw new \LogicException('A place of the configuration has a row.'));
+        $issue->moveTo($this->config->row(Place::class, $to->id));
         $this->support->arrive($issue);
         $this->support->record(new IssueMoved($issue, null, [JournalEntry::moved($issue, null, $from, $to)->byRule($rule)], $rule));
 

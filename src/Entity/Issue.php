@@ -81,10 +81,6 @@ class Issue implements HasPlace
     #[ORM\Column]
     private bool $private = false;
 
-    /** @var array<string, mixed> field id => value, including fields no longer used by the workflow */
-    #[ORM\Column(type: Types::JSON)]
-    private array $fieldValues = [];
-
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -129,8 +125,6 @@ class Issue implements HasPlace
     /**
      * An issue brought from another tracker as it stood there: its place,
      * its properties and its dates, from its creation to its last change.
-     *
-     * @param array<string, mixed> $fieldValues
      */
     public static function imported(
         Project $project,
@@ -144,7 +138,6 @@ class Issue implements HasPlace
         ?User $assignee,
         ?Release $release,
         bool $private,
-        array $fieldValues,
         string $importedRef,
         \DateTimeImmutable $createdAt,
         \DateTimeImmutable $updatedAt,
@@ -155,7 +148,6 @@ class Issue implements HasPlace
         $issue->assignee = $assignee;
         $issue->release = $release;
         $issue->private = $private;
-        $issue->fieldValues = $fieldValues;
         $issue->importedRef = $importedRef;
         $issue->createdAt = $createdAt;
         $issue->updatedAt = max($createdAt, $updatedAt);
@@ -317,41 +309,6 @@ class Issue implements HasPlace
     public function makePublic(): void
     {
         $this->private = false;
-        $this->touch();
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function getFieldValues(): array
-    {
-        return $this->fieldValues;
-    }
-
-    /**
-     * @param array<string, mixed> $values
-     */
-    public function setFieldValues(array $values): void
-    {
-        $this->fieldValues = $values;
-        $this->touch();
-    }
-
-    /**
-     * Merges changed values: null empties a field. Values of fields the
-     * workflow no longer uses are kept.
-     *
-     * @param array<string, mixed> $changes field id => new value or null
-     */
-    public function changeFieldValues(array $changes): void
-    {
-        foreach ($changes as $fieldId => $value) {
-            if (null === $value) {
-                unset($this->fieldValues[$fieldId]);
-            } else {
-                $this->fieldValues[$fieldId] = $value;
-            }
-        }
         $this->touch();
     }
 

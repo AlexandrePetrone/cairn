@@ -1,0 +1,19 @@
+{# The choices of a field that offers some, on a page of their own: a list whose rows come and go does not fit a dialog. #}
+{% extends 'admin/configuration/base.html.twig' %}
+
+{% set configurationSubject = 'fields' %}
+
+{% block configuration_content %}
+    <a href="{{ path('app_admin_configuration_fields') }}" class="inline-flex items-center gap-1 text-xs text-muted hover:text-strong">
+        <twig:ux:icon name="lucide:arrow-left" class="h-3.5 w-3.5" />{{ 'admin.configuration.nav.fields'|trans }}
+    </a>
+
+    <twig:Ui:Panel>
+        <twig:block name="header">
+            <h2 class="font-semibold text-strong">{{ field.label }} · {{ 'admin.configuration.fields.choices.title'|trans }}</h2>
+            <span class="text-xs text-faint">{{ ('field_type.' ~ field.type.value)|trans }}</span>
+        </twig:block>
+        <twig:block name="content"><twig:Config:Choices :field="field.id" /></twig:block>
+        <twig:block name="footer">{{ 'admin.configuration.fields.choices.intro'|trans }}</twig:block>
+    </twig:Ui:Panel>
+{% endblock %}

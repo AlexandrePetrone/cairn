@@ -1,0 +1,43 @@
+{# The choices of a field, in their order: dragged to reorder (`sortable` controller, `move`), renamed in place (`edit`, then `rename`), taken out after a confirmation in place (`askRemove`, then `remove`), and a field to add one from its label (`add`). The value beside a label is what issues store: it never changes. #}
+{% set choicesRows = this.choices %}
+<div {{ attributes }} data-loading="addClass(opacity-60)">
+    {% if error %}
+        <twig:Ui:Callout tone="danger" size="sm" role="alert" class="m-3">{{ error }}</twig:Ui:Callout>
+    {% endif %}
+    <ul class="divide-y divide-line-subtle" data-controller="sortable" data-sortable-action-value="move" data-sortable-param-value="id">
+        {% for choice in choicesRows %}
+            {% if editing == choice.value %}
+                <li id="config-choice-{{ choice.value }}" class="px-3 py-2.5">
+                    <form class="flex flex-wrap items-center gap-2" data-action="live#action:prevent" data-live-action-param="rename">
+                        <label class="sr-only" for="config-choice-label">{{ 'admin.configuration.fields.choices.label'|trans }}</label>
+                        <twig:Ui:Form:Input id="config-choice-label" model="norender|label" :value="label" maxlength="120" class="mt-0 w-auto min-w-0 flex-1" data-controller="autofocus" />
+                        <twig:Ui:Button type="submit" size="sm" variant="primary">{{ 'admin.configuration.save'|trans }}</twig:Ui:Button>
+                        <twig:Ui:Button size="sm" data-action="live#action" data-live-action-param="cancel">{{ 'issue.edit.cancel'|trans }}</twig:Ui:Button>
+                    </form>
+                </li>
+            {% elseif removing == choice.value %}
+                <li id="config-choice-{{ choice.value }}" class="flex flex-wrap items-center gap-3 px-3 py-2.5" role="alertdialog">
+                    <span class="flex-1 basis-48 text-sm">{{ 'admin.configuration.fields.choices.remove_confirm'|trans({ '%label%': choice.label, '%value%': choice.value }) }}</span>
+                    <twig:Ui:Button size="sm" variant="danger" icon="trash-2" data-action="live#action" data-live-action-param="remove">{{ 'admin.configuration.fields.choices.remove'|trans }}</twig:Ui:Button>
+                    <twig:Ui:Button size="sm" data-action="live#action" data-live-action-param="cancel">{{ 'issue.edit.cancel'|trans }}</twig:Ui:Button>
+                </li>
+            {% else %}
+                <li id="config-choice-{{ choice.value }}" data-sortable-target="item" data-sortable-id="{{ choice.value }}" draggable="true" data-action="dragstart->sortable#start dragover->sortable#over drop->sortable#drop dragend->sortable#end"
+                    class="flex items-center gap-3 px-3 py-2.5 hover:bg-subtle">
+                    <span class="cursor-grab text-ghost hover:text-muted" title="{{ 'admin.configuration.drag'|trans }}"><twig:ux:icon name="lucide:grip-vertical" class="h-4 w-4" /></span>
+                    <div class="min-w-0 flex-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span class="text-sm font-medium text-strong">{{ choice.label }}</span>
+                        <span class="font-mono text-[11px] text-faint">{{ choice.value }}</span>
+                    </div>
+                    <button type="button" class="shrink-0 text-xs text-brand hover:underline" data-action="live#action" data-live-action-param="edit" data-live-value-param="{{ choice.value }}">{{ 'admin.configuration.fields.choices.rename'|trans }}</button>
+                    <button type="button" class="shrink-0 text-xs text-muted hover:text-red" data-action="live#action" data-live-action-param="askRemove" data-live-value-param="{{ choice.value }}">{{ 'admin.configuration.fields.choices.remove'|trans }}</button>
+                </li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+    <form class="flex items-center gap-2 border-t border-line-subtle px-3 py-2.5" data-action="live#action:prevent" data-live-action-param="add">
+        <label class="sr-only" for="config-choice-add">{{ 'admin.configuration.fields.choices.add_placeholder'|trans }}</label>
+        <twig:Ui:Form:Input id="config-choice-add" model="norender|adding" :value="adding" maxlength="120" :placeholder="'admin.configuration.fields.choices.add_placeholder'|trans" class="mt-0 w-auto min-w-0 flex-1" />
+        <twig:Ui:Button type="submit" size="sm" icon="plus">{{ 'admin.configuration.fields.choices.add'|trans }}</twig:Ui:Button>
+    </form>
+</div>

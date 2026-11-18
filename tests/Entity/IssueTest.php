@@ -61,17 +61,15 @@ final class IssueTest extends TestCase
         self::assertTrue($issue->isPrivate());
     }
 
-    public function testChangingTrackerKeepsFieldValues(): void
+    public function testChangingTrackerTakesThePlaceChosen(): void
     {
         $issue = $this->issue();
-        $issue->setFieldValues(['environment' => 'prod']);
         $other = new Tracker($issue->getProject(), 'Task', DefinitionFactory::workflowRow('bug'));
 
         $issue->changeTracker($other, DefinitionFactory::placeRow('in_progress'));
 
         self::assertSame($other, $issue->getTracker());
         self::assertSame('in_progress', $issue->getPlace());
-        self::assertSame(['environment' => 'prod'], $issue->getFieldValues());
     }
 
     private function issue(): Issue

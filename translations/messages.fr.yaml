@@ -638,6 +638,7 @@ admin:
             install: 'Installer la configuration de départ'
             installed: 'Configuration de départ installée.'
             already: 'L''instance a déjà une configuration : rien n''a changé.'
+            failed: 'La configuration de départ n''a pas pu être installée, et rien n''a changé. Les journaux disent pourquoi.'
         roles:
             title: 'Rôles'
             intro: 'L''ordre des rôles tient lieu de hiérarchie, du plus large au plus étroit : lorsqu''une personne a un rôle sur un espace et un autre sur l''un de ses projets, le plus large s''applique.'
@@ -683,11 +684,23 @@ admin:
             type: 'Type'
             created: 'Champ « %name% » créé. Ajoutez-le aux workflows qui le demandent.'
             deleted: 'Champ supprimé.'
-            delete_help: 'Un champ se supprime quand plus aucun workflow ne le demande. Les valeurs que les demandes en portent sont gardées, et ne s''affichent plus.'
+            delete_help: '{0}Un champ se supprime quand plus aucun workflow ne le demande. Aucune demande ne porte de valeur de celui-ci.|{1}Un champ se supprime quand plus aucun workflow ne le demande, avec les valeurs que les demandes en portent : 1 demande en porte une.|]1,Inf[ Un champ se supprime quand plus aucun workflow ne le demande, avec les valeurs que les demandes en portent : %count% demandes en portent une.'
+            choices:
+                title: 'Choix'
+                intro: 'Les choix proposés, dans cet ordre. Un choix garde pour de bon la valeur que stockent les demandes, écrite à côté de son libellé ; le libellé change librement. Une demande qui porte un choix retiré affiche cette valeur.'
+                count: '{1}1 choix|]1,Inf[ %count% choix'
+                summary: 'Choix : %choices%.'
+                change: 'Modifier les choix'
+                label: 'Libellé du choix'
+                rename: 'Renommer'
+                remove: 'Retirer'
+                remove_confirm: 'Retirer « %label% » ? Les demandes qui le portent afficheront sa valeur, « %value% ».'
+                add: 'Ajouter'
+                add_placeholder: 'Un nouveau choix'
             form:
                 type_help: 'Choisi une fois pour toutes : les valeurs que portent les demandes sont de ce type.'
                 choices: 'Choix'
-                choices_help: 'Pour une liste ou un choix unique : un par ligne. Une nouvelle ligne est son libellé seul ; un choix déjà là se lit « valeur = Libellé », et garde sa valeur quand vous changez son libellé. Un choix retiré reste affiché tel qu''il est stocké sur les demandes qui le portent.'
+                choices_help: 'Pour une liste ou un choix unique : un par ligne. Vous les renommez, les réordonnez et les retirez ensuite, sur la page des choix du champ.'
                 placeholder: 'Texte indicatif'
                 help: 'Texte d''aide'
                 internal_only: 'Jamais montré aux externes'
@@ -702,9 +715,15 @@ admin:
             created: 'Type de lien « %name% » créé.'
             deleted: 'Type de lien supprimé.'
             delete_help: 'Un type de lien se supprime quand plus aucun lien n''est de ce type.'
+            kept_same: 'Ce lien se lit de la même façon depuis les deux demandes. Un type le garde pour de bon : pour un lien qui a un sens, créez un autre type.'
+            kept_directed: 'Ce lien a un sens : il se lit autrement depuis l''autre demande. Un type le garde pour de bon : pour un lien qui se lit de la même façon des deux côtés, créez un autre type.'
             form:
+                nature: 'Comment il se lit'
+                nature_help: 'Choisi une fois : un type de lien le garde, puisque des liens de ce type existent.'
+                same: 'De la même façon depuis les deux demandes (« Lié à »)'
+                directed: 'Il a un sens (« Bloque » et « Bloqué par »)'
                 inverse: 'Vu depuis l''autre demande'
-                inverse_help: '« Bloque » se lit « Bloqué par » depuis l''autre demande. Laissé vide, le lien se lit de la même façon des deux côtés.'
+                inverse_help: '« Bloque » se lit « Bloqué par » depuis l''autre demande.'
         workflows:
             new: 'Nouveau workflow'
             empty: 'Aucun workflow pour l''instant'
@@ -797,7 +816,7 @@ admin:
             field:
                 created: 'Champ « %name% » créé.'
                 updated: 'Champ « %name% » modifié.'
-                deleted: 'Champ « %name% » supprimé.'
+                deleted: '{0}Champ « %name% » supprimé.|{1}Champ « %name% » supprimé, avec la valeur qu''en portait 1 demande.|]1,Inf[ Champ « %name% » supprimé, avec les valeurs qu''en portaient %count% demandes.'
             link:
                 created: 'Type de lien « %name% » créé.'
                 updated: 'Type de lien « %name% » modifié.'
@@ -1031,6 +1050,7 @@ admin:
             issues_to_move: '{1}Une demande est à l''étape « %place% » : choisissez l''étape qui la reprend.|]1,Inf[ %count% demandes sont à l''étape « %place% » : choisissez l''étape qui les reprend.'
             other_places: 'L''ordre donné ne reprend pas les étapes du workflow « %workflow% ».'
             pair_taken: 'L''action « %action% » mène déjà de « %from% » à « %to% » : le kanban demande une seule action entre deux étapes.'
+            link_nature_kept: 'Le type de lien « %type% » garde sa façon de se lire depuis l''autre demande : la même, ou avec un sens. Créez plutôt un autre type.'
             choices_required: 'Une liste ou un choix unique demande au moins un choix, chacun avec un libellé.'
             choices_not_offered: 'Seuls une liste ou un choix unique ont des choix : laissez-les vides pour ce type.'
 

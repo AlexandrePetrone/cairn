@@ -68,7 +68,7 @@ final class AddLinkHandler
             throw IssueLinkException::alreadyLinked($issue->getKey(), $other->getKey());
         }
 
-        $link = new IssueLink($issue, $this->entityManager->getReference(LinkType::class, $type->id) ?? throw new \LogicException('An element of the configuration that the definition has exists.'), $other, $actor);
+        $link = new IssueLink($issue, $this->config->row(LinkType::class, $type->id), $other, $actor);
         $this->entityManager->persist($link);
         $this->support->record(new IssuesLinked($issue, $actor, [JournalEntry::linked($issue, $actor, $type->label, $other)]));
         $this->support->record(new IssuesLinked($other, $actor, [JournalEntry::linked($other, $actor, $type->labelFromTarget(), $issue)]));

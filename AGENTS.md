@@ -356,7 +356,9 @@ src/
   aggregates or a separate read store. What
   only the configuration resolves (the labels of an issue's field
   values, `InstanceDefinition::fieldValues()`) is not a query: components
-  call it.
+  call it, with what the issue holds
+  (`IssueFieldValueRepository::valuesOf()`, a row for each field filled
+  in, the same whoever asks).
 - **The handler records a change; side effects listen to it.** A command
   that changes an issue ends with one call to
   `IssueHandlerSupport::record()`, given the domain event of `Event/`
@@ -1771,24 +1773,25 @@ database.
   (`ConfigWriting::key()`) and never changed; an action has one within
   its workflow. It is their primary key, what the data stores (the role
   of an access, the workflow of a tracker, the type of a link, the place
-  of an issue, the values of its fields), what the journal, the API and
-  the automation rules name. Labels change freely. The entities are
+  of an issue, the field of each value it holds), what the journal, the
+  API and the automation rules name. Labels change freely. The entities are
   `Role` and `RolePermission`, `Place`, `Field` (its choices in a JSON
   list), `LinkType`, `Workflow` with `WorkflowPlace`, `WorkflowField`
   and `Transition` (`TransitionSource`, `TransitionRole`): no entity
   holds a collection, each row names its owner. The data points to
   these rows with a relation: the role of an access (`Membership`), the
   workflow of a tracker (`Tracker`, `TemplateTracker`), the type of a
-  link (`IssueLink`), the place of an issue (`Issue`). So the database
+  link (`IssueLink`), the place of an issue (`Issue`), the field of a
+  value an issue holds (`IssueFieldValue`). So the database
   refuses a key the configuration does not have and the deletion of a
   row in use (`ConfigurationReferencesTest`). The entities take the row
   (`Membership::onProject(…, Role)`, `Issue::moveTo(Place)`) and give
   back its key only (`getRole()`, `getWorkflowId()`, `getTypeId()`,
-  `getPlace()`): what a role or a place says is read from the
+  `getPlace()`, `getFieldId()`): what a role or a place says is read from the
   definition, never through the relation. A handler gets the row from
-  the entity manager (`getReference()`, or `WorkflowProvider::row()` for
-  a place, whose status says whether the issue that enters it is closed
-  at that moment). A relation cannot say "a step
+  `ConfigRegistry::row()`, the one way to it (`WorkflowProvider::row()`
+  is the same for a place, whose status says whether the issue that
+  enters it is closed at that moment). A relation cannot say "a step
   of the workflow of its tracker": the commands hold that, and an issue
   moved to a step in the instant it leaves its workflow stands on a
   step its workflow no longer has, which the pages tolerate and an
@@ -1828,7 +1831,9 @@ database.
   not deleted; an internal-only permission goes to internal-only roles;
   a role becomes internal-only once no external user holds it; a single
   action leads from one step to another; a field that offers choices has
-  some. A handler checks before it writes, as every handler of the
+  some; a type of link keeps the way it reads from the other issue, the
+  same or with a direction, chosen when it is created as the type of a
+  field is. A handler checks before it writes, as every handler of the
   application does: what a refused one left in the entity manager, the
   next command of the process would write (`ConfigHandlersTest::refused()`
   flushes after each refusal to see that nothing was). Nothing is
@@ -1884,8 +1889,14 @@ database.
   started from it start from their other steps or go too. The initial
   step never leaves. It writes nothing in the journal of the issues and
   notifies nobody. The step stays in the instance, deleted apart once no
-  workflow uses it (`DeletePlace`). Removing a choice of a field is
-  free: an issue that holds it shows the value as stored.
+  workflow uses it (`DeletePlace`). A choice of a field has a value,
+  made from its label when it is added and kept for good as a key is
+  (`ConfigWriting::choices()`): it is what issues store, and only its
+  label changes. Removing a choice is free: an issue that holds it shows
+  the value as stored. A field no workflow asks for any more is deleted
+  with the values issues hold of it (`IssueFieldValueRepository::eraseOf()`,
+  in bulk and without a word in their history, the dialog saying how
+  many), so a field made later of the same key finds nothing of it.
 - **A new instance installs its starter configuration, once.**
   `Config/StarterKit` describes it as an `InstanceDefinition` (four
   roles, three workflows, twelve steps, six fields, three link types)
@@ -1898,7 +1909,8 @@ database.
   applied again, and a later version of the kit changes no instance that
   exists. `bin/console app:config:install` and the button the
   configuration pages show while the instance has none both call
-  `StarterKit::install()`. The development data and the tests install
+  `StarterKit::install()`, which holds the configuration and its
+  template in one transaction: together or not at all. The development data and the tests install
   theirs the same way.
 - **The pages are lists arranged in place and dialogs.** One controller
   per subject in `Controller/Admin/` (`RoleController`,
@@ -1910,9 +1922,12 @@ database.
   which: roles, steps, fields, link types, the steps and the actions of
   a workflow), dragged to reorder, each row leading to its dialog; the
   rights are ticked in `Config:PermissionMatrix`, one command per box;
-  the fields a workflow asks for are arranged in `Config:WorkflowFields`.
-  The three check `ROLE_ADMIN` themselves: their endpoint is not under
-  `/admin`. Dialogs have an address of their own and load in the
+  the fields a workflow asks for are arranged in `Config:WorkflowFields`,
+  and the choices of a field in `Config:Choices`, on a page of their own
+  (`/field/{id}/choices`) since their rows come and go: typed one label
+  per line when the field is created, then renamed, reordered, taken
+  out and added in place. The four check `ROLE_ADMIN` themselves: their
+  endpoint is not under `/admin`. Dialogs have an address of their own and load in the
   `modal` frame of the administration layout
   (`admin/configuration/_dialog.html.twig`). An address names the list,
   and what creates in it, in the plural (`/places`, `/places/new`) and

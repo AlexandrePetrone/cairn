@@ -638,6 +638,7 @@ admin:
             install: 'Install the starter configuration'
             installed: 'Starter configuration installed.'
             already: 'The instance already has a configuration: nothing changed.'
+            failed: 'The starter configuration could not be installed, and nothing changed. The logs say why.'
         roles:
             title: 'Roles'
             intro: 'The order of the roles is a hierarchy, from the broadest to the narrowest: when a person has a role on a workspace and another on one of its projects, the broadest applies.'
@@ -683,11 +684,23 @@ admin:
             type: 'Type'
             created: 'Field "%name%" created. Add it to the workflows that ask for it.'
             deleted: 'Field deleted.'
-            delete_help: 'A field is deleted once no workflow asks for it. The values issues hold of it are kept, shown nowhere.'
+            delete_help: '{0}A field is deleted once no workflow asks for it. No issue holds a value of this one.|{1}A field is deleted once no workflow asks for it, with the values issues hold of it: 1 issue holds one.|]1,Inf[ A field is deleted once no workflow asks for it, with the values issues hold of it: %count% issues hold one.'
+            choices:
+                title: 'Choices'
+                intro: 'The choices offered, in this order. A choice keeps for good the value issues store, written beside its label; the label changes freely. An issue that holds a choice taken out shows that value.'
+                count: '{1}1 choice|]1,Inf[ %count% choices'
+                summary: 'Choices: %choices%.'
+                change: 'Change the choices'
+                label: 'Label of the choice'
+                rename: 'Rename'
+                remove: 'Take out'
+                remove_confirm: 'Take "%label%" out? The issues that hold it will show its value, "%value%".'
+                add: 'Add'
+                add_placeholder: 'A new choice'
             form:
                 type_help: 'Chosen for good: the values issues hold are of that type.'
                 choices: 'Choices'
-                choices_help: 'For a list or a single choice: one per line. A new line is its label alone; a choice already there reads "value = Label", and keeps its value when you change its label. A choice you take out stays shown as stored on the issues that hold it.'
+                choices_help: 'For a list or a single choice: one per line. You rename, reorder and take them out afterwards, on the page of the choices of the field.'
                 placeholder: 'Placeholder'
                 help: 'Help text'
                 internal_only: 'Never shown to external users'
@@ -702,9 +715,15 @@ admin:
             created: 'Link type "%name%" created.'
             deleted: 'Link type deleted.'
             delete_help: 'A link type is deleted once no link is of it.'
+            kept_same: 'This link reads the same from both issues. A type keeps that for good: for a link that has a direction, create another type.'
+            kept_directed: 'This link has a direction: it reads differently from the other issue. A type keeps that for good: for a link that reads the same from both, create another type.'
             form:
+                nature: 'How it reads'
+                nature_help: 'Chosen once: a type of link keeps it, since links of it exist.'
+                same: 'The same from both issues ("Related to")'
+                directed: 'It has a direction ("Blocks" and "Blocked by")'
                 inverse: 'Seen from the other issue'
-                inverse_help: '"Blocks" reads "Blocked by" from the other issue. Left empty, the link reads the same from both.'
+                inverse_help: '"Blocks" reads "Blocked by" from the other issue.'
         workflows:
             new: 'New workflow'
             empty: 'No workflow yet'
@@ -797,7 +816,7 @@ admin:
             field:
                 created: 'Field "%name%" created.'
                 updated: 'Field "%name%" changed.'
-                deleted: 'Field "%name%" deleted.'
+                deleted: '{0}Field "%name%" deleted.|{1}Field "%name%" deleted, with the value 1 issue held of it.|]1,Inf[ Field "%name%" deleted, with the values %count% issues held of it.'
             link:
                 created: 'Link type "%name%" created.'
                 updated: 'Link type "%name%" changed.'
@@ -1031,6 +1050,7 @@ admin:
             issues_to_move: '{1}An issue stands on "%place%": choose the step that takes it.|]1,Inf[ %count% issues stand on "%place%": choose the step that takes them.'
             other_places: 'The order given does not list the steps of the workflow "%workflow%".'
             pair_taken: 'The action "%action%" already leads from "%from%" to "%to%": the kanban needs a single action between two steps.'
+            link_nature_kept: 'The link type "%type%" keeps the way it reads from the other issue: the same, or with a direction. Create another type instead.'
             choices_required: 'A list or a single choice needs at least one choice, each with a label.'
             choices_not_offered: 'Only a list or a single choice has choices: leave them empty for this type.'
 

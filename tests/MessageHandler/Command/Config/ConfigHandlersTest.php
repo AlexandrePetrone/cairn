@@ -43,6 +43,7 @@ use App\Message\CommandBus;
 use App\Message\Query\Issue\SearchIssues;
 use App\MessageHandler\Command\Config\ConfigChangeException;
 use App\MessageHandler\Command\Config\ConfigDeletions;
+use App\Repository\ConfigChangeRepository;
 use App\Security\Permission;
 use App\Tests\KernelHelpers;
 use App\Tests\MessageHandler\Command\Issue\IssueFixtures;
@@ -235,32 +236,62 @@ final class ConfigHandlersTest extends KernelTestCase
     public function testAFieldKeepsItsTypeAndItsChoicesFollowIt(): void
     {
         $this->refused('admin.refused.config.choices_required', new CreateField('Browser', FieldType::Select));
-        $this->refused('admin.refused.config.choices_not_offered', new CreateField('Browser', FieldType::Text, options: ['a' => 'A']));
+        $this->refused('admin.refused.config.choices_not_offered', new CreateField('Browser', FieldType::Text, options: ['A']));
 
-        $field = $this->commands->dispatch(new CreateField('Browser', FieldType::Choice, options: ['chrome' => 'Chrome', 'safari' => 'Safari'], help: 'The one you use.'));
-        $this->commands->dispatch(new UpdateField($field->getId(), label: 'Web browser', options: ['safari' => 'Safari', 'firefox' => 'Firefox'], help: '', internalOnly: true));
+        // A choice gets its value from its label, as an element gets its key.
+        $field = $this->commands->dispatch(new CreateField('Browser', FieldType::Choice, options: ['Chrome', 'Safari', 'Safari'], help: 'The one you use.'));
+        self::assertSame(['chrome' => 'Chrome', 'safari' => 'Safari', 'safari_2' => 'Safari'], $this->definition()->field('browser')->options);
+
+        // It keeps that value whatever its label becomes; one that has none yet is new; the others are taken out.
+        $this->commands->dispatch(new UpdateField($field->getId(), label: 'Web browser', options: [
+            ['value' => 'safari', 'label' => 'Apple Safari'],
+            ['value' => null, 'label' => 'Firefox'],
+            ['value' => 'chrome', 'label' => 'Chrome'],
+        ], help: '', internalOnly: true));
 
         $defined = $this->definition()->field('browser');
         self::assertSame('Web browser', $defined->label);
-        self::assertSame(['safari' => 'Safari', 'firefox' => 'Firefox'], $defined->options, 'in the order given');
+        self::assertSame(['safari' => 'Apple Safari', 'firefox' => 'Firefox', 'chrome' => 'Chrome'], $defined->options, 'in the order given');
         self::assertNull($defined->help, 'an empty help erases it');
         self::assertTrue($defined->internalOnly);
 
-        // A value made of digits is a value like another, whatever PHP does of the key.
-        $this->commands->dispatch(new UpdateField('environment', options: ['1' => 'One', 'prod' => 'Production']));
-        self::assertSame('One', $this->definition()->field('environment')->display('1'));
+        // A new choice never takes the value of one the field keeps, whatever its label.
+        $this->commands->dispatch(new UpdateField('browser', options: [['value' => 'chrome', 'label' => 'Chromium'], ['value' => null, 'label' => 'Chrome']]));
+        self::assertSame(['chrome' => 'Chromium', 'chrome_2' => 'Chrome'], $this->definition()->field('browser')->options);
 
         $this->refused('admin.refused.config.choices_required', new UpdateField('environment', options: []));
+        $this->refused('admin.refused.config.choices_required', new UpdateField('environment', options: [['value' => 'prod', 'label' => ' ']]));
         $this->refused('admin.refused.config.field_used', new DeleteField('environment'));
         $this->commands->dispatch(new DeleteField('browser'));
         self::assertFalse($this->definition()->hasField('browser'));
     }
 
+    public function testAFieldGoesWithTheValuesIssuesHoldOfIt(): void
+    {
+        $issue = $this->fixtures->createIssue($this->fixtures->client, fields: ['environment' => 'prod', 'url' => 'https://shop.test/cart']);
+        // Taken out of its workflow, the field keeps the values issues hold of it, shown nowhere.
+        $this->commands->dispatch(new UpdateWorkflow('bug', fields: ['environment' => true]));
+        self::assertEquals(['environment' => 'prod', 'url' => 'https://shop.test/cart'], self::fieldValues($issue));
+
+        $this->commands->dispatch(new DeleteField('url'));
+        self::assertSame(['environment' => 'prod'], self::fieldValues($issue), 'the values go with the field');
+        self::assertSame('Field "URL" deleted, with the value 1 issue held of it.', self::getContainer()->get(ConfigChangeRepository::class)->findLatest(1)[0]->getSummary());
+
+        // A field made later takes the key that was freed, and finds nothing of the one before.
+        $again = $this->commands->dispatch(new CreateField('URL', FieldType::Date));
+        self::assertSame('url', $again->getId());
+        $this->commands->dispatch(new UpdateWorkflow('bug', fields: ['environment' => true, 'url' => false]));
+        self::assertSame(['environment' => 'prod'], self::fieldValues($issue));
+    }
+
     public function testALinkTypeStaysWhileLinksUseIt(): void
     {
         $type = $this->commands->dispatch(new CreateLinkType('Follows', 'Followed by'));
-        $this->commands->dispatch(new UpdateLinkType($type->getId(), inverseLabel: ''));
-        self::assertTrue($this->definition()->link('follows')->isSymmetric());
+        // How it reads from the other issue was chosen with it: its labels change, a direction is neither lost nor gained.
+        $this->commands->dispatch(new UpdateLinkType($type->getId(), inverseLabel: 'Comes after'));
+        self::assertSame('Comes after', $this->definition()->link('follows')->inverseLabel);
+        $this->refused('admin.refused.config.link_nature_kept', new UpdateLinkType('follows', inverseLabel: ' '));
+        $this->refused('admin.refused.config.link_nature_kept', new UpdateLinkType('related', inverseLabel: 'Related from'));
 
         $a = $this->fixtures->createIssue($this->fixtures->client, title: 'A');
         $b = $this->fixtures->createIssue($this->fixtures->client, title: 'B');

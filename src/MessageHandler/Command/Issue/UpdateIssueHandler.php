@@ -44,7 +44,8 @@ final class UpdateIssueHandler
         if (null !== $command->title || null !== $command->description || null !== $command->fields) {
             $this->support->denyUnless($this->access->canEditIssue($actor, $issue), 'edit an issue written by someone else');
         }
-        $fieldChanges = null !== $command->fields ? $this->fieldChanges($actor, $issue, $command->fields) : [];
+        $held = null !== $command->fields ? $this->support->fieldValuesToChange($issue) : [];
+        $fieldChanges = null !== $command->fields ? $this->fieldChanges($actor, $issue, $command->fields, $held) : [];
         $assignee = null;
         if (null !== $command->assigneeId) {
             $this->support->denyUnless($this->access->isGranted($actor, Permission::IssueAssign, $project), 'assign issues');
@@ -82,10 +83,9 @@ final class UpdateIssueHandler
             $this->support->claimAttachments($actor, $issue, [], $command->description);
         }
         if ([] !== $fieldChanges) {
-            $previous = $issue->getFieldValues();
-            $issue->changeFieldValues($fieldChanges);
+            $this->support->writeFieldValues($issue, $fieldChanges);
             foreach ($fieldChanges as $fieldId => $value) {
-                $entries[] = JournalEntry::fieldChanged($issue, $actor, $this->config->definition()->fields[$fieldId], $previous[$fieldId] ?? null, $value);
+                $entries[] = JournalEntry::fieldChanged($issue, $actor, $this->config->definition()->fields[$fieldId], $held[$fieldId] ?? null, $value);
             }
         }
         if (null !== $command->assigneeId && $issue->getAssignee()?->getId() !== $assignee?->getId()) {
@@ -122,16 +122,16 @@ final class UpdateIssueHandler
      * filled, internal-only fields are for internal users.
      *
      * @param array<string, mixed> $values
+     * @param array<string, mixed> $current what the issue holds, by field
      *
      * @return array<string, mixed> field id => new value, null when emptied
      */
-    private function fieldChanges(User $actor, Issue $issue, array $values): array
+    private function fieldChanges(User $actor, Issue $issue, array $values, array $current): array
     {
         $definition = $this->config->definition();
         $workflow = $definition->workflow($issue->getTracker()->getWorkflowId());
         $this->support->assertKnownFields($workflow, $values);
 
-        $current = $issue->getFieldValues();
         $changes = [];
         foreach ($values as $fieldId => $value) {
             $value = '' === $value ? null : $value;

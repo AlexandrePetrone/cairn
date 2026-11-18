@@ -10,6 +10,7 @@ use App\Entity\Budget;
 use App\Entity\BudgetLine;
 use App\Entity\Comment;
 use App\Entity\Issue;
+use App\Entity\IssueFieldValue;
 use App\Entity\IssueLink;
 use App\Entity\IssueSubscription;
 use App\Entity\JournalEntry;
@@ -71,10 +72,11 @@ final class DeleteIssueHandlerTest extends KernelTestCase
         $this->entityManager->clear();
 
         self::assertNull($this->entityManager->getRepository(Issue::class)->find($issueId));
-        foreach ([Comment::class, JournalEntry::class, IssueSubscription::class, Attachment::class, BudgetLine::class] as $class) {
+        foreach ([Comment::class, JournalEntry::class, IssueSubscription::class, Attachment::class, BudgetLine::class, IssueFieldValue::class] as $class) {
             self::assertSame(0, $this->entityManager->getRepository($class)->count(['issue' => $issueId]), $class);
         }
         self::assertSame(1, $this->entityManager->getRepository(BudgetLine::class)->count(['issue' => $other->getId()]), 'the budget line of the other issue stays');
+        self::assertSame(['environment' => 'prod'], self::fieldValues($other), 'what the other issue holds of its fields stays');
         self::assertSame(0, $this->entityManager->getRepository(IssueLink::class)->count([]), 'the link goes with either end');
         self::assertFileDoesNotExist($path, 'the file goes once the transaction committed');
 

@@ -44,7 +44,7 @@ final class CreateIssueHandlerTest extends KernelTestCase
         self::assertSame('new', $first->getPlace());
         self::assertSame(Criticality::Normal, $first->getCriticality());
         self::assertSame('Empty CSV export', $first->getTitle());
-        self::assertSame(['environment' => 'prod'], $first->getFieldValues());
+        self::assertSame(['environment' => 'prod'], self::fieldValues($first));
         self::assertFalse($first->isPrivate());
         self::assertNotNull($first->getId(), 'flushed by the transaction middleware');
 

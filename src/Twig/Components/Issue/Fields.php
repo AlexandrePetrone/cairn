@@ -10,6 +10,7 @@ use App\Entity\Issue;
 use App\Form\Issue\IssueFieldsType;
 use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
+use App\Repository\IssueFieldValueRepository;
 use App\Security\AccessControl;
 use App\Security\Viewer;
 use App\Twig\Components\DispatchesCommands;
@@ -47,6 +48,7 @@ final class Fields
         private readonly AccessControl $access,
         private readonly Viewer $viewer,
         private readonly ConfigRegistry $config,
+        private readonly IssueFieldValueRepository $held,
         private readonly FormFactoryInterface $forms,
         private readonly TranslatorInterface $translator,
     ) {
@@ -61,7 +63,7 @@ final class Fields
     {
         $definition = $this->config->definition();
 
-        return $definition->fieldValues($definition->workflow($this->issue->getTracker()->getWorkflowId()), $this->issue->getFieldValues(), $this->viewer->get()->isInternal());
+        return $definition->fieldValues($definition->workflow($this->issue->getTracker()->getWorkflowId()), $this->held->valuesOf($this->issue), $this->viewer->get()->isInternal());
     }
 
     /**
@@ -132,7 +134,7 @@ final class Fields
         $definition = $this->config->definition();
         $workflow = $definition->workflow($this->issue->getTracker()->getWorkflowId());
 
-        return $this->forms->createNamed('fields', IssueFieldsType::class, array_intersect_key($this->issue->getFieldValues(), $workflow->fields), [
+        return $this->forms->createNamed('fields', IssueFieldsType::class, array_intersect_key($this->held->valuesOf($this->issue), $workflow->fields), [
             'workflow' => $workflow,
             'definition' => $definition,
             'internal' => $this->viewer->get()->isInternal(),

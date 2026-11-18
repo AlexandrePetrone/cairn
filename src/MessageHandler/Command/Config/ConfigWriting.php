@@ -86,6 +86,38 @@ final class ConfigWriting
     }
 
     /**
+     * The choices of a field as it keeps them, value => label, in the order
+     * given. A choice that has no value yet gets one from its label, for
+     * good, as an element gets its key: the value is what issues store.
+     *
+     * @param list<array{value: ?string, label: string}> $choices
+     * @param array<array-key, string>                   $current the choices the field has, by value
+     *
+     * @return array<array-key, string>
+     */
+    public function choices(array $choices, array $current = []): array
+    {
+        // The values the field keeps: a new choice takes none of them.
+        $kept = [];
+        foreach ($choices as $choice) {
+            if (null !== $choice['value'] && isset($current[$choice['value']])) {
+                $kept[$choice['value']] = true;
+            }
+        }
+
+        $options = [];
+        foreach ($choices as $choice) {
+            $value = $choice['value'];
+            if (null === $value || !isset($kept[$value]) || isset($options[$value])) {
+                $value = $this->key($choice['label'], static fn (string $taken): bool => isset($options[$taken]) || isset($kept[$taken]));
+            }
+            $options[$value] = $choice['label'];
+        }
+
+        return $options;
+    }
+
+    /**
      * A field that offers choices has some, each with a value and a label;
      * the other types have none.
      *

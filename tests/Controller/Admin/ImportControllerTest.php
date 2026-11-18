@@ -9,6 +9,7 @@ use App\Entity\Import;
 use App\Entity\Issue;
 use App\Entity\User;
 use App\Import\ImportMapping;
+use App\Repository\IssueFieldValueRepository;
 use App\Tests\Import\ArchiveBuilder;
 use App\Tests\Import\ImportsArchives;
 use App\Tests\Scene\ShopScene;
@@ -187,7 +188,8 @@ final class ImportControllerTest extends WebTestCase
 
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $issue = $entityManager->getRepository(Issue::class)->findOneBy(['importedRef' => '1001']);
-        self::assertSame(['environment' => 'prod'], $issue?->getFieldValues(), 'matched by its label; the others have no field of their name');
+        self::assertInstanceOf(Issue::class, $issue);
+        self::assertSame(['environment' => 'prod'], self::getContainer()->get(IssueFieldValueRepository::class)->valuesOf($issue), 'matched by its label; the others have no field of their name');
         self::assertStringContainsString('- **Browser**: Firefox', $issue->getDescription());
         self::assertSame('1.1', $issue->getRelease()?->getName());
         self::assertSame('done', $entityManager->getRepository(Issue::class)->findOneBy(['importedRef' => '1002'])?->getPlace());

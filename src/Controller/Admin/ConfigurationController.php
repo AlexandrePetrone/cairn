@@ -8,6 +8,7 @@ use App\Config\ConfigException;
 use App\Config\ConfigRegistry;
 use App\Config\StarterKit;
 use App\Repository\ConfigChangeRepository;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -37,12 +38,14 @@ final class ConfigurationController extends AbstractController
      */
     #[Route('/install', name: 'app_admin_configuration_install', methods: ['POST'])]
     #[IsCsrfTokenValid('submit')]
-    public function install(StarterKit $kit, TranslatorInterface $translator): RedirectResponse
+    public function install(StarterKit $kit, TranslatorInterface $translator, LoggerInterface $logger): RedirectResponse
     {
         try {
             $this->addFlash('success', $translator->trans($kit->install() ? 'admin.configuration.starter.installed' : 'admin.configuration.starter.already'));
-        } catch (ConfigException $e) {
-            $this->addFlash('error', $e->getMessage());
+        } catch (ConfigException|\DomainException $e) {
+            // Nothing was installed. The page says so; why is for whoever runs the instance, in the logs.
+            $logger->error('The starter configuration could not be installed: {reason}', ['reason' => $e->getMessage(), 'exception' => $e]);
+            $this->addFlash('error', $translator->trans('admin.configuration.starter.failed'));
         }
 
         return $this->redirectToRoute('app_admin_configuration_workflows');

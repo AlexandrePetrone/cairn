@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\MessageHandler\Command\Issue;
 
+use App\Config\ConfigRegistry;
 use App\Config\Definition\TransitionDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use App\Entity\Attachment;
 use App\Entity\Comment;
+use App\Entity\Field;
 use App\Entity\Issue;
+use App\Entity\IssueFieldValue;
 use App\Entity\JournalEntry;
 use App\Entity\Project;
 use App\Entity\User;
@@ -16,11 +19,13 @@ use App\Event\IssueEvent;
 use App\Event\IssueTransitioned;
 use App\Repository\AttachmentRepository;
 use App\Repository\CommentRepository;
+use App\Repository\IssueFieldValueRepository;
 use App\Repository\IssueRepository;
 use App\Repository\UserRepository;
 use App\Security\AccessControl;
 use App\Security\Permission;
 use App\Workflow\WorkflowProvider;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
@@ -41,6 +46,8 @@ final class IssueHandlerSupport
         private readonly EntityManagerInterface $entityManager,
         private readonly EventDispatcherInterface $events,
         private readonly WorkflowProvider $workflows,
+        private readonly IssueFieldValueRepository $fieldValues,
+        private readonly ConfigRegistry $config,
     ) {
     }
 
@@ -155,6 +162,44 @@ final class IssueHandlerSupport
         }
 
         return $assignee;
+    }
+
+    /**
+     * What the issue holds of its fields, whoever looks, read to be
+     * changed: the row of the issue is locked first, so that two people
+     * filling in the same field at once write one value after the other
+     * and never two rows for it.
+     *
+     * @return array<string, mixed> field id => value
+     */
+    public function fieldValuesToChange(Issue $issue): array
+    {
+        $this->entityManager->lock($issue, LockMode::PESSIMISTIC_WRITE);
+
+        return $this->fieldValues->valuesOf($issue);
+    }
+
+    /**
+     * Writes the values an issue holds of its fields: a row for each, and
+     * none for a field emptied.
+     *
+     * @param array<string, mixed> $changes field id => its value, null or an empty text to empty it
+     */
+    public function writeFieldValues(Issue $issue, array $changes): void
+    {
+        $held = $this->fieldValues->rowsOf($issue);
+        foreach ($changes as $fieldId => $value) {
+            $row = $held[$fieldId] ?? null;
+            if (null === $value || '' === $value) {
+                if (null !== $row) {
+                    $this->entityManager->remove($row);
+                }
+            } elseif (null !== $row) {
+                $row->change($value);
+            } else {
+                $this->entityManager->persist(new IssueFieldValue($issue, $this->config->row(Field::class, (string) $fieldId), $value));
+            }
+        }
     }
 
     /**

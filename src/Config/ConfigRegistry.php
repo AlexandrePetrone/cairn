@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Config;
 
 use App\Config\Definition\InstanceDefinition;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
@@ -20,6 +21,7 @@ final class ConfigRegistry implements ResetInterface
 
     public function __construct(
         private readonly DefinitionLoader $loader,
+        private readonly EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -30,6 +32,24 @@ final class ConfigRegistry implements ResetInterface
     public function definition(): InstanceDefinition
     {
         return $this->definition ??= $this->loader->load();
+    }
+
+    /**
+     * The row of an element of the configuration, which the data points
+     * to: the role of an access, the workflow of a tracker, the type of a
+     * link, the place of an issue. What the element says is read from the
+     * definition; the row is only what the database ties the data to, so
+     * it is asked for an element the definition has.
+     *
+     * @template T of object
+     *
+     * @param class-string<T> $class
+     *
+     * @return T
+     */
+    public function row(string $class, string $id): object
+    {
+        return $this->entityManager->getReference($class, $id) ?? throw new \LogicException(\sprintf('The configuration has no %s "%s".', $class, $id));
     }
 
     public function reset(): void

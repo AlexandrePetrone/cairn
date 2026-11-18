@@ -32,6 +32,7 @@ use App\Message\Query\Issue\SearchIssues;
 use App\MessageHandler\Command\Import\ImportException;
 use App\MessageHandler\Import\AdvanceImportHandler;
 use App\Repository\ImportRecordRepository;
+use App\Repository\IssueFieldValueRepository;
 use App\Security\AccessControl;
 use App\Tests\Scene\ShopScene;
 use Doctrine\ORM\EntityManagerInterface;
@@ -124,7 +125,7 @@ final class ImportRunTest extends KernelTestCase
         self::assertSame($bob->getId(), $first->getAuthor()->getId());
         self::assertSame($nadia->getId(), $first->getAssignee()?->getId());
         self::assertSame('1.1', $first->getRelease()?->getName());
-        self::assertSame(['environment' => 'prod', 'browser' => 'Firefox', 'due_date' => '2024-03-15'], $first->getFieldValues());
+        self::assertEquals(['environment' => 'prod', 'browser' => 'Firefox', 'due_date' => '2024-03-15'], self::getContainer()->get(IssueFieldValueRepository::class)->valuesOf($first));
         self::assertGreaterThan($this->scene->issue('MD-SPT-1')->getBoardRank(), $first->getBoardRank() + 1, 'ranked in its column');
 
         $attachments = $this->entityManager->getRepository(Attachment::class)->findBy(['issue' => $first], ['id' => 'ASC']);
@@ -272,7 +273,7 @@ final class ImportRunTest extends KernelTestCase
         self::assertSame(1, $this->entityManager->getRepository(Issue::class)->count(['importedRef' => '1001']));
         $first = $this->entityManager->getRepository(Issue::class)->findOneBy(['importedRef' => '1001']);
         self::assertSame('The menu overlaps the logo', $first?->getTitle());
-        self::assertSame('prod', $first->getFieldValues()['environment'] ?? null, 'kept as chosen');
+        self::assertSame('prod', self::getContainer()->get(IssueFieldValueRepository::class)->valuesOf($first)['environment'] ?? null, 'kept as chosen');
         self::assertSame(['MD-SPT-11', 'MD-SPT-12', 'MD-SPT-13'], array_map(static fn (Issue $issue): string => $issue->getKey(), $this->entityManager->getRepository(Issue::class)->findBy(['importedRef' => ['1001', '1002', '1003']], ['number' => 'ASC'])), 'no number is lost to the second one');
         $release = $this->entityManager->getRepository(Release::class)->findOneBy(['project' => $this->scene->shop, 'name' => '1.0']);
         self::assertSame('2024-01-02', $release?->getCreatedAt()->format('Y-m-d'));

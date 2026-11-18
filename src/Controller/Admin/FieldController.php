@@ -20,6 +20,7 @@ use App\Message\Command\Config\UpdateField;
 use App\Message\Command\Config\UpdateLinkType;
 use App\Message\CommandBus;
 use App\MessageHandler\Command\Config\ConfigDeletions;
+use App\Repository\IssueFieldValueRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -47,6 +48,7 @@ final class FieldController extends AbstractController
         private readonly CommandBus $commands,
         private readonly TranslatorInterface $translator,
         private readonly ConfigDeletions $deletions,
+        private readonly IssueFieldValueRepository $held,
     ) {
     }
 
@@ -62,7 +64,7 @@ final class FieldController extends AbstractController
         $data = new FieldData();
         $form = $this->createForm(FieldSettingsType::class, $data, ['action' => $request->getRequestUri(), 'create' => true, 'attr' => ['data-controller' => 'reveal']]);
         $form->handleRequest($request);
-        if ($this->applies($form, static fn (): CreateField => new CreateField((string) $data->label, $data->type ?? FieldType::Text, $data->options(), $data->placeholder, $data->help, $data->internalOnly))) {
+        if ($this->applies($form, static fn (): CreateField => new CreateField((string) $data->label, $data->type ?? FieldType::Text, $data->labels(), $data->placeholder, $data->help, $data->internalOnly))) {
             $this->addFlash('success', $this->translator->trans('admin.configuration.fields.created', ['%name%' => (string) $data->label]));
 
             return $this->redirectToRoute('app_admin_configuration_fields');
@@ -79,21 +81,34 @@ final class FieldController extends AbstractController
         $data = new FieldData();
         $data->label = $field->label;
         $data->type = $field->type;
-        $data->write($field->options);
         $data->placeholder = $field->placeholder;
         $data->help = $field->help;
         $data->internalOnly = $field->internalOnly;
 
-        $form = $this->createForm(FieldSettingsType::class, $data, ['action' => $request->getRequestUri(), 'with_choices' => $field->type->hasOptions()]);
+        $form = $this->createForm(FieldSettingsType::class, $data, ['action' => $request->getRequestUri()]);
         $form->handleRequest($request);
-        // An empty placeholder or help erases it; the choices are sent whole, in the order typed.
-        if ($this->applies($form, static fn (): UpdateField => new UpdateField($id, (string) $data->label, $field->type->hasOptions() ? $data->options() : null, (string) $data->placeholder, (string) $data->help, $data->internalOnly))) {
+        // An empty placeholder or help erases it; the choices are changed on their own page.
+        if ($this->applies($form, static fn (): UpdateField => new UpdateField($id, (string) $data->label, placeholder: (string) $data->placeholder, help: (string) $data->help, internalOnly: $data->internalOnly))) {
             $this->addFlash('success', $this->translator->trans('admin.configuration.saved'));
 
             return $this->redirectToRoute('app_admin_configuration_fields');
         }
 
         return $this->page($request, $form, $field);
+    }
+
+    /**
+     * The choices of a field that offers some, a list arranged in place (Config:Choices).
+     */
+    #[Route('/field/{id}/choices', name: 'app_admin_configuration_field_choices', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['GET'])]
+    public function choices(string $id): Response
+    {
+        $definition = $this->config->definition();
+        if (!$definition->hasField($id) || !$definition->field($id)->type->hasOptions()) {
+            throw new NotFoundHttpException(\sprintf('No field "%s" that offers choices in the configuration.', $id));
+        }
+
+        return $this->render('admin/configuration/field_choices.html.twig', ['definition' => $definition, 'field' => $definition->field($id)]);
     }
 
     #[Route('/field/{id}/delete', name: 'app_admin_configuration_field_delete', requirements: ['id' => '[a-z][a-z0-9_]*'], methods: ['POST'])]
@@ -109,9 +124,9 @@ final class FieldController extends AbstractController
     public function newLink(Request $request): Response
     {
         $data = new LinkTypeData();
-        $form = $this->createForm(LinkTypeType::class, $data, ['action' => $request->getRequestUri()]);
+        $form = $this->createForm(LinkTypeType::class, $data, ['action' => $request->getRequestUri(), 'create' => true, 'attr' => ['data-controller' => 'reveal']]);
         $form->handleRequest($request);
-        if ($this->applies($form, static fn (): CreateLinkType => new CreateLinkType((string) $data->label, $data->inverseLabel))) {
+        if ($this->applies($form, static fn (): CreateLinkType => new CreateLinkType((string) $data->label, $data->inverse()))) {
             $this->addFlash('success', $this->translator->trans('admin.configuration.links.created', ['%name%' => (string) $data->label]));
 
             return $this->redirectToRoute('app_admin_configuration_fields');
@@ -127,12 +142,13 @@ final class FieldController extends AbstractController
         $link = $definition->hasLink($id) ? $definition->link($id) : throw new NotFoundHttpException(\sprintf('No link type "%s" in the configuration.', $id));
         $data = new LinkTypeData();
         $data->label = $link->label;
+        $data->nature = $link->isSymmetric() ? LinkTypeData::SAME : LinkTypeData::DIRECTED;
         $data->inverseLabel = $link->inverseLabel;
 
-        $form = $this->createForm(LinkTypeType::class, $data, ['action' => $request->getRequestUri()]);
+        $form = $this->createForm(LinkTypeType::class, $data, ['action' => $request->getRequestUri(), 'directed' => !$link->isSymmetric()]);
         $form->handleRequest($request);
-        // An empty inverse label makes the link symmetric.
-        if ($this->applies($form, static fn (): UpdateLinkType => new UpdateLinkType($id, (string) $data->label, (string) $data->inverseLabel))) {
+        // Whether it reads the same from both issues was chosen when it was created: only its labels change.
+        if ($this->applies($form, static fn (): UpdateLinkType => new UpdateLinkType($id, (string) $data->label, $data->inverse()))) {
             $this->addFlash('success', $this->translator->trans('admin.configuration.saved'));
 
             return $this->redirectToRoute('app_admin_configuration_fields');
@@ -163,7 +179,7 @@ final class FieldController extends AbstractController
             default => null,
         };
 
-        return $this->renderWithDialog($request, 'admin/configuration/fields.html.twig', ['form' => $form, 'dialogSubject' => $subject, 'dialogIsLink' => $link, 'dialogRefusal' => $refusal?->trans($this->translator)], fn (): array => [
+        return $this->renderWithDialog($request, 'admin/configuration/fields.html.twig', ['form' => $form, 'dialogSubject' => $subject, 'dialogIsLink' => $link, 'dialogRefusal' => $refusal?->trans($this->translator), 'dialogValues' => $subject instanceof FieldDefinition ? $this->held->countHolding($subject->id) : 0], fn (): array => [
             'definition' => $this->config->definition(),
         ], $form);
     }

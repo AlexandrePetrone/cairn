@@ -22,13 +22,14 @@ final class UpdateFieldHandler
     public function __invoke(UpdateField $command): void
     {
         $field = $this->writing->get(Field::class, $command->id);
-        ConfigWriting::assertChoices($field->getType(), $command->options ?? $field->getOptions());
+        $options = null === $command->options ? null : $this->writing->choices($command->options, $field->getOptions());
+        ConfigWriting::assertChoices($field->getType(), $options ?? $field->getOptions());
 
         if (null !== $command->label) {
             $field->rename($command->label);
         }
-        if (null !== $command->options) {
-            $field->offer($command->options);
+        if (null !== $options) {
+            $field->offer($options);
         }
         if (null !== $command->placeholder) {
             $field->setPlaceholder($command->placeholder);

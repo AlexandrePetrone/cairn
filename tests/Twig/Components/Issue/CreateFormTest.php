@@ -10,6 +10,7 @@ use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\Tracker;
 use App\Repository\AttachmentRepository;
+use App\Repository\IssueFieldValueRepository;
 use App\Repository\IssueRepository;
 use App\Tests\Scene\ShopScene;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -69,7 +70,7 @@ final class CreateFormTest extends KernelTestCase
         $issue = $this->issue('MD-SPT-11');
         self::assertSame('The cart empties itself', $issue->getTitle());
         self::assertSame(Criticality::High, $issue->getCriticality());
-        self::assertSame(['environment' => 'prod', 'url' => 'https://shop.test/cart'], $issue->getFieldValues());
+        self::assertEquals(['environment' => 'prod', 'url' => 'https://shop.test/cart'], self::getContainer()->get(IssueFieldValueRepository::class)->valuesOf($issue));
         self::assertSame('new', $issue->getPlace());
         self::assertFalse($issue->isPrivate());
         self::assertSame('claire.martin@maison-dupont.test', $issue->getAuthor()->getEmail());

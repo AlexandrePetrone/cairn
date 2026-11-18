@@ -19,7 +19,7 @@ final readonly class UpdateField implements ConfigurationCommand
         #[Assert\NotBlank(normalizer: 'trim', allowNull: true)]
         #[Assert\Length(max: 120)]
         public ?string $label = null,
-        /** @var array<array-key, string>|null value => label, in their order */
+        /** @var list<array{value: ?string, label: string}>|null its choices, in their order: one without a value is new, and gets it from its label */
         public ?array $options = null,
         #[Assert\Length(max: 255)]
         public ?string $placeholder = null,

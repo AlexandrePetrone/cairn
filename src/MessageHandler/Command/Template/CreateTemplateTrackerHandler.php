@@ -31,7 +31,7 @@ final class CreateTemplateTrackerHandler
             throw TemplateException::unknownWorkflow($command->workflowId);
         }
 
-        $tracker = new TemplateTracker($template, $command->name, $this->entityManager->getReference(Workflow::class, $command->workflowId) ?? throw new \LogicException('An element of the configuration that the definition has exists.'), \count($this->trackers->findByTemplate($template)));
+        $tracker = new TemplateTracker($template, $command->name, $this->config->row(Workflow::class, $command->workflowId), \count($this->trackers->findByTemplate($template)));
         $tracker->setDescription($command->description);
         if ($command->private) {
             $tracker->makePrivate();

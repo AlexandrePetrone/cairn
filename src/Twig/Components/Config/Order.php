@@ -194,6 +194,9 @@ final class Order extends AbstractController
                 $this->translator->trans('field_type.'.$field->type->value),
                 [] === $workflows ? $this->translator->trans('admin.configuration.fields.unused') : implode(', ', $workflows),
             ];
+            if ($field->type->hasOptions()) {
+                array_splice($meta, 1, 0, [$this->translator->trans('admin.configuration.fields.choices.count', ['%count%' => \count($field->options)])]);
+            }
             $rows[] = $this->row($field->id, $field->label, implode(' · ', $meta), $this->generateUrl('app_admin_configuration_field', ['id' => $field->id]), badge: $field->internalOnly ? $this->translator->trans('admin.configuration.fields.internal_only') : null);
         }
 

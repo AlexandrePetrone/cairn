@@ -66,13 +66,13 @@ final class CreateIssueHandler
         $issue = new Issue($project, $tracker, $this->workflows->row($workflow->initial), $project->allocateIssueNumber(), $actor, $command->title, $command->description);
         $issue->setCriticality($command->criticality);
         $issue->assignTo($assignee);
-        $issue->setFieldValues($command->fields);
         if ($command->private || $tracker->isPrivate()) {
             $issue->makePrivate();
         }
 
         $this->support->arrive($issue);
         $this->entityManager->persist($issue);
+        $this->support->writeFieldValues($issue, $command->fields);
 
         // Files sent while writing the issue were uploaded before it existed.
         $this->support->claimAttachments($actor, $issue, $command->attachments, $command->description);

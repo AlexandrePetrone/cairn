@@ -10,6 +10,7 @@ use App\Entity\BudgetLine;
 use App\Entity\CodeReference;
 use App\Entity\Comment;
 use App\Entity\Issue;
+use App\Entity\IssueFieldValue;
 use App\Entity\IssueLink;
 use App\Entity\IssueSubscription;
 use App\Entity\JournalEntry;
@@ -42,6 +43,7 @@ final class IssueEraser
         [IssueLink::class, 'source'],
         [IssueLink::class, 'target'],
         [IssueSubscription::class, 'issue'],
+        [IssueFieldValue::class, 'issue'],
         [CodeReference::class, 'issue'],
         [BudgetLine::class, 'issue'],
         [Comment::class, 'issue'],
