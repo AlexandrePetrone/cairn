@@ -28,6 +28,7 @@ RUN <<-EOF
 		apcu \
 		intl \
 		opcache \
+		pdo_mysql \
 		pdo_pgsql \
 		xdebug \
 		zip

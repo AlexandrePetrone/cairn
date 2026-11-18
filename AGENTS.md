@@ -593,7 +593,7 @@ host.
 Functional tests extend `WebTestCase`; handler and service tests extend
 `KernelTestCase` against a real PostgreSQL database, every test rolled back
 by `dama/doctrine-test-bundle`. Sequences are not rolled back, so a test
-never assumes an id.
+never assumes an id. The CI runs the suite a second time on MariaDB.
 
 - Tests own their data: handler tests build it with `AccessFixtures` and
   `IssueFixtures` under the small configuration of

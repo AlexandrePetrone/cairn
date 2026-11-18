@@ -15,7 +15,7 @@ concurrency:
 env:
     # The version the Docker image runs (see Dockerfile).
     PHP_VERSION: "8.4"
-    PHP_EXTENSIONS: ctype, iconv, intl, pdo_pgsql, apcu, zip
+    PHP_EXTENSIONS: ctype, iconv, intl, pdo_pgsql, pdo_mysql, apcu, zip
     NODE_VERSION: "22"
 
 jobs:
@@ -170,22 +170,40 @@ jobs:
                   npm run build
 
     phpunit:
-        name: Tests
+        name: Tests (${{ matrix.database }})
         runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                # The two servers the schema must run on. The tests create their own database
+                # (tests/bootstrap.php), hence root on MariaDB, where "app" could not.
+                include:
+                    - database: PostgreSQL
+                      image: postgres:18-alpine
+                      port: 5432
+                      health: pg_isready -U app -d app
+                      url: "postgresql://app:!ChangeMe!@127.0.0.1:5432/app?serverVersion=18&charset=utf8"
+                    - database: MariaDB
+                      image: mariadb:11.4
+                      port: 3306
+                      health: healthcheck.sh --connect --innodb_initialized
+                      url: "mysql://root:!ChangeMe!@127.0.0.1:3306/app?serverVersion=11.4.2-MariaDB&charset=utf8mb4"
         env:
             # PHPUnit sets APP_ENV=test itself; tests/bootstrap.php creates the test database and its schema.
-            DATABASE_URL: "postgresql://app:!ChangeMe!@127.0.0.1:5432/app?serverVersion=18&charset=utf8"
+            DATABASE_URL: ${{ matrix.url }}
         services:
             database:
-                image: postgres:18-alpine
+                image: ${{ matrix.image }}
+                # Each image reads its own variables and ignores the others.
                 env:
                     POSTGRES_DB: app
                     POSTGRES_USER: app
                     POSTGRES_PASSWORD: "!ChangeMe!"
+                    MARIADB_ROOT_PASSWORD: "!ChangeMe!"
                 ports:
-                    - 5432:5432
+                    - ${{ matrix.port }}:${{ matrix.port }}
                 options: >-
-                    --health-cmd "pg_isready -U app -d app"
+                    --health-cmd "${{ matrix.health }}"
                     --health-interval 5s
                     --health-timeout 5s
                     --health-retries 10
