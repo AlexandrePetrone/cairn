@@ -63,11 +63,11 @@ final class ShowIssueHandler
         foreach ($events as $event) {
             $timeline[] = TimelineEntry::ofEvent($event);
             if (null !== $event->getComment()) {
-                $attached[$event->getComment()->getId()] = true;
+                $attached[(int) $event->getComment()->getId()] = true;
             }
         }
         foreach ($comments as $comment) {
-            if (!isset($attached[$comment->getId()])) {
+            if (!isset($attached[(int) $comment->getId()])) {
                 $timeline[] = TimelineEntry::ofComment($comment);
             }
         }

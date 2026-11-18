@@ -3,7 +3,7 @@
 # Development image only: the code is bind-mounted at runtime (compose.yaml).
 FROM node:22-bookworm-slim AS node
 
-FROM dunglas/frankenphp:1-php8.4-trixie
+FROM dunglas/frankenphp:1-php8.5-trixie
 
 SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
 

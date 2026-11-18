@@ -10,7 +10,7 @@ How a feature works is read in the code.
 
 ## Stack and decisions
 
-Symfony 8.2 on PHP 8.4, installed from `webapp-pack`; `composer.json` has
+Symfony 8.2 on PHP 8.5, installed from `webapp-pack`; `composer.json` has
 the exact versions. In place: Doctrine ORM, Messenger (Doctrine transport),
 Form, Validator, Serializer, Security, Twig, Mailer, Translation, Stimulus,
 Turbo, UX Twig/Live Components, Scheduler, Workflow, Lock, Reprise

@@ -25,7 +25,7 @@ The interface ships in English and French; an instance runs in one language (`CA
 
 ## Stack
 
-Symfony 8.2 on PHP 8.4, Doctrine ORM (PostgreSQL, or MariaDB), Messenger for the emails and the scheduled tasks, the Symfony Workflow component for workflows built from the configuration, Twig with Symfony UX (Turbo, Live Components, Stimulus), Tailwind CSS 4 and Vite through [Symfony Reprise](https://github.com/symfony/reprise), [API Platform](https://api-platform.com) for the REST API.
+Symfony 8.2 on PHP 8.5, Doctrine ORM (PostgreSQL, or MariaDB), Messenger for the emails and the scheduled tasks, the Symfony Workflow component for workflows built from the configuration, Twig with Symfony UX (Turbo, Live Components, Stimulus), Tailwind CSS 4 and Vite through [Symfony Reprise](https://github.com/symfony/reprise), [API Platform](https://api-platform.com) for the REST API.
 
 ## Status
 
@@ -40,7 +40,7 @@ How to run Cairn on a server of your own. For development, use the Docker stack 
 
 ### Requirements
 
-- PHP 8.4 with the `intl`, `pdo_pgsql` (or `pdo_mysql`), `ctype`, `iconv` and `zip` extensions, and Composer
+- PHP 8.5 with the `intl`, `pdo_pgsql` (or `pdo_mysql`), `ctype`, `iconv` and `zip` extensions, and Composer
 - PostgreSQL 16+ (or MariaDB 10.11+)
 - Node.js 22, only to build the assets
 - A web server pointing at `public/` (Caddy, FrankenPHP, nginx + PHP-FPM…), with PHP's upload limits allowing 10 MB files (`upload_max_filesize`, `post_max_size`)
