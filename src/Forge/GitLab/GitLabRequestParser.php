@@ -95,12 +95,13 @@ final class GitLabRequestParser extends AbstractRequestParser
             if (!\is_array($commit) || '' === $sha = self::str($commit['id'] ?? null, 64)) {
                 continue;
             }
-            $commits[] = new CommitPayload($sha, self::str($commit['title'] ?? null, 255), self::str($commit['message'] ?? null, 10000), self::str($commit['url'] ?? null, 500), self::str($commit['author']['name'] ?? null, 120));
+            $commits[] = new CommitPayload($sha, self::str($commit['title'] ?? null, 255), self::str($commit['message'] ?? null, 10000), self::url($commit['url'] ?? null, 500), self::str($commit['author']['name'] ?? null, 120));
         }
         if ([] === $commits) {
             return null;
         }
-        $branchUrl = self::str($payload['project']['web_url'] ?? null, 200).'/-/tree/'.implode('/', array_map(rawurlencode(...), explode('/', $branch)));
+        $projectUrl = self::url($payload['project']['web_url'] ?? null, 200);
+        $branchUrl = '' === $projectUrl ? '' : $projectUrl.'/-/tree/'.implode('/', array_map(rawurlencode(...), explode('/', $branch)));
 
         return array_map(static fn (CodeRepository $link): RemoteEvent => new PushReceived((string) Uuid::v4(), (int) $link->getId(), $branch, $branchUrl, $commits), $links);
     }
@@ -128,7 +129,7 @@ final class GitLabRequestParser extends AbstractRequestParser
             $number,
             self::str($attributes['title'] ?? null, 255),
             self::str($attributes['description'] ?? null, 10000),
-            self::str($attributes['url'] ?? null, 500),
+            self::url($attributes['url'] ?? null, 500),
             self::str($attributes['source_branch'] ?? null, 255),
             $state,
             self::str($payload['user']['name'] ?? null, 120),
@@ -141,5 +142,13 @@ final class GitLabRequestParser extends AbstractRequestParser
     private static function str(mixed $value, int $max): string
     {
         return \is_scalar($value) ? mb_substr(trim(str_replace("\0", '', (string) $value)), 0, $max) : '';
+    }
+
+    /** An address of the payload, shown as a link: one of the web, or none. */
+    private static function url(mixed $value, int $max): string
+    {
+        $url = self::str($value, $max);
+
+        return 1 === preg_match('#^https?://#i', $url) ? $url : '';
     }
 }

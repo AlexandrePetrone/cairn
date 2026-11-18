@@ -92,6 +92,7 @@ final class GitLabRequestParserTest extends KernelTestCase
         $body['commits'][0]['author'] = 'not an object';
         $body['commits'][0]['title'] = ['not', 'a', 'string'];
         $body['commits'][1]['message'] = "with a NUL\0byte";
+        $body['commits'][1]['url'] = 'javascript:alert(1)';
         $body['commits'][2] = 'not a commit';
         $body['commits'] = array_merge($body['commits'], array_fill(0, 120, ['id' => 'f', 'title' => 'x', 'message' => 'x', 'url' => 'u', 'author' => ['name' => 'a']]));
 
@@ -103,6 +104,8 @@ final class GitLabRequestParserTest extends KernelTestCase
         self::assertSame('', $events[0]->commits[0]->authorName);
         self::assertSame('', $events[0]->commits[0]->title);
         self::assertSame('with a NULbyte', $events[0]->commits[1]->message);
+        self::assertSame('', $events[0]->commits[1]->url, 'an address that is not of the web is no link');
+        self::assertStringStartsWith('https://', $events[0]->commits[0]->url);
         self::assertLessThanOrEqual(100, \count($events[0]->commits), 'no more than a hundred commits are read');
     }
 

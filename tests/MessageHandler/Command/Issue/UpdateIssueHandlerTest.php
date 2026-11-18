@@ -116,6 +116,15 @@ final class UpdateIssueHandlerTest extends KernelTestCase
         $this->commands->dispatch(new UpdateIssue((int) $this->fixtures->client->getId(), $issue->getKey(), fields: ['environment' => null]));
     }
 
+    public function testAnAddressIsOneOfTheWeb(): void
+    {
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+
+        $this->expectException(IssueException::class);
+        $this->expectExceptionMessage('takes a web address');
+        $this->commands->dispatch(new UpdateIssue((int) $this->fixtures->client->getId(), $issue->getKey(), fields: ['url' => 'javascript:alert(1)']));
+    }
+
     public function testAFieldOutsideTheWorkflowIsRefused(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);

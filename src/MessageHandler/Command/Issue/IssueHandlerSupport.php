@@ -7,6 +7,7 @@ namespace App\MessageHandler\Command\Issue;
 use App\Config\ConfigRegistry;
 use App\Config\Definition\TransitionDefinition;
 use App\Config\Definition\WorkflowDefinition;
+use App\Config\FieldType;
 use App\Entity\Attachment;
 use App\Entity\Comment;
 use App\Entity\Field;
@@ -203,15 +204,20 @@ final class IssueHandlerSupport
     }
 
     /**
-     * Every value given is for a field the workflow uses.
+     * Every value given is for a field the workflow uses, and an address
+     * is one of the web: it is shown as a link, whatever door it came by.
      *
      * @param array<string, mixed> $values
      */
     public function assertKnownFields(WorkflowDefinition $workflow, array $values): void
     {
-        foreach (array_keys($values) as $fieldId) {
+        $fields = $this->config->definition()->fields;
+        foreach ($values as $fieldId => $value) {
             if (!isset($workflow->fields[$fieldId])) {
                 throw IssueException::unknownField((string) $fieldId, $workflow->id);
+            }
+            if (FieldType::Url === ($fields[$fieldId] ?? null)?->type && null !== $value && '' !== $value && (!\is_string($value) || 1 !== preg_match('#^https?://#i', $value))) {
+                throw IssueException::notAWebAddress((string) $fieldId);
             }
         }
     }

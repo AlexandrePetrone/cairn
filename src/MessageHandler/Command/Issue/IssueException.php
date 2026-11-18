@@ -35,6 +35,11 @@ final class IssueException extends \DomainException
         return new self(\sprintf('Field "%s" is not used by workflow "%s".', $fieldId, $workflowId));
     }
 
+    public static function notAWebAddress(string $fieldId): self
+    {
+        return new self(\sprintf('Field "%s" takes a web address: http:// or https://.', $fieldId));
+    }
+
     public static function missingField(string $fieldId): self
     {
         return new self(\sprintf('Field "%s" is required.', $fieldId));

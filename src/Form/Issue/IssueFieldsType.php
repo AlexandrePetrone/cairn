@@ -19,6 +19,7 @@ use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Validator\Constraints\Url;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -53,7 +54,11 @@ final class IssueFieldsType extends AbstractType
                 'label' => $field->label,
                 'help' => $field->help,
                 'required' => $usage->required,
-                'constraints' => $usage->required && FieldType::Bool !== $field->type ? [new NotBlank()] : [],
+                'constraints' => [
+                    ...($usage->required && FieldType::Bool !== $field->type ? [new NotBlank()] : []),
+                    // Shown as a link: only a web address is one.
+                    ...(FieldType::Url === $field->type ? [new Url(protocols: ['http', 'https'], requireTld: false)] : []),
+                ],
                 'attr' => null === $field->placeholder ? [] : ['placeholder' => $field->placeholder],
             ]);
         }
