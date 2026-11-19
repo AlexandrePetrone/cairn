@@ -12,6 +12,8 @@
 >
     <php>
         <ini name="display_errors" value="1" />
+        <!-- Not UTC, where dates are stored: one that goes round its type is some hours away. -->
+        <ini name="date.timezone" value="America/New_York" />
         <ini name="error_reporting" value="-1" />
         <!-- The development story is loaded by several test classes; the default 128M is not enough for the whole suite. -->
         <ini name="memory_limit" value="512M" />

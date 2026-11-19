@@ -55,7 +55,7 @@ final class ImportArchiveTest extends TestCase
         self::assertSame(['501', '502'], array_column($issues[0]->allFiles(), 'id'));
         self::assertTrue($issues[0]->comments[1]['private']);
         self::assertTrue($issues[1]->closed);
-        self::assertSame('2024-03-01T09:00:00+00:00', $issues[0]->createdAt->format(\DATE_ATOM));
+        self::assertEquals(new \DateTimeImmutable('2024-03-01T09:00:00+00:00'), $issues[0]->createdAt);
         self::assertTrue($archive->hasFile('files/501'));
         self::assertFalse($archive->hasFile('files/999'));
     }

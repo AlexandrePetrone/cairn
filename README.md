@@ -53,7 +53,7 @@ SERVER_NAME=cairn.example.com
 TZ=Europe/Paris
 ```
 
-`TZ` is the timezone the dates are shown and stored in (UTC without it). Choose it before the first issue is written: changing it later moves every date already there.
+`TZ` is the timezone the dates are shown in (UTC without it). They are stored in UTC, so it may change later without moving any of them.
 
 Then start it, create the schema and the first administrator:
 
@@ -82,7 +82,7 @@ The worker restarts until the schema is there. Sign in: the administration offer
 - PHP 8.5 with the `intl`, `pdo_pgsql` (or `pdo_mysql`), `ctype`, `iconv` and `zip` extensions, and Composer
 - PostgreSQL 16+ (or MariaDB 10.11+)
 - Node.js 22, only to build the assets
-- A web server pointing at `public/` (Caddy, FrankenPHP, nginx + PHP-FPM…), with PHP's upload limits allowing 10 MB files (`upload_max_filesize`, `post_max_size`)
+- A web server pointing at `public/` (Caddy, FrankenPHP, nginx + PHP-FPM…), with PHP's upload limits allowing 10 MB files (`upload_max_filesize`, `post_max_size`) and its `date.timezone` set to the timezone the dates are shown in (they are stored in UTC)
 
 #### Steps
 

@@ -118,8 +118,8 @@ final class ImportRunTest extends KernelTestCase
         $first = $this->issue('MD-SPT-11');
         self::assertSame('The menu overlaps the logo', $first->getTitle());
         self::assertSame('1001', $first->getImportedRef());
-        self::assertSame('2024-03-01T09:00:00+00:00', $first->getCreatedAt()->format(\DATE_ATOM));
-        self::assertSame('2024-03-04T16:20:00+00:00', $first->getUpdatedAt()->format(\DATE_ATOM));
+        self::assertEquals(new \DateTimeImmutable('2024-03-01T09:00:00+00:00'), $first->getCreatedAt());
+        self::assertEquals(new \DateTimeImmutable('2024-03-04T16:20:00+00:00'), $first->getUpdatedAt());
         self::assertSame('new', $first->getPlace());
         self::assertSame(Criticality::Normal, $first->getCriticality());
         self::assertSame($this->scene->bugs->getId(), $first->getTracker()->getId());
@@ -144,7 +144,7 @@ final class ImportRunTest extends KernelTestCase
         $comments = $this->entityManager->getRepository(Comment::class)->findBy(['issue' => $first], ['createdAt' => 'ASC']);
         self::assertCount(2, $comments);
         self::assertSame('Fixed with #MD-SPT-12, see @[Bob Client](user:'.$bob->getId().').', $comments[0]->getBody());
-        self::assertSame('2024-03-02T10:00:00+00:00', $comments[0]->getCreatedAt()->format(\DATE_ATOM));
+        self::assertEquals(new \DateTimeImmutable('2024-03-02T10:00:00+00:00'), $comments[0]->getCreatedAt());
         self::assertSame($nadia->getId(), $comments[0]->getAuthor()?->getId());
         self::assertTrue($comments[1]->isPrivate(), 'a private comment stays private');
         self::assertSame($comments[1]->getId(), $trace->getComment()?->getId(), 'and its file goes with it');
@@ -158,7 +158,7 @@ final class ImportRunTest extends KernelTestCase
 
         $second = $this->issue('MD-SPT-12');
         self::assertSame('done', $second->getPlace());
-        self::assertSame('2024-02-14T12:00:00+00:00', $second->getClosedAt()?->format(\DATE_ATOM));
+        self::assertEquals(new \DateTimeImmutable('2024-02-14T12:00:00+00:00'), $second->getClosedAt());
         self::assertSame(Criticality::Low, $second->getCriticality());
         self::assertSame($carol->getId(), $second->getAuthor()->getId());
         self::assertSame(ReleaseStatus::Delivered, $second->getRelease()?->getStatus());

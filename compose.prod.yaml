@@ -35,8 +35,8 @@ x-cairn: &cairn
     MAILER_FROM: ${MAILER_FROM:-Cairn <no-reply@cairn.example>}
     # en or fr, for the whole instance.
     CAIRN_LOCALE: ${CAIRN_LOCALE:-en}
-    # The timezone the dates are shown and stored in ("Europe/Paris"). Choose it before the
-    # first issue: changing it later moves every date already written.
+    # The timezone the dates are shown in ("Europe/Paris"). They are stored in UTC: it may
+    # change later.
     TZ: ${TZ:-UTC}
     # Real time, through the hub built into the web server: where the worker publishes, and
     # where the browsers listen, always a full address. The worker goes by the public address

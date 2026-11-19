@@ -35,6 +35,12 @@ without its Doctrine bridge), `symfony/mcp-bundle`, Mercure
     in bulk statements that run no Doctrine listener, so the files go
     afterwards (`RemoveFiles`). Deleting is synchronous and notifies
     nobody.
+  Dates are stored in UTC and read in the timezone of PHP, which only says
+  how they are shown (`TZ` in the image) and may change:
+  `Entity/Type/UtcDateTimeImmutableType` replaces `datetime_immutable` and
+  is the one place that converts. A date read by hand from SQL (an
+  aggregate) goes through it, and no SQL writes one as a string; the tests
+  run in a timezone that is not UTC so that one that does shows.
 - **Interface**: server-rendered Twig + Turbo + Live Components, Tailwind,
   no JavaScript framework.
 - **Auth**: `form_login` on `/login`; every route requires `ROLE_USER`
@@ -119,7 +125,7 @@ Messenger buses. No modules, no hexagonal layers, no event sourcing.
 
 ```
 src/
-  Entity/          flat; persisted enums in Entity/Enum/
+  Entity/          flat; persisted enums in Entity/Enum/, the date type in Entity/Type/
   Repository/      one per entity, never the viewer; plus the DQL reads share
   Message/         Command/<Domain>/, Query/<Domain>/, CommandBus, QueryBus
   MessageHandler/  exact mirror of Message/, one handler per message
