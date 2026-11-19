@@ -53,7 +53,7 @@ SERVER_NAME=cairn.example.com
 TZ=Europe/Paris
 ```
 
-`TZ` is the timezone the dates are shown and stored in (UTC without it). Choose it before the first issue is written: changing it later moves every date already there.
+`TZ` is the timezone of the instance (UTC without it).
 
 Then start it, create the schema and the first administrator:
 
