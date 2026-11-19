@@ -33,7 +33,7 @@ class PendingNotificationRepository extends ServiceEntityRepository
             ->join('i.project', 'p')
             ->join('n.recipient', 'r')
             ->leftJoin('n.actor', 'a')
-            ->orderBy('n.id', 'ASC')
+            ->orderBy('n.id', \SortDirection::Ascending)
             ->getQuery();
 
         return EntityList::of($query, PendingNotification::class);

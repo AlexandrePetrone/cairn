@@ -22,7 +22,6 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
  * The configuration pages, on the starter configuration the scene
@@ -32,7 +31,6 @@ use Zenstruck\Foundry\Test\Factories;
  */
 final class ConfigurationTest extends WebTestCase
 {
-    use Factories;
     use InteractsWithLiveComponents;
 
     private const array FRAME = ['HTTP_TURBO_FRAME' => 'modal'];

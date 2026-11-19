@@ -52,7 +52,7 @@ final class ListVisibleProjectsHandler
             ->join('i.place', 'step')
             ->where('p.id IN (:projects)')
             ->groupBy('p.id')
-            ->orderBy('lastActivity', 'DESC')
+            ->orderBy('lastActivity', \SortDirection::Descending)
             ->setParameter('projects', array_keys($projects))
             ->setParameter('closed', PlaceStatus::Closed)
             ->setParameter('waiting', PlaceStatus::Waiting)

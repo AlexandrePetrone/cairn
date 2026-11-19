@@ -11,7 +11,6 @@ use App\Tests\Security\SingleSignOnProvider;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
  * Signing in through the identity provider of the instance, from the
@@ -20,7 +19,6 @@ use Zenstruck\Foundry\Test\Factories;
  */
 final class SingleSignOnTest extends WebTestCase
 {
-    use Factories;
     use KernelHelpers;
     use SingleSignOnProvider;
 

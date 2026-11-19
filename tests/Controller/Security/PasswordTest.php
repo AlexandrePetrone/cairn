@@ -12,7 +12,6 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\MailerAssertionsTrait;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
  * "Forgot password?" and the page that sets a password from a link.
@@ -21,7 +20,6 @@ use Zenstruck\Foundry\Test\Factories;
 final class PasswordTest extends WebTestCase
 {
     use ClockSensitiveTrait;
-    use Factories;
     use KernelHelpers;
     use MailerAssertionsTrait;
 

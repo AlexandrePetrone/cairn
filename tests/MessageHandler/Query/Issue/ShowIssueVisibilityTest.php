@@ -16,7 +16,6 @@ use App\Story\AppStory;
 use App\Tests\KernelHelpers;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
  * ShowIssueHandler must agree with AccessControl for every user and every
@@ -27,7 +26,6 @@ use Zenstruck\Foundry\Test\Factories;
  */
 final class ShowIssueVisibilityTest extends KernelTestCase
 {
-    use Factories;
     use KernelHelpers;
 
     public function testSqlAndPhpAgreeOnTheWholeDevelopmentDataset(): void

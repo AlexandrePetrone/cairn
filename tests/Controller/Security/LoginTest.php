@@ -10,11 +10,9 @@ use App\Tests\KernelHelpers;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Zenstruck\Foundry\Test\Factories;
 
 final class LoginTest extends WebTestCase
 {
-    use Factories;
     use KernelHelpers;
 
     private KernelBrowser $client;

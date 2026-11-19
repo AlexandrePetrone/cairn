@@ -6,11 +6,11 @@ namespace App\Workflow;
 
 use App\Config\Definition\WorkflowDefinition;
 use App\Entity\Place;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Workflow\DefinitionBuilder;
 use Symfony\Component\Workflow\StateMachine;
 use Symfony\Component\Workflow\Transition;
 use Symfony\Component\Workflow\WorkflowInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Builds a Symfony state machine from a workflow definition of the instance

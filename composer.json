@@ -17,7 +17,7 @@
         "ext-iconv": "*",
         "ext-zip": "*",
         "api-platform/mcp": "^5.0",
-        "api-platform/symfony": "^5.0",
+        "api-platform/symfony": "^5.0.8",
         "doctrine/doctrine-bundle": "^3.3",
         "doctrine/doctrine-migrations-bundle": "^4.0",
         "doctrine/orm": "^3.7",
@@ -143,6 +143,6 @@
         "symfony/maker-bundle": "^1.0",
         "symfony/stopwatch": "8.2.*",
         "symfony/web-profiler-bundle": "8.2.*",
-        "zenstruck/foundry": "^2.15"
+        "zenstruck/foundry": "^2.17"
     }
 }

@@ -50,18 +50,17 @@ final class IssueOrder
         }
 
         if (null !== $sort) {
-            $direction = self::sql($order);
             match ($sort) {
-                IssueSort::Key => $queryBuilder->addOrderBy('p.key', $direction)->addOrderBy('i.number', $direction),
+                IssueSort::Key => $queryBuilder->addOrderBy('p.key', $order)->addOrderBy('i.number', $order),
                 IssueSort::Title => self::by($queryBuilder, 'sortTitle', 'LOWER(i.title)', $order),
-                IssueSort::Project => $queryBuilder->addOrderBy('w.name', $direction)->addOrderBy('p.name', $direction),
-                IssueSort::Tracker => $queryBuilder->addOrderBy('t.name', $direction),
+                IssueSort::Project => $queryBuilder->addOrderBy('w.name', $order)->addOrderBy('p.name', $order),
+                IssueSort::Tracker => $queryBuilder->addOrderBy('t.name', $order),
                 IssueSort::Place => self::byPlace($queryBuilder, 'sort', $placeRanks, $order),
                 // Ascending is the least critical first: the rank read backwards.
                 IssueSort::Criticality => self::by($queryBuilder, 'sortCriticality', self::CRITICALITY_RANK, \SortDirection::Ascending === $order ? \SortDirection::Descending : \SortDirection::Ascending),
                 IssueSort::Assignee => self::byAssignee($queryBuilder, 'sort', $order),
-                IssueSort::Updated => $queryBuilder->addOrderBy('i.updatedAt', $direction),
-                IssueSort::Rank => $queryBuilder->addOrderBy('i.boardRank', $direction),
+                IssueSort::Updated => $queryBuilder->addOrderBy('i.updatedAt', $order),
+                IssueSort::Rank => $queryBuilder->addOrderBy('i.boardRank', $order),
             };
         }
 
@@ -69,8 +68,8 @@ final class IssueOrder
         self::by($queryBuilder, 'statusOrder', self::STATUS_RANK, \SortDirection::Ascending);
 
         return self::by($queryBuilder, 'criticalityOrder', self::CRITICALITY_RANK, \SortDirection::Ascending)
-            ->addOrderBy('i.updatedAt', 'DESC')
-            ->addOrderBy('i.id', 'DESC');
+            ->addOrderBy('i.updatedAt', \SortDirection::Descending)
+            ->addOrderBy('i.id', \SortDirection::Descending);
     }
 
     /**
@@ -88,19 +87,11 @@ final class IssueOrder
         };
     }
 
-    /**
-     * The direction as DQL writes it.
-     */
-    private static function sql(\SortDirection $order): string
-    {
-        return \SortDirection::Descending === $order ? 'DESC' : 'ASC';
-    }
-
     private static function by(QueryBuilder $queryBuilder, string $alias, string $expression, \SortDirection $order): QueryBuilder
     {
         return $queryBuilder
             ->addSelect(\sprintf('%s AS HIDDEN %s', $expression, $alias))
-            ->addOrderBy($alias, self::sql($order));
+            ->addOrderBy($alias, $order);
     }
 
     /**
@@ -109,9 +100,9 @@ final class IssueOrder
     private static function byAssignee(QueryBuilder $queryBuilder, string $role, \SortDirection $order): QueryBuilder
     {
         return self::by($queryBuilder, $role.'Assigned', 'CASE WHEN a.id IS NULL THEN 0 ELSE 1 END', $order)
-            ->addOrderBy('a.lastName', self::sql($order))
-            ->addOrderBy('a.firstName', self::sql($order))
-            ->addOrderBy('a.id', self::sql($order));
+            ->addOrderBy('a.lastName', $order)
+            ->addOrderBy('a.firstName', $order)
+            ->addOrderBy('a.id', $order);
     }
 
     /**
@@ -122,9 +113,9 @@ final class IssueOrder
     {
         return self::by($queryBuilder, 'groupReleaseState', "CASE WHEN r.id IS NULL THEN 2 WHEN r.status = 'open' THEN 0 ELSE 1 END", \SortDirection::Ascending)
             ->addSelect('CASE WHEN r.plannedOn IS NULL THEN 1 ELSE 0 END AS HIDDEN groupReleaseUndated')
-            ->addOrderBy('groupReleaseUndated', 'ASC')
-            ->addOrderBy('r.plannedOn', 'ASC')
-            ->addOrderBy('r.id', 'ASC');
+            ->addOrderBy('groupReleaseUndated', \SortDirection::Ascending)
+            ->addOrderBy('r.plannedOn', \SortDirection::Ascending)
+            ->addOrderBy('r.id', \SortDirection::Ascending);
     }
 
     /**
@@ -134,7 +125,7 @@ final class IssueOrder
     private static function byPlace(QueryBuilder $queryBuilder, string $role, array $placeRanks, \SortDirection $order): QueryBuilder
     {
         if ([] === $placeRanks) {
-            return $queryBuilder->addOrderBy('i.place', self::sql($order));
+            return $queryBuilder->addOrderBy('i.place', $order);
         }
 
         $cases = '';

@@ -30,7 +30,7 @@ class ImportRepository extends ServiceEntityRepository
             ->join('import.project', 'project')
             ->join('project.workspace', 'workspace')
             ->join('import.createdBy', 'author')
-            ->orderBy('import.id', 'DESC')
+            ->orderBy('import.id', \SortDirection::Descending)
             ->getQuery()
             ->getResult();
     }

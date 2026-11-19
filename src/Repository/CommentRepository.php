@@ -32,7 +32,7 @@ class CommentRepository extends ServiceEntityRepository
             ->andWhere('u.internal = true')
             ->andWhere('u.active = true')
             ->setParameter('issue', $issue)
-            ->orderBy('c.id', 'DESC')
+            ->orderBy('c.id', \SortDirection::Descending)
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();

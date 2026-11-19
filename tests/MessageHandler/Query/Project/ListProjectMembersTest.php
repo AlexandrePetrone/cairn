@@ -15,7 +15,6 @@ use App\Story\AppStory;
 use App\Tests\KernelHelpers;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
  * The SQL of the handler must agree with AccessControl::roleOn() for
@@ -23,7 +22,6 @@ use Zenstruck\Foundry\Test\Factories;
  */
 final class ListProjectMembersTest extends KernelTestCase
 {
-    use Factories;
     use KernelHelpers;
 
     public function testSqlAndPhpAgreeOnTheWholeDevelopmentDataset(): void

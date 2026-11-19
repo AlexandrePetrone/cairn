@@ -21,7 +21,6 @@ use App\Tests\MessageHandler\Query\Issue\IssueBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
  * Test workflow `bug`: new is open, to_test is waiting, done is closed.
@@ -29,7 +28,6 @@ use Zenstruck\Foundry\Test\Factories;
 final class ListVisibleProjectsTest extends KernelTestCase
 {
     use ClockSensitiveTrait;
-    use Factories;
     use KernelHelpers;
 
     public function testSqlAndPhpAgreeOnTheWholeDevelopmentDataset(): void

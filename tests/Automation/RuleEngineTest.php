@@ -24,7 +24,6 @@ use App\Entity\Membership;
 use App\Entity\PendingNotification;
 use App\Entity\Tracker;
 use App\Entity\User;
-use App\Event\CommentAdded;
 use App\Message\Command\Automation\CreateRule;
 use App\Message\Command\Budget\AddBudgetLine;
 use App\Message\Command\Budget\CreateBudget;
@@ -232,18 +231,12 @@ final class RuleEngineTest extends KernelTestCase
 
     public function testARuleThatFailsDoesNotUndoWhatSomeoneDid(): void
     {
-        $rule = $this->rule('Welcome', [TriggerType::CommentAdded, []], [], [
+        // A listener breaks on what the rule records, as a bug would.
+        $rule = $this->rule(BrokenCommentListener::RULE, [TriggerType::CommentAdded, []], [], [
             [ActionType::Comment, ['body' => 'Noted.']],
             [ActionType::SetCriticality, ['criticality' => 'high']],
         ]);
         $issue = $this->fixtures->createIssue($this->fixtures->client);
-        // A listener that breaks on what the rule records, as a bug would.
-        $dispatcher = self::getContainer()->get('event_dispatcher');
-        $dispatcher->addListener(CommentAdded::class, static function (CommentAdded $event): void {
-            if (null !== $event->rule) {
-                throw new \LogicException('A listener broke.');
-            }
-        });
 
         $comment = $this->commands->dispatch(new AddComment((int) $this->fixtures->client->getId(), $issue->getKey(), 'Here is the file.'));
 

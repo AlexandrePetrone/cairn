@@ -38,8 +38,8 @@ class BudgetLineRepository extends ServiceEntityRepository
             ->leftJoin('l.issue', 'i')
             ->where('l.budget = :budget')
             ->setParameter('budget', $budget)
-            ->orderBy('l.createdAt', 'DESC')
-            ->addOrderBy('l.id', 'DESC')
+            ->orderBy('l.createdAt', \SortDirection::Descending)
+            ->addOrderBy('l.id', \SortDirection::Descending)
             ->getQuery(), BudgetLine::class);
     }
 
@@ -55,8 +55,8 @@ class BudgetLineRepository extends ServiceEntityRepository
             ->join('l.budget', 'b')
             ->where('l.issue = :issue')
             ->setParameter('issue', $issue)
-            ->orderBy('l.createdAt', 'ASC')
-            ->addOrderBy('l.id', 'ASC')
+            ->orderBy('l.createdAt', \SortDirection::Ascending)
+            ->addOrderBy('l.id', \SortDirection::Ascending)
             ->getQuery(), BudgetLine::class);
     }
 

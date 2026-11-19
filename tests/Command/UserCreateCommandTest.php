@@ -12,12 +12,9 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-use Zenstruck\Foundry\Test\Factories;
 
 final class UserCreateCommandTest extends KernelTestCase
 {
-    use Factories;
-
     private CommandTester $tester;
 
     protected function setUp(): void

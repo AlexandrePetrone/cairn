@@ -17,7 +17,6 @@ use App\Story\AppStory;
 use App\Tests\KernelHelpers;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
  * The SQL of SearchIssuesHandler must agree with AccessControl::canSee()
@@ -26,7 +25,6 @@ use Zenstruck\Foundry\Test\Factories;
  */
 final class SearchIssuesVisibilityTest extends KernelTestCase
 {
-    use Factories;
     use KernelHelpers;
 
     public function testSqlAndPhpAgreeOnTheWholeDevelopmentDataset(): void

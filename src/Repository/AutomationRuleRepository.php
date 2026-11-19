@@ -55,7 +55,7 @@ class AutomationRuleRepository extends ServiceEntityRepository
             ->join('r.project', 'p')
             ->join('p.workspace', 'w')
             ->andWhere('r.active = true')
-            ->orderBy('r.id', 'ASC')
+            ->orderBy('r.id', \SortDirection::Ascending)
             ->getQuery();
 
         return EntityList::of($query, AutomationRule::class);
@@ -71,7 +71,7 @@ class AutomationRuleRepository extends ServiceEntityRepository
      */
     public function findDueIssues(AutomationRule $rule, \DateTimeImmutable $before, int $afterId, int $limit): array
     {
-        return EntityList::of($this->due($rule, $before)->andWhere('i.id > :after')->setParameter('after', $afterId)->orderBy('i.id', 'ASC')->setMaxResults($limit)->getQuery(), Issue::class);
+        return EntityList::of($this->due($rule, $before)->andWhere('i.id > :after')->setParameter('after', $afterId)->orderBy('i.id', \SortDirection::Ascending)->setMaxResults($limit)->getQuery(), Issue::class);
     }
 
     /**

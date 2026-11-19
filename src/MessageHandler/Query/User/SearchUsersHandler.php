@@ -32,8 +32,8 @@ final class SearchUsersHandler
 
         $users = EntityList::of(
             $this->filtered($query)
-                ->orderBy('u.active', 'DESC')
-                ->addOrderBy('u.internal', 'DESC')
+                ->orderBy('u.active', \SortDirection::Descending)
+                ->addOrderBy('u.internal', \SortDirection::Descending)
                 ->addOrderBy('u.lastName')
                 ->addOrderBy('u.firstName')
                 ->setFirstResult(($query->page - 1) * self::PER_PAGE)

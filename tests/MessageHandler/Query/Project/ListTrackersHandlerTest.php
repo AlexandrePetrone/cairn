@@ -14,7 +14,6 @@ use App\Tests\Config\Fixture\DefinitionFactory;
 use App\Tests\KernelHelpers;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
  * The privacy of trackers is decided here and nowhere else: an external
@@ -22,7 +21,6 @@ use Zenstruck\Foundry\Test\Factories;
  */
 final class ListTrackersHandlerTest extends KernelTestCase
 {
-    use Factories;
     use KernelHelpers;
 
     private User $internal;

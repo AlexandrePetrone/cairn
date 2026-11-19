@@ -15,15 +15,12 @@ use App\Entity\User;
 use App\Story\AppStory;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
  * The development data must keep loading as the model evolves.
  */
 final class AppStoryTest extends KernelTestCase
 {
-    use Factories;
-
     public function testTheStoryBuildsAConsistentDataset(): void
     {
         self::bootKernel();

@@ -35,7 +35,7 @@ final class ListAutomationRunsHandler
                 ->join('n.issue', 'i')
                 ->leftJoin('n.rule', 'r')
                 ->leftJoin('n.actor', 'a')
-                ->orderBy('n.id', 'DESC')
+                ->orderBy('n.id', \SortDirection::Descending)
                 ->setFirstResult(($query->page - 1) * self::PER_PAGE)
                 ->setMaxResults(self::PER_PAGE)
                 ->getQuery(),

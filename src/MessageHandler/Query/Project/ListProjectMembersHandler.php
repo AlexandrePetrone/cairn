@@ -36,7 +36,7 @@ final class ListProjectMembersHandler
         $query = $this->entityManager->createQueryBuilder()
             ->select('DISTINCT u')
             ->from(User::class, 'u')
-            ->join(Membership::class, 'm', 'WITH', 'm.user = u')
+            ->join(Membership::class, 'm', 'ON', 'm.user = u')
             ->where('m.project = :project OR m.workspace = :workspace')
             ->andWhere('m.role IN (:roles)')
             ->andWhere('u.active = true')

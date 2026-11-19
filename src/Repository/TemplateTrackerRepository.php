@@ -56,7 +56,7 @@ class TemplateTrackerRepository extends ServiceEntityRepository
             ->join('t.template', 'p')
             ->where('t.workflow = :workflow')
             ->setParameter('workflow', $workflowId)
-            ->orderBy('p.name', 'ASC')
+            ->orderBy('p.name', \SortDirection::Ascending)
             ->getQuery()
             ->getSingleColumnResult();
 

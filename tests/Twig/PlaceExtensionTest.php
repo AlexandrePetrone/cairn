@@ -11,11 +11,9 @@ use App\Tests\MessageHandler\Query\Issue\IssueBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Twig\Environment;
-use Zenstruck\Foundry\Test\Factories;
 
 final class PlaceExtensionTest extends KernelTestCase
 {
-    use Factories;
     use KernelHelpers;
 
     public function testRendersTheLabelOfThePlaceFromTheConfiguration(): void

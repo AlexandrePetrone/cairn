@@ -46,8 +46,8 @@ class JournalEntryRepository extends ServiceEntityRepository
             ->andWhere('e.type IN (:types)')
             ->setParameter('issue', $issue)
             ->setParameter('types', [JournalEntryType::Transitioned->value, JournalEntryType::TrackerChanged->value, JournalEntryType::Moved->value])
-            ->orderBy('e.at', 'ASC')
-            ->addOrderBy('e.id', 'ASC')
+            ->orderBy('e.at', \SortDirection::Ascending)
+            ->addOrderBy('e.id', \SortDirection::Ascending)
             ->getQuery()
             ->getResult();
     }
@@ -65,7 +65,7 @@ class JournalEntryRepository extends ServiceEntityRepository
             ->andWhere('u.internal = true')
             ->andWhere('u.active = true')
             ->setParameter('issue', $issue)
-            ->orderBy('e.id', 'DESC')
+            ->orderBy('e.id', \SortDirection::Descending)
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();

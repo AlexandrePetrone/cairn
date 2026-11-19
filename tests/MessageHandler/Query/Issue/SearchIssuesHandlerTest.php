@@ -25,7 +25,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Messenger\Exception\ValidationFailedException;
-use Zenstruck\Foundry\Test\Factories;
 
 /**
  * Test workflow `bug`: new and in_progress are open/in progress, to_test is
@@ -34,7 +33,6 @@ use Zenstruck\Foundry\Test\Factories;
 final class SearchIssuesHandlerTest extends KernelTestCase
 {
     use ClockSensitiveTrait;
-    use Factories;
     use KernelHelpers;
 
     private IssueBuilder $builder;

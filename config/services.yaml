@@ -21,3 +21,11 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+when@test:
+    services:
+        _defaults:
+            autoconfigure: true
+
+        # A listener that breaks on what one rule records (RuleEngineTest).
+        App\Tests\Automation\BrokenCommentListener: ~
