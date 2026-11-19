@@ -1,6 +1,7 @@
 #!/bin/sh
 # Starts the production image the way compose.prod.yaml tells an operator to, and checks that an
-# instance comes out of it: the schema, a first administrator, a sign-in, a worker that stays up.
+# instance comes out of it: the schema, migrated by the web server as it starts, a first
+# administrator, a sign-in, a worker that stays up.
 # The CI runs it before publishing (.github/workflows/docker.yaml); by hand:
 #
 #   docker build --target prod -t cairn:local . && docker/smoke-test.sh cairn:local
@@ -37,13 +38,13 @@ status() {
 
 trap 'compose down --volumes --remove-orphans >/dev/null 2>&1' EXIT
 
-# The worker restarts until the schema is there: it is not waited for yet.
+# The web server migrates before it answers (CAIRN_AUTO_MIGRATE in compose.prod.yaml).
 compose up -d --wait database web
 
 [ "$(status "$url/healthz")" = 200 ] || fail '/healthz does not answer'
 
-compose exec -T web bin/console doctrine:schema:update --force --no-interaction >/dev/null \
-	|| fail 'the schema could not be created'
+compose exec -T web bin/console doctrine:migrations:up-to-date >/dev/null \
+	|| fail 'the web server did not migrate the schema'
 
 # Email, first name, last name, no company, administrator, the password twice.
 printf 'smoke@cairn.test\nSmoke\nTest\n\nadmin\nsmoke-test-password\nsmoke-test-password\n' \
@@ -65,6 +66,9 @@ rm -f "$jar"
 # The session is in the database, not in the container.
 [ "$(compose exec -T database psql -U cairn cairn -tAc 'select count(*) from sessions')" -ge 1 ] \
 	|| fail 'no session was written to the database'
+
+# A second start finds nothing to migrate, and starts all the same.
+compose up -d --wait --force-recreate web || fail 'the web server does not start a second time'
 
 compose up -d worker
 sleep 10

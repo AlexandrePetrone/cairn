@@ -6,8 +6,8 @@ namespace App\Repository;
 
 /**
  * The LIKE pattern of a text typed in a search box, wildcards escaped with
- * `!` (`… LIKE :text ESCAPE '!'`): a backslash would be quoted differently
- * by MySQL, PostgreSQL and SQLite. Lowercase, to compare with LOWER().
+ * `!` (`… LIKE :text ESCAPE '!'`), which needs no quoting of its own in a
+ * string of DQL or SQL. Lowercase, to compare with LOWER().
  */
 final class SearchText
 {

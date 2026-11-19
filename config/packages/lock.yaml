@@ -1,8 +1,11 @@
 framework:
-    # In the database, on a connection of its own: a lock is taken and released around the
-    # transaction of a command, never inside it. Shared by every process of the instance,
-    # wherever it runs.
-    lock: '%env(resolve:DATABASE_URL)%'
+    # Held by PostgreSQL itself (an advisory lock of the session), so shared by every process of
+    # the instance, wherever it runs, without a table: it never expires, and goes with the
+    # connection of a process that dies. A transaction neither takes nor releases it, so the
+    # connection of the application does.
+    lock:
+        service_id: doctrine.dbal.default_connection
+        advisory: true
 
 when@test:
     framework:

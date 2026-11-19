@@ -14,18 +14,26 @@ function create(): void
     }
 }
 
-#[AsTask(description: 'Applies the entity mapping to the dev and test schemas (schema:update, no migrations before the first release)')]
-function reset(): void
+#[AsTask(description: 'Applies the migrations that the dev database has not run yet')]
+function migrate(): void
 {
-    foreach (['dev', 'test'] as $env) {
-        console(['doctrine:schema:update', '--force', '--complete', '--env='.$env]);
-    }
+    console(['doctrine:migrations:migrate', '--no-interaction']);
+}
+
+#[AsTask(description: 'Writes the migration of what the entities changed since the last one')]
+function migration(): int
+{
+    // The difference is read against the dev database, which must be at the last migration.
+    migrate();
+
+    return console(['doctrine:migrations:diff', '--formatted', '--allow-empty-diff', '--no-interaction'], allowFailure: true);
 }
 
 #[AsTask(description: 'Resets the dev database and loads the development data (main and volume stories)')]
 function fixtures(): void
 {
-    // Foundry drops the database: PostgreSQL refuses while the worker holds a connection.
+    // Foundry drops the database, then creates it again from the migrations: PostgreSQL refuses
+    // while the worker holds a connection.
     compose(['stop', 'messenger']);
     try {
         console(['foundry:load-fixtures', 'main', 'volume', '--no-interaction']);

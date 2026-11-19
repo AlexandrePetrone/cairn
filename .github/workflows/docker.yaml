@@ -4,9 +4,9 @@ name: Docker image
 # would, then publishes it to the registry of GitHub, as ghcr.io/<owner>/<repository>:
 #
 #   main            -> edge
-#   a tag 0.4.2     -> 0.4.2 and 0.4
+#   a tag 0.4.2     -> 0.4.2, 0.4 and latest
 #
-# No "latest": until the schema has migrations, a new version promises no upgrade (README).
+# "latest" is the last release, never the main branch.
 # A pull request builds and starts the image without publishing it.
 #
 # Each architecture is built and started on a machine of its own kind, both at once: nothing is
@@ -114,7 +114,6 @@ jobs:
               uses: docker/metadata-action@v6
               with:
                   images: ${{ env.IMAGE }}
-                  flavor: latest=false
                   tags: |
                       type=edge,branch=main
                       type=semver,pattern={{version}}

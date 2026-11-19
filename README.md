@@ -25,13 +25,12 @@ The interface ships in English and French; an instance runs in one language (`CA
 
 ## Stack
 
-Symfony 8.2 on PHP 8.5, Doctrine ORM (PostgreSQL, or MariaDB), Messenger for the emails and the scheduled tasks, the Symfony Workflow component for workflows built from the configuration, Twig with Symfony UX (Turbo, Live Components, Stimulus), Tailwind CSS 4 and Vite through [Symfony Reprise](https://github.com/symfony/reprise), [API Platform](https://api-platform.com) for the REST API.
+Symfony 8.2 on PHP 8.5, Doctrine ORM on PostgreSQL, Messenger for the emails and the scheduled tasks, the Symfony Workflow component for workflows built from the configuration, Twig with Symfony UX (Turbo, Live Components, Stimulus), Tailwind CSS 4 and Vite through [Symfony Reprise](https://github.com/symfony/reprise), [API Platform](https://api-platform.com) for the REST API.
 
 ## Status
 
 Cairn has no release yet, and is not meant for production until it has one:
 
-- The database schema is derived from the entities (`doctrine:schema:update`) and may change at any commit, without a migration: there is no upgrade path, and an instance installed today may have to be created again. Migrations start with the first release.
 - Symfony 8.2 is still a beta: until its stable release, Cairn installs beta versions of the framework (`minimum-stability: beta` in `composer.json`).
 
 ## Installation
@@ -40,7 +39,7 @@ How to run Cairn for real: from its Docker image, or on a server of your own. Fo
 
 ### With Docker
 
-The image `ghcr.io/julienj/cairn` holds the application, its dependencies and the built assets, served by FrankenPHP. The same image is the web server and the worker; it runs on PostgreSQL or MariaDB, on amd64 and arm64. [`compose.prod.yaml`](compose.prod.yaml) is an example to start from: the web server, the worker and PostgreSQL.
+The image `ghcr.io/julienj/cairn` holds the application, its dependencies and the built assets, served by FrankenPHP. The same image is the web server and the worker; it runs on PostgreSQL, on amd64 and arm64. [`compose.prod.yaml`](compose.prod.yaml) is an example to start from: the web server, the worker and PostgreSQL.
 
 Put it in a folder, with a `.env` file next to it:
 
@@ -55,32 +54,31 @@ TZ=Europe/Paris
 
 `TZ` is the timezone of the instance (UTC without it).
 
-Then start it, create the schema and the first administrator:
+Then start it and create the first administrator:
 
 ```bash
 docker compose -f compose.prod.yaml up -d
-docker compose -f compose.prod.yaml exec web bin/console doctrine:schema:update --force
 docker compose -f compose.prod.yaml exec web bin/console app:user:create
 ```
 
-The worker restarts until the schema is there. Sign in: the administration offers to install the starter configuration.
+The web server creates the schema of the database before it starts, and the worker waits for it. Sign in: the administration offers to install the starter configuration.
 
 **HTTPS.** With a domain name as `SERVER_NAME`, the web server gets its certificate by itself; the ports 80 and 443 must be reachable from the Internet. Behind a proxy that holds the certificate instead: `SERVER_NAME=:80`, `SYMFONY_TRUSTED_PROXIES=private_ranges` and `MERCURE_URL=http://web/.well-known/mercure`. The same three, with `DEFAULT_URI=http://localhost:8080` and `HTTP_PORT=8080`, try it on a laptop.
 
-**Updating.** `docker compose pull`, `up -d`, then `doctrine:schema:update --force` again. The image never writes to the database by itself: the schema is always your command. `edge` follows the main branch and `0.x.y` is a release; there is no `latest`. Until 1.0 the schema has no migrations: `schema:update` adds what a version needs, but cannot rename nor convert, so back up before updating.
+**Updating.** Back up, then `docker compose pull` and `up -d`: the web server applies the migrations of the new version before it starts, all of them or none, and the worker waits for it. `latest` is the last release, `0.x.y` one of them and `edge` follows the main branch. With `CAIRN_AUTO_MIGRATE=0` the image never writes to the database by itself, and the schema is your command, at the installation and after every update: `bin/console doctrine:migrations:migrate`.
 
 **Data.** Two things to back up: the database, and the `/data` volume (the attachments, the import archives, the certificates). The containers keep nothing else: sessions, locks and the shared cache are in the database, logs go to the standard output.
 
-**Configuration.** Every variable of [Environment](#environment) is an environment variable of both containers; `compose.prod.yaml` lists the usual ones. Real time is on, through the hub built into the web server; for another hub give its addresses, in full, as `MERCURE_URL` and `MERCURE_PUBLIC_URL`, and for none an empty `MERCURE_URL`. For MariaDB, replace the `database` service and give a `DATABASE_URL` such as `mysql://user:password@database:3306/cairn?serverVersion=11.4.2-MariaDB&charset=utf8mb4`.
+**Configuration.** Every variable of [Environment](#environment) is an environment variable of both containers; `compose.prod.yaml` lists the usual ones. Real time is on, through the hub built into the web server; for another hub give its addresses, in full, as `MERCURE_URL` and `MERCURE_PUBLIC_URL`, and for none an empty `MERCURE_URL`.
 
-**Without Compose.** The image runs as an unprivileged user, on a read-only root filesystem if `/data` and `/tmp` are writable, and listens on port 8080 over plain HTTP unless `SERVER_NAME` says otherwise. `/healthz` answers without PHP nor the database. The worker is the same image with the command `bin/console messenger:consume async scheduler_default --time-limit=3600`; it shares `/data` with the web server and finishes its message when asked to stop. The built-in hub serves one web container: several need a hub of their own.
+**Without Compose.** The image runs as an unprivileged user, on a read-only root filesystem if `/data` and `/tmp` are writable, and listens on port 8080 over plain HTTP unless `SERVER_NAME` says otherwise. `/healthz` answers without PHP nor the database. The worker is the same image with the command `bin/console messenger:consume async scheduler_default --time-limit=3600`; it shares `/data` with the web server and finishes its message when asked to stop. The built-in hub serves one web container: several need a hub of their own. `CAIRN_AUTO_MIGRATE=1` makes the web server migrate the schema as it starts, and is ignored by the worker; leave it out when several web containers start together, and run `bin/console doctrine:migrations:migrate` once instead.
 
 ### On a server
 
 #### Requirements
 
-- PHP 8.5 with the `intl`, `pdo_pgsql` (or `pdo_mysql`), `ctype`, `iconv` and `zip` extensions, and Composer
-- PostgreSQL 16+ (or MariaDB 10.11+)
+- PHP 8.5 with the `intl`, `pdo_pgsql`, `ctype`, `iconv` and `zip` extensions, and Composer
+- PostgreSQL 17 or 18
 - Node.js 22, only to build the assets
 - A web server pointing at `public/` (Caddy, FrankenPHP, nginx + PHP-FPM…), with PHP's upload limits allowing 10 MB files (`upload_max_filesize`, `post_max_size`)
 
@@ -91,7 +89,7 @@ composer install --no-dev --optimize-autoloader
 npm ci && npm run build                   # assets into public/build/
 
 bin/console doctrine:database:create --if-not-exists
-bin/console doctrine:schema:update --force
+bin/console doctrine:migrations:migrate   # the schema; again after every update
 bin/console app:config:install            # starter configuration: roles, workflows, steps, fields
 bin/console app:user:create               # first administrator
 ```
@@ -218,7 +216,7 @@ Development happens in Docker, driven by [Castor](https://castor.jolicode.com/ge
 castor install
 ```
 
-This builds the PHP image (FrankenPHP), starts the database, installs the Composer and npm dependencies, creates the `dev` and `test` databases, applies the schema and loads the development data, then starts the whole stack.
+This builds the PHP image (FrankenPHP), starts the database, installs the Composer and npm dependencies, creates the `dev` and `test` databases, applies the migrations and loads the development data, then starts the whole stack.
 
 Cairn is then available at <http://localhost:8000>.
 
@@ -298,7 +296,8 @@ castor sh                       # app:sh
 castor app:config:install       # starter configuration, into a database that has none
 
 # Databases (db:*)
-castor db:reset                 # apply the entity mapping to the dev and test schemas
+castor db:migrate               # apply the migrations the dev database has not run (castor start does)
+castor db:migration             # write the migration of what the entities changed
 castor db:fixtures              # reload the development data
 castor db:psql                  # psql on the dev database
 
@@ -310,6 +309,7 @@ castor phpstan                  # qa:phpstan
 castor lint                     # qa:lint: container, Twig and YAML
 castor lsp                      # qa:lsp: Symfony Language Tools
 castor qa:storia --update       # rewrite the component snapshots
+castor qa:migrations            # the dev database is migrated, and is what the entities say
 castor qa                       # qa:all: everything the CI runs
 
 # Assets (assets:*)
@@ -317,11 +317,11 @@ castor assets:build             # production build into public/build/
 castor assets:clean             # back to the dev server
 ```
 
-Schema changes go through `doctrine:schema:update` (`castor db:reset`) until the first release, not migrations.
+A schema change is a migration: `castor db:migration` once the entities say it, then `castor db:migrate`. A migration that was merged is never edited. The tests derive their schema from the entities; the CI checks that the migrations give the same.
 
 ### Quality tools
 
-`castor qa` runs the same checks as the GitHub Actions workflow (`.github/workflows/ci.yaml`): php-cs-fixer (`@Symfony` and `@Symfony:risky`), PHPStan level 8, the Symfony linters, [Symfony Language Tools](https://github.com/symfony/language-tools) and PHPUnit, including the snapshots of the component catalogue. The tests run against PostgreSQL in the `test` database.
+`castor qa` runs the same checks as the GitHub Actions workflow (`.github/workflows/ci.yaml`): php-cs-fixer (`@Symfony` and `@Symfony:risky`), PHPStan level 8, the Symfony linters, [Symfony Language Tools](https://github.com/symfony/language-tools), the migrations and PHPUnit, including the snapshots of the component catalogue. The tests run against PostgreSQL in the `test` database.
 
 ### Code changes and the worker
 

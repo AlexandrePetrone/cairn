@@ -14,6 +14,8 @@ use function Castor\io;
 function start(): void
 {
     compose(['up', '-d', '--wait', '--remove-orphans']);
+    // What a pull brought: the stack never migrates by itself.
+    \db\migrate();
     io()->success([
         'Cairn: '.app_url().' (admin@cairn.test, password "cairn")',
         'Components: '.app_url().'/storia',

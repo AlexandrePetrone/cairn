@@ -19,8 +19,8 @@ without its Doctrine bridge), `symfony/mcp-bundle`, Mercure
 (`symfony/mercure-bundle`) for the optional real time and
 `nelmio/security-bundle` for the security headers of every answer.
 
-- **Persistence**: Doctrine ORM, schema compatible with both MariaDB and
-  PostgreSQL. No soft delete, no bin, no anonymising: what is deleted is
+- **Persistence**: Doctrine ORM on PostgreSQL, 17 and 18, and nothing
+  else. No soft delete, no bin, no anonymising: what is deleted is
   deleted physically, and three rules say what may be.
   - Current state or configuration (an attachment, a comment, a
     membership, a link, a rule, a release, a budget line, a template) goes
@@ -542,10 +542,13 @@ and the looks of an action are fixed enums in code.
 - Never call `new \DateTime*()`, `date()` or `time()`: entities use
   `Symfony\Component\Clock\now()`, services inject `ClockInterface`, tests
   freeze time with `ClockSensitiveTrait::mockTime()`.
-- **No migrations before the first release.** Until then the schema is
-  derived from the entities (`doctrine:schema:update --force`), and nothing
-  is written under `migrations/`. After it, every schema change goes
-  through `make:migration`.
+- **A schema change is a migration**, made with `castor db:migration`
+  (`doctrine:migrations:diff`) once the entities say it, and never edited
+  once merged: an instance ran it. The tables the framework keeps in the
+  database (sessions, `cache.app`, Messenger) are in the migrations too,
+  which are therefore generated in `dev`, never in `test`. The tests
+  derive their schema from the entities (`tests/bootstrap.php`); `castor
+  qa:migrations` and the CI check that the migrations give the same.
 - `.env` holds defaults only. Real secrets go in `.env.local` or the
   secrets vault.
 
@@ -557,7 +560,8 @@ host.
 
 - `castor install` builds everything and loads the development data;
   `castor start` and `castor stop` afterwards; `castor list` shows every
-  task.
+  task. `castor start` applies the migrations a pull brought (`castor
+  db:migrate`); no container migrates by itself.
 - Services: `php` (FrankenPHP with its Mercure hub,
   <http://localhost:8000>), `cli`, `messenger` (`messenger:consume async
   scheduler_default`), `vite`, `storia`, `database` (PostgreSQL 18) and
@@ -612,9 +616,11 @@ host.
   `test`; logs go to stderr; files live under `/data` (`ATTACHMENTS_DIR`,
   `IMPORTS_DIR`), the one volume. Nothing that must last, or that two
   processes share, is written under `var/`.
-- **The entrypoint writes nothing.** It refuses to start without its
-  secrets and that is all: the schema is the operator's command, nothing
-  is installed nor migrated at startup.
+- **The entrypoint writes nothing unless asked to.** It refuses to start
+  without its secrets, and with `CAIRN_AUTO_MIGRATE=1` the web server
+  applies the migrations before it starts: the web server alone, so two
+  containers never migrate at once, and the worker of `compose.prod.yaml`
+  waits for it. Nothing else is installed at startup.
 - The image is configured by its environment alone, runs unprivileged and
   on a read-only root filesystem (`/data` and `/tmp` apart).
   `docker/Caddyfile.prod` has one site address: an address per scheme
@@ -630,7 +636,7 @@ host.
 Functional tests extend `WebTestCase`; handler and service tests extend
 `KernelTestCase` against a real PostgreSQL database, every test rolled back
 by `dama/doctrine-test-bundle`. Sequences are not rolled back, so a test
-never assumes an id. The CI runs the suite a second time on MariaDB.
+never assumes an id. The CI runs the suite on PostgreSQL 17 and on 18.
 
 - Tests own their data: handler tests build it with `AccessFixtures` and
   `IssueFixtures` under the small configuration of
@@ -660,6 +666,7 @@ must pass before handing work over: `castor cs` (php-cs-fixer, `@Symfony`
 and `@Symfony:risky` plus `declare(strict_types=1)`), `castor phpstan`
 (level 8, Symfony and Doctrine extensions), `castor lint`
 (`lint:container`, `lint:twig`, `lint:yaml`), `castor lsp` (Symfony
-Language Tools: routes, services, templates, translation keys) and `castor
-test` (PHPUnit, Storia snapshots included). The CI also builds the assets
-(`npm ci && npm run build`).
+Language Tools: routes, services, templates, translation keys), `castor
+qa:migrations` (the dev database ran them all, and they give the schema of
+the entities) and `castor test` (PHPUnit, Storia snapshots included). The
+CI also builds the assets (`npm ci && npm run build`).
