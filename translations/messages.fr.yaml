@@ -1778,3 +1778,19 @@ email:
         button: Choisir un nouveau mot de passe
         validity: Ce lien est valable une heure et une seule fois.
         footer: Si vous n'êtes pas à l'origine de cette demande, ignorez ce message ; votre mot de passe reste inchangé.
+
+error:
+    code: 'Erreur %code%'
+    home: Retour à l'accueil
+    '403':
+        title: Accès refusé
+        text: Vous ne pouvez pas ouvrir cette page.
+    '404':
+        title: Page introuvable
+        text: Cette page n'existe pas, ou vous ne pouvez pas la voir.
+    '500':
+        title: Une erreur est survenue
+        text: Le problème vient de Cairn, pas de vous. Réessayez dans un instant.
+    other:
+        title: Une erreur est survenue
+        text: Cette demande n'a pas pu être traitée.

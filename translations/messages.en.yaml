@@ -1778,3 +1778,19 @@ email:
         button: Choose a new password
         validity: This link works for an hour and once.
         footer: If you did not ask for this, ignore this message; your password stays as it is.
+
+error:
+    code: 'Error %code%'
+    home: Back to the home page
+    '403':
+        title: Access denied
+        text: You may not open this page.
+    '404':
+        title: Page not found
+        text: This page does not exist, or you may not see it.
+    '500':
+        title: Something went wrong
+        text: The problem is on our side, not yours. Try again in a moment.
+    other:
+        title: Something went wrong
+        text: This request could not be handled.
