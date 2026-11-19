@@ -34,13 +34,13 @@ jobs:
             - uses: actions/checkout@v7
 
             - name: Set up QEMU
-              uses: docker/setup-qemu-action@v3
+              uses: docker/setup-qemu-action@v4
 
             - name: Set up Buildx
-              uses: docker/setup-buildx-action@v3
+              uses: docker/setup-buildx-action@v4
 
             - name: Build the image for this machine
-              uses: docker/build-push-action@v6
+              uses: docker/build-push-action@v7
               with:
                   context: .
                   target: prod
@@ -55,7 +55,7 @@ jobs:
             - name: Name the versions
               id: meta
               if: github.event_name == 'push'
-              uses: docker/metadata-action@v5
+              uses: docker/metadata-action@v6
               with:
                   images: ghcr.io/${{ github.repository }}
                   flavor: latest=false
@@ -66,7 +66,7 @@ jobs:
 
             - name: Sign in to the registry
               if: steps.meta.outcome == 'success'
-              uses: docker/login-action@v3
+              uses: docker/login-action@v4
               with:
                   registry: ghcr.io
                   username: ${{ github.actor }}
@@ -76,7 +76,7 @@ jobs:
             # stages run for each architecture.
             - name: Build for both architectures and publish
               if: steps.meta.outcome == 'success'
-              uses: docker/build-push-action@v6
+              uses: docker/build-push-action@v7
               with:
                   context: .
                   target: prod
