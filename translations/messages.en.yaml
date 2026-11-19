@@ -428,8 +428,23 @@ admin:
         workspaces: Workspaces
         users: Users
         imports: Imports
+        worker: Background tasks
         templates: Templates
         configuration: Configuration
+    worker:
+        intro: 'What waits for the worker: it sends the emails, records what the forges deliver, runs the imports and the time rules.'
+        late: 'No worker seems to be running: what waits below should have been handled by now.'
+        waiting:
+            label: Waiting messages
+            none: Nothing waits.
+            oldest: '{0}The oldest has waited for less than a minute.|{1}The oldest has waited for a minute.|]1,Inf[The oldest has waited for %count% minutes.'
+        notifications:
+            label: Late notifications
+            help: Changes whose email should have left.
+        failed:
+            label: Failed messages
+            help: Given up after their retries.
+            purge: 'Read why they failed, then retry or remove them: a failed message may hold a password link.'
     filter:
         state: State
         type: Type

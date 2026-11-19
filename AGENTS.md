@@ -399,6 +399,10 @@ src/
 - A project template is a copy and nothing more (`TemplateCopy`): the
   project keeps no trace of it, and a template is never applied to a
   project that exists.
+- The worker tells nothing about itself: no heartbeat, no entity.
+  `/admin/worker` reads what waits for it (`ShowWorkerStatus`: the table
+  of the Doctrine transport and the mail queue), which shows a worker
+  that never ran as well as one that stopped.
 
 ## Frontend
 

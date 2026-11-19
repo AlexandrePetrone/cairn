@@ -428,8 +428,23 @@ admin:
         workspaces: Espaces
         users: Utilisateurs
         imports: Imports
+        worker: Tâches de fond
         templates: Modèles
         configuration: Configuration
+    worker:
+        intro: 'Ce qui attend le worker : il envoie les e-mails, enregistre ce que les forges livrent, exécute les imports et les règles temporelles.'
+        late: 'Aucun worker ne semble tourner : ce qui attend ci-dessous devrait déjà être traité.'
+        waiting:
+            label: Messages en attente
+            none: "Rien n'attend."
+            oldest: '{0}Le plus ancien attend depuis moins d''une minute.|{1}Le plus ancien attend depuis une minute.|]1,Inf[Le plus ancien attend depuis %count% minutes.'
+        notifications:
+            label: Notifications en retard
+            help: "Changements dont l'e-mail aurait dû partir."
+        failed:
+            label: Messages en échec
+            help: Abandonnés après leurs nouvelles tentatives.
+            purge: 'Lisez pourquoi ils ont échoué, puis relancez-les ou supprimez-les : un message en échec peut contenir un lien de mot de passe.'
     filter:
         state: État
         type: Type

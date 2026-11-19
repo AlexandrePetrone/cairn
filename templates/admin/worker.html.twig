@@ -1,0 +1,30 @@
+{% extends 'layout/admin.html.twig' %}
+
+{% block page_title %}{{ 'admin.nav.worker'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 space-y-4">
+        <div>
+            <h1 class="text-xl font-semibold text-strong">{{ 'admin.nav.worker'|trans }}</h1>
+            <p class="text-xs text-muted">{{ 'admin.worker.intro'|trans }}</p>
+        </div>
+
+        {% if status.messagesLate or status.notificationsLate %}
+            <twig:Ui:Callout tone="amber" role="alert">{{ 'admin.worker.late'|trans }}</twig:Ui:Callout>
+        {% endif %}
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <twig:Ui:StatTile
+                :label="'admin.worker.waiting.label'|trans"
+                :value="status.waiting"
+                :caption="status.oldestWaiting is null ? 'admin.worker.waiting.none'|trans : 'admin.worker.waiting.oldest'|trans({ '%count%': (status.oldestWaiting / 60)|round(0, 'floor') })"
+            />
+            <twig:Ui:StatTile :label="'admin.worker.notifications.label'|trans" :value="status.lateNotifications" :caption="'admin.worker.notifications.help'|trans" />
+            <twig:Ui:StatTile :label="'admin.worker.failed.label'|trans" :value="status.failed" :caption="'admin.worker.failed.help'|trans" />
+        </div>
+
+        {% if status.failed > 0 %}
+            <twig:Ui:Callout size="sm">{{ 'admin.worker.failed.purge'|trans }} <code class="font-mono">bin/console messenger:failed:show</code></twig:Ui:Callout>
+        {% endif %}
+    </div>
+{% endblock %}

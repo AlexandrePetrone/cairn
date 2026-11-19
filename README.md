@@ -183,6 +183,18 @@ WantedBy=multi-user.target
 
 After deploying new code, `bin/console messenger:stop-workers` makes it restart.
 
+Without a worker the pages keep working and nothing warns the people who use them: no email leaves (notifications, invitations, password links), no time rule of the automations runs, what the forges deliver is not recorded, an import does not advance and real time stays silent. Administration > Background tasks shows what waits, and says so when it has waited for too long.
+
+**Failed messages.** A message that failed after its retries is kept aside, in the `failed` transport, until someone looks at it:
+
+```bash
+bin/console messenger:failed:show            # what failed, and why (-vv for the whole error)
+bin/console messenger:failed:retry           # try again, once the cause is fixed
+bin/console messenger:failed:remove --all    # or drop them
+```
+
+Do not let them pile up: an email that could not be sent is kept whole, and that of an invitation or of a forgotten password holds its link in clear.
+
 **Backups.** Two things hold the data, and they go together: the database, and the folder of `ATTACHMENTS_DIR` (the files sent with issues and comments, and the pictures of the accounts). A file missing from a backup leaves an attachment that cannot be downloaded. `IMPORTS_DIR` only holds archives already imported or waiting to be.
 
 **HTTPS.** Serve Cairn over HTTPS only: sessions, password links and API tokens travel with every request. Cairn sets the headers that depend on it (no framing, no content sniffing, referrer policy); `Strict-Transport-Security` belongs to the web server, which knows whether every subdomain is ready for it. Caddy and FrankenPHP redirect to HTTPS by themselves; with nginx:
