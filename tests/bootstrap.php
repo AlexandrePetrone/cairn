@@ -16,8 +16,9 @@ if ($_SERVER['APP_DEBUG']) {
     umask(0000);
 }
 
-// No migrations before the first release: the test schema is derived from
-// the entities once per run. DAMA then wraps every test in a transaction.
+// The test schema is derived from the entities once per run, not from the
+// migrations: the CI checks apart that both give the same (ci.yaml,
+// "castor qa:migrations"). DAMA then wraps every test in a transaction.
 if ('test' === ($_SERVER['APP_ENV'] ?? null)) {
     $kernel = new Kernel('test', (bool) $_SERVER['APP_DEBUG']);
     $kernel->boot();

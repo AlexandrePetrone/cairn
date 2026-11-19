@@ -1,6 +1,7 @@
 #!/bin/sh
-# Entrypoint of the production image. It checks what the instance cannot run without and writes
-# nothing: the schema of the database is the operator's command (README, "With Docker").
+# Entrypoint of the production image. It checks what the instance cannot run without, and
+# writes nothing unless asked to: with CAIRN_AUTO_MIGRATE=1 the web server brings the schema of
+# the database up to date before it starts (README, "With Docker").
 set -eu
 
 refuse() {
@@ -36,5 +37,12 @@ case "${1:-}" in
 		esac
 		;;
 esac
+
+# The web server alone, so that the containers of an instance never migrate at the same time:
+# the worker and the console leave the schema as it is. A migration that fails stops the
+# container, and the database is as it was.
+if [ "${CAIRN_AUTO_MIGRATE:-}" = 1 ] && [ "${1:-}" = frankenphp ]; then
+	bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+fi
 
 exec docker-php-entrypoint "$@"

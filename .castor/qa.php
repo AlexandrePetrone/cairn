@@ -68,6 +68,13 @@ function storia(
     return console(['storia:test', ...($update ? ['--update'] : [])], allowFailure: true);
 }
 
+#[AsTask(description: 'Checks that the dev database ran every migration and that they give the schema of the entities')]
+function migrations(): int
+{
+    return console(['doctrine:migrations:up-to-date'], allowFailure: true)
+        ?: console(['doctrine:schema:validate'], allowFailure: true);
+}
+
 #[AsTask(description: 'Runs the Symfony Language Tools checker (routes, services, templates, translations...) against the cli container', aliases: ['lsp'])]
 function lsp(#[AsRawTokens] array $args): int
 {
@@ -77,7 +84,7 @@ function lsp(#[AsRawTokens] array $args): int
     return $process->getExitCode() ?? 0;
 }
 
-#[AsTask(description: 'Runs every check the CI runs: coding standard, PHPStan, linters, symfony-lsp and the test suite', aliases: ['qa'])]
+#[AsTask(description: 'Runs every check the CI runs: coding standard, PHPStan, linters, symfony-lsp, the migrations and the test suite', aliases: ['qa'])]
 function all(): int
 {
     $checks = [
@@ -85,6 +92,7 @@ function all(): int
         'phpstan' => static fn (): int => phpstan([]),
         'lint' => static fn (): int => lint(),
         'symfony-lsp' => static fn (): int => lsp([]),
+        'migrations' => static fn (): int => migrations(),
         'phpunit' => static fn (): int => test([]),
     ];
     $failures = [];

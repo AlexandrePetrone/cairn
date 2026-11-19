@@ -51,7 +51,6 @@ function install(): void
 
     io()->title('Preparing the databases (dev and test)');
     db\create();
-    db\reset();
     db\fixtures();
 
     io()->title('Starting the whole stack');

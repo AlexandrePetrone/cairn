@@ -99,7 +99,7 @@ final class IssueEraser
      */
     private function uuids(string $where, int $scope): array
     {
-        /** @var list<Uuid|string> $uuids as the platform stores them: a string, or sixteen bytes */
+        /** @var list<Uuid|string> $uuids a column read alone comes as the database gives it, a string */
         $uuids = $this->entityManager->createQuery(\sprintf('SELECT a.uuid FROM %s a WHERE %s', Attachment::class, $where))
             ->setParameter('scope', $scope)
             ->getSingleColumnResult();

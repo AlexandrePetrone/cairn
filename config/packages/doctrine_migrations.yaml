@@ -4,3 +4,6 @@ doctrine_migrations:
         # as migrations classes should NOT be autoloaded
         'DoctrineMigrations': '%kernel.project_dir%/migrations'
     enable_profiler: false
+    # PostgreSQL rolls a schema change back like any other statement: an update that fails
+    # leaves the database as it was, whatever the number of migrations it was applying.
+    all_or_nothing: true

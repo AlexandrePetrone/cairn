@@ -8,11 +8,8 @@
 #   DEFAULT_URI=           the public address, e.g. https://cairn.example.com
 #   SERVER_NAME=           its domain name, e.g. cairn.example.com
 #
-# The image writes nothing by itself. Once the stack is up, and after every new version:
-#
-#   docker compose -f compose.prod.yaml exec web bin/console doctrine:schema:update --force
-#
-# and once, for the first administrator:
+# The web server creates the schema of the database when it starts, and brings it up to date
+# after every new version (CAIRN_AUTO_MIGRATE). Once the stack is up, for the first administrator:
 #
 #   docker compose -f compose.prod.yaml exec web bin/console app:user:create
 
@@ -22,6 +19,9 @@ x-cairn: &cairn
   environment:
     APP_SECRET: ${APP_SECRET:?set APP_SECRET}
     DATABASE_URL: postgresql://cairn:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@database:5432/cairn?serverVersion=18&charset=utf8
+    # The web server applies the migrations of the schema before it starts; the worker never
+    # does. With 0 they are your command: "bin/console doctrine:migrations:migrate".
+    CAIRN_AUTO_MIGRATE: ${CAIRN_AUTO_MIGRATE:-1}
     # The public address: the links of the emails, of the forge webhooks, and the host the MCP
     # server answers.
     DEFAULT_URI: ${DEFAULT_URI:?set DEFAULT_URI}
@@ -69,12 +69,18 @@ services:
       - "${HTTPS_PORT:-443}:443/udp"
 
   # Sends the emails, publishes the real time signal and runs the scheduled tasks. It leaves
-  # every hour and comes back with fresh memory.
+  # every hour and comes back with fresh memory. It waits for the web server, which migrates
+  # the schema: no message is handled on the schema of the version before.
   worker:
     <<: *cairn
     command: bin/console messenger:consume async scheduler_default --time-limit=3600
     healthcheck:
       disable: true
+    depends_on:
+      database:
+        condition: service_healthy
+      web:
+        condition: service_healthy
 
   database:
     image: postgres:18-alpine

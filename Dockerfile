@@ -15,14 +15,13 @@ SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
 
 WORKDIR /app
 
-# Both database servers the schema runs on, and pcntl for the worker: without it a consumer
-# hears no signal, so stopping its container kills it in the middle of a message.
+# PostgreSQL, and pcntl for the worker: without it a consumer hears no signal, so stopping its
+# container kills it in the middle of a message.
 RUN install-php-extensions \
 		apcu \
 		intl \
 		opcache \
 		pcntl \
-		pdo_mysql \
 		pdo_pgsql \
 		zip
 
