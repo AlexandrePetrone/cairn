@@ -131,7 +131,7 @@
         "brianium/paratest": "^7.29",
         "dama/doctrine-test-bundle": "^8.7",
         "friendsofphp/php-cs-fixer": "^3.95.32",
-        "iq2i/storia-bundle": "^0.6.0",
+        "iq2i/storia-bundle": "^0.7.0",
         "phpstan/extension-installer": "^1.4",
         "phpstan/phpstan": "^2.3",
         "phpstan/phpstan-doctrine": "^2.0",
