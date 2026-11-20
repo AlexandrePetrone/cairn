@@ -52,10 +52,11 @@ services:
             reverse_proxy authelia:9091
         }
       # The code is bind-mounted, so the workers of FrankenPHP (docker/Caddyfile) start again when
-      # what they loaded changes: the same paths as "castor workers:watch". Templates are not in
-      # the list, Twig reads them again by itself in debug.
+      # what they loaded changes: the same paths as "castor workers:watch". Templates are in the
+      # list: a worker keeps the compiled class of a template it already rendered.
       FRANKENPHP_WORKER_CONFIG: |
         watch /app/src/**/*.php
+        watch /app/templates/**/*.twig
         watch /app/config/**/*.{php,yaml}
         watch /app/translations/**/*.{yaml,xlf}
         watch /app/.env*

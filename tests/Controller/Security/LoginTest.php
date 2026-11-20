@@ -34,6 +34,15 @@ final class LoginTest extends WebTestCase
         self::assertResponseRedirects('/login');
     }
 
+    public function testTheLoginPageCarriesTheLogoAndTheFavicon(): void
+    {
+        $this->client->request('GET', '/login');
+
+        self::assertSelectorExists('main > div > div > svg[aria-hidden]');
+        self::assertSelectorExists('head link[rel="icon"][href="/favicon.svg"]');
+        self::assertFileExists(\dirname(__DIR__, 3).'/public/favicon.svg');
+    }
+
     public function testAPageIsNeverFramedNorSniffed(): void
     {
         $this->client->request('GET', '/login');

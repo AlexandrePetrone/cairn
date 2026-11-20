@@ -1,0 +1,5 @@
+component: Ui:Logo
+variants:
+    default: {}
+    small: { args: { size: sm } }
+    large: { args: { size: lg } }
