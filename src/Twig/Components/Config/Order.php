@@ -138,10 +138,11 @@ final class Order extends AbstractController
         foreach ($definition->roles as $role) {
             $meta = [
                 $this->translator->trans($role->internalOnly ? 'admin.configuration.roles.internal_only' : 'admin.configuration.roles.anyone'),
+                $this->translator->trans($role->freeWorkflow ? 'admin.configuration.roles.free_workflow' : 'admin.configuration.roles.guided_workflow'),
                 $this->translator->trans('admin.configuration.roles.membership_count', ['%count%' => $held[$role->id] ?? 0]),
             ];
             if ($role->followsNewIssues) {
-                array_splice($meta, 1, 0, [$this->translator->trans('admin.configuration.roles.follows_new_issues_help')]);
+                array_splice($meta, 2, 0, [$this->translator->trans('admin.configuration.roles.follows_new_issues_help')]);
             }
             $rows[] = $this->row($role->id, $role->label, implode(' · ', $meta), $this->generateUrl('app_admin_configuration_role', ['id' => $role->id]));
         }
@@ -263,7 +264,9 @@ final class Order extends AbstractController
         foreach ($workflow->transitions as $transition) {
             $meta = [
                 implode(', ', array_map($label, $transition->from)).' → '.$label($transition->to),
-                implode(', ', array_map(static fn (string $roleId): string => $definition->role($roleId)->label, $transition->roles)),
+                [] === $transition->roles
+                    ? $this->translator->trans('admin.configuration.workflow.no_role')
+                    : implode(', ', array_map(static fn (string $roleId): string => $definition->role($roleId)->label, $transition->roles)),
             ];
             if ($transition->requiresComment) {
                 $meta[] = $this->translator->trans('admin.configuration.workflow.comment_required');

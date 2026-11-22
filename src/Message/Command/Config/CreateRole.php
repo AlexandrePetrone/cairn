@@ -19,6 +19,7 @@ final readonly class CreateRole implements ConfigurationCommand
         public string $label,
         public bool $internalOnly = false,
         public bool $followsNewIssues = false,
+        public bool $freeWorkflow = false,
     ) {
     }
 }

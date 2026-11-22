@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Automation\RuleReferences;
 use App\Config\ConfigRegistry;
 use App\Config\Definition\RoleDefinition;
 use App\Form\Config\RoleData;
@@ -25,7 +26,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The roles of the instance and the rights outside the workflows: the
+ * The roles of the instance and the rights: the
  * list is ordered and the rights are ticked in place (Config:Order,
  * Config:PermissionMatrix); a role is created, changed and deleted in a
  * dialog.
@@ -41,6 +42,7 @@ final class RoleController extends AbstractController
         private readonly CommandBus $commands,
         private readonly TranslatorInterface $translator,
         private readonly ConfigDeletions $deletions,
+        private readonly RuleReferences $rules,
     ) {
     }
 
@@ -56,7 +58,7 @@ final class RoleController extends AbstractController
         $data = new RoleData();
         $form = $this->createForm(RoleType::class, $data, ['action' => $request->getRequestUri()]);
         $form->handleRequest($request);
-        if ($this->applies($form, static fn (): CreateRole => new CreateRole((string) $data->label, $data->internalOnly, $data->followsNewIssues))) {
+        if ($this->applies($form, static fn (): CreateRole => new CreateRole((string) $data->label, $data->internalOnly, $data->followsNewIssues, $data->freeWorkflow))) {
             $this->addFlash('success', $this->translator->trans('admin.configuration.roles.created', ['%name%' => (string) $data->label]));
 
             return $this->redirectToRoute('app_admin_configuration_roles');
@@ -73,10 +75,11 @@ final class RoleController extends AbstractController
         $data->label = $role->label;
         $data->internalOnly = $role->internalOnly;
         $data->followsNewIssues = $role->followsNewIssues;
+        $data->freeWorkflow = $role->freeWorkflow;
 
         $form = $this->createForm(RoleType::class, $data, ['action' => $request->getRequestUri()]);
         $form->handleRequest($request);
-        if ($this->applies($form, static fn (): UpdateRole => new UpdateRole($id, (string) $data->label, $data->internalOnly, $data->followsNewIssues))) {
+        if ($this->applies($form, static fn (): UpdateRole => new UpdateRole($id, (string) $data->label, $data->internalOnly, $data->followsNewIssues, $data->freeWorkflow))) {
             $this->addFlash('success', $this->translator->trans('admin.configuration.saved'));
 
             return $this->redirectToRoute('app_admin_configuration_roles');
@@ -100,9 +103,40 @@ final class RoleController extends AbstractController
      */
     private function page(Request $request, ?FormInterface $form, ?RoleDefinition $role): Response
     {
-        return $this->renderWithDialog($request, 'admin/configuration/roles.html.twig', ['form' => $form, 'dialogRole' => $role, 'dialogRefusal' => null === $role ? null : $this->deletions->role($role->id)?->trans($this->translator)], fn (): array => [
+        return $this->renderWithDialog($request, 'admin/configuration/roles.html.twig', [
+            'form' => $form,
+            'dialogRole' => $role,
+            'dialogRefusal' => null === $role ? null : $this->deletions->role($role->id)?->trans($this->translator),
+            'dialogLeaves' => null === $role || $role->freeWorkflow ? null : $this->leaves($role),
+        ], fn (): array => [
             'definition' => $this->config->definition(),
         ], $form);
+    }
+
+    /**
+     * What a role held to the workflow leaves when it is freed, said in
+     * its dialog before it is done: the actions that name it, and the
+     * automation rules triggered by those it would leave to nobody.
+     *
+     * @return array{actions: list<string>, rules: list<string>}
+     */
+    private function leaves(RoleDefinition $role): array
+    {
+        $actions = [];
+        $rules = [];
+        foreach ($this->config->definition()->workflows as $workflow) {
+            foreach ($workflow->transitions as $transition) {
+                if (!\in_array($role->id, $transition->roles, true)) {
+                    continue;
+                }
+                $actions[] = \sprintf('%s (%s)', $transition->label, $workflow->label);
+                if ([$role->id] === $transition->roles) {
+                    array_push($rules, ...$this->rules->toTransition($workflow->id, $transition->id));
+                }
+            }
+        }
+
+        return ['actions' => $actions, 'rules' => array_values(array_unique($rules))];
     }
 
     private function role(string $id): RoleDefinition

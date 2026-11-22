@@ -39,8 +39,8 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 /**
  * Thread of the issue page, then what the viewer may do, in two boxes.
  * The decision lists the workflow actions of the viewer's role, one line
- * each with what it does: an action applies at once, unless it asks this
- * viewer for a comment, which is then written in the decision itself and
+ * each with what it does: an action applies at once, unless it asks for
+ * a comment, which is then written in the decision itself and
  * sent with it (kept on screen if the action is refused). The comment box is a comment and nothing else. A success
  * redraws the thread in place, tells the other components of the page
  * (`issue:changed`) and shows a toast; the comment being written survives
@@ -195,8 +195,8 @@ final class Activity
     }
 
     /**
-     * Takes an action of the workflow: at once, or, when it asks this
-     * viewer for a comment, once the comment is written.
+     * Takes an action of the workflow: at once, or, when it asks for a
+     * comment, once the comment is written.
      */
     #[LiveAction]
     public function apply(CommandBus $commands, #[LiveArg] string $transition): void
@@ -207,7 +207,7 @@ final class Activity
 
             return;
         }
-        if ($this->access->commentRequired($this->viewer->get(), $chosen, $this->issue->getProject())) {
+        if ($chosen->requiresComment) {
             $this->awaiting = $chosen->id;
             $this->reason = '';
 

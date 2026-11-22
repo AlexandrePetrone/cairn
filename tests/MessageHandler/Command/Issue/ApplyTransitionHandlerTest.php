@@ -76,7 +76,7 @@ final class ApplyTransitionHandlerTest extends KernelTestCase
 
         $this->expectException(IssueException::class);
         $this->expectExceptionMessage('cannot be applied from place "new"');
-        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->manager->getId(), $issue->getKey(), 'accept'));
+        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->client->getId(), $issue->getKey(), 'accept'));
     }
 
     public function testAnIssueStandingOutsideItsWorkflowTakesNoAction(): void
@@ -118,7 +118,7 @@ final class ApplyTransitionHandlerTest extends KernelTestCase
         self::assertSame($this->fixtures->client->getId(), $comment->getAuthor()?->getId());
     }
 
-    public function testTheCommentIsAskedOfWhoeverMayNotSkipItInternalOrNot(): void
+    public function testTheCommentIsAskedOfWhoeverTakesTheActionInternalOrNot(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
         $developer = (int) $this->fixtures->developer->getId();
@@ -133,17 +133,23 @@ final class ApplyTransitionHandlerTest extends KernelTestCase
         $this->commands->dispatch(new ApplyTransition((int) $tester->getId(), $issue->getKey(), 'refuse'));
     }
 
-    public function testWhoMaySkipTheCommentAppliesATransitionWithoutIt(): void
+    public function testWhoMovesFreelyTakesNoAction(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
         $developer = (int) $this->fixtures->developer->getId();
         $this->commands->dispatch(new ApplyTransition($developer, $issue->getKey(), 'start'));
         $this->commands->dispatch(new ApplyTransition($developer, $issue->getKey(), 'deliver'));
+        $admin = $this->fixtures->access->user('root@agency.test', internal: true, admin: true);
 
-        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->manager->getId(), $issue->getKey(), 'refuse'));
-
-        self::assertSame('in_progress', $issue->getPlace());
-        self::assertNull($this->lastEntry($issue->getId())->getComment(), 'no comment was required of the manager');
+        // The manager's role moves freely, an administrator always does: the actions are for the roles held to the workflow.
+        foreach ([$this->fixtures->manager, $admin] as $free) {
+            try {
+                $this->commands->dispatch(new ApplyTransition((int) $free->getId(), $issue->getKey(), 'accept'));
+                self::fail('Who moves freely takes no action.');
+            } catch (AccessDeniedException) {
+                self::assertSame('to_test', $issue->getPlace());
+            }
+        }
     }
 
     public function testClosingSetsTheClosingDate(): void
@@ -154,7 +160,7 @@ final class ApplyTransitionHandlerTest extends KernelTestCase
         $this->commands->dispatch(new ApplyTransition($developer, $issue->getKey(), 'deliver'));
         self::assertNull($issue->getClosedAt());
 
-        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->manager->getId(), $issue->getKey(), 'accept'));
+        $this->commands->dispatch(new ApplyTransition((int) $this->fixtures->client->getId(), $issue->getKey(), 'accept'));
 
         self::assertSame('done', $issue->getPlace());
         self::assertNotNull($issue->getClosedAt());

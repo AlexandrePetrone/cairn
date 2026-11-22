@@ -97,7 +97,7 @@ final class JournalEntryTest extends KernelTestCase
 
         $workflow = DefinitionFactory::bugWorkflow();
         $this->component->entry = Entry::moved($this->issue, $this->nadia, DefinitionFactory::place('new'), DefinitionFactory::place('in_progress'));
-        self::assertSame('moved the issue without an action: New → In progress', $this->component->getLabel());
+        self::assertSame('moved the issue: New → In progress', $this->component->getLabel());
     }
 
     public function testAPushIsOnePrivateEntryWithoutAuthorListingItsCommits(): void

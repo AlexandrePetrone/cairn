@@ -1,4 +1,4 @@
-{# The diagram of a workflow, drawn by the browser: its steps and the actions that lead from one to another. #}
+{# The diagram of a workflow, drawn by the browser: its steps and the actions that lead from one to another, with the panel that says which steps stand off its path. #}
 {% extends 'admin/configuration/base.html.twig' %}
 
 {% set configurationSubject = 'workflows' %}
@@ -10,5 +10,5 @@
 
     <h2 class="text-lg font-semibold text-strong">{{ workflow.label }} · {{ 'admin.configuration.workflow.diagram'|trans }}</h2>
 
-    <twig:Workflow:Diagram :workflow="workflow" />
+    <twig:Config:WorkflowPath :workflow="workflow.id" />
 {% endblock %}

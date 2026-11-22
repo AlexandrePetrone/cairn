@@ -31,8 +31,8 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * issues only, unfolded on demand, where a card can still be dropped. The
  * cards come in the order of the column (IssueSort::Rank), which whoever
  * holds `issue.rank` changes by dragging. Each
- * card says which places the viewer may move it to, and which of them lie
- * outside the workflow (`issue.bypass_workflow`); Board:Move moves it
+ * card says which places the viewer may move it to
+ * (AccessControl::movesFor()); Board:Move moves it
  * and the `board` controller keeps the columns right without asking them
  * again.
  */
@@ -100,16 +100,13 @@ final class Column
     }
 
     /**
-     * The places the viewer may drop the issue on, and those among them
-     * that no action leads to: reached outside the workflow.
+     * The places the viewer may drop the issue on.
      *
-     * @return array{places: list<string>, forced: list<string>}
+     * @return list<string>
      */
     public function dropsFor(Issue $issue): array
     {
-        $moves = $this->access->movesFor($this->viewer->get(), $issue);
-
-        return ['places' => PlaceMove::placeIds($moves), 'forced' => PlaceMove::placeIds($moves, forcedOnly: true)];
+        return PlaceMove::placeIds($this->access->movesFor($this->viewer->get(), $issue));
     }
 
     /**

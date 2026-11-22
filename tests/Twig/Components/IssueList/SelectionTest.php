@@ -38,11 +38,12 @@ final class SelectionTest extends KernelTestCase
 
     public function testThePageShowsTheIssuesAndTheChangesOffered(): void
     {
-        $render = (string) $this->selection('nadia.benali@cairn.test', 'MD-SPT-1', 'MD-SPT-2')->render();
+        $render = (string) $this->selection('thomas.girard@cairn.test', 'MD-SPT-1', 'MD-SPT-2')->render();
 
         self::assertStringContainsString('MD-SPT-1', $render);
         self::assertStringContainsString('MD-SPT-2', $render);
         self::assertStringContainsString('data-live-action-param="move"', $render);
+        self::assertStringNotContainsString('data-live-action-param="move"', (string) $this->selection('nadia.benali@cairn.test', 'MD-SPT-1', 'MD-SPT-2')->render(), 'a developer is held to the workflow: no action is named in bulk');
         self::assertStringContainsString('data-live-property-param="assignee"', $render);
         self::assertStringContainsString('data-live-property-param="visibility"', $render);
         self::assertStringContainsString('data-controller="editor"', $render, 'the comment is written in the editor');
@@ -51,7 +52,7 @@ final class SelectionTest extends KernelTestCase
         self::assertStringNotContainsString('MD-SPT-6', $render, 'an issue she may not see is left out');
         self::assertStringContainsString('data-live-property-param="criticality"', $render);
         self::assertStringContainsString('data-live-property-param="follow"', $render);
-        self::assertStringNotContainsString('data-live-action-param="move"', $render, 'the step is for internal users to change');
+        self::assertStringNotContainsString('data-live-action-param="move"', $render, 'the step is for who moves freely to change');
         self::assertStringNotContainsString('data-live-property-param="assignee"', $render);
         self::assertStringNotContainsString('data-live-property-param="visibility"', $render);
     }
@@ -79,15 +80,14 @@ final class SelectionTest extends KernelTestCase
         }
     }
 
-    public function testEachIssueReachesTheStepItsOwnWay(): void
+    public function testEachIssueReachesTheStepInItsTrackerOrChangesCategory(): void
     {
         $component = $this->selection('thomas.girard@cairn.test', 'MD-SPT-1', 'MD-SPT-4', 'MD-SPT-7');
 
         $component->call('move', ['tracker' => $this->scene->bugs->getId(), 'place' => 'qualified']);
         $render = (string) $component->render();
-        self::assertStringContainsString('Qualify', $render, 'a new bug gets there by its action');
-        self::assertStringContainsString('Outside the workflow', $render, 'a bug to test has no action that leads there');
-        self::assertStringContainsString('changes category', $render, 'a feature becomes a bug');
+        self::assertStringNotContainsString('Qualify', $render, 'no action is named: the step is taken freely');
+        self::assertSame(1, substr_count($render, 'changes category'), 'a feature becomes a bug, the two bugs only move');
 
         $component->call('apply');
 
@@ -108,8 +108,7 @@ final class SelectionTest extends KernelTestCase
         self::assertStringContainsString('Change category…', $render);
 
         $render = (string) $component->call('move', ['place' => 'to_test'])->render();
-        self::assertStringContainsString('Deliver for testing', $render, 'the bug and the task in progress get there by their action');
-        self::assertStringContainsString('Outside the workflow', $render, 'the new bug and the planned feature have no action that leads there');
+        self::assertStringNotContainsString('Deliver for testing', $render, 'no action is named');
         self::assertStringNotContainsString('changes category', $render);
 
         $component->call('apply');

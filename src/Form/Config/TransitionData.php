@@ -24,7 +24,6 @@ final class TransitionData
     public ?string $to = null;
 
     /** @var list<string> */
-    #[Assert\Count(min: 1, minMessage: 'admin.configuration.action.roles_required')]
     public array $roles = [];
 
     public TransitionStyle $style = TransitionStyle::Default;

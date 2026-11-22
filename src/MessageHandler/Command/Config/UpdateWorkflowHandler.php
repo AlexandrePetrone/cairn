@@ -37,6 +37,27 @@ final class UpdateWorkflowHandler
                 throw ConfigChangeException::otherPlaces($workflow->getLabel());
             }
         }
+        foreach ($command->aside ?? [] as $placeId => $besideId) {
+            $place = $this->writing->placeOf($workflow, $placeId);
+            // A place stands beside the path, not beside another that left it.
+            if (isset($command->aside[$besideId]) || $placeId === $besideId) {
+                throw ConfigChangeException::besideThePath($place->getLabel(), $this->writing->placeOf($workflow, $besideId)->getLabel());
+            }
+            $this->writing->placeOf($workflow, $besideId);
+        }
+        // The path starts where the issues do: the initial place is on it, whichever of the two changes.
+        $aside = $command->aside ?? [];
+        if (null === $command->aside) {
+            foreach ($used as $place) {
+                if (null !== $place->getBeside()) {
+                    $aside[$place->getPlace()->getId()] = $place->getBeside()->getPlace()->getId();
+                }
+            }
+        }
+        $start = $initial ?? $workflow->getInitial();
+        if (isset($aside[$start->getId()])) {
+            throw ConfigChangeException::initialAside($start->getLabel(), $workflow->getLabel());
+        }
         $fields = [];
         foreach ($command->fields ?? [] as $fieldId => $required) {
             $fields[$fieldId] = $this->writing->get(Field::class, $fieldId);
@@ -52,6 +73,15 @@ final class UpdateWorkflowHandler
             $positions = array_flip($command->places);
             foreach ($used as $place) {
                 $place->moveTo($positions[$place->getPlace()->getId()]);
+            }
+        }
+        if (null !== $command->aside) {
+            $rows = [];
+            foreach ($used as $place) {
+                $rows[$place->getPlace()->getId()] = $place;
+            }
+            foreach ($rows as $placeId => $place) {
+                isset($command->aside[$placeId]) ? $place->standBeside($rows[$command->aside[$placeId]]) : $place->putOnThePath();
             }
         }
         if (null !== $command->fields) {

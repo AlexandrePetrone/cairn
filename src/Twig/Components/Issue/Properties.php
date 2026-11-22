@@ -10,7 +10,6 @@ use App\Entity\Issue;
 use App\Entity\Release;
 use App\Entity\Tracker;
 use App\Entity\User;
-use App\Message\Command\Issue\ApplyTransition;
 use App\Message\Command\Issue\ChangeTracker;
 use App\Message\Command\Issue\MoveIssue;
 use App\Message\Command\Issue\UpdateIssue;
@@ -39,11 +38,14 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * assignee, criticality, release and visibility read as values and, for
  * whoever may change them, open a menu of the choices; the release shows
  * once the project has releases.
- * The step is a menu for internal users only: the places of the workflow the
- * viewer may take the issue to (`AccessControl::movesFor()`: by an action
- * when one leads there, outside the workflow otherwise) and, last, the
- * other trackers of the project, each with the places of its workflow.
- * External users act from the response box, where an action is explained.
+ * The step is a menu for whoever moves freely
+ * (`AccessControl::canMoveFreely()`): the other places of the workflow
+ * and, last, the other trackers of the project, each with the places of
+ * its workflow; the places are drawn as the path of the workflow, those
+ * beside it hanging from the place they stand beside (`getTrail()`). A
+ * role held to the workflow reads the step and acts from the response
+ * box, where an action is explained. Next to the tracker, a link opens
+ * the diagram of its workflow, for everyone.
  * A change is its own command; the other components of the page are told
  * (`issue:changed`), and this one follows their changes.
  */
@@ -75,7 +77,8 @@ final class Properties
     }
 
     /**
-     * Whether the step is a menu: when it leads the viewer somewhere.
+     * Whether the step is a menu: when it leads somewhere, which it only
+     * does for whoever moves freely.
      */
     public function canChangePlace(): bool
     {
@@ -83,9 +86,8 @@ final class Properties
     }
 
     /**
-     * The moves the menu applies at once: an action that asks this viewer
-     * for a comment is taken from the decision of the thread, which asks
-     * for it.
+     * The places the menu offers: every other one of the workflow, for
+     * whoever moves freely.
      *
      * @return list<PlaceMove>
      */
@@ -93,14 +95,11 @@ final class Properties
     {
         $viewer = $this->viewer->get();
 
-        return $this->moves ??= array_values(array_filter(
-            $this->access->movesFor($viewer, $this->issue),
-            fn (PlaceMove $move): bool => null === $move->transition || !$this->access->commentRequired($viewer, $move->transition, $this->issue->getProject()),
-        ));
+        return $this->moves ??= $this->access->canMoveFreely($viewer, $this->issue->getProject()) ? $this->access->movesFor($viewer, $this->issue) : [];
     }
 
     /**
-     * The trackers the issue may change to (`issue.bypass_workflow`): the
+     * The trackers the issue may change to, for whoever moves freely: the
      * other active ones of the project the viewer sees.
      *
      * @return list<Tracker>
@@ -110,7 +109,7 @@ final class Properties
         if (null !== $this->otherTrackers) {
             return $this->otherTrackers;
         }
-        if (!$this->access->isGranted($this->viewer->get(), Permission::IssueBypassWorkflow, $this->issue->getProject())) {
+        if (!$this->access->canMoveFreely($this->viewer->get(), $this->issue->getProject())) {
             return $this->otherTrackers = [];
         }
         $current = $this->issue->getTracker()->getId();
@@ -130,6 +129,40 @@ final class Properties
     public function placesOf(?Tracker $tracker = null): array
     {
         return $this->workflows->places(($tracker ?? $this->issue->getTracker())->getWorkflowId());
+    }
+
+    /**
+     * The places of the issue's workflow as its diagram arranges them: the
+     * path in its order, each place followed by those that stand beside it.
+     *
+     * @return list<array{place: PlaceDefinition, aside: bool}>
+     */
+    public function getTrail(): array
+    {
+        $workflow = $this->workflows->definition($this->issue->getTracker()->getWorkflowId());
+        $beside = [];
+        foreach ($workflow->places as $place) {
+            if (isset($workflow->aside[$place])) {
+                $beside[$workflow->aside[$place]][] = $place;
+            }
+        }
+
+        $trail = [];
+        foreach ($workflow->path() as $place) {
+            $trail[] = ['place' => $this->workflows->place($place), 'aside' => false];
+            foreach ($beside[$place] ?? [] as $aside) {
+                $trail[] = ['place' => $this->workflows->place($aside), 'aside' => true];
+            }
+            unset($beside[$place]);
+        }
+        // The definition judges nothing: a place beside one that is not on the path still shows.
+        foreach ($beside as $asides) {
+            foreach ($asides as $aside) {
+                $trail[] = ['place' => $this->workflows->place($aside), 'aside' => true];
+            }
+        }
+
+        return $trail;
     }
 
     /**
@@ -223,27 +256,8 @@ final class Properties
     }
 
     /**
-     * Applies an action of the workflow chosen in the step menu.
-     */
-    #[LiveAction]
-    public function transition(CommandBus $commands, #[LiveArg] string $id): void
-    {
-        $transition = array_find($this->getMoves(), static fn (PlaceMove $move): bool => $move->transition?->id === $id)?->transition;
-        if (null === $transition || !$this->canChangePlace()) {
-            $this->error = $this->translator->trans('issue.action.refused');
-
-            return;
-        }
-
-        if ($this->tryCommand($commands, new ApplyTransition((int) $this->viewer->get()->getId(), $this->issue->getKey(), $transition->id))) {
-            $this->moves = null;
-            $this->announce($this->translator->trans('issue.transition.applied', ['%key%' => $this->issue->getKey(), '%transition%' => $transition->label]));
-        }
-    }
-
-    /**
-     * Takes the issue to a place of its workflow (MoveIssue decides how:
-     * the workflow first), or to another tracker on a place of its workflow.
+     * Takes the issue to a place of its workflow, or to another tracker on
+     * a place of its workflow.
      */
     #[LiveAction]
     public function move(CommandBus $commands, #[LiveArg] string $place, #[LiveArg] ?int $tracker = null): void
@@ -252,7 +266,7 @@ final class Properties
         $offered = null === $tracker
             ? array_any($this->getMoves(), static fn (PlaceMove $move): bool => $move->place->id === $place)
             : array_any($this->getOtherTrackers(), static fn (Tracker $other): bool => $other->getId() === $tracker);
-        if (!$offered || !$this->canChangePlace()) {
+        if (!$offered) {
             $this->error = $this->translator->trans('issue.action.refused');
 
             return;

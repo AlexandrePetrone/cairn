@@ -88,6 +88,20 @@ final class ConfigValidator
             }
         }
 
+        foreach ($workflow->aside as $placeId => $besideId) {
+            foreach ([$placeId, $besideId] as $named) {
+                if (!$workflow->hasPlace($named)) {
+                    $violations[] = new ConfigViolation("$path.aside", \sprintf('unknown place "%s".', $named));
+                }
+            }
+            if ($placeId === $workflow->initial) {
+                $violations[] = new ConfigViolation("$path.aside", \sprintf('the initial place "%s" is where the path starts.', $placeId));
+            }
+            if (isset($workflow->aside[$besideId]) || $placeId === $besideId) {
+                $violations[] = new ConfigViolation("$path.aside", \sprintf('"%s" stands beside a place of the path, which "%s" is not.', $placeId, $besideId));
+            }
+        }
+
         $pairs = [];
         foreach ($workflow->transitions as $transition) {
             $transitionPath = "$path.transitions.$transition->id";
@@ -108,6 +122,8 @@ final class ConfigValidator
             foreach (array_unique($transition->roles) as $roleId) {
                 if (!$definition->hasRole($roleId)) {
                     $violations[] = new ConfigViolation("$transitionPath.roles", \sprintf('unknown role "%s".', $roleId));
+                } elseif ($definition->role($roleId)->freeWorkflow) {
+                    $violations[] = new ConfigViolation("$transitionPath.roles", \sprintf('role "%s" moves issues freely: it takes no action.', $roleId));
                 }
             }
         }
@@ -122,7 +138,7 @@ final class ConfigValidator
     }
 
     /**
-     * An action starts from somewhere, someone triggers it, and what it
+     * An action starts from somewhere, and what it
      * says of its comment and of itself is said or left out.
      *
      * @return list<ConfigViolation>
@@ -132,9 +148,6 @@ final class ConfigValidator
         $violations = [];
         if ([] === $transition->from) {
             $violations[] = new ConfigViolation("$path.from", 'at least one source place is required.');
-        }
-        if ([] === $transition->roles) {
-            $violations[] = new ConfigViolation("$path.roles", 'at least one role is required.');
         }
         array_push($violations, ...self::listedTwice("$path.from", $transition->from), ...self::listedTwice("$path.roles", $transition->roles));
         if (null !== $transition->commentPrompt && !$transition->requiresComment) {

@@ -32,6 +32,38 @@ final class IssueTest extends WebTestCase
         $this->scene = ShopScene::load(self::getContainer());
     }
 
+    public function testTheWorkflowOfTheIssueIsADialogForWhoeverSeesIt(): void
+    {
+        $this->signInAs('claire.martin@maison-dupont.test');
+
+        $crawler = $this->client->request('GET', '/MD/SPT/issues/4');
+        self::assertSelectorExists('main aside a[href="/MD/SPT/issues/4/workflow"][data-turbo-frame="modal"]', 'a role held to the workflow opens the diagram too');
+        self::assertSame('', trim($crawler->filter('turbo-frame#modal')->text()), 'the page alone holds no dialog');
+
+        $this->client->request('GET', '/MD/SPT/issues/4/workflow');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'The CSV export of orders is empty', 'the dialog opens over the page');
+        self::assertSelectorExists('turbo-frame#modal [role="dialog"] [data-controller="workflow-diagram"]');
+        $source = $this->client->getCrawler()->filter('turbo-frame#modal [data-workflow-diagram-target="source"]')->text(null, false);
+        self::assertStringContainsString('style p_to_test stroke:var(--color-brand-solid)', $source, 'the step of the issue is outlined');
+        self::assertStringContainsString('Accept', $source, 'every action is named');
+        self::assertSelectorTextNotContains('turbo-frame#modal [role="dialog"]', 'Strong line', 'the drawing alone, without its legend');
+
+        $this->client->request('GET', '/MD/SPT/issues/4/workflow', server: ['HTTP_TURBO_FRAME' => 'modal']);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('h1', 'the frame is answered the dialog alone');
+        self::assertSelectorExists('turbo-frame#modal [role="dialog"]');
+
+        $this->signInAs('thomas.girard@cairn.test');
+        $this->client->request('GET', '/MD/SPT/issues/4/workflow');
+        self::assertSelectorExists('turbo-frame#modal [role="dialog"] [data-controller="workflow-diagram"]', 'the same for a role that moves freely');
+        self::assertSelectorExists('main aside [aria-current="step"]', 'his menu draws the path, the step of the issue marked');
+
+        $this->signInAs('sophie.bernard@travelia.test');
+        $this->client->request('GET', '/MD/SPT/issues/4/workflow');
+        self::assertResponseStatusCodeSame(403, 'not a member of the project');
+    }
+
     public function testAClientSeesTheIssueAndTheActionsOfHerRole(): void
     {
         $this->signInAs('claire.martin@maison-dupont.test');
@@ -49,14 +81,14 @@ final class IssueTest extends WebTestCase
         self::assertSelectorTextContains('main', 'changed the assignee: Nobody → Nadia Benali', 'assigned through the command in the fixtures');
         self::assertSelectorTextContains('main [aria-label="Path"]', 'New');
         self::assertSelectorExists('main [data-live-name-value="Issue:Activity"] [data-live-transition-param="accept"]', 'her actions are in the response box');
-        self::assertSelectorExists('main aside [data-live-action-param="transition"][data-live-id-param="accept"]', 'and in the step menu, where they lead');
-        self::assertSelectorNotExists('main aside [data-live-action-param="transition"][data-live-id-param="refuse"]', 'but not the one that asks her for a comment');
-        self::assertSelectorNotExists('main aside [data-live-action-param="move"]', 'she does not leave the workflow');
+        self::assertSelectorNotExists('main aside [data-controller="panels"]', 'the step is not a menu for a role held to the workflow');
+        self::assertSelectorNotExists('main aside [data-live-action-param="move"]');
 
         $this->signInAs('thomas.girard@cairn.test');
         $this->client->request('GET', '/MD/SPT/issues/4');
-        self::assertSelectorExists('main aside [data-live-action-param="transition"][data-live-id-param="accept"]', 'the manager has the step menu');
-        self::assertSelectorExists('main aside [data-live-action-param="move"][data-live-place-param="qualified"]', 'and may leave the workflow');
+        self::assertSelectorExists('main aside [data-live-action-param="move"][data-live-place-param="qualified"]', 'the manager moves freely: the step is a menu of every place');
+        self::assertSelectorExists('main aside [data-live-action-param="move"][data-live-place-param="to_release"]');
+        self::assertSelectorNotExists('main [data-live-name-value="Issue:Activity"] [data-live-transition-param]', 'and no action is offered under the thread');
     }
 
     public function testPrivateCommentsAreForInternalsOnly(): void

@@ -14,7 +14,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 #[McpTool(
     name: 'move_issue',
-    description: 'Takes an issue to a step of its workflow: by the action of the user that leads there when there is one, otherwise outside the workflow, for whoever may.',
+    description: 'Takes an issue to a step of its workflow: any step for a user whose role moves issues freely, otherwise the steps an action of theirs leads to.',
     structuredContent: false,
     outputFormats: ['json' => ['application/json']],
     security: "is_granted('api.write')",

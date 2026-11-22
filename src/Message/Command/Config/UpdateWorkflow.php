@@ -9,8 +9,11 @@ use Symfony\Component\Validator\Constraints as Assert;
 /**
  * Changes a workflow, PATCH style. `initial` is one of its places;
  * `places` gives the same places in another order, the columns of the
- * kanban; `fields` replaces the fields it asks for, in the order of the
- * form. Handled by UpdateWorkflowHandler.
+ * kanban; `aside` names those of its places that stand beside the path
+ * its issues follow, each with the place of that path it stands beside,
+ * for its diagram, the others being on the path;
+ * `fields` replaces the fields it asks for, in the order of the form.
+ * Handled by UpdateWorkflowHandler.
  */
 final readonly class UpdateWorkflow implements ConfigurationCommand
 {
@@ -22,6 +25,8 @@ final readonly class UpdateWorkflow implements ConfigurationCommand
         public ?string $initial = null,
         /** @var list<string>|null every place of the workflow, in the new order */
         public ?array $places = null,
+        /** @var array<string, string>|null place => the place of the path it stands beside; never the initial one */
+        public ?array $aside = null,
         /** @var array<string, bool>|null field id => required, in the order of the form */
         public ?array $fields = null,
         #[Assert\PositiveOrZero]

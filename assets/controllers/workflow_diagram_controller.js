@@ -16,7 +16,7 @@ let count = 0;
  * MermaidDiagram), as do the lines and labels here; Mermaid wants real
  * colours, so each role is read from the page when drawing, and the
  * diagram is drawn again when the theme changes (`theme:changed`, or the
- * system's while it is followed).
+ * system's while it is followed), and when its source does.
  */
 export default class extends Controller {
     static targets = ['canvas', 'source'];
@@ -26,12 +26,16 @@ export default class extends Controller {
         this.scheme = window.matchMedia('(prefers-color-scheme: dark)');
         this.scheme.addEventListener('change', this.redraw);
         window.addEventListener('theme:changed', this.redraw);
+        // A live component that holds the diagram writes another source when the workflow changes.
+        this.source = new MutationObserver(this.redraw);
+        this.source.observe(this.sourceTarget, { childList: true, characterData: true, subtree: true });
         this.draw();
     }
 
     disconnect() {
         this.scheme.removeEventListener('change', this.redraw);
         window.removeEventListener('theme:changed', this.redraw);
+        this.source.disconnect();
     }
 
     async draw() {
@@ -45,6 +49,9 @@ export default class extends Controller {
             // angles and ignores `flowchart.curve`. Linear segments keep the drawing
             // narrow and the labels of the actions apart.
             elk: { nodePlacementStrategy: 'LINEAR_SEGMENTS', straightenEdges: true },
+            // Mermaid lets half of a line show through the label it crosses: the name of an
+            // action and its roles are read on a plain ground.
+            themeCSS: '.edgeLabel rect { opacity: 1; }',
             themeVariables: {
                 lineColor: this.color('faint'),
                 edgeLabelBackground: this.color('surface'),

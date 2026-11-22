@@ -83,16 +83,14 @@ final class HeaderTest extends KernelTestCase
         $header = $component->component();
         self::assertInstanceOf(Header::class, $header);
 
-        self::assertSame(['New', 'In progress', 'To test'], array_column($header->getPath(), 'label'));
-        self::assertSame([false, false, false], array_column($header->getPath(), 'moved'));
-        $render = (string) $component->render();
-        self::assertStringContainsString('aria-label="Path"', $render);
-        self::assertStringNotContainsString('Moved without an action', $render);
+        self::assertSame(['New', 'Qualified', 'In progress', 'To test'], $header->getPath());
+        self::assertStringContainsString('aria-label="Path"', (string) $component->render());
 
-        self::getContainer()->get(CommandBus::class)->dispatch(new MoveIssue((int) $thomas->getId(), 'MD-SPT-4', 'qualified'));
+        self::getContainer()->get(CommandBus::class)->dispatch(new MoveIssue((int) $thomas->getId(), 'MD-SPT-4', 'blocked'));
         $component->emit('issue:changed');
 
-        self::assertStringContainsString('Moved without an action', (string) $component->render());
+        self::assertSame(['New', 'Qualified', 'In progress', 'To test', 'Blocked'], $header->getPath(), 'a place taken freely is on the path as any other');
+        self::assertStringContainsString('Blocked', (string) $component->render());
     }
 
     public function testThePencilFollowsTheRightToEditTheIssue(): void

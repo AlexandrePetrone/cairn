@@ -12,6 +12,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
  * The dialog of a role: its name, who may hold it, whether its holders
+ * move issues freely or by the actions of the workflow, whether they
  * follow every new issue.
  *
  * @extends AbstractType<RoleData>
@@ -25,6 +26,11 @@ final class RoleType extends AbstractType
             ->add('internalOnly', ToggleType::class, [
                 'label' => 'admin.configuration.roles.form.internal_only',
                 'help' => 'admin.configuration.roles.form.internal_only_help',
+                'required' => false,
+            ])
+            ->add('freeWorkflow', ToggleType::class, [
+                'label' => 'admin.configuration.roles.form.free_workflow',
+                'help' => 'admin.configuration.roles.form.free_workflow_help',
                 'required' => false,
             ])
             ->add('followsNewIssues', ToggleType::class, [

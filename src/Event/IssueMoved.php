@@ -9,7 +9,7 @@ use App\Entity\JournalEntry;
 use App\Entity\User;
 
 /**
- * The issue was moved outside its workflow, within its tracker or to another.
+ * The issue was moved without an action, within its tracker or to another.
  */
 final readonly class IssueMoved extends IssueEvent
 {

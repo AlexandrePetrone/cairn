@@ -1,0 +1,68 @@
+{# The diagram of a workflow and the panel that shapes it: the steps off the path, each with a menu of the steps of the path it may be reached from, and a menu of the steps that may leave the path. A choice acts at once and the diagram is drawn again (the `workflow-diagram` controller follows its source). `this` is read before the nested components, whose blocks see their own `this`. #}
+{% set workflowPathDefinition = this.definition %}
+{% set workflowPathOff = this.offPath %}
+{% set workflowPathSteps = this.path %}
+{% set workflowPathMovable = this.movable %}
+{% set workflowPathTrigger = 'inline-flex min-h-7 max-w-full items-center gap-1.5 rounded-md border border-line-strong bg-surface px-2 py-0.5 text-left text-sm text-body hover:bg-subtle aria-expanded:bg-subtle' %}
+<div {{ attributes.defaults({ class: 'grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]' }) }} data-loading="addClass(opacity-60)">
+    <twig:Workflow:Diagram :workflow="workflowPathDefinition" class="min-w-0" />
+
+    <section class="rounded-lg border border-line bg-surface p-4 lg:sticky lg:top-20">
+        <h3 class="text-sm font-semibold text-strong">{{ 'admin.configuration.workflow.off_path.title'|trans }}</h3>
+        <p class="mt-1 text-xs text-muted">{{ 'admin.configuration.workflow.off_path.intro'|trans }}</p>
+        {% if error %}
+            <twig:Ui:Callout tone="danger" size="sm" role="alert" class="mt-3">{{ error }}</twig:Ui:Callout>
+        {% endif %}
+
+        {% if workflowPathOff is empty %}
+            <p class="mt-3 text-sm text-faint">{{ 'admin.configuration.workflow.off_path.none'|trans }}</p>
+        {% else %}
+            <ul class="mt-3 space-y-2">
+                {% for workflowPathStep in workflowPathOff %}
+                    <li id="workflow-off-path-{{ workflowPathStep.place.id }}" class="group flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <twig:Ui:Status:Step :status="workflowPathStep.place.status.value" :label="workflowPathStep.place.label" class="font-medium" />
+                        <span class="text-xs text-muted">{{ 'admin.configuration.workflow.off_path.from'|trans }}</span>
+                        <twig:Ui:Dropdown width="sm" align="right" class="ml-auto">
+                            <twig:block name="trigger">
+                                <button type="button" class="{{ workflowPathTrigger }}" aria-expanded="false" aria-haspopup="menu" aria-label="{{ 'admin.configuration.workflow.off_path.change'|trans({ '%place%': workflowPathStep.place.label }) }}" data-action="dropdown#toggle">
+                                    <twig:Ui:Status:Dot :status="workflowPathStep.from.status.value" />
+                                    <span class="min-w-0 truncate">{{ workflowPathStep.from.label }}</span>
+                                    <twig:ux:icon name="lucide:chevrons-up-down" class="h-3.5 w-3.5 shrink-0 text-faint" />
+                                </button>
+                            </twig:block>
+                            <twig:block name="content">
+                                {% for workflowPathFrom in workflowPathSteps %}
+                                    <twig:Ui:Dropdown:Item :active="workflowPathFrom.id == workflowPathStep.from.id" data-action="live#action dropdown#close" data-live-action-param="attach" data-live-place-param="{{ workflowPathStep.place.id }}" data-live-from-param="{{ workflowPathFrom.id }}">
+                                        <twig:Ui:Status:Dot :status="workflowPathFrom.status.value" />
+                                        <span class="min-w-0 truncate">{{ workflowPathFrom.label }}</span>
+                                        {% if workflowPathFrom.id == workflowPathStep.from.id %}<twig:ux:icon name="lucide:check" class="ml-auto h-4 w-4 shrink-0 text-brand" />{% endif %}
+                                    </twig:Ui:Dropdown:Item>
+                                {% endfor %}
+                                <div class="my-1 border-t border-line-subtle"></div>
+                                <twig:Ui:Dropdown:Item icon="undo-2" data-action="live#action dropdown#close" data-live-action-param="putBack" data-live-place-param="{{ workflowPathStep.place.id }}">{{ 'admin.configuration.workflow.off_path.put_back'|trans }}</twig:Ui:Dropdown:Item>
+                            </twig:block>
+                        </twig:Ui:Dropdown>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% if workflowPathMovable is not empty %}
+            <twig:Ui:Dropdown width="sm" class="mt-3">
+                <twig:block name="trigger">
+                    <button type="button" class="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline" aria-expanded="false" aria-haspopup="menu" data-action="dropdown#toggle">
+                        <twig:ux:icon name="lucide:plus" class="h-4 w-4" />{{ 'admin.configuration.workflow.off_path.take_off'|trans }}
+                    </button>
+                </twig:block>
+                <twig:block name="content">
+                    {% for workflowPathCandidate in workflowPathMovable %}
+                        <twig:Ui:Dropdown:Item data-action="live#action dropdown#close" data-live-action-param="takeOff" data-live-place-param="{{ workflowPathCandidate.id }}">
+                            <twig:Ui:Status:Dot :status="workflowPathCandidate.status.value" />
+                            <span class="min-w-0 truncate">{{ workflowPathCandidate.label }}</span>
+                        </twig:Ui:Dropdown:Item>
+                    {% endfor %}
+                </twig:block>
+            </twig:Ui:Dropdown>
+        {% endif %}
+    </section>
+</div>

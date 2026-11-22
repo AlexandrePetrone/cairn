@@ -9,7 +9,7 @@ place:
     new: New
     needs_info: 'Details requested'
     to_do: 'To do'
-    feedback: 'Answer to confirm'
+    feedback: Feedback
     to_estimate: 'To estimate'
     to_approve: 'Estimate to approve'
     planned: Planned
@@ -18,7 +18,7 @@ place:
     to_test: 'To test'
     to_release: 'To release'
     done: Done
-    declined: 'Closed without action'
+    declined: Cancelled
 field:
     url:
         label: 'Affected URL'
@@ -39,10 +39,6 @@ workflow:
     bug:
         label: Bug
         transition:
-            explain:
-                label: 'Explain how it works'
-                description: "It is not a bug: the team explains, and waits for the client's confirmation."
-                prompt: 'Explain how it works, or why it behaves this way.'
             acknowledge:
                 label: 'Accept the answer'
                 description: 'The explanation answers the question: the issue is closed.'
@@ -50,29 +46,9 @@ workflow:
                 label: 'Dispute the answer'
                 description: 'The explanation does not answer the question: the issue goes back to the team.'
                 prompt: 'Say what is still not right.'
-            ask_info:
-                label: 'Ask for details'
-                description: "Something is missing to understand the bug: the issue waits for the client's answer."
-                prompt: 'Say what we are missing to reproduce the problem.'
             provide_info:
                 label: 'Provide details'
                 description: 'The details are given: the issue goes back to the team.'
-            qualify:
-                label: 'Acknowledge'
-                description: "The bug is understood: it joins the team's queue."
-            reject:
-                label: Reject
-                description: 'It is not a bug, or it will not be fixed: the issue is closed without action.'
-            start:
-                label: Start
-                description: 'The fix begins.'
-            block:
-                label: Block
-                description: 'The fix cannot move forward: it depends on a third party or a prerequisite.'
-                prompt: 'Say what is blocking and who must lift it.'
-            deliver:
-                label: 'Deliver for testing'
-                description: 'The fix is on pre-production, ready to be checked.'
             accept:
                 label: 'Accept delivery'
                 description: 'The fix is accepted: it waits for its release to production.'
@@ -80,19 +56,9 @@ workflow:
                 label: 'Refuse delivery'
                 description: 'The fix is not right: the issue goes back to development, with the comment that says why.'
                 prompt: 'Explain what is wrong: a comment is required to refuse.'
-            release:
-                label: 'Release to production'
-                description: 'The fix is in production: the issue is closed. It can be reopened if the problem comes back.'
-            reopen:
-                label: Reopen
-                description: 'The problem came back: the issue goes back to development.'
     evolution:
         label: Feature
         transition:
-            explain:
-                label: 'Explain how it works'
-                description: "It is not a change to make: the team explains, and waits for the client's confirmation."
-                prompt: 'Explain how it works, or why it behaves this way.'
             acknowledge:
                 label: 'Accept the answer'
                 description: 'The explanation answers the question: the issue is closed.'
@@ -100,31 +66,12 @@ workflow:
                 label: 'Dispute the answer'
                 description: 'The explanation does not answer the question: the issue goes back to the team.'
                 prompt: 'Say what is still not right.'
-            estimate:
-                label: 'Have it estimated'
-                description: 'The request is understood: it goes to estimation.'
-            decline:
-                label: Decline
-                description: 'The feature will not be built: the issue is closed without action.'
-            submit_estimate:
-                label: 'Submit the estimate'
-                description: 'The estimate was sent to the client: the issue waits for their decision.'
             approve:
                 label: 'Accept the estimate'
                 description: 'The estimate is accepted: the feature is planned.'
             decline_estimate:
                 label: 'Cancel the request'
-                description: 'The client gives up the feature in view of the estimate: the issue is closed without action.'
-            start:
-                label: Start
-                description: 'The work begins.'
-            block:
-                label: Block
-                description: 'The feature cannot move forward: it depends on a third party or a prerequisite.'
-                prompt: 'Say what is blocking and who must lift it.'
-            deliver:
-                label: 'Deliver for testing'
-                description: 'The feature is on pre-production, ready to be checked.'
+                description: 'The client gives up the feature in view of the estimate: the issue is cancelled.'
             accept:
                 label: 'Accept delivery'
                 description: 'The feature matches the request: it waits for its release to production.'
@@ -132,27 +79,8 @@ workflow:
                 label: 'Refuse delivery'
                 description: 'The feature does not match the request: it goes back to development, with the comment that says why.'
                 prompt: 'Explain what does not match the request: a comment is required to refuse.'
-            release:
-                label: 'Release to production'
-                description: 'The feature is in production: the issue is closed.'
     task:
         label: 'Internal task'
-        transition:
-            start:
-                label: Start
-                description: 'The task is taken on.'
-            deliver:
-                label: 'Deliver for testing'
-                description: 'The task is on pre-production, ready to be checked by the team.'
-            accept:
-                label: 'Accept delivery'
-                description: 'The internal testing passed: the task waits for its release to production.'
-            release:
-                label: 'Release to production'
-                description: 'The task is in production: it is done.'
-            cancel:
-                label: Cancel
-                description: 'The task will not be done: it is closed without action.'
 template:
     name: 'Web project'
     description: 'Bugs, features and internal tasks, issues handed to the referent project manager.'

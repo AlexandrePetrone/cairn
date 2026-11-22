@@ -30,6 +30,15 @@ class WorkflowPlace implements Positioned
     #[ORM\Column]
     private int $position;
 
+    /**
+     * The place of the path the issues of the workflow follow that this one
+     * stands beside, when it is one they leave that path for; null on the
+     * path. Only the diagram reads it.
+     */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(onDelete: 'SET NULL')]
+    private ?self $beside = null;
+
     public function __construct(Workflow $workflow, Place $place, int $position = 0)
     {
         $this->workflow = $workflow;
@@ -50,6 +59,21 @@ class WorkflowPlace implements Positioned
     public function getPosition(): int
     {
         return $this->position;
+    }
+
+    public function getBeside(): ?self
+    {
+        return $this->beside;
+    }
+
+    public function standBeside(self $place): void
+    {
+        $this->beside = $place;
+    }
+
+    public function putOnThePath(): void
+    {
+        $this->beside = null;
     }
 
     public function moveTo(int $position): void

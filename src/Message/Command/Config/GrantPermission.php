@@ -7,7 +7,7 @@ namespace App\Message\Command\Config;
 use App\Security\Permission;
 
 /**
- * Gives a role a permission outside the workflows; already held, nothing
+ * Gives a role a permission; already held, nothing
  * changes. Handled by GrantPermissionHandler.
  */
 final readonly class GrantPermission implements ConfigurationCommand

@@ -64,7 +64,7 @@ final class IssueMapper
                 $transition->id,
                 $transition->label,
                 $transition->description,
-                $this->access->commentRequired($viewer, $transition, $issue->getProject()),
+                $transition->requiresComment,
                 new PlaceRef($transition->to, $this->workflows->place($transition->to)->label),
             );
         }

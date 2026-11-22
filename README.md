@@ -8,7 +8,7 @@ Cairn is an issue tracker built for a web agency and its clients. A single insta
 |---|---|
 | ![An issue: description, files, activity, fields and links](docs/screenshots/issue.jpg) | ![The kanban of the bugs of a project, one column per step](docs/screenshots/kanban.jpg) |
 
-- **Workflows that fit the way you work**: bug, feature, internal task… Each type of issue follows its own path, with its own steps and actions, which you design yourself in the back office.
+- **Workflows that fit the way you work**: bug, feature, internal task… Each type of issue follows its own path, with its own steps, which you design yourself in the back office. Your team moves issues freely from step to step; your clients get the few actions you choose for them, and nothing else.
 - **The big picture at a glance**: filter, sort and group your issues, bookmark your views and share them with a simple link. Switch to the kanban to move work forward by drag and drop, or handle dozens of issues at once.
 - **Clear conversations**: formatted descriptions and comments, mentions of colleagues, references between issues, attachments. Plan your deliveries by release when the project needs it.
 - **Always informed, never overwhelmed**: everyone receives by email the news of the issues they follow, grouped so as not to clutter their inbox.

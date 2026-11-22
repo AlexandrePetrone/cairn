@@ -15,11 +15,11 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 /**
- * The one place that applies "the workflow first": the issue takes the
- * action of the actor that leads to the place (AccessControl::movesFor(),
- * the first when several do), as ApplyTransition would; only without one
- * is the place written directly, without the state machine, and the
- * journal says so (`moved`).
+ * The one place that applies a move (AccessControl::movesFor()): for who
+ * moves freely the place is written directly, without the state machine,
+ * and the journal says `moved`; a role held to the workflow takes its
+ * action that leads to the place (the first when several do), as
+ * ApplyTransition would, and goes nowhere else.
  */
 #[AsMessageHandler(bus: 'command.bus')]
 final class MoveIssueHandler
@@ -47,7 +47,7 @@ final class MoveIssueHandler
         }
 
         $move = array_find($this->access->movesFor($actor, $issue), static fn (PlaceMove $move): bool => $move->place->id === $to->id)
-            ?? throw new AccessDeniedException('Not allowed to move the issue without an action.');
+            ?? throw new AccessDeniedException('Not allowed to move the issue there: no action of the actor leads to that place.');
 
         if (null !== $move->transition) {
             $this->support->transition($issue, $actor, $move->transition);

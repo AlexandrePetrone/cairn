@@ -1,10 +1,11 @@
-{# A place as users see it: its colour and its label, as a dot and text or, with `pill`, on a background of the same colour. The status of the place is shown only with `withStatus`, in the configuration of the administration; users never see it. #}
-{% props status, label, withStatus = false, pill = false %}
+{# A place as users see it: its colour and its label, as a dot and text or, with `pill`, on a background of the same colour. `size="lg"` is the pill as wide as what holds it, its label cut rather than wrapped, for the step of an issue's page; its content sits at its end (the chevrons of a menu). The status of the place is shown only with `withStatus`, in the configuration of the administration; users never see it. #}
+{% props status, label, withStatus = false, pill = false, size = 'sm' %}
 {% set statusStepClasses = html_cva(
     base: 'inline-flex items-center gap-1.5',
     variants: {
         pill: { true: 'rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset', false: '' },
         status: { open: '', in_progress: '', waiting: '', closed: '' },
+        size: { sm: '', lg: 'flex h-8 w-full gap-2 px-2.5 py-0 text-[13px] font-semibold' },
     },
     compoundVariants: [
         { pill: [true], status: ['open'], class: 'bg-blue-soft text-blue ring-blue-line' },
@@ -13,8 +14,9 @@
         { pill: [true], status: ['closed'], class: 'bg-sunken text-muted ring-line' },
     ],
 ) %}
-<span class="{{ statusStepClasses.apply({ status: status, pill: pill }, attributes.render('class'))|tailwind_merge }}" {{ attributes }}>
-    <twig:Ui:Status:Dot status="{{ status }}" />
-    <span class="{{ pill ? '' : 'text-body' }}">{{ label }}</span>
+<span class="{{ statusStepClasses.apply({ status: status, pill: pill, size: size }, attributes.render('class'))|tailwind_merge }}" {% if size == 'lg' %}title="{{ label }}"{% endif %} {{ attributes }}>
+    <twig:Ui:Status:Dot status="{{ status }}" size="{{ size == 'lg' ? 'md' : 'sm' }}" />
+    <span class="{{ pill ? '' : 'text-body' }} {{ size == 'lg' ? 'min-w-0 flex-1 truncate text-left' }}">{{ label }}</span>
     {% if withStatus %}<span class="text-[11px] text-faint">· {{ ('status.' ~ status)|trans }}</span>{% endif %}
+    {% block content %}{% endblock %}
 </span>

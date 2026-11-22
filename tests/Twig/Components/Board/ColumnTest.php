@@ -34,7 +34,8 @@ final class ColumnTest extends KernelTestCase
         self::assertStringContainsString('data-board-key="MD-SPT-1"', $render);
         self::assertStringContainsString('data-board-key="MD-SPT-2"', $render);
         self::assertStringNotContainsString('MD-SPT-3', $render);
-        self::assertStringContainsString('data-board-places="needs_info qualified in_progress blocked to_test to_release done declined" data-board-forced="blocked to_test to_release done"', $render, 'an internal user may force the places no action leads to');
+        self::assertStringContainsString('data-board-places="needs_info qualified in_progress blocked to_test to_release done declined"', $render, 'who moves freely drops a card on any other place');
+        self::assertStringContainsString('data-board-places="needs_info qualified in_progress declined"', (string) $this->column('new', 'nadia.benali@cairn.test')->render(), 'a developer, held to the workflow, where her actions lead');
     }
 
     public function testACardTheViewerCannotMoveIsLocked(): void

@@ -20,8 +20,6 @@ use App\Message\CommandBus;
 use App\Message\Query\Issue\ListSelectionActions;
 use App\Message\Query\Issue\SelectionActions;
 use App\Message\QueryBus;
-use App\Security\AccessControl;
-use App\Security\PlaceMove;
 use App\Security\Viewer;
 use App\Twig\Components\DispatchesCommands;
 use App\Workflow\WorkflowProvider;
@@ -109,7 +107,6 @@ final class Selection
     public function __construct(
         private readonly QueryBus $queries,
         private readonly Viewer $viewer,
-        private readonly AccessControl $access,
         private readonly TranslatorInterface $translator,
         private readonly WorkflowProvider $workflows,
     ) {
@@ -181,24 +178,16 @@ final class Selection
     }
 
     /**
-     * How the issue gets to the step chosen: by changing tracker when one was chosen, by the
-     * action of the viewer that leads there, or outside the workflow.
-     * Null when it does not move.
+     * Whether the issue goes to the step chosen: it changes tracker, or
+     * stands elsewhere.
      */
-    public function arrival(Issue $issue): ?string
+    public function arrives(Issue $issue): bool
     {
         if (null === $this->getTargetPlace()) {
-            return null;
+            return false;
         }
-        if (null !== $this->trackerId && $issue->getTracker()->getId() !== $this->trackerId) {
-            return $this->translator->trans('issue.bulk.changes_tracker');
-        }
-        if ($issue->getPlace() === $this->placeId) {
-            return null;
-        }
-        $move = array_find($this->access->movesFor($this->viewer->get(), $issue), fn (PlaceMove $move): bool => $move->place->id === $this->placeId);
 
-        return $move?->transition->label ?? $this->translator->trans('issue.step.off_workflow');
+        return (null !== $this->trackerId && $issue->getTracker()->getId() !== $this->trackerId) || $issue->getPlace() !== $this->placeId;
     }
 
     public function getAssignee(): ?User

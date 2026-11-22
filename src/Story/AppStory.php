@@ -42,6 +42,7 @@ use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\AddLink;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\Command\Issue\CreateIssue;
+use App\Message\Command\Issue\MoveIssue;
 use App\Message\Command\Issue\UpdateIssue;
 use App\Message\Command\Project\UpdateProject;
 use App\Message\Command\Release\CreateRelease;
@@ -338,18 +339,13 @@ final class AppStory extends Story
             $this->comment($issue, $people, $clock, $index);
         }
 
-        foreach ($workflow->pathTo($targetPlace) as $step => $transition) {
+        foreach ($workflow->trailTo($targetPlace) as $step => $place) {
             $clock->modify(\sprintf('+%d hours +%d minutes', 2 + ($index * 7 + $step * 11) % 38, ($index * 13) % 60));
             if ($clock->now() > $now) {
                 $clock = new MockClock($now->modify('-1 hour'));
                 Clock::set($clock);
             }
-            $this->commands->dispatch(new ApplyTransition(
-                actorId: (int) $this->actorFor($transition, $project, $people)->getId(),
-                issueKey: $issue->getKey(),
-                transitionId: $transition->id,
-                comment: $transition->requiresComment ? 'Still reproducible on pre-production, see the screenshot.' : null,
-            ));
+            $this->advance($issue, $place, $people);
         }
 
         return $issue;
@@ -523,21 +519,35 @@ final class AppStory extends Story
     }
 
     /**
-     * The person who would naturally trigger the transition: the client for
-     * acceptance, a developer for the work, the manager otherwise.
+     * Takes the issue one place further on its trail
+     * (WorkflowDefinition::trailTo()), as it would happen: by the action
+     * of the client when the workflow gives them one that leads there,
+     * otherwise by someone of the team, who moves freely.
      *
      * @param array{manager: string, developers: list<string>, client: ?string} $people
      */
-    private function actorFor(TransitionDefinition $transition, Project $project, array $people): User
+    private function advance(Issue $issue, string $place, array $people): void
     {
-        $candidates = [$people['client'], ...$people['developers'], $people['manager'], 'admin'];
-        foreach ($candidates as $key) {
-            if (null !== $key && $this->access->canTransition($this->users[$key], $transition, $project)) {
-                return $this->users[$key];
+        $client = null === $people['client'] ? null : $this->users[$people['client']];
+        if (null !== $client && $this->access->canSee($client, $issue)) {
+            $action = array_find($this->access->transitionsFor($client, $issue), static fn (TransitionDefinition $transition): bool => $transition->to === $place);
+            if (null !== $action) {
+                $this->commands->dispatch(new ApplyTransition(
+                    actorId: (int) $client->getId(),
+                    issueKey: $issue->getKey(),
+                    transitionId: $action->id,
+                    comment: $action->requiresComment ? 'Still reproducible on pre-production, see the screenshot.' : null,
+                ));
+
+                return;
             }
         }
 
-        throw new \LogicException(\sprintf('Nobody may apply transition "%s".', $transition->id));
+        $mover = array_find(
+            array_map(fn (string $key): User => $this->users[$key], [...$people['developers'], $people['manager'], 'admin']),
+            fn (User $user): bool => $this->access->canMoveFreely($user, $issue->getProject()),
+        ) ?? throw new \LogicException(\sprintf('Nobody moves the issues of "%s" freely.', $issue->getProject()->getName()));
+        $this->commands->dispatch(new MoveIssue((int) $mover->getId(), $issue->getKey(), $place));
     }
 
     /**

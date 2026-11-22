@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Twig\Components\Issue;
 
 use App\Config\Definition\PlaceDefinition;
-use App\Entity\Enum\JournalEntryType;
 use App\Entity\Issue;
+use App\Entity\JournalEntry;
 use App\Message\Command\Issue\DeleteIssue;
 use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
@@ -77,22 +77,15 @@ final class Header extends AbstractController
     /**
      * The places the issue went through, as the journal tells it with the
      * labels of the time: where it started, then every place it entered.
-     * A step entered without an action of the workflow (a forced place, a
-     * change of tracker) is marked.
      *
-     * @return list<array{label: string, moved: bool}>
+     * @return list<string>
      */
     public function getPath(): array
     {
         $entries = $this->journal->findPlaceChanges($this->issue);
         $start = ($entries[0] ?? null)?->text('from') ?: $this->getPlace()->label;
 
-        $steps = [['label' => $start, 'moved' => false]];
-        foreach ($entries as $entry) {
-            $steps[] = ['label' => $entry->text('to'), 'moved' => JournalEntryType::Transitioned !== $entry->getType()];
-        }
-
-        return $steps;
+        return [$start, ...array_map(static fn (JournalEntry $entry): string => $entry->text('to'), $entries)];
     }
 
     public function canEdit(): bool

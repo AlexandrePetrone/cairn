@@ -69,7 +69,8 @@ without its Doctrine bridge), `symfony/mcp-bundle`, Mercure
   (see [Configuration](#configuration)). No file, no sync.
 - **Workflow engine**: the Symfony Workflow component, state machines built
   at runtime from the configuration (`framework.workflows` stays empty).
-  They enforce structure; who may trigger a transition is decided by
+  They enforce structure for the roles held to the workflow; who may
+  trigger a transition, and who moves issues freely instead, is decided by
   `AccessControl`, never by a workflow guard.
 
 Install missing capabilities with `composer require <package>` and let the
@@ -88,13 +89,14 @@ translation keys. Never mix them.
 | `Workflow`       | Workflow          | Workflow         | Places + transitions + the fields asked.                         |
 | `Place`          | Step              | Étape            | Where an issue stands. Declared once for the instance, used by the workflows that name it. |
 | `Transition`     | Action            | Action           | Named button that moves an issue to another place.               |
+| `aside` / `path` | Off the path / Path | Hors parcours / Parcours | The path is the places of a workflow in their order, as its diagram links them; a place set aside stands off it, reached from a place of the path (`WorkflowDefinition::$aside`). Drawn, never enforced. |
 | `PlaceStatus`    | (internal)        | (interne)        | Family of a place: Open, InProgress, Waiting, Closed. Never shown to users, who see places; only the configuration pages show it. |
 | `Criticality`    | Criticality       | Criticité        | Low, Normal, High, Blocking. First-class column, not a field.    |
 | `Field`          | Field             | Champ            | Global attribute, asked by workflows.                            |
 | `Link`           | Link              | Lien             | Related, Duplicates/DuplicatedBy, Blocks/BlockedBy.              |
 | `Workspace`      | Workspace         | Espace           | Group of projects sharing memberships. A client is a workspace: no organisation entity. |
 | `Project`        | Project           | Projet           |                                                                  |
-| `Role`           | Role              | Rôle             | Managed in the administration, with its permissions.             |
+| `Role`           | Role              | Rôle             | Managed in the administration, with its permissions and how it moves issues: freely, or by the actions of the workflows. |
 | `Membership`     | Access            | Accès            | Role of a user on a project or a workspace.                      |
 | `internal` flag  | Internal/External | Interne/Externe  | Internal user (who runs the instance) vs external user (a client). |
 | `company`        | Company           | Société          | Free text on a user.                                             |
@@ -239,9 +241,16 @@ src/
 - **Who edits what: the author, or the right on others**
   (`AccessControl::canEditIssue()`, `canEditComment()`). Deleting an issue
   is a right (`issue.delete`), never the author's.
-- **`issue.bypass_workflow` is one permission** for a place no action leads
-  to, a change of tracker and an action without its required comment
-  (`AccessControl::commentRequired()`): each gives the others.
+- **A role moves issues freely or by the actions, never both**
+  (`RoleDefinition::$freeWorkflow`, asked of `AccessControl::canMoveFreely()`,
+  the one place that says so). Freely: any place of the workflow and
+  another tracker, no action offered nor taken, an administrator included.
+  Otherwise: the actions that name the role and nothing else, each with
+  the comment it requires. It is a property of the role, not a permission,
+  and independent of internal-only. An action names roles held to the
+  workflow only: a role that is freed leaves those that named it, for
+  good (`UpdateRoleHandler`), which its dialog says before it is done. An
+  action may name no role: nobody takes it, and the diagram leaves it out.
 - **Four permissions are internal-only** (`Permission::internalOnly()`):
   those that show what external users never see. What is only risky goes
   to any role an administrator chooses.
@@ -252,14 +261,27 @@ src/
 
 ### Issues, lists and kanban
 
-- **The workflow is the contract with the client.**
-  `AccessControl::movesFor()` lists where a user may take an issue;
-  `MoveIssue` is the one place that applies it, through
-  `IssueHandlerSupport::transition()`, the one path a transition takes. A
-  caller dispatches `ApplyTransition` only when it names the action or
-  sends a comment. `IssueHandlerSupport::arrive()` is called wherever a
-  place is taken. The actions of others are never shown, and there is no
-  "whose turn" indicator.
+- **The workflow is the contract with the client**: its actions are for
+  the roles held to it, and say nothing of who moves freely.
+  `AccessControl::movesFor()` lists where a user may take an issue (every
+  place, or where their actions lead); `MoveIssue` is the one place that
+  applies it, an action going through `IssueHandlerSupport::transition()`,
+  the one path a transition takes. A caller dispatches `ApplyTransition`
+  only when it names the action or sends a comment. The step is a menu
+  for who moves freely only; the kanban serves both. `IssueHandlerSupport::arrive()` is called wherever a
+  place is taken. On the page of an issue the actions of others are never
+  offered, and there is no "whose turn" indicator; the diagram of its
+  workflow, a dialog of that page (`/workflow`), is for whoever sees the
+  issue and names every action with its roles, the step of the issue
+  outlined.
+- **The diagram of a workflow is drawn for whoever it is explained to**
+  (`Workflow/MermaidDiagram`): the path its issues follow, its places in
+  their order without those the workflow sets aside
+  (`WorkflowDefinition::path()`), each of these hanging from the place of
+  the path it stands beside, closed or not, and over it the actions, each
+  with the roles that trigger it, read from the configuration: no role is
+  named in code. `aside` is read by the diagram and by the
+  step menu of an issue, which draws the same path, and holds nobody.
 - **`journal_label`** (`Twig/JournalLabelExtension`) is the only place that
   reads what each journal type recorded, for the thread and the mails.
 - **Releases are optional, without a setting**: a project without any

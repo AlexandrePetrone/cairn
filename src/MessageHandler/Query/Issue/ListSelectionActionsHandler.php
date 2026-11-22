@@ -74,7 +74,7 @@ final class ListSelectionActionsHandler
             canSetPrivate: $everywhere(Permission::IssueSetPrivate),
             releases: null !== $project && $everywhere(Permission::IssueSetRelease) ? $this->releases->findByProject($project, openOnly: true) : [],
             moveTrackers: null === $project ? [] : $this->moveTrackers($viewer, $project, $issues),
-            places: null !== $project && $this->access->isGranted($viewer, Permission::IssueBypassWorkflow, $project) ? $this->commonPlaces($issues) : [],
+            places: null !== $project && $this->access->canMoveFreely($viewer, $project) ? $this->commonPlaces($issues) : [],
         );
     }
 
@@ -105,9 +105,9 @@ final class ListSelectionActionsHandler
     }
 
     /**
-     * The trackers of the project every issue may be moved to, with
-     * `issue.bypass_workflow`: those the viewer sees and those the issues
-     * are in; an archived one keeps its issues and takes no other.
+     * The trackers of the project every issue may be moved to, for who
+     * moves freely: those the viewer sees and those the issues are in; an
+     * archived one keeps its issues and takes no other.
      *
      * @param non-empty-list<Issue> $issues
      *
@@ -115,7 +115,7 @@ final class ListSelectionActionsHandler
      */
     private function moveTrackers(User $viewer, Project $project, array $issues): array
     {
-        if (!$this->access->isGranted($viewer, Permission::IssueBypassWorkflow, $project)) {
+        if (!$this->access->canMoveFreely($viewer, $project)) {
             return [];
         }
 

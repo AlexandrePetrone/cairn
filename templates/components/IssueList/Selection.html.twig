@@ -17,7 +17,7 @@
 {% set selectionTrackerPlaces = {} %}
 {% if report is null %}
     {% for issue in selectionActions.issues %}
-        {% set selectionArrivals = selectionArrivals|merge({ (issue.key): this.arrival(issue) }) %}
+        {% set selectionArrivals = selectionArrivals|merge({ (issue.key): this.arrives(issue) }) %}
     {% endfor %}
     {% for tracker in selectionTrackers %}
         {% set selectionTrackerPlaces = selectionTrackerPlaces|merge({ ('t' ~ tracker.id): this.placesOf(tracker) }) %}
@@ -32,7 +32,8 @@
             <twig:Ui:Table>
                 {% for issue in selectionActions.issues %}
                     {% set issueRoute = { workspaceKey: issue.project.workspace.key, projectKey: issue.project.key } %}
-                    {% set selectionArrival = selectionArrivals[issue.key] ?? null %}
+                    {% set selectionArrival = selectionArrivals[issue.key] ?? false %}
+                    {% set selectionChangesTracker = selectionArrival and selectionTargetTracker and selectionTargetTracker.id != issue.tracker.id %}
                     {% set selectionResult = report[issue.key] ?? null %}
                     <twig:Ui:Table:Row>
                         <td class="sm:px-3 sm:py-2.5 order-1 whitespace-nowrap align-top"><twig:Ui:IssueKey :key="issue.key" href="{{ path('app_issue_show', issueRoute|merge({ number: issue.number })) }}" /></td>
@@ -45,7 +46,7 @@
                             {% endif %}
                         </td>
                         <td class="sm:px-3 sm:py-2.5 order-2 whitespace-nowrap text-xs text-muted">
-                            {% if selectionArrival and selectionTargetTracker and selectionTargetTracker.id != issue.tracker.id %}
+                            {% if selectionChangesTracker %}
                                 <span class="line-through">{{ issue.tracker.name }}</span> <span class="text-body">{{ selectionTargetTracker.name }}</span>
                             {% else %}
                                 {{ issue.tracker.name }}
@@ -56,7 +57,7 @@
                                 <span class="inline-flex flex-wrap items-center gap-1.5 text-xs text-muted">
                                     <span class="line-through">{{ issue_place(issue) }}</span>
                                     <twig:Ui:Status:Step :status="selectionTargetPlace.status.value" :label="selectionTargetPlace.label" pill />
-                                    <span>{{ selectionArrival }}</span>
+                                    {% if selectionChangesTracker %}<span>{{ 'issue.bulk.changes_tracker'|trans }}</span>{% endif %}
                                 </span>
                             {% else %}
                                 <twig:Ui:Status:Step :status="issue_status(issue)" :label="issue_place(issue)" />

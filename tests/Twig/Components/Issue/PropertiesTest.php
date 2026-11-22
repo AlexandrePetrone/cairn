@@ -18,9 +18,10 @@ use Symfony\UX\LiveComponent\Test\TestLiveComponent;
 
 /**
  * On MD-SPT-4 of the scene, a "Bug" on "To test": Thomas manages the
- * Maison Dupont workspace, so may accept and refuse; like Nadia, developer,
- * he may force a place and change the tracker. Claire is the client,
- * Sophie a client of another workspace.
+ * Maison Dupont workspace, and his role moves issues freely: any place,
+ * any tracker, no action. Nadia, developer, and Claire, the client, are
+ * held to the workflow: the step is not a menu for them. Sophie is a
+ * client of another workspace.
  */
 final class PropertiesTest extends KernelTestCase
 {
@@ -111,83 +112,58 @@ final class PropertiesTest extends KernelTestCase
         self::assertNotSame('sophie.bernard@travelia.test', $this->reloaded()->getAssignee()?->getEmail());
     }
 
-    public function testTheStepIsAMenuOfWhereTheViewerMayTakeTheIssue(): void
+    public function testTheStepIsAMenuForWhoMovesFreely(): void
     {
         $manager = (string) $this->properties('thomas.girard@cairn.test')->render();
-        self::assertStringContainsString('data-live-action-param="transition" data-live-id-param="accept"', $manager, 'an action leads to "To release"');
-        self::assertStringContainsString('data-live-action-param="transition" data-live-id-param="refuse"', $manager);
-        self::assertStringContainsString('data-live-action-param="move" data-live-place-param="qualified">', $manager, 'no action leads there: outside the workflow');
-        self::assertStringNotContainsString('data-live-action-param="move" data-live-place-param="to_release">', $manager, 'the workflow first');
+        self::assertStringContainsString('data-live-action-param="move" data-live-place-param="qualified">', $manager);
+        self::assertStringContainsString('data-live-action-param="move" data-live-place-param="to_release">', $manager, 'the client\'s "Accept" leads there: he moves all the same');
+        self::assertStringNotContainsString('data-live-action-param="transition"', $manager, 'no action in the menu');
         self::assertStringNotContainsString('data-live-place-param="to_test">', $manager, 'the current place is not a move');
+        self::assertStringContainsString('Change category…', $manager);
+        self::assertStringContainsString(\sprintf('data-live-place-param="to_estimate" data-live-tracker-param="%d"', $this->scene->evolutions->getId()), $manager);
+        self::assertStringContainsString('Internal task', $manager, 'private, but Thomas is internal');
 
-        $developer = (string) $this->properties('nadia.benali@cairn.test')->render();
-        self::assertStringNotContainsString('data-live-action-param="transition"', $developer, 'no action of hers from "To test"');
-        self::assertStringContainsString('data-live-action-param="move" data-live-place-param="to_release">', $developer, 'accepting is not hers: outside the workflow');
-        self::assertStringContainsString('Change category…', $developer);
-        self::assertStringContainsString(\sprintf('data-live-place-param="to_estimate" data-live-tracker-param="%d"', $this->scene->evolutions->getId()), $developer);
-        self::assertStringContainsString('Internal task', $developer, 'private, but Nadia is internal');
-
-        $client = (string) $this->properties('claire.martin@maison-dupont.test')->render();
-        self::assertStringContainsString('data-live-action-param="transition" data-live-id-param="accept"', $client, 'her action leads to "To release"');
-        self::assertStringNotContainsString('data-live-id-param="refuse"', $client, 'refusing asks her for a comment: from the response box');
-        self::assertStringNotContainsString('data-live-action-param="move"', $client, 'she does not leave the workflow');
-        self::assertStringNotContainsString('Change category…', $client);
+        // Held to the workflow, internal or not: the step is read, the actions are in the response box.
+        foreach (['nadia.benali@cairn.test', 'claire.martin@maison-dupont.test'] as $guided) {
+            $render = (string) $this->properties($guided)->render();
+            self::assertStringNotContainsString('data-controller="panels"', $render);
+            self::assertStringNotContainsString('data-live-action-param="move"', $render);
+            self::assertStringNotContainsString('Change category…', $render);
+            self::assertStringContainsString('To test', $render);
+        }
     }
 
-    public function testAnActionOfTheWorkflowIsAppliedFromTheMenu(): void
+    public function testAPlaceIsTakenWithoutAnActionEvenWhereOneLeads(): void
     {
         $component = $this->properties('thomas.girard@cairn.test');
 
-        $component->call('transition', ['id' => 'refuse']);
+        $component->call('move', ['place' => 'to_release']);
         $render = $component->render();
 
-        self::assertSame('in_progress', $this->reloaded()->getPlace(), 'an internal user is not held to the comment');
-        self::assertSame(JournalEntryType::Transitioned, $this->lastEntry()?->getType());
+        self::assertSame('to_release', $this->reloaded()->getPlace());
+        self::assertSame(JournalEntryType::Moved, $this->lastEntry()?->getType(), '"Accept" is the client\'s');
         self::assertNotNull($component->getEmittedEvent($render, 'issue:changed'));
-        self::assertSame(['message' => 'MD-SPT-4: "Refuse" applied.'], $component->getDispatchedBrowserEvent($render, 'toast:show')['payload'] ?? null);
+        self::assertSame(['message' => 'MD-SPT-4 moved to To release.'], $component->getDispatchedBrowserEvent($render, 'toast:show')['payload'] ?? null);
     }
 
-    public function testAPlaceNoActionLeadsToIsForced(): void
+    public function testTheMenuMovesNothingForARoleHeldToTheWorkflow(): void
     {
-        $component = $this->properties('thomas.girard@cairn.test');
+        foreach (['nadia.benali@cairn.test', 'claire.martin@maison-dupont.test'] as $guided) {
+            $component = $this->properties($guided);
 
-        $component->call('move', ['place' => 'qualified']);
-        $render = $component->render();
+            // "To release" is where the client's "Accept" leads: an action is taken from the response box, not here.
+            $component->call('move', ['place' => 'to_release']);
+            self::assertStringContainsString('could not be applied', (string) $component->render());
+            self::assertSame('to_test', $this->reloaded()->getPlace());
 
-        self::assertSame('qualified', $this->reloaded()->getPlace());
-        self::assertSame(JournalEntryType::Moved, $this->lastEntry()?->getType());
-        self::assertNotNull($component->getEmittedEvent($render, 'issue:changed'));
-        self::assertSame(['message' => 'MD-SPT-4 moved to Qualified.'], $component->getDispatchedBrowserEvent($render, 'toast:show')['payload'] ?? null);
-    }
-
-    public function testForcingAPlaceTakesTheRight(): void
-    {
-        $component = $this->properties('claire.martin@maison-dupont.test');
-
-        $component->call('move', ['place' => 'qualified']);
-
-        self::assertStringContainsString('could not be applied', (string) $component->render());
-        self::assertSame('to_test', $this->reloaded()->getPlace());
-    }
-
-    public function testTheMenuGivesAClientHerActionsAndNothingMore(): void
-    {
-        $component = $this->properties('claire.martin@maison-dupont.test');
-
-        $component->call('transition', ['id' => 'refuse']);
-        self::assertStringContainsString('could not be applied', (string) $component->render(), 'it asks her for a comment, which the response box takes');
-        self::assertSame('to_test', $this->reloaded()->getPlace());
-
-        $component->call('move', ['place' => 'to_estimate', 'tracker' => $this->scene->evolutions->getId()]);
-        self::assertSame('Bug', $this->reloaded()->getTracker()->getName());
-
-        $component->call('transition', ['id' => 'accept']);
-        self::assertSame('to_release', $this->reloaded()->getPlace(), 'her action, from the menu as from the response box');
+            $component->call('move', ['place' => 'to_estimate', 'tracker' => $this->scene->evolutions->getId()]);
+            self::assertSame('Bug', $this->reloaded()->getTracker()->getName());
+        }
     }
 
     public function testTheTrackerChangesWithAPlaceOfTheNewWorkflow(): void
     {
-        $component = $this->properties('nadia.benali@cairn.test');
+        $component = $this->properties('thomas.girard@cairn.test');
 
         $component->call('move', ['place' => 'to_estimate', 'tracker' => $this->scene->evolutions->getId()]);
 

@@ -24,7 +24,7 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * The rights outside the workflows, one box per right and role: ticking
+ * The rights, one box per right and role: ticking
  * one grants it, at once. A right that opens what external users never see
  * is offered to the roles reserved to internal users only.
  */

@@ -10,7 +10,6 @@ use App\Event\IssueMoved;
 use App\Message\Command\Issue\ChangeTracker;
 use App\Repository\TrackerRepository;
 use App\Security\AccessControl;
-use App\Security\Permission;
 use App\Workflow\WorkflowProvider;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -36,7 +35,7 @@ final class ChangeTrackerHandler
         $project = $issue->getProject();
         $current = $issue->getTracker();
 
-        $this->support->denyUnless($this->access->isGranted($actor, Permission::IssueBypassWorkflow, $project), 'change the tracker');
+        $this->support->denyUnless($this->access->canMoveFreely($actor, $project), 'change the tracker');
         $tracker = $this->trackers->find($command->trackerId) ?? throw IssueException::notFound('Tracker', $command->trackerId);
         // A tracker the actor does not see does not exist for them, as in the lists: nothing of it is said.
         if ($tracker->isPrivate() && !$actor->isInternal()) {
