@@ -12,12 +12,16 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 /**
  * A workflow drawn as a graph: the Mermaid source is written in the page,
  * the `workflow-diagram` controller draws it. Without JavaScript the source
- * stays, and the table of actions next to it tells the same.
+ * stays, and the table of actions next to it tells the same. Given the
+ * place of an issue (`current`), it is drawn for the page of that issue:
+ * the place is outlined and the legend left out.
  */
 #[AsTwigComponent('Workflow:Diagram')]
 final class Diagram
 {
     public WorkflowDefinition $workflow;
+
+    public ?string $current = null;
 
     public function __construct(
         private readonly MermaidDiagram $diagram,
@@ -27,6 +31,6 @@ final class Diagram
 
     public function getSource(): string
     {
-        return $this->diagram->render($this->workflow, $this->config->definition()->placesOf($this->workflow));
+        return $this->diagram->render($this->config->definition(), $this->workflow, $this->current);
     }
 }

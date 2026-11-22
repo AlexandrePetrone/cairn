@@ -62,7 +62,6 @@ issue:
         done: 'Issue %key% deleted.'
     show:
         path: Path
-        moved_step: Moved without an action
         copy_key: Copy the identifier
         key_copied: Copied
         created_by: 'created by %name% on %date%'
@@ -82,6 +81,7 @@ issue:
         fields: '%tracker% fields'
         no_fields: No field filled in.
         change_property: 'Change %property%'
+        workflow: View the workflow
         search_member: Search a member…
         no_member: No member matches.
         system: Cairn
@@ -98,7 +98,7 @@ issue:
             description: rewrote the description
         transitioned: 'applied "%transition%": %from% → %to%'
         tracker_changed: 'changed the category: %from_tracker% → %to_tracker% (%to%)'
-        moved: 'moved the issue without an action: %from% → %to%'
+        moved: 'moved the issue: %from% → %to%'
         field_changed: 'changed "%field%": %from% → %to%'
         linked: 'linked: %label% %key% "%title%"'
         unlinked: 'removed the link: %label% %key% "%title%"'
@@ -167,8 +167,9 @@ issue:
         applied: '%key%: "%transition%" applied.'
     respond:
         question: What would you like to do?
+    workflow:
+        title: 'Workflow %workflow%'
     step:
-        off_workflow: Outside the workflow
         change_tracker: Change category…
         change_tracker_title: Change category
         same: same step
@@ -657,20 +658,26 @@ admin:
             intro: 'The order of the roles is a hierarchy, from the broadest to the narrowest: when a person has a role on a workspace and another on one of its projects, the broadest applies.'
             anyone: 'Internal and external users'
             internal_only: 'Internal users only'
+            free_workflow: 'Free workflow'
+            guided_workflow: 'Guided workflow'
             follows_new_issues_help: 'Subscribed to every new issue of the project'
             membership_count: '{0}no access|{1}1 access|]1,Inf[ %count% accesses'
             new: 'New role'
             created: 'Role "%name%" created. It holds no right yet.'
             deleted: 'Role "%name%" deleted.'
             delete_help: 'A role is deleted once nobody holds it and no action of a workflow names it.'
+            leaves_actions: '{1}Given a free workflow, this role will be taken out of the action it triggers, for good: %actions%.|]1,Inf[ Given a free workflow, this role will be taken out of the %count% actions it triggers, for good: %actions%.'
+            leaves_rules: '{1}Nobody will then trigger the action this automation rule depends on:|]1,Inf[ Nobody will then trigger the actions these automation rules depend on:'
             form:
                 internal_only: 'Reserved to internal users'
                 internal_only_help: 'It may then hold the rights that open what external users never see.'
+                free_workflow: 'Free workflow'
+                free_workflow_help: 'This role puts an issue on any step of its workflow and changes its category, without an action. Unticked, it only has the actions the workflows give it.'
                 follows_new_issues: 'Follows new issues'
                 follows_new_issues_help: 'Whoever holds it on a project is subscribed to every new issue of the project, and may unsubscribe issue by issue.'
         permissions:
-            title: 'Rights outside workflows'
-            intro: 'Ticking a box grants the right immediately. The roles allowed to trigger an action are set on the action itself, in its workflow.'
+            title: 'Rights'
+            intro: 'Ticking a box grants the right immediately. How a role moves issues is chosen on the role: freely, or by the actions that name it, set in each workflow.'
             permission: 'Right'
             internal_only: 'Internal roles'
             internal_only_help: 'Using this right takes seeing what external users never see: it only goes to a role reserved to internal users.'
@@ -762,11 +769,20 @@ admin:
             fields: 'Fields'
             fields_intro: 'In the order of the form of an issue.'
             actions: 'Actions'
-            actions_intro: 'The buttons that move an issue from one step to another, for the roles named. An administrator triggers them all.'
-            no_action: 'No action yet: an issue of this workflow stays on its initial step.'
+            actions_intro: 'The buttons that move an issue from one step to another, for the roles named, all of guided workflow. A role of free workflow, like an administrator, moves issues without an action.'
+            no_action: 'No action: only the roles of free workflow move the issues of this workflow.'
             no_field: 'No field.'
             initial_badge: 'Initial'
-            comment_required: 'comment required of external users'
+            off_path:
+                title: 'Steps off the path'
+                intro: 'The diagram links the steps of the path in the order of the kanban. A step where an issue waits or stops (an answer expected, a blocker, a cancellation) is not one of them: take it off the path, then say which step it is reached from.'
+                from: 'from'
+                change: 'Change the step "%place%" is reached from'
+                take_off: 'Take a step off the path'
+                put_back: 'Put back on the path'
+                none: 'Every step is on the path.'
+            comment_required: 'comment required'
+            no_role: 'no role'
             remove_place: 'Remove'
             add_place: 'Add steps'
             add_places: 'Add steps to the workflow'
@@ -806,12 +822,12 @@ admin:
                 from: 'From the steps'
                 to: 'To the step'
                 roles: 'Who may trigger it'
-                roles_help: 'Administrators always may.'
+                roles_help: 'Only the roles of guided workflow are offered: a role of free workflow, like an administrator, moves issues without an action. Without any role, nobody triggers it.'
                 style: 'Look'
                 description: 'Description'
                 description_help: 'Shown under the button, on the page of the issue.'
-                requires_comment: 'Require a comment of external users'
-                requires_comment_help: 'Internal users never have to comment.'
+                requires_comment: 'Require a comment'
+                requires_comment_help: 'Asked of whoever triggers the action.'
                 comment_prompt: 'Prompt of the comment'
             style:
                 default: 'Plain'
@@ -824,6 +840,7 @@ admin:
             role:
                 created: 'Role "%name%" created.'
                 updated: 'Role "%name%" changed.'
+                freed: '{1}Role "%name%" given a free workflow: taken out of one action.|]1,Inf[ Role "%name%" given a free workflow: taken out of %count% actions.'
                 deleted: 'Role "%name%" deleted.'
             permission:
                 granted: 'Right "%permission%" given to the role "%role%".'
@@ -1058,6 +1075,7 @@ admin:
             role_has_internal_permissions: 'The role "%role%" holds rights reserved to internal users: take them away first.'
             role_held: '{1}An access carries the role "%role%": revoke it or give it another role first.|]1,Inf[ %count% accesses carry the role "%role%": revoke them or give them another role first.'
             role_in_actions: 'The role "%role%" triggers actions: %actions%. Take it out of them first.'
+            role_moves_freely: 'The role "%role%" has a free workflow: it triggers no action.'
             role_in_rules: 'Automation rules aim at the referent of the role "%role%": %rules%. Change or delete them first.'
             place_used: 'The step "%place%" is used by: %workflows%. Take it out of them first.'
             place_holds_issues: '{1}An issue stands on the step "%place%".|]1,Inf[ %count% issues stand on the step "%place%".'
@@ -1067,6 +1085,8 @@ admin:
             workflow_in_templates: 'The workflow "%workflow%" is used by the project templates: %templates%.'
             not_a_place_of: '"%place%" is not a step of the workflow "%workflow%".'
             already_a_place_of: '"%place%" is already a step of the workflow "%workflow%".'
+            beside_the_path: '"%place%" is reached from a step of the path, which "%beside%" is not.'
+            initial_aside: '"%place%" is the step new issues of the workflow "%workflow%" start on: the path starts there.'
             initial_place: '"%place%" is the step new issues of the workflow "%workflow%" start on: choose another initial step first.'
             issues_to_move: '{1}An issue stands on "%place%": choose the step that takes it.|]1,Inf[ %count% issues stand on "%place%": choose the step that takes them.'
             other_places: 'The order given does not list the steps of the workflow "%workflow%".'
@@ -1205,8 +1225,12 @@ project:
 
 workflow:
     diagram:
-        dotted: 'Dotted: back to an earlier place'
-        comment: '💬: comment required of external users'
+        path: 'Grey line: the usual path'
+        action: 'Strong line: an action, and the roles that trigger it'
+        acted: 'Strong outline: an action is offered there'
+        aside: 'Grey dotted line: a step off the path, where an issue is put freely'
+        dotted: 'Strong dotted line: an action back to an earlier step'
+        comment: '💬: comment required'
 
 release:
     title: Releases
@@ -1370,9 +1394,6 @@ permission:
         delete:
             label: Delete an issue
             help: Erase an issue for good, with its comments, files, links and history. Nobody is told.
-        bypass_workflow:
-            label: Leave the workflow
-            help: "Put an issue on any step without going through an action, move it to another category of the project, and apply an action without the comment it asks for; the history keeps every move."
         rank:
             label: Arrange the kanban
             help: 'Drag the cards of a kanban column into the order wanted; everyone sees the same order.'
@@ -1612,7 +1633,7 @@ automation:
     trigger:
         issue_created: An issue is created
         comment_added: A comment is added
-        transition_applied: A workflow action is applied
+        transition_applied: A workflow action is applied (roles of guided workflow)
         place_changed: The issue changes step
         criticality_changed: The criticality of the issue changes
         inactive_for: No activity for

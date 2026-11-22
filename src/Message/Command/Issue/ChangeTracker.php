@@ -8,8 +8,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Moves an issue to another tracker of its project, on a place chosen in
- * the workflow of that tracker (`issue.bypass_workflow`): no action leads
- * from one workflow to another.
+ * the workflow of that tracker, for who moves freely
+ * (AccessControl::canMoveFreely()): no action leads from one workflow to
+ * another.
  * Handled by ChangeTrackerHandler, which returns the Issue.
  */
 final readonly class ChangeTracker

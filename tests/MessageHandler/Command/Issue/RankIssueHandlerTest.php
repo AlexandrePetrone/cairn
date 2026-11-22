@@ -55,7 +55,7 @@ final class RankIssueHandlerTest extends KernelTestCase
 
         $this->commands->dispatch(new MoveIssue((int) $this->fixtures->manager->getId(), $c->getKey(), 'to_test'));
         $this->commands->dispatch(new MoveIssue((int) $this->fixtures->manager->getId(), $c->getKey(), 'in_progress'));
-        self::assertSame(['C', 'B', 'A'], $this->column('in_progress'), 'by an action found for the place, or outside the workflow');
+        self::assertSame(['C', 'B', 'A'], $this->column('in_progress'), 'by an action found for the place, or freely');
 
         [$task] = $this->issues('Task');
         $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->manager->getId(), $task->getKey(), (int) $this->fixtures->tasks->getId(), 'new'));

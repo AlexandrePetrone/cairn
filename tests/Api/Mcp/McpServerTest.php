@@ -206,7 +206,8 @@ final class McpServerTest extends McpTestCase
 
     public function testAnIssueChangesCategoryWithItsOwnTool(): void
     {
-        $secret = $this->tokenFor(self::DEVELOPER)->secret;
+        // The manager moves freely: a developer, held to the workflow, keeps an issue in its tracker.
+        $secret = $this->tokenFor(self::MANAGER)->secret;
         $feature = $this->scene->evolutions->getId();
 
         // move_issue stays within the workflow of the issue.

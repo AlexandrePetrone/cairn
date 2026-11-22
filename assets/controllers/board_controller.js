@@ -9,12 +9,11 @@ import Sortable from 'sortablejs';
  *
  * <section data-board-column> <span data-board-count>3</span>
  *   <ul data-controller="board" data-board-place-value="in_progress" data-board-rank-value="true">
- *     <li data-board-key="MD-SPT-12" data-board-places="to_test done new" data-board-forced="new">
+ *     <li data-board-key="MD-SPT-12" data-board-places="to_test done new">
  *
  * A card goes only to the places its `data-board-places` lists, computed
- * by the server for the viewer; those of `data-board-forced` are reached
- * outside the workflow. While it is dragged, the columns say which they
- * are (`data-board-state`: allowed, forced or denied), and the one under
+ * by the server for the viewer. While it is dragged, the columns say which
+ * they are (`data-board-state`: allowed or denied), and the one under
  * the pointer says it would take it (`data-board-over`). Dropped, it stays where it was put
  * and Board:Move applies the move, at once or after a dialog. The
  * `board:moved` browser event it sends back settles it here, without
@@ -83,22 +82,15 @@ export default class extends Controller {
         return (card.dataset.boardPlaces || '').split(' ').filter(Boolean);
     }
 
-    forced(card) {
-        return (card.dataset.boardForced || '').split(' ').filter(Boolean);
-    }
-
-    /** Tells each column whether the card being dragged may go there, and whether outside the workflow; null clears it. */
+    /** Tells each column whether the card being dragged may go there; null clears it. */
     mark(card) {
         const places = card ? this.places(card) : [];
-        const forced = card ? this.forced(card) : [];
         document.querySelectorAll('[data-controller~="board"]').forEach((list) => {
             const place = list.dataset.boardPlaceValue;
             if (null === card || list === this.element) {
                 delete list.dataset.boardState;
-            } else if (!places.includes(place)) {
-                list.dataset.boardState = 'denied';
             } else {
-                list.dataset.boardState = forced.includes(place) ? 'forced' : 'allowed';
+                list.dataset.boardState = places.includes(place) ? 'allowed' : 'denied';
             }
         });
     }
@@ -139,7 +131,7 @@ export default class extends Controller {
      * it for the board.
      */
     settle(event) {
-        const { key, applied, top, places, forced } = event.detail || {};
+        const { key, applied, top, places } = event.detail || {};
         const move = pending.get(key);
         if (!move?.origin) {
             return;
@@ -166,7 +158,6 @@ export default class extends Controller {
             target?.prepend(card);
         }
         card.dataset.boardPlaces = (places || []).join(' ');
-        card.dataset.boardForced = (forced || []).join(' ');
         const locked = 0 === (places || []).length && !this.rankValue;
         card.classList.toggle('board-locked', locked);
         card.classList.toggle('cursor-grab', !locked);

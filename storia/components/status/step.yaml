@@ -3,4 +3,5 @@ variants:
     default: { args: { status: waiting, label: To test } }
     closed: { args: { status: closed, label: Closed } }
     pill: { args: { status: waiting, label: To test, pill: true } }
+    large: { args: { status: in_progress, label: To release to production, pill: true, size: lg } }
     with_status: { args: { status: waiting, label: To test, withStatus: true } }

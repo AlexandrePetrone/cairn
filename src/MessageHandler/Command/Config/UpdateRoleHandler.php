@@ -9,6 +9,8 @@ use App\Message\Command\Config\UpdateRole;
 use App\MessageHandler\Command\Tracker\ListOrder;
 use App\Repository\MembershipRepository;
 use App\Repository\RoleRepository;
+use App\Repository\TransitionRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler(bus: 'command.bus')]
@@ -17,6 +19,8 @@ final class UpdateRoleHandler
     public function __construct(
         private readonly RoleRepository $roles,
         private readonly MembershipRepository $memberships,
+        private readonly TransitionRepository $transitions,
+        private readonly EntityManagerInterface $entityManager,
         private readonly ConfigWriting $writing,
     ) {
     }
@@ -49,9 +53,19 @@ final class UpdateRoleHandler
         if (null !== $command->followsNewIssues) {
             $command->followsNewIssues ? $role->followNewIssues() : $role->stopFollowingNewIssues();
         }
+        // An action is for the roles held to the workflow: freed, the role leaves those that named it, for good.
+        $left = 0;
+        if (null !== $command->freeWorkflow) {
+            if ($command->freeWorkflow && !$role->hasFreeWorkflow()) {
+                $namings = $this->transitions->namingsOf($role);
+                $left = \count($namings);
+                array_map($this->entityManager->remove(...), $namings);
+            }
+            $command->freeWorkflow ? $role->freeFromWorkflow() : $role->holdToWorkflow();
+        }
         if (null !== $command->position) {
             ListOrder::move($role, $this->roles->findOrdered(), $command->position);
         }
-        $this->writing->settle('role.updated', ['%name%' => $role->getLabel()]);
+        $this->writing->settle($left > 0 ? 'role.freed' : 'role.updated', ['%name%' => $role->getLabel(), '%count%' => $left]);
     }
 }

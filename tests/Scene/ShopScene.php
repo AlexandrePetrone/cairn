@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Scene;
 
+use App\Config\Definition\TransitionDefinition;
 use App\Entity\Budget;
 use App\Entity\BudgetLine;
 use App\Entity\Enum\BudgetLineStatus;
@@ -22,6 +23,7 @@ use App\Message\Command\Config\InstallConfiguration;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\Command\Issue\CreateIssue;
+use App\Message\Command\Issue\MoveIssue;
 use App\Message\Command\Issue\UpdateIssue;
 use App\Message\Command\Project\UpdateProject;
 use App\Message\Command\Release\CreateRelease;
@@ -280,13 +282,8 @@ final class ShopScene
             if ('MD-SPT-4' === $issue->getKey()) {
                 $this->thread($issue);
             }
-            foreach ($workflow->pathTo($target) as $transition) {
-                $this->commands->dispatch(new ApplyTransition(
-                    actorId: (int) $this->actorFor($transition->id, $issue)->getId(),
-                    issueKey: $issue->getKey(),
-                    transitionId: $transition->id,
-                    comment: $transition->requiresComment ? 'Still reproducible on pre-production.' : null,
-                ));
+            foreach ($workflow->trailTo($target) as $place) {
+                $this->advance($issue, $place);
             }
         }
     }
@@ -299,18 +296,22 @@ final class ShopScene
     }
 
     /**
-     * Who would naturally trigger the transition: the client when her role
-     * may, a developer for the work, the manager otherwise.
+     * Takes the issue one place further on its trail
+     * (WorkflowDefinition::trailTo()): by the action of the client when her
+     * role has one that leads there, otherwise by the manager, who moves
+     * freely.
      */
-    private function actorFor(string $transitionId, Issue $issue): User
+    private function advance(Issue $issue, string $place): void
     {
-        $transition = $this->workflows->definition($issue->getTracker()->getWorkflowId())->transition($transitionId);
-        foreach (['claire.martin@maison-dupont.test', 'nadia.benali@cairn.test', 'thomas.girard@cairn.test'] as $email) {
-            if ($this->access->canTransition($this->user($email), $transition, $this->shop) && $this->access->canSee($this->user($email), $issue)) {
-                return $this->user($email);
-            }
-        }
+        $claire = $this->user('claire.martin@maison-dupont.test');
+        $action = $this->access->canSee($claire, $issue)
+            ? array_find($this->access->transitionsFor($claire, $issue), static fn (TransitionDefinition $transition): bool => $transition->to === $place)
+            : null;
+        if (null !== $action) {
+            $this->commands->dispatch(new ApplyTransition((int) $claire->getId(), $issue->getKey(), $action->id, $action->requiresComment ? 'Still reproducible on pre-production.' : null));
 
-        throw new \LogicException(\sprintf('Nobody in the scene may apply "%s".', $transitionId));
+            return;
+        }
+        $this->commands->dispatch(new MoveIssue((int) $this->user('thomas.girard@cairn.test')->getId(), $issue->getKey(), $place));
     }
 }

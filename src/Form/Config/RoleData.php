@@ -18,4 +18,5 @@ final class RoleData
     public bool $internalOnly = false;
 
     public bool $followsNewIssues = false;
+    public bool $freeWorkflow = false;
 }

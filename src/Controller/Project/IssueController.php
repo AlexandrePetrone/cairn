@@ -4,41 +4,74 @@ declare(strict_types=1);
 
 namespace App\Controller\Project;
 
+use App\Controller\OpensDialog;
 use App\Entity\Project;
 use App\Entity\User;
 use App\Entity\Workspace;
+use App\Message\Query\Issue\IssueDetail;
 use App\Message\Query\Issue\ShowIssue;
 use App\Message\QueryBus;
+use App\Workflow\WorkflowProvider;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * The issue page. An issue the viewer may not see is not found, so that
- * private issues cannot be probed.
+ * The issue page, and over it the dialog that draws the workflow of the
+ * issue, the step it stands on outlined: for whoever sees the issue, the
+ * roles held to the workflow as those that move freely. An issue the
+ * viewer may not see is not found, so that private issues cannot be
+ * probed.
  */
+#[IsGranted('view', subject: 'project')]
 final class IssueController extends AbstractController
 {
-    #[Route(
-        '/{workspaceKey}/{projectKey}/issues/{number}',
-        name: 'app_issue_show',
-        requirements: ['workspaceKey' => Workspace::KEY_FORMAT, 'projectKey' => Project::KEY_FORMAT, 'number' => '\d+'],
-        methods: ['GET'],
-    )]
-    #[IsGranted('view', subject: 'project')]
+    use OpensDialog;
+
+    private const array REQUIREMENTS = ['workspaceKey' => Workspace::KEY_FORMAT, 'projectKey' => Project::KEY_FORMAT, 'number' => '\d+'];
+
+    public function __construct(
+        private readonly QueryBus $queries,
+    ) {
+    }
+
+    #[Route('/{workspaceKey}/{projectKey}/issues/{number}', name: 'app_issue_show', requirements: self::REQUIREMENTS, methods: ['GET'])]
     public function __invoke(
+        Request $request,
         #[CurrentProject]
         Project $project,
         #[CurrentUser]
         User $viewer,
         int $number,
-        QueryBus $queries,
     ): Response {
-        $detail = $queries->ask(new ShowIssue($viewer, (int) $project->getId(), $number))
-            ?? throw $this->createNotFoundException(\sprintf('No issue %s-%d for this viewer.', $project->getIssuePrefix(), $number));
+        return $this->renderWithDialog($request, 'project/issue.html.twig', ['project' => $project, 'detail' => $this->detail($project, $viewer, $number), 'workflow' => null], static fn (): array => []);
+    }
 
-        return $this->render('project/issue.html.twig', ['project' => $project, 'detail' => $detail]);
+    #[Route('/{workspaceKey}/{projectKey}/issues/{number}/workflow', name: 'app_issue_workflow', requirements: self::REQUIREMENTS, methods: ['GET'])]
+    public function workflow(
+        Request $request,
+        #[CurrentProject]
+        Project $project,
+        #[CurrentUser]
+        User $viewer,
+        int $number,
+        WorkflowProvider $workflows,
+    ): Response {
+        $detail = $this->detail($project, $viewer, $number);
+
+        return $this->renderWithDialog($request, 'project/issue.html.twig', [
+            'project' => $project,
+            'detail' => $detail,
+            'workflow' => $workflows->definition($detail->issue->getTracker()->getWorkflowId()),
+        ], static fn (): array => []);
+    }
+
+    private function detail(Project $project, User $viewer, int $number): IssueDetail
+    {
+        return $this->queries->ask(new ShowIssue($viewer, (int) $project->getId(), $number))
+            ?? throw $this->createNotFoundException(\sprintf('No issue %s-%d for this viewer.', $project->getIssuePrefix(), $number));
     }
 }

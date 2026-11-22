@@ -26,7 +26,6 @@ final readonly class UpdateTransition implements ConfigurationCommand
         public ?array $from = null,
         public ?string $to = null,
         /** @var list<string>|null */
-        #[Assert\Count(min: 1)]
         public ?array $roles = null,
         public ?TransitionStyle $style = null,
         public ?bool $requiresComment = null,

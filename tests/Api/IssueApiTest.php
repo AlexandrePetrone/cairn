@@ -179,8 +179,9 @@ final class IssueApiTest extends ApiTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
-    public function testAStepIsReachedByTheWorkflowFirstAndOutsideItOtherwise(): void
+    public function testAStepIsReachedFreelyOrByTheActionThatLeadsThere(): void
     {
+        // A developer is held to the workflow: a step is reached by her action, or not at all.
         $secret = $this->tokenFor(self::DEVELOPER)->secret;
 
         $issue = $this->api('PUT', '/api/issues/MD-SPT-1/step', $secret, ['place' => 'qualified']);
@@ -189,11 +190,25 @@ final class IssueApiTest extends ApiTestCase
         $history = $this->api('GET', '/api/issues/MD-SPT-1/history', $secret);
         self::assertSame('transitioned', array_last($history['member'])['type'], '"Qualify" leads there: the action is applied');
 
+        $this->api('PUT', '/api/issues/MD-SPT-1/step', $secret, ['place' => 'done']);
+        self::assertResponseStatusCodeSame(403, 'No action of hers leads there.');
+
+        // The manager moves freely: any step, never an action, and none is offered.
+        $secret = $this->tokenFor(self::MANAGER)->secret;
+        self::assertSame([], $this->api('GET', '/api/issues/MD-SPT-1', $secret)['transitions']);
+
         $issue = $this->api('PUT', '/api/issues/MD-SPT-1/step', $secret, ['place' => 'done']);
         self::assertResponseStatusCodeSame(200);
         self::assertSame('done', $issue['place']['id']);
         $history = $this->api('GET', '/api/issues/MD-SPT-1/history', $secret);
-        self::assertSame('moved', array_last($history['member'])['type'], 'no action of a developer leads there: issue.bypass_workflow');
+        self::assertSame('moved', array_last($history['member'])['type']);
+
+        $issue = $this->api('PUT', '/api/issues/MD-SPT-4/step', $secret, ['place' => 'to_release']);
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame('moved', array_last($this->api('GET', '/api/issues/MD-SPT-4/history', $secret)['member'])['type'], '"Accept" leads there, for the client: he moves all the same');
+
+        $this->api('POST', '/api/issues/MD-SPT-2/transitions', $secret, ['transition' => 'qualify']);
+        self::assertResponseStatusCodeSame(403, 'Who moves freely takes no action.');
 
         $issue = $this->api('PUT', '/api/issues/MD-SPT-1/step', $secret, ['place' => 'done']);
         self::assertResponseStatusCodeSame(200, 'A PUT may be repeated.');
@@ -212,8 +227,11 @@ final class IssueApiTest extends ApiTestCase
 
     public function testAnIssueChangesTrackerOnAStepOfTheNewWorkflow(): void
     {
-        $secret = $this->tokenFor(self::DEVELOPER)->secret;
         $feature = $this->scene->evolutions->getId();
+        $this->api('PUT', '/api/issues/MD-SPT-1/tracker', $this->tokenFor(self::DEVELOPER)->secret, ['tracker' => $feature, 'place' => 'to_estimate']);
+        self::assertResponseStatusCodeSame(403, 'A role held to the workflow keeps the issue in its tracker.');
+
+        $secret = $this->tokenFor(self::MANAGER)->secret;
 
         $issue = $this->api('PUT', '/api/issues/MD-SPT-1/tracker', $secret, ['tracker' => $feature, 'place' => 'to_estimate']);
         self::assertResponseStatusCodeSame(200);

@@ -66,7 +66,14 @@ final class RemoveWorkflowPlaceHandler
             }
         }
 
-        ListOrder::close($used, $this->workflows->placesOf($workflow));
+        $others = $this->workflows->placesOf($workflow);
+        // The places that stood beside it are back on the path, where the diagram links them in their order.
+        foreach ($others as $other) {
+            if ($other->getBeside() === $used) {
+                $other->putOnThePath();
+            }
+        }
+        ListOrder::close($used, $others);
         $this->entityManager->remove($used);
         $this->writing->settle('workflow.place_removed', ['%place%' => $place->getLabel(), '%workflow%' => $workflow->getLabel(), '%count%' => null === $target ? 0 : $standing]);
     }

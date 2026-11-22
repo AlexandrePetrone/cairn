@@ -42,13 +42,13 @@ final class ActivityTest extends KernelTestCase
         self::assertStringContainsString('data-live-action-param="submit"', $client, 'the comment box, on its own');
         self::assertStringNotContainsString('Comment privately', $client);
 
-        $manager = (string) $this->activity('thomas.girard@cairn.test')->render();
-        self::assertStringContainsString('data-live-transition-param="accept"', $manager, 'an internal user reads their actions there too');
-
-        $developer = (string) $this->activity('nadia.benali@cairn.test')->render();
-        self::assertStringNotContainsString('data-live-action-param="apply"', $developer, 'acceptance is for the client and the manager');
-        self::assertStringNotContainsString('What would you like to do?', $developer, 'no action, no decision: the comment box alone');
-        self::assertStringContainsString('data-live-action-param="submit"', $developer);
+        // The manager moves freely and takes no action; the developer has none from "To test".
+        foreach (['thomas.girard@cairn.test', 'nadia.benali@cairn.test'] as $internal) {
+            $render = (string) $this->activity($internal)->render();
+            self::assertStringNotContainsString('data-live-action-param="apply"', $render, $internal);
+            self::assertStringNotContainsString('What would you like to do?', $render, 'no action, no decision: the comment box alone');
+            self::assertStringContainsString('data-live-action-param="submit"', $render);
+        }
 
         $readOnly = (string) $this->activity('paul.roussel@maison-dupont.test')->render();
         self::assertStringNotContainsString('data-live-action-param="submit"', $readOnly);
@@ -86,13 +86,13 @@ final class ActivityTest extends KernelTestCase
         self::assertSame(['message' => 'MD-SPT-4: "Accept" applied.'], $component->getDispatchedBrowserEvent($render, 'toast:show')['payload'] ?? null);
     }
 
-    public function testAnInternalUserIsNotHeldToTheCommentAskedOfClients(): void
+    public function testWhoMovesFreelyIsRefusedAnAction(): void
     {
         $component = $this->activity('thomas.girard@cairn.test');
 
         $component->call('apply', ['transition' => 'refuse']);
 
-        self::assertSame('in_progress', $this->reloaded()->getPlace(), 'refused without a word');
+        self::assertSame('to_test', $this->reloaded()->getPlace(), 'the action is the client\'s: the manager moves the issue from the step menu');
     }
 
     public function testARefusalAsksForItsCommentInTheDecision(): void

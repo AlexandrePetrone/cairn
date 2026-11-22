@@ -9,7 +9,7 @@ place:
     new: Nouvelle
     needs_info: 'Précisions demandées'
     to_do: 'À traiter'
-    feedback: 'Réponse à valider'
+    feedback: Feedback
     to_estimate: 'À chiffrer'
     to_approve: 'Chiffrage à valider'
     planned: Planifiée
@@ -18,7 +18,7 @@ place:
     to_test: 'À recetter'
     to_release: 'À mettre en production'
     done: Terminée
-    declined: 'Sans suite'
+    declined: Annulée
 field:
     url:
         label: 'URL concernée'
@@ -39,10 +39,6 @@ workflow:
     bug:
         label: Anomalie
         transition:
-            explain:
-                label: 'Expliquer le fonctionnement'
-                description: "Ce n'est pas une anomalie : l'équipe explique et attend la confirmation du client."
-                prompt: 'Expliquez le fonctionnement, ou pourquoi il se comporte ainsi.'
             acknowledge:
                 label: 'Accepter la réponse'
                 description: "L'explication répond à la question : la demande est close."
@@ -50,29 +46,9 @@ workflow:
                 label: 'Contester la réponse'
                 description: "L'explication ne répond pas à la question : la demande revient à l'équipe."
                 prompt: "Précisez ce qui ne va toujours pas."
-            ask_info:
-                label: 'Demander des précisions'
-                description: "Il manque des éléments pour comprendre l'anomalie : la demande attend la réponse du client."
-                prompt: "Précisez ce qu'il nous manque pour reproduire le problème."
             provide_info:
                 label: 'Apporter les précisions'
                 description: "Les précisions sont apportées : la demande revient à l'équipe."
-            qualify:
-                label: 'Prendre en compte'
-                description: "La demande est comprise : elle entre dans la file de l'équipe."
-            reject:
-                label: Rejeter
-                description: 'Ce n''est pas une anomalie, ou elle ne sera pas corrigée : la demande est classée sans suite.'
-            start:
-                label: Démarrer
-                description: 'La correction commence.'
-            block:
-                label: Bloquer
-                description: "La correction ne peut pas avancer : elle dépend d'un tiers ou d'un prérequis."
-                prompt: 'Indiquez ce qui bloque et qui doit le lever.'
-            deliver:
-                label: 'Livrer en recette'
-                description: 'La correction est en préproduction, prête à être vérifiée.'
             accept:
                 label: 'Valider la recette'
                 description: 'La correction est acceptée : elle attend sa mise en production.'
@@ -80,19 +56,9 @@ workflow:
                 label: 'Refuser la recette'
                 description: 'La correction ne convient pas : la demande repart en développement, avec le commentaire qui dit pourquoi.'
                 prompt: 'Expliquez ce qui ne va pas : un commentaire est obligatoire pour refuser.'
-            release:
-                label: 'Mettre en production'
-                description: 'La correction est en production : la demande est fermée. Elle pourra être rouverte si le problème revient.'
-            reopen:
-                label: Rouvrir
-                description: 'Le problème est revenu : la demande repart en développement.'
     evolution:
         label: Évolution
         transition:
-            explain:
-                label: 'Expliquer le fonctionnement'
-                description: "Ce n'est pas un changement à faire : l'équipe explique et attend la confirmation du client."
-                prompt: 'Expliquez le fonctionnement, ou pourquoi il se comporte ainsi.'
             acknowledge:
                 label: 'Accepter la réponse'
                 description: "L'explication répond à la question : la demande est close."
@@ -100,31 +66,12 @@ workflow:
                 label: 'Contester la réponse'
                 description: "L'explication ne répond pas à la question : la demande revient à l'équipe."
                 prompt: "Précisez ce qui ne va toujours pas."
-            estimate:
-                label: 'Faire chiffrer'
-                description: 'La demande est comprise : elle passe au chiffrage.'
-            decline:
-                label: Abandonner
-                description: 'L''évolution ne sera pas réalisée : la demande est classée sans suite.'
-            submit_estimate:
-                label: 'Soumettre le chiffrage'
-                description: 'Le chiffrage a été transmis au client : la demande attend sa décision.'
             approve:
                 label: 'Accepter le chiffrage'
                 description: "Le chiffrage est accepté : l'évolution est planifiée."
             decline_estimate:
                 label: 'Annuler la demande'
-                description: 'Le client renonce à l''évolution au vu du chiffrage : la demande est classée sans suite.'
-            start:
-                label: Démarrer
-                description: 'La réalisation commence.'
-            block:
-                label: Bloquer
-                description: "L'évolution ne peut pas avancer : elle dépend d'un tiers ou d'un prérequis."
-                prompt: 'Indiquez ce qui bloque et qui doit le lever.'
-            deliver:
-                label: 'Livrer en recette'
-                description: "L'évolution est en préproduction, prête à être vérifiée."
+                description: 'Le client renonce à l''évolution au vu du chiffrage : la demande est annulée.'
             accept:
                 label: 'Valider la recette'
                 description: "L'évolution correspond à la demande : elle attend sa mise en production."
@@ -132,27 +79,8 @@ workflow:
                 label: 'Refuser la recette'
                 description: "L'évolution ne correspond pas à la demande : elle repart en développement, avec le commentaire qui dit pourquoi."
                 prompt: 'Expliquez ce qui ne correspond pas à la demande : un commentaire est obligatoire pour refuser.'
-            release:
-                label: 'Mettre en production'
-                description: "L'évolution est en production : la demande est fermée."
     task:
         label: 'Tâche interne'
-        transition:
-            start:
-                label: Démarrer
-                description: 'La tâche est prise en charge.'
-            deliver:
-                label: 'Livrer en recette'
-                description: "La tâche est en préproduction, prête à être vérifiée par l'équipe."
-            accept:
-                label: 'Valider la recette'
-                description: 'La recette interne est bonne : la tâche attend sa mise en production.'
-            release:
-                label: 'Mettre en production'
-                description: 'La tâche est en production : elle est faite.'
-            cancel:
-                label: Annuler
-                description: 'La tâche ne sera pas réalisée : elle est classée sans suite.'
 template:
     name: 'Projet web'
     description: 'Anomalies, évolutions et tâches internes, les demandes confiées au chef de projet référent.'

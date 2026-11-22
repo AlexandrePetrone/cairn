@@ -22,6 +22,7 @@ final readonly class WorkflowDefinition
      * @param list<string>               $places      ids of places of the instance, in the order of the kanban columns
      * @param list<TransitionDefinition> $transitions
      * @param list<FieldUsage>           $fields
+     * @param array<string, string>      $aside       those of its places that stand beside the path its issues follow, each with the place of the path it stands beside, for the diagram
      */
     public function __construct(
         public string $id,
@@ -30,6 +31,7 @@ final readonly class WorkflowDefinition
         public array $places,
         array $transitions,
         array $fields = [],
+        public array $aside = [],
     ) {
         $this->transitions = Definitions::indexById($transitions, "workflows.$id.transitions");
         $this->fields = Definitions::indexById($fields, "workflows.$id.fields", 'field');
@@ -38,6 +40,42 @@ final readonly class WorkflowDefinition
     public function hasPlace(string $id): bool
     {
         return \in_array($id, $this->places, true);
+    }
+
+    /**
+     * The path the issues of the workflow follow: its places in their
+     * order, without those that stand beside one of them. Nobody is held
+     * to it; the diagram draws it.
+     *
+     * @return list<string>
+     */
+    public function path(): array
+    {
+        return array_values(array_filter($this->places, fn (string $place): bool => !isset($this->aside[$place])));
+    }
+
+    /**
+     * The places an issue goes through to stand on one, the initial one
+     * left out: the path up to it, or up to the place it stands beside and
+     * then itself. How the fixtures put an issue there, since nobody is
+     * held to the path.
+     *
+     * @return list<string>
+     */
+    public function trailTo(string $placeId): array
+    {
+        if (isset($this->aside[$placeId])) {
+            return [...$this->trailTo($this->aside[$placeId]), $placeId];
+        }
+        $path = $this->path();
+        $reached = array_search($placeId, $path, true);
+        if (false === $reached) {
+            throw new InvalidDefinitionException(\sprintf('workflows.%s: unknown place "%s".', $this->id, $placeId));
+        }
+        $start = (int) array_search($this->initial, $path, true);
+
+        // A place the kanban sets before the initial one is reached at once.
+        return $reached < $start ? [$placeId] : \array_slice($path, $start + 1, $reached - $start);
     }
 
     public function transition(string $id): TransitionDefinition
@@ -53,31 +91,5 @@ final readonly class WorkflowDefinition
     public function transitionsFrom(string $placeId): array
     {
         return array_values(array_filter($this->transitions, static fn (TransitionDefinition $t) => \in_array($placeId, $t->from, true)));
-    }
-
-    /**
-     * The shortest sequence of transitions from the initial place to a
-     * place, whoever may trigger them: how fixtures put an issue there.
-     *
-     * @return list<TransitionDefinition>
-     */
-    public function pathTo(string $placeId): array
-    {
-        $paths = [$this->initial => []];
-        $queue = [$this->initial];
-        while ([] !== $queue) {
-            $place = array_shift($queue);
-            if ($place === $placeId) {
-                return $paths[$place];
-            }
-            foreach ($this->transitionsFrom($place) as $transition) {
-                if (!isset($paths[$transition->to])) {
-                    $paths[$transition->to] = [...$paths[$place], $transition];
-                    $queue[] = $transition->to;
-                }
-            }
-        }
-
-        throw new InvalidDefinitionException(\sprintf('workflows.%s: place "%s" cannot be reached from "%s".', $this->id, $placeId, $this->initial));
     }
 }

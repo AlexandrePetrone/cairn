@@ -74,18 +74,19 @@ final class ConfigValidatorTest extends TestCase
         ], $this->messages($definition));
     }
 
-    public function testAnActionStartsSomewhereAndSomeoneTriggersIt(): void
+    public function testAnActionStartsSomewhereAndIsForTheRolesHeldToTheWorkflow(): void
     {
         $workflow = new WorkflowDefinition(id: 'w', label: 'W', initial: 'a', places: ['a', 'b'], transitions: [
             new TransitionDefinition(id: 'orphan', label: 'Orphan', from: [], to: 'b', roles: []),
             new TransitionDefinition(id: 'back', label: 'Back', from: ['b'], to: 'a', roles: ['developer'], commentPrompt: 'Why?', description: '  '),
+            new TransitionDefinition(id: 'skip', label: 'Skip', from: ['a'], to: 'b', roles: ['project_manager', 'client']),
         ]);
 
         self::assertSame([
             'workflows.w.transitions.orphan.from: at least one source place is required.',
-            'workflows.w.transitions.orphan.roles: at least one role is required.',
             'workflows.w.transitions.back.commentPrompt: only makes sense when a comment is required.',
             'workflows.w.transitions.back.description: cannot be blank, leave it null instead.',
+            'workflows.w.transitions.skip.roles: role "project_manager" moves issues freely: it takes no action.',
         ], $this->messages(DefinitionFactory::definition(workflows: [$workflow])));
     }
 
@@ -142,6 +143,17 @@ final class ConfigValidatorTest extends TestCase
 
         self::assertSame([
             'workflows.w.initial: unknown place "nowhere".',
+        ], $this->messages(DefinitionFactory::definition(workflows: [$workflow])));
+    }
+
+    public function testAPlaceStandsBesideAPlaceOfThePathAndNeverTheInitialOne(): void
+    {
+        $workflow = new WorkflowDefinition(id: 'w', label: 'W', initial: 'a', places: ['a', 'b', 'c', 'd'], transitions: [], aside: ['a' => 'b', 'c' => 'd', 'd' => 'b', 'e' => 'b']);
+
+        self::assertSame([
+            'workflows.w.aside: the initial place "a" is where the path starts.',
+            'workflows.w.aside: "c" stands beside a place of the path, which "d" is not.',
+            'workflows.w.aside: unknown place "e".',
         ], $this->messages(DefinitionFactory::definition(workflows: [$workflow])));
     }
 

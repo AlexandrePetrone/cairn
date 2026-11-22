@@ -1,5 +1,5 @@
-{# The properties of the issue page's side panel: a band with the tracker, then one row per property, the step first; the release only once the project has releases. A property the viewer may change is a menu (`Ui:Dropdown`) opened from its value, each choice a `Ui:Dropdown:Item` that dispatches the change and closes the menu (a redraw keeps the classes the browser changed, so the menu would stay open); the menu spans the row so that it opens within the column, hence plain divs rather than a <dl>, which allows no wrapper between it and its terms. `this` is read before the nested components, whose blocks see their own `this`.
-   The step menu holds several panels (`panels` controller): the places of the workflow, then, behind "Change category…", the other trackers and the places of each. #}
+{# The properties of the issue page's side panel: a band with the tracker and, for everyone, the link to the diagram of its workflow, the step on the width of the panel, then one row per property; the release only once the project has releases. A property the viewer may change is a menu (`Ui:Dropdown`) opened from its value, each choice a `Ui:Dropdown:Item` that dispatches the change and closes the menu (a redraw keeps the classes the browser changed, so the menu would stay open); the menu spans the row so that it opens within the column, hence plain divs rather than a <dl>, which allows no wrapper between it and its terms. `this` is read before the nested components, whose blocks see their own `this`.
+   The step menu holds several panels (`panels` controller): the places of the workflow drawn as its path, then, behind "Change category…", the other trackers and the places of each. #}
 {% set propertiesRowClasses = 'group flex min-h-7 items-center gap-3' %}
 {% set propertiesLabelClasses = 'w-22 shrink-0 text-xs text-muted' %}
 {% set propertiesValueClasses = '-mx-1.5 inline-flex min-h-7 max-w-full items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left hover:bg-sunken aria-expanded:bg-sunken' %}
@@ -9,7 +9,7 @@
 {% set propertiesCanChangePlace = this.canChangePlace %}
 {% set propertiesMoves = propertiesCanChangePlace ? this.moves : [] %}
 {% set propertiesTrackers = propertiesCanChangePlace ? this.otherTrackers : [] %}
-{% set propertiesPlaces = propertiesCanChangePlace ? this.placesOf : [] %}
+{% set propertiesTrail = propertiesCanChangePlace ? this.trail : [] %}
 {% set propertiesTrackerPlaces = {} %}
 {% for tracker in propertiesTrackers %}
     {% set propertiesTrackerPlaces = propertiesTrackerPlaces|merge({ ('t' ~ tracker.id): this.placesOf(tracker) }) %}
@@ -25,92 +25,95 @@
             <twig:ux:icon name="lucide:tag" class="h-3.5 w-3.5 shrink-0 text-faint" />
             <span class="min-w-0 truncate text-xs font-medium text-body" title="{{ 'issue.show.tracker'|trans }}">{{ issue.tracker.name }}</span>
             {% if issue.tracker.private %}<twig:ux:icon name="lucide:lock" class="h-3 w-3 shrink-0 text-faint" />{% endif %}
+            <twig:Ui:IconButton icon="workflow" size="sm" :label="'issue.show.workflow'|trans" href="{{ path('app_issue_workflow', { workspaceKey: issue.project.workspace.key, projectKey: issue.project.key, number: issue.number }) }}" data-turbo-frame="modal" class="-my-1 -mr-1.5 ml-auto" />
         </div>
         <div class="space-y-0.5 p-3.5">
             {% if error %}
                 <twig:Ui:Callout tone="danger" size="sm" role="alert" class="mb-2">{{ error }}</twig:Ui:Callout>
             {% endif %}
 
-            {% set propertiesPlace %}<twig:Ui:Status:Step :status="issue_status(issue)" :label="issue_place(issue)" pill />{% endset %}
-            {% if propertiesCanChangePlace %}
-                <div data-controller="panels">
-                    <twig:Ui:Dropdown width="sm" class="block">
-                        <twig:block name="trigger">
-                            <div class="{{ propertiesRowClasses }}">
-                                <div class="{{ propertiesLabelClasses }}">{{ 'issue.show.place'|trans }}</div>
-                                <div class="min-w-0 flex-1">
-                                    <button type="button" class="{{ propertiesValueClasses }}" aria-expanded="false" aria-haspopup="menu" aria-label="{{ 'issue.show.change_property'|trans({ '%property%': 'issue.show.place'|trans }) }}" data-action="dropdown#toggle panels#reset">
-                                        {{ propertiesPlace }}
-                                        <twig:ux:icon name="lucide:chevrons-up-down" class="hover-actions h-3.5 w-3.5 shrink-0 text-faint" />
+            {# The step takes the width of the panel, so that a long label stays on one line. #}
+            <div class="pb-2">
+                <div class="mb-1.5 text-xs text-muted">{{ 'issue.show.place'|trans }}</div>
+                <div class="flex">
+                    {% if propertiesCanChangePlace %}
+                        <div class="min-w-0 flex-1" data-controller="panels">
+                            <twig:Ui:Dropdown width="full" class="block">
+                                <twig:block name="trigger">
+                                    <button type="button" class="block w-full rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-focus aria-expanded:ring-2 aria-expanded:ring-focus" aria-expanded="false" aria-haspopup="menu" aria-label="{{ 'issue.show.change_property'|trans({ '%property%': 'issue.show.place'|trans }) }}" data-action="dropdown#toggle panels#reset">
+                                        <twig:Ui:Status:Step :status="issue_status(issue)" :label="issue_place(issue)" pill size="lg">
+                                            <twig:ux:icon name="lucide:chevrons-up-down" class="h-3.5 w-3.5 shrink-0 opacity-70" />
+                                        </twig:Ui:Status:Step>
                                     </button>
-                                </div>
-                            </div>
-                        </twig:block>
-                        <twig:block name="content">
-                            {# The places in the order of the workflow: the current one, those an action leads to (named after it, one row per action), and, greyed, those reached outside the workflow. #}
-                            <div data-panels-target="panel" data-panels-name="places">
-                                {% for place in propertiesPlaces %}
-                                    {% if place.id == issue.place %}
-                                        <twig:Ui:Dropdown:Item active data-action="dropdown#close">
-                                            <twig:Ui:Status:Dot :status="place.status.value" />
-                                            <span class="min-w-0 truncate">{{ place.label }}</span>
-                                            <twig:ux:icon name="lucide:check" class="ml-auto h-4 w-4 shrink-0 text-brand" />
-                                        </twig:Ui:Dropdown:Item>
-                                    {% endif %}
-                                    {% for move in propertiesMoves|filter(move => move.place.id == place.id) %}
-                                        {% if move.forced %}
-                                            <twig:Ui:Dropdown:Item title="{{ 'issue.step.off_workflow'|trans }}" data-action="live#action dropdown#close" data-live-action-param="move" data-live-place-param="{{ place.id }}">
-                                                <twig:Ui:Status:Dot :status="place.status.value" />
-                                                <span class="min-w-0 truncate text-muted">{{ place.label }}</span>
-                                            </twig:Ui:Dropdown:Item>
-                                        {% else %}
-                                            <twig:Ui:Dropdown:Item title="{{ move.transition.description }}" data-action="live#action dropdown#close" data-live-action-param="transition" data-live-id-param="{{ move.transition.id }}">
-                                                <twig:Ui:Status:Dot :status="place.status.value" />
-                                                <span class="min-w-0 truncate font-medium text-strong">{{ place.label }}</span>
-                                                <span class="ml-auto shrink-0 rounded-md bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand">{{ move.transition.label }}</span>
-                                            </twig:Ui:Dropdown:Item>
-                                        {% endif %}
-                                    {% endfor %}
-                                {% endfor %}
-                                {% if propertiesTrackers is not empty %}
-                                    <div class="my-1 border-t border-line-subtle"></div>
-                                    <twig:Ui:Dropdown:Item icon="arrow-left-right" data-action="panels#show" data-panels-name-param="trackers">{{ 'issue.step.change_tracker'|trans }}</twig:Ui:Dropdown:Item>
-                                {% endif %}
-                            </div>
-                            {% if propertiesTrackers is not empty %}
-                                <div data-panels-target="panel" data-panels-name="trackers" hidden>
-                                    <twig:Ui:Dropdown:Item icon="chevron-left" class="{{ propertiesBackClasses }}" data-action="panels#show" data-panels-name-param="places">{{ 'issue.step.change_tracker_title'|trans }}</twig:Ui:Dropdown:Item>
-                                    {% for tracker in propertiesTrackers %}
-                                        <twig:Ui:Dropdown:Item data-action="panels#show" data-panels-name-param="tracker-{{ tracker.id }}">
-                                            <span class="min-w-0 truncate">{{ tracker.name }}</span>
-                                            {% if tracker.private %}<twig:ux:icon name="lucide:lock" class="h-3 w-3 shrink-0 text-faint" />{% endif %}
-                                            <twig:ux:icon name="lucide:chevron-right" class="ml-auto h-4 w-4 shrink-0 text-faint" />
-                                        </twig:Ui:Dropdown:Item>
-                                    {% endfor %}
-                                </div>
-                                {# The places of each other tracker: choosing one changes the tracker and puts the issue there. #}
-                                {% for tracker in propertiesTrackers %}
-                                    <div data-panels-target="panel" data-panels-name="tracker-{{ tracker.id }}" hidden>
-                                        <twig:Ui:Dropdown:Item icon="chevron-left" class="{{ propertiesBackClasses }}" data-action="panels#show" data-panels-name-param="trackers">{{ tracker.name }}</twig:Ui:Dropdown:Item>
-                                        {% for place in propertiesTrackerPlaces['t' ~ tracker.id] %}
-                                            <twig:Ui:Dropdown:Item data-action="live#action dropdown#close" data-live-action-param="move" data-live-place-param="{{ place.id }}" data-live-tracker-param="{{ tracker.id }}">
-                                                <twig:Ui:Status:Dot :status="place.status.value" />
-                                                <span class="min-w-0 truncate">{{ place.label }}</span>
-                                                {% if place.id == issue.place %}<span class="ml-auto shrink-0 text-xs text-muted">{{ 'issue.step.same'|trans }}</span>{% endif %}
-                                            </twig:Ui:Dropdown:Item>
+                                </twig:block>
+                                <twig:block name="content">
+                                    {# The places as the path of the workflow, those beside it hanging from the place they stand beside: the current one, checked, and every other one. #}
+                                    <div data-panels-target="panel" data-panels-name="places">
+                                        {% set propertiesOffered = propertiesMoves|map(move => move.place.id) %}
+                                        {% for propertiesStep in propertiesTrail %}
+                                            {% set place = propertiesStep.place %}
+                                            {% set propertiesCurrent = place.id == issue.place %}
+                                            {% set propertiesRail %}
+                                                <span class="relative -my-2 w-3 shrink-0 self-stretch" aria-hidden="true">
+                                                    <span class="absolute left-[5px] w-0.5 bg-line {{ loop.first ? 'bottom-0 top-1/2' : (loop.last ? 'bottom-1/2 top-0' : 'inset-y-0') }}"></span>
+                                                    {% if not propertiesStep.aside %}<twig:Ui:Status:Dot :status="place.status.value" size="md" class="absolute left-0.5 top-1/2 -translate-y-1/2 {{ propertiesCurrent ? 'ring-4 ring-brand-line' }}" />{% endif %}
+                                                </span>
+                                                {% if propertiesStep.aside %}
+                                                    <span class="-ml-4 w-4 shrink-0 border-t-2 border-dotted border-line-strong" aria-hidden="true"></span>
+                                                    <twig:Ui:Status:Dot :status="place.status.value" size="md" class="{{ propertiesCurrent ? 'ring-4 ring-brand-line' }}" />
+                                                {% endif %}
+                                            {% endset %}
+                                            {% if propertiesCurrent %}
+                                                <twig:Ui:Dropdown:Item active aria-current="step" class="bg-brand-soft font-semibold text-strong hover:bg-brand-soft" data-action="dropdown#close">
+                                                    {{ propertiesRail }}
+                                                    <span class="min-w-0 truncate">{{ place.label }}</span>
+                                                    <twig:ux:icon name="lucide:check" class="ml-auto h-4 w-4 shrink-0 text-brand" />
+                                                </twig:Ui:Dropdown:Item>
+                                            {% elseif place.id in propertiesOffered %}
+                                                <twig:Ui:Dropdown:Item data-action="live#action dropdown#close" data-live-action-param="move" data-live-place-param="{{ place.id }}">
+                                                    {{ propertiesRail }}
+                                                    <span class="min-w-0 truncate">{{ place.label }}</span>
+                                                </twig:Ui:Dropdown:Item>
+                                            {% endif %}
                                         {% endfor %}
+                                        {% if propertiesTrackers is not empty %}
+                                            <div class="my-1 border-t border-line-subtle"></div>
+                                            <twig:Ui:Dropdown:Item icon="arrow-left-right" data-action="panels#show" data-panels-name-param="trackers">{{ 'issue.step.change_tracker'|trans }}</twig:Ui:Dropdown:Item>
+                                        {% endif %}
                                     </div>
-                                {% endfor %}
-                            {% endif %}
-                        </twig:block>
-                    </twig:Ui:Dropdown>
+                                    {% if propertiesTrackers is not empty %}
+                                        <div data-panels-target="panel" data-panels-name="trackers" hidden>
+                                            <twig:Ui:Dropdown:Item icon="chevron-left" class="{{ propertiesBackClasses }}" data-action="panels#show" data-panels-name-param="places">{{ 'issue.step.change_tracker_title'|trans }}</twig:Ui:Dropdown:Item>
+                                            {% for tracker in propertiesTrackers %}
+                                                <twig:Ui:Dropdown:Item data-action="panels#show" data-panels-name-param="tracker-{{ tracker.id }}">
+                                                    <span class="min-w-0 truncate">{{ tracker.name }}</span>
+                                                    {% if tracker.private %}<twig:ux:icon name="lucide:lock" class="h-3 w-3 shrink-0 text-faint" />{% endif %}
+                                                    <twig:ux:icon name="lucide:chevron-right" class="ml-auto h-4 w-4 shrink-0 text-faint" />
+                                                </twig:Ui:Dropdown:Item>
+                                            {% endfor %}
+                                        </div>
+                                        {# The places of each other tracker: choosing one changes the tracker and puts the issue there. #}
+                                        {% for tracker in propertiesTrackers %}
+                                            <div data-panels-target="panel" data-panels-name="tracker-{{ tracker.id }}" hidden>
+                                                <twig:Ui:Dropdown:Item icon="chevron-left" class="{{ propertiesBackClasses }}" data-action="panels#show" data-panels-name-param="trackers">{{ tracker.name }}</twig:Ui:Dropdown:Item>
+                                                {% for place in propertiesTrackerPlaces['t' ~ tracker.id] %}
+                                                    <twig:Ui:Dropdown:Item data-action="live#action dropdown#close" data-live-action-param="move" data-live-place-param="{{ place.id }}" data-live-tracker-param="{{ tracker.id }}">
+                                                        <twig:Ui:Status:Dot :status="place.status.value" />
+                                                        <span class="min-w-0 truncate">{{ place.label }}</span>
+                                                        {% if place.id == issue.place %}<span class="ml-auto shrink-0 text-xs text-muted">{{ 'issue.step.same'|trans }}</span>{% endif %}
+                                                    </twig:Ui:Dropdown:Item>
+                                                {% endfor %}
+                                            </div>
+                                        {% endfor %}
+                                    {% endif %}
+                                </twig:block>
+                            </twig:Ui:Dropdown>
+                        </div>
+                    {% else %}
+                        <twig:Ui:Status:Step :status="issue_status(issue)" :label="issue_place(issue)" pill size="lg" class="min-w-0 flex-1" />
+                    {% endif %}
                 </div>
-            {% else %}
-                <div class="{{ propertiesRowClasses }}">
-                    <div class="{{ propertiesLabelClasses }}">{{ 'issue.show.place'|trans }}</div>
-                    <div class="min-w-0 flex-1">{{ propertiesPlace }}</div>
-                </div>
-            {% endif %}
+            </div>
 
             {% set propertiesCriticality %}<twig:Ui:Criticality:Badge :criticality="issue.criticality.value" />{% endset %}
             {% if propertiesCanSetCriticality %}

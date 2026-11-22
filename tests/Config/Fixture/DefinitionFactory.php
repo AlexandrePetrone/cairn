@@ -32,7 +32,8 @@ final class DefinitionFactory
     public static function roles(): array
     {
         return [
-            new RoleDefinition(id: 'project_manager', label: 'Project manager', internalOnly: true, followsNewIssues: true),
+            // The manager moves issues freely; the developer and the client have the actions of the workflow.
+            new RoleDefinition(id: 'project_manager', label: 'Project manager', internalOnly: true, followsNewIssues: true, freeWorkflow: true),
             new RoleDefinition(id: 'developer', label: 'Developer', internalOnly: true),
             new RoleDefinition(id: 'client', label: 'Client'),
         ];
@@ -97,8 +98,8 @@ final class DefinitionFactory
 
         if ($withToTest) {
             $transitions[] = new TransitionDefinition(id: 'deliver', label: 'Deliver', from: ['in_progress'], to: 'to_test', roles: ['developer']);
-            $transitions[] = new TransitionDefinition(id: 'accept', label: 'Accept', from: ['to_test'], to: 'done', roles: ['client', 'project_manager'], style: TransitionStyle::Primary, description: 'The fix is right.');
-            $transitions[] = new TransitionDefinition(id: 'refuse', label: 'Refuse', from: ['to_test'], to: 'in_progress', roles: ['client', 'project_manager'], style: TransitionStyle::Danger, requiresComment: true, commentPrompt: 'Why?');
+            $transitions[] = new TransitionDefinition(id: 'accept', label: 'Accept', from: ['to_test'], to: 'done', roles: ['client'], style: TransitionStyle::Primary, description: 'The fix is right.');
+            $transitions[] = new TransitionDefinition(id: 'refuse', label: 'Refuse', from: ['to_test'], to: 'in_progress', roles: ['client'], style: TransitionStyle::Danger, requiresComment: true, commentPrompt: 'Why?');
         } else {
             $transitions[] = new TransitionDefinition(id: 'finish', label: 'Finish', from: ['in_progress'], to: 'done', roles: ['developer']);
         }
@@ -143,7 +144,6 @@ final class DefinitionFactory
                 Permission::IssueSetPrivate->value => ['project_manager'],
                 Permission::IssueSetRelease->value => ['project_manager', 'developer'],
                 Permission::IssueLink->value => ['project_manager', 'developer'],
-                Permission::IssueBypassWorkflow->value => ['project_manager'],
                 Permission::IssueDelete->value => ['project_manager', 'developer'],
                 Permission::CommentCreate->value => ['project_manager', 'developer', 'client'],
                 Permission::CommentSetPrivate->value => ['project_manager', 'developer'],

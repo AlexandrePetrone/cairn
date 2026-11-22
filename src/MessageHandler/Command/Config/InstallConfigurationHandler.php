@@ -56,7 +56,7 @@ final class InstallConfigurationHandler
 
         $roles = [];
         foreach (array_values($definition->roles) as $position => $role) {
-            $this->entityManager->persist($roles[$role->id] = new Role($role->id, $role->label, $role->internalOnly, $role->followsNewIssues, $position));
+            $this->entityManager->persist($roles[$role->id] = new Role($role->id, $role->label, $role->internalOnly, $role->followsNewIssues, $role->freeWorkflow, $position));
         }
         foreach ($definition->permissions as $permission => $roleIds) {
             foreach ($roleIds as $roleId) {
@@ -80,8 +80,12 @@ final class InstallConfigurationHandler
             $workflow = new Workflow($definedWorkflow->id, $definedWorkflow->label, $places[$definedWorkflow->initial], $position);
             $this->entityManager->persist($workflow);
 
+            $used = [];
             foreach ($definedWorkflow->places as $placePosition => $placeId) {
-                $this->entityManager->persist(new WorkflowPlace($workflow, $places[$placeId], $placePosition));
+                $this->entityManager->persist($used[$placeId] = new WorkflowPlace($workflow, $places[$placeId], $placePosition));
+            }
+            foreach ($definedWorkflow->aside as $placeId => $besideId) {
+                $used[$placeId]->standBeside($used[$besideId]);
             }
             foreach (array_values($definedWorkflow->fields) as $fieldPosition => $usage) {
                 $this->entityManager->persist(new WorkflowField($workflow, $fields[$usage->field], $usage->required, $fieldPosition));

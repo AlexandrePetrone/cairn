@@ -9,13 +9,14 @@ use App\Config\Definition\TransitionDefinition;
 
 /**
  * One way a user may take an issue to another place of its workflow: by
- * an action of the workflow, or, without one, outside it
- * (`issue.bypass_workflow`). AccessControl::movesFor() lists them.
+ * an action of theirs, or freely, without one
+ * (AccessControl::canMoveFreely()). AccessControl::movesFor() lists them,
+ * all of one kind for a given user.
  */
 final readonly class PlaceMove
 {
     /**
-     * @param TransitionDefinition|null $transition the action that leads to the place; null when the move leaves the workflow
+     * @param TransitionDefinition|null $transition the action that leads to the place; null for who moves freely
      */
     public function __construct(
         public PlaceDefinition $place,
@@ -23,28 +24,15 @@ final readonly class PlaceMove
     ) {
     }
 
-    public function isForced(): bool
-    {
-        return null === $this->transition;
-    }
-
     /**
-     * The places a list of moves leads to, each once: all of them, or only
-     * those reached outside the workflow.
+     * The places a list of moves leads to, each once.
      *
      * @param list<self> $moves
      *
      * @return list<string>
      */
-    public static function placeIds(array $moves, bool $forcedOnly = false): array
+    public static function placeIds(array $moves): array
     {
-        $ids = [];
-        foreach ($moves as $move) {
-            if (!$forcedOnly || $move->isForced()) {
-                $ids[$move->place->id] = $move->place->id;
-            }
-        }
-
-        return array_values($ids);
+        return array_values(array_unique(array_map(static fn (self $move): string => $move->place->id, $moves)));
     }
 }

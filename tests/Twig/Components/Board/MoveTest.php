@@ -38,8 +38,8 @@ final class MoveTest extends KernelTestCase
         $render = $mover->render();
 
         self::assertSame('qualified', $this->reloaded('MD-SPT-1')->getPlace());
-        self::assertSame(['key' => 'MD-SPT-1', 'applied' => true, 'top' => true, 'places' => ['new', 'needs_info', 'in_progress', 'blocked', 'to_test', 'to_release', 'done', 'declined'], 'forced' => ['new', 'needs_info', 'blocked', 'to_test', 'to_release', 'done']], $mover->getDispatchedBrowserEvent($render, 'board:moved')['payload'] ?? null, 'the card learns where it may go from its new place, and how');
-        self::assertSame(JournalEntryType::Transitioned, self::getContainer()->get(EntityManagerInterface::class)->getRepository(JournalEntry::class)->findOneBy(['issue' => $this->reloaded('MD-SPT-1')], ['id' => 'DESC'])?->getType(), 'the action, not a forced move');
+        self::assertSame(['key' => 'MD-SPT-1', 'applied' => true, 'top' => true, 'places' => ['in_progress', 'declined']], $mover->getDispatchedBrowserEvent($render, 'board:moved')['payload'] ?? null, 'the card learns where her actions lead from its new place');
+        self::assertSame(JournalEntryType::Transitioned, $this->lastEntry('MD-SPT-1')?->getType(), 'her action: a developer is held to the workflow');
         self::assertNotNull($mover->getEmittedEvent($render, 'issue:changed'));
     }
 
@@ -51,23 +51,24 @@ final class MoveTest extends KernelTestCase
         $render = $mover->render();
 
         self::assertSame('new', $this->reloaded('MD-SPT-1')->getPlace());
-        self::assertSame(['key' => 'MD-SPT-1', 'applied' => false, 'top' => false, 'places' => [], 'forced' => []], $mover->getDispatchedBrowserEvent($render, 'board:moved')['payload'] ?? null);
+        self::assertSame(['key' => 'MD-SPT-1', 'applied' => false, 'top' => false, 'places' => []], $mover->getDispatchedBrowserEvent($render, 'board:moved')['payload'] ?? null);
         self::assertNotNull($mover->getDispatchedBrowserEvent($render, 'toast:show'));
     }
 
-    public function testAPlaceNoActionLeadsToTakesTheCardOutsideTheWorkflowForWhoeverMay(): void
+    public function testWhoMovesFreelyDropsTheCardOnAnyPlaceWithoutAnAction(): void
     {
         $mover = $this->mover('thomas.girard@cairn.test');
 
         $mover->call('move', ['key' => 'MD-SPT-1', 'place' => 'done']);
         $render = $mover->render();
 
-        self::assertSame('done', $this->reloaded('MD-SPT-1')->getPlace(), 'issue.bypass_workflow, without a dialog');
-        $moved = $mover->getDispatchedBrowserEvent($render, 'board:moved')['payload'] ?? [];
-        self::assertTrue($moved['applied'] ?? false);
-        self::assertContains('in_progress', $moved['places'] ?? [], '"Reopen" leads there');
-        self::assertNotContains('in_progress', $moved['forced'] ?? []);
-        self::assertContains('qualified', $moved['forced'] ?? [], 'no action leads there from "Closed"');
+        self::assertSame('done', $this->reloaded('MD-SPT-1')->getPlace(), 'without a dialog');
+        self::assertSame(JournalEntryType::Moved, $this->lastEntry('MD-SPT-1')?->getType());
+        self::assertSame(
+            ['key' => 'MD-SPT-1', 'applied' => true, 'top' => true, 'places' => ['new', 'needs_info', 'qualified', 'in_progress', 'blocked', 'to_test', 'to_release', 'declined']],
+            $mover->getDispatchedBrowserEvent($render, 'board:moved')['payload'] ?? null,
+            'every other place of the workflow',
+        );
         self::assertSame(['message' => 'MD-SPT-1 moved to Done.'], $mover->getDispatchedBrowserEvent($render, 'toast:show')['payload'] ?? null);
         self::assertNotNull($mover->getEmittedEvent($render, 'issue:changed'));
     }
@@ -90,13 +91,14 @@ final class MoveTest extends KernelTestCase
         self::assertStringNotContainsString('role="dialog"', (string) $mover->render());
     }
 
-    public function testAnInternalUserDropsWithoutTheCommentAskedOfClients(): void
+    public function testWhoMovesFreelyDropsWithoutTheCommentAnActionAsks(): void
     {
         $mover = $this->mover('thomas.girard@cairn.test');
 
         $mover->call('move', ['key' => 'MD-SPT-4', 'place' => 'in_progress']);
 
         self::assertSame('in_progress', $this->reloaded('MD-SPT-4')->getPlace(), 'applied at once');
+        self::assertSame(JournalEntryType::Moved, $this->lastEntry('MD-SPT-4')?->getType(), '"Refuse" and its comment are the client\'s');
         self::assertStringNotContainsString('role="dialog"', (string) $mover->render());
     }
 
@@ -109,7 +111,7 @@ final class MoveTest extends KernelTestCase
         $render = $mover->render();
 
         self::assertSame('to_test', $this->reloaded('MD-SPT-4')->getPlace());
-        self::assertSame(['key' => 'MD-SPT-4', 'applied' => false, 'top' => false, 'places' => [], 'forced' => []], $mover->getDispatchedBrowserEvent($render, 'board:moved')['payload'] ?? null);
+        self::assertSame(['key' => 'MD-SPT-4', 'applied' => false, 'top' => false, 'places' => []], $mover->getDispatchedBrowserEvent($render, 'board:moved')['payload'] ?? null);
     }
 
     public function testAClientAppliesOnlyHerOwnTransitions(): void
@@ -117,7 +119,7 @@ final class MoveTest extends KernelTestCase
         $mover = $this->mover('claire.martin@maison-dupont.test');
 
         $mover->call('move', ['key' => 'MD-SPT-1', 'place' => 'qualified']);
-        self::assertSame('new', $this->reloaded('MD-SPT-1')->getPlace(), 'qualifying is for internal users');
+        self::assertSame('new', $this->reloaded('MD-SPT-1')->getPlace(), 'qualifying is not an action of hers');
 
         $mover->call('move', ['key' => 'MD-SPT-4', 'place' => 'to_release']);
         self::assertSame('to_release', $this->reloaded('MD-SPT-4')->getPlace());
@@ -126,7 +128,7 @@ final class MoveTest extends KernelTestCase
     public function testACardDroppedBetweenTwoOthersIsPlacedThereByWhoeverMayRank(): void
     {
         $this->scene->bug('Third');
-        $mover = $this->mover('nadia.benali@cairn.test');
+        $mover = $this->mover('thomas.girard@cairn.test');
         $before = $this->column('new');
 
         $mover->call('move', ['key' => 'MD-SPT-3', 'place' => 'new', 'above' => $before[0], 'below' => $before[1]]);
@@ -192,6 +194,11 @@ final class MoveTest extends KernelTestCase
     private function mover(string $email): TestLiveComponent
     {
         return $this->createLiveComponent('Board:Move')->actingAs($this->scene->user($email));
+    }
+
+    private function lastEntry(string $key): ?JournalEntry
+    {
+        return self::getContainer()->get(EntityManagerInterface::class)->getRepository(JournalEntry::class)->findOneBy(['issue' => $this->reloaded($key)], ['id' => 'DESC']);
     }
 
     private function reloaded(string $key): Issue

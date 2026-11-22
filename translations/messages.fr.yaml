@@ -62,7 +62,6 @@ issue:
         done: 'Demande %key% supprimée.'
     show:
         path: Parcours
-        moved_step: Déplacée sans action
         copy_key: Copier l'identifiant
         key_copied: Copié
         created_by: 'créée par %name% le %date%'
@@ -82,6 +81,7 @@ issue:
         fields: 'Champs %tracker%'
         no_fields: Aucun champ renseigné.
         change_property: 'Modifier « %property% »'
+        workflow: Voir le workflow
         search_member: Rechercher un membre…
         no_member: Aucun membre ne correspond.
         system: Cairn
@@ -98,7 +98,7 @@ issue:
             description: a modifié la description
         transitioned: 'a appliqué « %transition% » : %from% → %to%'
         tracker_changed: 'a changé la catégorie : %from_tracker% → %to_tracker% (%to%)'
-        moved: 'a déplacé la demande sans action : %from% → %to%'
+        moved: 'a déplacé la demande : %from% → %to%'
         field_changed: 'a changé « %field% » : %from% → %to%'
         linked: 'a lié : %label% %key% « %title% »'
         unlinked: 'a retiré le lien : %label% %key% « %title% »'
@@ -167,8 +167,9 @@ issue:
         applied: '%key% : « %transition% » appliquée.'
     respond:
         question: Que souhaitez-vous faire ?
+    workflow:
+        title: 'Workflow %workflow%'
     step:
-        off_workflow: Hors workflow
         change_tracker: Changer de catégorie…
         change_tracker_title: Changer de catégorie
         same: même étape
@@ -657,20 +658,26 @@ admin:
             intro: 'L''ordre des rôles tient lieu de hiérarchie, du plus large au plus étroit : lorsqu''une personne a un rôle sur un espace et un autre sur l''un de ses projets, le plus large s''applique.'
             anyone: 'Internes et externes'
             internal_only: 'Internes seulement'
+            free_workflow: 'Workflow libre'
+            guided_workflow: 'Workflow guidé'
             follows_new_issues_help: 'Abonné d''office à chaque nouvelle demande du projet'
             membership_count: '{0}aucun accès|{1}1 accès|]1,Inf[ %count% accès'
             new: 'Nouveau rôle'
             created: 'Rôle « %name% » créé. Il n''a encore aucun droit.'
             deleted: 'Rôle « %name% » supprimé.'
             delete_help: 'Un rôle se supprime quand plus personne ne le porte et qu''aucune action d''un workflow ne le nomme.'
+            leaves_actions: '{1}Passé au workflow libre, ce rôle sera retiré de l''action qu''il déclenche, définitivement : %actions%.|]1,Inf[ Passé au workflow libre, ce rôle sera retiré des %count% actions qu''il déclenche, définitivement : %actions%.'
+            leaves_rules: '{1}Plus personne ne déclenchera alors l''action dont dépend cette règle d''automatisation :|]1,Inf[ Plus personne ne déclenchera alors les actions dont dépendent ces règles d''automatisation :'
             form:
                 internal_only: 'Réservé aux internes'
                 internal_only_help: 'Il peut alors porter les droits qui ouvrent ce que les externes ne voient jamais.'
+                free_workflow: 'Workflow libre'
+                free_workflow_help: 'Ce rôle place une demande sur n''importe quelle étape de son workflow et la change de catégorie, sans action. Décoché, il ne dispose que des actions que les workflows lui donnent.'
                 follows_new_issues: 'Suit les nouvelles demandes'
                 follows_new_issues_help: 'Qui le porte sur un projet est abonné à chaque nouvelle demande du projet, et peut se désabonner demande par demande.'
         permissions:
-            title: 'Droits hors workflow'
-            intro: 'Cocher une case accorde le droit immédiatement. Les rôles autorisés à déclencher une action se définissent sur l''action elle-même, dans son workflow.'
+            title: 'Droits'
+            intro: 'Cocher une case accorde le droit immédiatement. La façon dont un rôle déplace les demandes se choisit sur le rôle : librement, ou par les actions qui le nomment, définies dans chaque workflow.'
             permission: 'Droit'
             internal_only: 'Rôles internes'
             internal_only_help: 'Exercer ce droit suppose de voir ce que les externes ne voient jamais : il ne va qu''à un rôle réservé aux internes.'
@@ -762,11 +769,20 @@ admin:
             fields: 'Champs'
             fields_intro: 'Dans l''ordre du formulaire d''une demande.'
             actions: 'Actions'
-            actions_intro: 'Les boutons qui font passer une demande d''une étape à une autre, pour les rôles nommés. Un administrateur les déclenche toutes.'
-            no_action: 'Aucune action : une demande de ce workflow reste à son étape initiale.'
+            actions_intro: 'Les boutons qui font passer une demande d''une étape à une autre, pour les rôles nommés, tous au workflow guidé. Un rôle au workflow libre, comme un administrateur, déplace les demandes sans action.'
+            no_action: 'Aucune action : seuls les rôles au workflow libre déplacent les demandes de ce workflow.'
             no_field: 'Aucun champ.'
             initial_badge: 'Initiale'
-            comment_required: 'commentaire exigé des externes'
+            off_path:
+                title: 'Étapes hors parcours'
+                intro: 'Le schéma relie les étapes du parcours dans l''ordre du kanban. Une étape où une demande attend ou s''arrête (réponse attendue, blocage, annulation) n''en fait pas partie : sortez-la du parcours, puis dites depuis quelle étape on y va.'
+                from: 'depuis'
+                change: 'Changer l''étape d''où l''on va à « %place% »'
+                take_off: 'Sortir une étape du parcours'
+                put_back: 'Remettre sur le parcours'
+                none: 'Toutes les étapes sont sur le parcours.'
+            comment_required: 'commentaire exigé'
+            no_role: 'aucun rôle'
             remove_place: 'Retirer'
             add_place: 'Ajouter des étapes'
             add_places: 'Ajouter des étapes au workflow'
@@ -806,12 +822,12 @@ admin:
                 from: 'Depuis les étapes'
                 to: 'Vers l''étape'
                 roles: 'Qui peut la déclencher'
-                roles_help: 'Les administrateurs le peuvent toujours.'
+                roles_help: 'Seuls les rôles au workflow guidé sont proposés : un rôle au workflow libre, comme un administrateur, déplace les demandes sans action. Sans aucun rôle, personne ne la déclenche.'
                 style: 'Apparence'
                 description: 'Description'
                 description_help: 'Affichée sous le bouton, sur la page de la demande.'
-                requires_comment: 'Exiger un commentaire des externes'
-                requires_comment_help: 'Les internes n''ont jamais à commenter.'
+                requires_comment: 'Exiger un commentaire'
+                requires_comment_help: 'Demandé à quiconque déclenche l''action.'
                 comment_prompt: 'Invite du commentaire'
             style:
                 default: 'Normale'
@@ -824,6 +840,7 @@ admin:
             role:
                 created: 'Rôle « %name% » créé.'
                 updated: 'Rôle « %name% » modifié.'
+                freed: '{1}Rôle « %name% » passé au workflow libre : retiré d''une action.|]1,Inf[ Rôle « %name% » passé au workflow libre : retiré de %count% actions.'
                 deleted: 'Rôle « %name% » supprimé.'
             permission:
                 granted: 'Droit « %permission% » donné au rôle « %role% ».'
@@ -1058,6 +1075,7 @@ admin:
             role_has_internal_permissions: 'Le rôle « %role% » a des droits réservés aux internes : retirez-les d''abord.'
             role_held: '{1}Un accès porte le rôle « %role% » : révoquez-le ou donnez-lui d''abord un autre rôle.|]1,Inf[ %count% accès portent le rôle « %role% » : révoquez-les ou donnez-leur d''abord un autre rôle.'
             role_in_actions: 'Le rôle « %role% » déclenche des actions : %actions%. Retirez-le d''abord de ces actions.'
+            role_moves_freely: 'Le rôle « %role% » a un workflow libre : il ne déclenche aucune action.'
             role_in_rules: 'Des règles d''automatisation visent le référent du rôle « %role% » : %rules%. Modifiez-les ou supprimez-les d''abord.'
             place_used: 'L''étape « %place% » est utilisée par : %workflows%. Retirez-la d''abord de ces workflows.'
             place_holds_issues: '{1}Une demande est à l''étape « %place% ».|]1,Inf[ %count% demandes sont à l''étape « %place% ».'
@@ -1067,6 +1085,8 @@ admin:
             workflow_in_templates: 'Le workflow « %workflow% » est utilisé par les modèles de projet : %templates%.'
             not_a_place_of: '« %place% » n''est pas une étape du workflow « %workflow% ».'
             already_a_place_of: '« %place% » est déjà une étape du workflow « %workflow% ».'
+            beside_the_path: 'On va à « %place% » depuis une étape du parcours, ce que « %beside% » n''est pas.'
+            initial_aside: '« %place% » est l''étape où commencent les demandes du workflow « %workflow% » : le parcours part de là.'
             initial_place: '« %place% » est l''étape où commencent les demandes du workflow « %workflow% » : choisissez d''abord une autre étape initiale.'
             issues_to_move: '{1}Une demande est à l''étape « %place% » : choisissez l''étape qui la reprend.|]1,Inf[ %count% demandes sont à l''étape « %place% » : choisissez l''étape qui les reprend.'
             other_places: 'L''ordre donné ne reprend pas les étapes du workflow « %workflow% ».'
@@ -1205,8 +1225,12 @@ project:
 
 workflow:
     diagram:
-        dotted: 'Pointillés : retour à une étape précédente'
-        comment: '💬 : commentaire obligatoire pour les externes'
+        path: 'Trait gris : le parcours habituel'
+        action: 'Trait fort : une action, et les rôles qui la déclenchent'
+        acted: 'Contour fort : une action y est proposée'
+        aside: 'Pointillé gris : étape hors parcours, où une demande est placée librement'
+        dotted: 'Pointillé fort : action qui ramène à une étape précédente'
+        comment: '💬 : commentaire obligatoire'
 
 release:
     title: Versions
@@ -1370,9 +1394,6 @@ permission:
         delete:
             label: Supprimer une demande
             help: Effacer définitivement une demande, avec ses commentaires, ses fichiers, ses liens et son historique. Personne n'est prévenu.
-        bypass_workflow:
-            label: Sortir du workflow
-            help: "Placer une demande sur n'importe quelle étape sans passer par une action, la déplacer vers une autre catégorie du projet, et appliquer une action sans le commentaire qu'elle demande ; l'historique garde chaque déplacement."
         rank:
             label: Ranger le kanban
             help: 'Glisser les cartes d''une colonne du kanban dans l''ordre voulu ; tout le monde voit le même ordre.'
@@ -1612,7 +1633,7 @@ automation:
     trigger:
         issue_created: Une demande est créée
         comment_added: Un commentaire est ajouté
-        transition_applied: Une action du workflow est appliquée
+        transition_applied: Une action du workflow est appliquée (rôles au workflow guidé)
         place_changed: La demande change d'étape
         criticality_changed: La criticité de la demande change
         inactive_for: Aucune activité depuis

@@ -281,7 +281,8 @@ final class WorkflowController extends AbstractController
         $form = $this->createForm(TransitionType::class, $data, [
             'action' => $request->getRequestUri(),
             'places' => self::choices($definition->placesOf($workflow)),
-            'roles' => self::choices($definition->roles),
+            // An action is for the roles held to the workflow: those that move freely are not offered.
+            'roles' => self::choices(array_filter($definition->roles, static fn (RoleDefinition $role): bool => !$role->freeWorkflow)),
         ]);
         $form->handleRequest($request);
 

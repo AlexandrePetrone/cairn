@@ -20,6 +20,7 @@ use App\Tests\Scene\ShopScene;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
@@ -75,6 +76,8 @@ final class ConfigurationTest extends WebTestCase
         self::assertSelectorTextContains('aside', 'Steps');
         self::assertSelectorTextContains('#config-roles-project_manager', 'Project manager');
         self::assertSelectorTextContains('#config-roles-project_manager', 'Internal users only');
+        self::assertSelectorTextContains('#config-roles-project_manager', 'Free workflow');
+        self::assertSelectorTextContains('#config-roles-client', 'Guided workflow');
         self::assertSelectorTextContains('#config-roles-project_manager', '1 access', 'Thomas on Maison Dupont');
 
         self::assertSame(['Issues', 'Tracking', 'Comments', 'Project', 'Budgets'], $crawler->filter('main tbody th[scope=colgroup]')->each(static fn ($title): string => $title->text()), 'the rights come group by group');
@@ -176,10 +179,12 @@ final class ConfigurationTest extends WebTestCase
         self::assertSelectorTextContains('#config-roles-auditor', 'Subscribed to every new issue');
 
         $this->client->request('GET', '/admin/configuration/role/auditor');
-        $this->client->submitForm('Save', ['role[label]' => 'External auditor', 'role[internalOnly]' => true]);
+        $this->client->submitForm('Save', ['role[label]' => 'External auditor', 'role[internalOnly]' => true, 'role[freeWorkflow]' => true]);
         $this->client->followRedirect();
         self::assertSame('External auditor', $this->definition()->role('auditor')->label);
         self::assertTrue($this->definition()->role('auditor')->internalOnly);
+        self::assertTrue($this->definition()->role('auditor')->freeWorkflow);
+        self::assertSelectorTextContains('#config-roles-auditor', 'Free workflow');
 
         $this->client->request('GET', '/admin/configuration/role/auditor');
         $this->client->submitForm('Delete');
@@ -386,12 +391,18 @@ final class ConfigurationTest extends WebTestCase
         self::assertSelectorNotExists('#config-workflow_places-new a', 'the initial step does not leave');
         self::assertSelectorTextContains('#config-workflow_places-to_test', '1 issue');
         self::assertSelectorTextContains('#config-transitions-refuse', 'To test → In progress');
-        self::assertSelectorTextContains('#config-transitions-refuse', 'Project manager, Client');
-        self::assertSelectorTextContains('#config-transitions-refuse', 'comment required of external users');
+        self::assertSelectorTextContains('#config-transitions-refuse', 'Client');
+        self::assertSelectorTextNotContains('#config-transitions-refuse', 'Project manager');
+        self::assertSelectorTextContains('#config-transitions-refuse', 'comment required');
         self::assertSelectorTextContains('#workflow-field-environment', 'Environment');
 
         $crawler = $this->client->clickLink('Diagram');
-        self::assertStringContainsString('p_to_test -.->|"Refuse 💬"| p_in_progress', $crawler->filter('[data-workflow-diagram-target="source"]')->text(), 'the graph, drawn by the browser');
+        $source = $crawler->filter('[data-workflow-diagram-target="source"]')->text();
+        self::assertStringContainsString('p_to_test -.->|"Refuse 💬 Client"| p_in_progress', $source, 'the graph, drawn by the browser: an action, its comment, its roles');
+        self::assertStringContainsString('p_new -->|"Qualify Developer"| p_qualified', $source, 'the action that leads to the next step of the path is its arrow');
+        self::assertStringNotContainsString('--> p_needs_info p_needs_info --> p_qualified', $source, 'a step beside the path is not on it');
+        self::assertStringContainsString('p_in_progress -->|"Block 💬 Developer"| p_blocked', $source);
+        self::assertStringNotContainsString('p_in_progress -.-> p_blocked', $source, 'an action already leads to the step from the one it stands beside: no other line');
         self::assertSelectorExists('main a[href="/admin/configuration/workflow/bug"]');
 
         $this->client->request('GET', '/admin/configuration/workflow/bug/usage');
@@ -438,11 +449,14 @@ final class ConfigurationTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('turbo-frame#modal', 'An action starts from at least one step.');
 
+        // An action is for the roles held to the workflow: the manager, who moves freely, is not offered.
+        self::assertSelectorExists('[name="transition[roles][]"][value="developer"]');
+        self::assertSelectorNotExists('[name="transition[roles][]"][value="project_manager"]');
         $this->client->submitForm('Create', [
             'transition[label]' => 'Answer',
             'transition[from]' => ['new'],
             'transition[to]' => 'done',
-            'transition[roles]' => ['project_manager', 'developer'],
+            'transition[roles]' => ['developer'],
             'transition[style]' => 'primary',
             'transition[requiresComment]' => true,
             'transition[commentPrompt]' => 'What was done?',
@@ -482,6 +496,71 @@ final class ConfigurationTest extends WebTestCase
         self::assertSelectorTextContains('turbo-frame#modal', 'A category follows the workflow "Bug"');
         self::assertSelectorExists('turbo-frame#modal button[disabled]', 'the deletion is not offered');
         self::assertSelectorNotExists('#configuration-delete');
+    }
+
+    public function testFreeingARoleSaysWhatItLeavesThenTakesItOutOfItsActions(): void
+    {
+        $scene = $this->signInAsAdmin();
+        self::getContainer()->get(CommandBus::class)->dispatch(new CreateRule((int) $scene->shop->getId(), 'Thank the client', (int) $scene->bugs->getId(), [
+            'trigger' => ['type' => 'transition_applied', 'params' => ['transition' => 'accept']],
+            'actions' => [['type' => 'comment', 'params' => ['body' => 'Thank you.']]],
+        ]));
+
+        $this->client->request('GET', '/admin/configuration/role/project_manager');
+        self::assertSelectorTextNotContains('turbo-frame#modal', 'for good', 'a role that moves freely has no action to leave');
+
+        $this->client->request('GET', '/admin/configuration/role/client');
+        self::assertSelectorTextContains('turbo-frame#modal', 'for good');
+        self::assertSelectorTextContains('turbo-frame#modal', 'Accept (Bug)');
+        self::assertSelectorTextContains('turbo-frame#modal', 'Thank the client (Online shop)', 'the client alone accepts: the rule would wait for nobody');
+
+        $this->client->submitForm('Save', ['role[freeWorkflow]' => true]);
+        $this->client->followRedirect();
+        self::assertSame([], $this->definition()->workflow('bug')->transition('accept')->roles);
+        self::assertSame(['developer'], $this->definition()->workflow('bug')->transition('provide_info')->roles, 'the other roles keep the action');
+
+        $this->client->request('GET', '/admin/configuration/workflow/bug');
+        self::assertSelectorTextContains('#config-transitions-accept', 'no role');
+        $source = $this->client->clickLink('Diagram')->filter('[data-workflow-diagram-target="source"]')->text();
+        self::assertStringNotContainsString('Accept', $source, 'an action nobody triggers is not drawn');
+    }
+
+    public function testAStepIsTakenOffThePathNextToTheDiagramWhichFollows(): void
+    {
+        $scene = ShopScene::load(self::getContainer());
+        $panel = $this->createLiveComponent('Config:WorkflowPath', ['workflow' => 'bug'])->actingAs($scene->user('julie.admin@cairn.test'));
+        $source = static fn (string $render): string => html_entity_decode(new Crawler($render)->filter('[data-workflow-diagram-target="source"]')->text());
+
+        $render = (string) $panel->render();
+        self::assertStringContainsString('id="workflow-off-path-needs_info"', $render, 'the steps off the path, each with where it is reached from');
+        self::assertStringNotContainsString('data-live-action-param="takeOff" data-live-place-param="new"', $render, 'the step the issues start on stays on the path');
+        self::assertStringNotContainsString('data-live-action-param="takeOff" data-live-place-param="in_progress"', $render, 'nor does a step another is reached from leave it');
+        self::assertStringNotContainsString('data-live-from-param="blocked"', $render, 'a step is reached from one of the path');
+
+        // Taken off the path, a step is reached from the one of the path that came before it, until said otherwise.
+        $render = (string) $panel->call('takeOff', ['place' => 'to_release'])->render();
+        self::assertSame('to_test', $this->definition()->workflow('bug')->aside['to_release'] ?? null);
+        self::assertStringNotContainsString('--> p_to_release p_to_release -->', $source($render), 'the diagram no longer has it on the path');
+
+        $render = (string) $panel->call('attach', ['place' => 'to_release', 'from' => 'qualified'])->render();
+        self::assertSame('qualified', $this->definition()->workflow('bug')->aside['to_release'] ?? null);
+        self::assertStringContainsString('p_qualified -.-> p_to_release', $source($render), 'and hangs from the step it is reached from');
+
+        $panel->call('attach', ['place' => 'to_release', 'from' => 'blocked']);
+        self::assertStringContainsString('is reached from a step of the path', (string) $panel->render(), 'a refusal is said in place');
+        self::assertSame('qualified', $this->definition()->workflow('bug')->aside['to_release'] ?? null);
+
+        $panel->call('putBack', ['place' => 'to_release']);
+        self::assertArrayNotHasKey('to_release', $this->definition()->workflow('bug')->aside);
+
+        // What the menu does not offer is left alone: a step already off the path stays reached from where it was said.
+        $panel->call('takeOff', ['place' => 'blocked']);
+        self::assertSame('in_progress', $this->definition()->workflow('bug')->aside['blocked'] ?? null);
+        $panel->call('takeOff', ['place' => 'new']);
+        self::assertArrayNotHasKey('new', $this->definition()->workflow('bug')->aside);
+
+        $this->expectException(AccessDeniedException::class);
+        $this->createLiveComponent('Config:WorkflowPath', ['workflow' => 'bug'])->actingAs($scene->user('thomas.girard@cairn.test'))->render();
     }
 
     public function testAStepLeavesAWorkflowOnceItsIssuesWereSentElsewhere(): void

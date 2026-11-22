@@ -61,8 +61,9 @@ final class ListSelectionActionsHandlerTest extends KernelTestCase
     {
         $names = static fn (SelectionActions $actions): array => array_map(static fn ($tracker): string => $tracker->getName(), $actions->moveTrackers);
 
-        self::assertSame(['Bug', 'Feature', 'Internal task'], $names($this->actions('thomas.girard@cairn.test', 'MD-SPT-1', 'MD-SPT-2')), 'the own tracker and the others, with issue.bypass_workflow');
-        self::assertSame(['Bug', 'Feature', 'Internal task'], $names($this->actions('nadia.benali@cairn.test', 'MD-SPT-1', 'MD-SPT-7')), 'a bug and a feature: each tracker is the own of one and a change for the other');
+        self::assertSame(['Bug', 'Feature', 'Internal task'], $names($this->actions('thomas.girard@cairn.test', 'MD-SPT-1', 'MD-SPT-2')), 'the own tracker and the others, for who moves freely');
+        self::assertSame(['Bug', 'Feature', 'Internal task'], $names($this->actions('thomas.girard@cairn.test', 'MD-SPT-1', 'MD-SPT-7')), 'a bug and a feature: each tracker is the own of one and a change for the other');
+        self::assertSame([], $names($this->actions('nadia.benali@cairn.test', 'MD-SPT-1', 'MD-SPT-2')), 'a developer is held to the workflow');
         self::assertSame([], $names($this->actions('claire.martin@maison-dupont.test', 'MD-SPT-1', 'MD-SPT-2')));
         self::assertSame([], $names($this->actions('thomas.girard@cairn.test', 'MD-SPT-1', $this->scene->intranetBug()->getKey())), 'trackers belong to one project');
     }
@@ -81,7 +82,7 @@ final class ListSelectionActionsHandlerTest extends KernelTestCase
             $ids($this->actions('thomas.girard@cairn.test', 'MD-SPT-1', 'MD-SPT-2')),
             'two bugs: every place of their workflow',
         );
-        self::assertSame([], $ids($this->actions('claire.martin@maison-dupont.test', 'MD-SPT-1', 'MD-SPT-2')), 'a place outside the actions takes issue.bypass_workflow');
+        self::assertSame([], $ids($this->actions('claire.martin@maison-dupont.test', 'MD-SPT-1', 'MD-SPT-2')), 'a step is chosen for several issues by who moves freely only');
         self::assertSame([], $ids($this->actions('thomas.girard@cairn.test', 'MD-SPT-1', $this->scene->intranetBug()->getKey())), 'no step across projects');
     }
 

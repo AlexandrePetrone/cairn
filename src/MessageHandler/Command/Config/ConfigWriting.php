@@ -186,7 +186,12 @@ final class ConfigWriting
     {
         $roles = [];
         foreach ($roleIds as $roleId) {
-            $roles[$roleId] = $this->get(Role::class, $roleId);
+            $role = $this->get(Role::class, $roleId);
+            // An action is for the roles held to the workflow: one that moves freely has none.
+            if ($role->hasFreeWorkflow()) {
+                throw ConfigChangeException::roleMovesFreely($role->getLabel());
+            }
+            $roles[$roleId] = $role;
         }
 
         return $roles;

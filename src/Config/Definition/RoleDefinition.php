@@ -16,12 +16,16 @@ final readonly class RoleDefinition
      * @param bool $followsNewIssues members holding this role on a project are
      *                               subscribed to every new issue of the project
      *                               (they can unsubscribe issue by issue)
+     * @param bool $freeWorkflow     its holders move an issue to any place of its
+     *                               workflow and have none of its actions; otherwise
+     *                               they have the actions that name the role only
      */
     public function __construct(
         public string $id,
         public string $label,
         public bool $internalOnly = false,
         public bool $followsNewIssues = false,
+        public bool $freeWorkflow = false,
     ) {
     }
 }

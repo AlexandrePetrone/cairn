@@ -45,6 +45,11 @@ final class ConfigChangeException extends \DomainException implements Translatab
         return new self(\sprintf('The role "%s" holds permissions for internal-only roles.', $role), 'admin.refused.config.role_has_internal_permissions', ['%role%' => $role]);
     }
 
+    public static function roleMovesFreely(string $role): self
+    {
+        return new self(\sprintf('The role "%s" moves issues freely: it takes no action.', $role), 'admin.refused.config.role_moves_freely', ['%role%' => $role]);
+    }
+
     public static function notAPlaceOf(string $place, string $workflow): self
     {
         return new self(\sprintf('"%s" is not a place of the workflow "%s".', $place, $workflow), 'admin.refused.config.not_a_place_of', ['%place%' => $place, '%workflow%' => $workflow]);
@@ -63,6 +68,16 @@ final class ConfigChangeException extends \DomainException implements Translatab
     public static function issuesToMove(string $place, int $count): self
     {
         return new self(\sprintf('%d issue(s) stand on "%s" and no place was given to take them.', $count, $place), 'admin.refused.config.issues_to_move', ['%place%' => $place, '%count%' => (string) $count]);
+    }
+
+    public static function initialAside(string $place, string $workflow): self
+    {
+        return new self(\sprintf('"%s" is the initial place of the workflow "%s": its path starts there.', $place, $workflow), 'admin.refused.config.initial_aside', ['%place%' => $place, '%workflow%' => $workflow]);
+    }
+
+    public static function besideThePath(string $place, string $beside): self
+    {
+        return new self(\sprintf('"%s" stands beside a place of the path, which "%s" is not.', $place, $beside), 'admin.refused.config.beside_the_path', ['%place%' => $place, '%beside%' => $beside]);
     }
 
     public static function otherPlaces(string $workflow): self

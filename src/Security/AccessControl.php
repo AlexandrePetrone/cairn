@@ -23,8 +23,9 @@ use Symfony\Contracts\Service\ResetInterface;
  * explicitly so that handlers, console commands and webhooks can ask the
  * same question as controllers; the voters are thin adapters over it.
  *
- * Administrators may do everything. Internal users may view every project.
- * Everything else comes from the effective role and the configuration.
+ * Administrators hold every permission and move issues freely. Internal
+ * users may view every project. Everything else comes from the effective
+ * role and the configuration.
  * An archived project, or a project of an archived workspace, stays
  * readable but grants no permission and no transition at all, to anyone:
  * administrators unarchive them from the administration, which
@@ -207,7 +208,14 @@ final class AccessControl implements ResetInterface
         };
     }
 
-    public function canTransition(User $user, TransitionDefinition $transition, Project $project): bool
+    /**
+     * Whether the user moves the issues of the project freely: to any
+     * place of their workflow and to another tracker, without an action.
+     * An administrator does, and whoever holds a role of free workflow;
+     * everyone else has the actions of the workflow that name their role,
+     * and nothing else. The one place that says so: nobody has both.
+     */
+    public function canMoveFreely(User $user, Project $project): bool
     {
         if ($project->isReadOnly()) {
             return false;
@@ -218,23 +226,28 @@ final class AccessControl implements ResetInterface
 
         $role = $this->roleOn($user, $project);
 
+        return null !== $role && $this->config->definition()->role($role)->freeWorkflow;
+    }
+
+    /**
+     * An action is taken by the roles it names, held to the workflow: who
+     * moves freely takes none, an administrator included.
+     */
+    public function canTransition(User $user, TransitionDefinition $transition, Project $project): bool
+    {
+        if ($project->isReadOnly() || $this->canMoveFreely($user, $project)) {
+            return false;
+        }
+
+        $role = $this->roleOn($user, $project);
+
         return null !== $role && \in_array($role, $transition->roles, true);
     }
 
     /**
-     * Whether the comment a transition asks for is required of this user
-     * on this project: of everyone but those whose role holds
-     * `issue.bypass_workflow`.
-     */
-    public function commentRequired(User $user, TransitionDefinition $transition, Project $project): bool
-    {
-        return $transition->requiresComment && !$this->isGranted($user, Permission::IssueBypassWorkflow, $project);
-    }
-
-    /**
      * The actions of its workflow the user may take on the issue from where
-     * it stands: those leaving its place that their role on its project
-     * may trigger.
+     * it stands: those leaving its place that name their role on its
+     * project. None for who moves freely.
      *
      * @return list<TransitionDefinition>
      */
@@ -250,31 +263,32 @@ final class AccessControl implements ResetInterface
 
     /**
      * Where the user may take the issue from where it stands, in the order
-     * of its workflow: the workflow first, one move per action that leads
-     * to a place; a place no action of theirs leads to is offered outside
-     * the workflow to whoever holds `issue.bypass_workflow`. The step menu of
-     * the issue page and the kanban both read this, so that an action is
-     * applied whenever there is one.
+     * of its workflow: every other place for who moves freely, without an
+     * action; otherwise one move per action of theirs. The step menu of
+     * the issue page, the kanban and the selection all read this.
      *
      * @return list<PlaceMove>
      */
     public function movesFor(User $user, Issue $issue): array
     {
         $workflow = $this->config->definition()->workflow($issue->getTracker()->getWorkflowId());
-        $transitions = $this->transitionsFor($user, $issue);
-        $force = $this->isGranted($user, Permission::IssueBypassWorkflow, $issue->getProject());
+        $free = $this->canMoveFreely($user, $issue->getProject());
+        $transitions = $free ? [] : $this->transitionsFor($user, $issue);
 
         $moves = [];
         foreach ($this->config->definition()->placesOf($workflow) as $place) {
             if ($place->id === $issue->getPlace()) {
                 continue;
             }
-            $leading = array_filter($transitions, static fn (TransitionDefinition $transition): bool => $transition->to === $place->id);
-            foreach ($leading as $transition) {
-                $moves[] = new PlaceMove($place, $transition);
-            }
-            if ([] === $leading && $force) {
+            if ($free) {
                 $moves[] = new PlaceMove($place);
+
+                continue;
+            }
+            foreach ($transitions as $transition) {
+                if ($transition->to === $place->id) {
+                    $moves[] = new PlaceMove($place, $transition);
+                }
             }
         }
 

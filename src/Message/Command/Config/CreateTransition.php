@@ -9,7 +9,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Adds an action to a workflow: the button that moves an issue from one of
- * the `from` places to the `to` place, for the roles named. Its key is
+ * the `from` places to the `to` place, for the roles named, all held to
+ * the workflow; without any, nobody takes it for now. Its key is
  * unique within the workflow, for good. Handled by CreateTransitionHandler,
  * which returns the Transition.
  */
@@ -26,7 +27,6 @@ final readonly class CreateTransition implements ConfigurationCommand
         #[Assert\NotBlank]
         public string $to,
         /** @var list<string> */
-        #[Assert\Count(min: 1)]
         public array $roles,
         public TransitionStyle $style = TransitionStyle::Default,
         public bool $requiresComment = false,

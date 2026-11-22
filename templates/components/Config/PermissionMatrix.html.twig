@@ -1,4 +1,4 @@
-{# The rights outside the workflows as a grid of boxes, a row per right, group by group (`PermissionGroup`), and a column per role: a box ticked grants the right at once (`toggle`). A right for internal roles only shows no box under a role open to external users. Administrators hold every right. #}
+{# The rights as a grid of boxes, a row per right, group by group (`PermissionGroup`), and a column per role: a box ticked grants the right at once (`toggle`). A right for internal roles only shows no box under a role open to external users. Administrators hold every right. #}
 {% set matrixRoles = this.roles %}
 <div {{ attributes }} data-loading="addClass(opacity-60)">
     {% if error %}

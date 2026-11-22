@@ -20,6 +20,7 @@ final readonly class UpdateRole implements ConfigurationCommand
         public ?string $label = null,
         public ?bool $internalOnly = null,
         public ?bool $followsNewIssues = null,
+        public ?bool $freeWorkflow = null,
         #[Assert\PositiveOrZero]
         public ?int $position = null,
     ) {

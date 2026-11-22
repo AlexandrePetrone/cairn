@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace App\Security;
 
 /**
- * Permissions that are not governed by a workflow. The instance configuration
- * maps each one to the roles that hold it; administrators hold all of them.
+ * What a role may do besides moving issues: the instance configuration maps
+ * each permission to the roles that hold it; administrators hold all of
+ * them. How a role moves issues is its own (RoleDefinition::$freeWorkflow).
  * A case is added with the command that enforces it.
  */
 enum Permission: string
@@ -16,12 +17,6 @@ enum Permission: string
     case IssueEdit = 'issue.edit';
     /** Delete an issue for good, with its comments, files, links and history. */
     case IssueDelete = 'issue.delete';
-    /**
-     * Not be held to the workflow: put an issue on any place without an
-     * action (journaled as `moved`), move it to another tracker of its
-     * project, and apply an action without the comment it asks for.
-     */
-    case IssueBypassWorkflow = 'issue.bypass_workflow';
     case IssueSetPrivate = 'issue.set_private';
     case IssueAssign = 'issue.assign';
     case IssueSetCriticality = 'issue.set_criticality';
@@ -52,7 +47,7 @@ enum Permission: string
     public function group(): PermissionGroup
     {
         return match ($this) {
-            self::IssueCreate, self::IssueEdit, self::IssueDelete, self::IssueBypassWorkflow, self::IssueSetPrivate => PermissionGroup::Issues,
+            self::IssueCreate, self::IssueEdit, self::IssueDelete, self::IssueSetPrivate => PermissionGroup::Issues,
             self::IssueAssign, self::IssueSetCriticality, self::IssueSetRelease, self::IssueLink, self::IssueRank => PermissionGroup::Tracking,
             self::CommentCreate, self::CommentEdit, self::CommentSetPrivate => PermissionGroup::Comments,
             self::ProjectConfigure, self::ProjectManageMembers, self::ReleaseManage => PermissionGroup::Project,
@@ -65,10 +60,9 @@ enum Permission: string
      * see: the project configuration shows private trackers, managing
      * members shows every account of the instance, and what is made
      * private is hidden from an external user who made it so. That is the
-     * one reason: what is only risky (deleting an issue, leaving the
-     * workflow) is for the administrators to grant as they see fit. The
-     * configuration grants these to internal-only roles, which
-     * ConfigValidator enforces.
+     * one reason: what is only risky (deleting an issue) is for the
+     * administrators to grant as they see fit. The configuration grants
+     * these to internal-only roles, which ConfigValidator enforces.
      */
     public function internalOnly(): bool
     {

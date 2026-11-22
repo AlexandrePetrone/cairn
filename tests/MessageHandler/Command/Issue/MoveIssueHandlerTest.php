@@ -7,12 +7,11 @@ namespace App\Tests\MessageHandler\Command\Issue;
 use App\Entity\Enum\JournalEntryType;
 use App\Entity\JournalEntry;
 use App\Entity\Tracker;
-use App\Message\Command\Config\GrantPermission;
+use App\Message\Command\Config\UpdateRole;
 use App\Message\Command\Issue\ChangeTracker;
 use App\Message\Command\Issue\MoveIssue;
 use App\Message\CommandBus;
 use App\MessageHandler\Command\Issue\IssueException;
-use App\Security\Permission;
 use App\Tests\Config\Fixture\DefinitionFactory;
 use App\Tests\KernelHelpers;
 use Doctrine\ORM\EntityManagerInterface;
@@ -52,7 +51,7 @@ final class MoveIssueHandlerTest extends KernelTestCase
         self::assertSame(['from_tracker' => 'Bug', 'from' => 'New', 'from_id' => 'new', 'to_tracker' => 'Internal task', 'to' => 'In progress', 'to_id' => 'in_progress'], $entry->getData());
     }
 
-    public function testClientsCannotChangeTheTracker(): void
+    public function testARoleHeldToTheWorkflowDoesNotChangeTheTracker(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
 
@@ -62,12 +61,12 @@ final class MoveIssueHandlerTest extends KernelTestCase
 
     public function testATrackerTheActorDoesNotSeeIsNotOneToMoveTo(): void
     {
-        $this->commands->dispatch(new GrantPermission('client', Permission::IssueBypassWorkflow));
+        $this->commands->dispatch(new UpdateRole('client', freeWorkflow: true));
         $issue = $this->fixtures->createIssue($this->fixtures->client);
 
         try {
             $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->client->getId(), $issue->getKey(), (int) $this->fixtures->tasks->getId(), 'new'));
-            self::fail('The private tracker does not exist for a client, whatever her role grants.');
+            self::fail('The private tracker does not exist for a client, however her role moves issues.');
         } catch (IssueException $e) {
             self::assertStringNotContainsString('Internal task', $e->getMessage(), 'nor is it named');
         }
@@ -121,7 +120,7 @@ final class MoveIssueHandlerTest extends KernelTestCase
         $this->commands->dispatch(new ChangeTracker((int) $this->fixtures->manager->getId(), $issue->getKey(), (int) $this->fixtures->bugs->getId(), 'new'));
     }
 
-    public function testTheWorkflowComesFirstWhenAnActionOfTheActorLeadsThere(): void
+    public function testWhoMovesFreelyTakesNoActionEvenWhereOneLeads(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
         $manager = (int) $this->fixtures->manager->getId();
@@ -132,11 +131,27 @@ final class MoveIssueHandlerTest extends KernelTestCase
         self::assertSame('done', $issue->getPlace());
         self::assertNotNull($issue->getClosedAt());
         $entry = $this->lastEntry($issue);
-        self::assertSame(JournalEntryType::Transitioned, $entry->getType(), '"Accept" leads there: the action is applied, not the place forced');
-        self::assertSame('Accept', $entry->getData()['transition'] ?? null);
+        self::assertSame(JournalEntryType::Moved, $entry->getType(), '"Accept" leads there, for the roles held to the workflow: the manager moves');
+        self::assertArrayNotHasKey('transition', $entry->getData());
     }
 
-    public function testAnActionIsEnoughToMoveWithoutTheRightToForce(): void
+    public function testARoleFreedFromTheWorkflowLeavesItsActionsForGood(): void
+    {
+        $issue = $this->fixtures->createIssue($this->fixtures->client);
+        $developer = (int) $this->fixtures->developer->getId();
+
+        $this->commands->dispatch(new UpdateRole('developer', freeWorkflow: true));
+        $this->commands->dispatch(new MoveIssue($developer, $issue->getKey(), 'to_test'));
+        self::assertSame(JournalEntryType::Moved, $this->lastEntry($issue)->getType(), 'no action leads from "new" to "to_test": the developer moves freely');
+        $this->commands->dispatch(new MoveIssue($developer, $issue->getKey(), 'new'));
+
+        // Held to the workflow again, the role has the actions it is given again, and "Start" is no longer one.
+        $this->commands->dispatch(new UpdateRole('developer', freeWorkflow: false));
+        $this->expectException(AccessDeniedException::class);
+        $this->commands->dispatch(new MoveIssue($developer, $issue->getKey(), 'in_progress'));
+    }
+
+    public function testARoleHeldToTheWorkflowMovesByItsAction(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
 
@@ -146,7 +161,7 @@ final class MoveIssueHandlerTest extends KernelTestCase
         self::assertSame(JournalEntryType::Transitioned, $this->lastEntry($issue)->getType(), '"Start" is a developer\'s action');
     }
 
-    public function testForcingAPlaceIsARightOfItsOwn(): void
+    public function testARoleHeldToTheWorkflowGoesNowhereItsActionsDoNotLead(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
 

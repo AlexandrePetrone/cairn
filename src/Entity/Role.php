@@ -32,11 +32,20 @@ class Role implements Positioned
     #[ORM\Column]
     private bool $followsNewIssues;
 
+    /**
+     * Its holders take an issue to any place of its workflow and to another
+     * tracker, and have none of its actions; otherwise they have the
+     * actions that name the role, and nothing else.
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $freeWorkflow;
+
     #[ORM\Column]
     private int $position;
 
-    public function __construct(string $id, string $label, bool $internalOnly = false, bool $followsNewIssues = false, int $position = 0)
+    public function __construct(string $id, string $label, bool $internalOnly = false, bool $followsNewIssues = false, bool $freeWorkflow = false, int $position = 0)
     {
+        $this->freeWorkflow = $freeWorkflow;
         $this->id = $id;
         $this->label = trim($label);
         $this->internalOnly = $internalOnly;
@@ -87,6 +96,21 @@ class Role implements Positioned
     public function stopFollowingNewIssues(): void
     {
         $this->followsNewIssues = false;
+    }
+
+    public function hasFreeWorkflow(): bool
+    {
+        return $this->freeWorkflow;
+    }
+
+    public function freeFromWorkflow(): void
+    {
+        $this->freeWorkflow = true;
+    }
+
+    public function holdToWorkflow(): void
+    {
+        $this->freeWorkflow = false;
     }
 
     public function getPosition(): int

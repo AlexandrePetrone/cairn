@@ -139,13 +139,36 @@ final class AccessControlTest extends KernelTestCase
         $this->fixtures->grantOnProject($client, $this->fixtures->shop, 'client');
         $developer = $this->fixtures->user('nadia@agency.test', internal: true);
         $this->fixtures->grantOnWorkspace($developer, $this->fixtures->workspace, 'developer');
+        $manager = $this->fixtures->user('thomas@agency.test', internal: true);
+        $this->fixtures->grantOnProject($manager, $this->fixtures->shop, 'project_manager');
         $admin = $this->fixtures->user('admin@agency.test', admin: true);
 
         self::assertTrue($this->access->canTransition($client, $workflow->transition('accept'), $this->fixtures->shop));
         self::assertFalse($this->access->canTransition($client, $workflow->transition('start'), $this->fixtures->shop));
         self::assertTrue($this->access->canTransition($developer, $workflow->transition('start'), $this->fixtures->shop));
         self::assertFalse($this->access->canTransition($developer, $workflow->transition('accept'), $this->fixtures->shop));
-        self::assertTrue($this->access->canTransition($admin, $workflow->transition('accept'), $this->fixtures->otherProject));
+        self::assertFalse($this->access->canTransition($admin, $workflow->transition('accept'), $this->fixtures->otherProject), 'an administrator moves freely and takes no action');
+        self::assertFalse($this->access->canTransition($manager, $workflow->transition('accept'), $this->fixtures->shop), 'nor does a role of free workflow');
+    }
+
+    public function testMovingFreelyIsTheRolesOrAnAdministrators(): void
+    {
+        $client = $this->fixtures->user('claire@client.test');
+        $this->fixtures->grantOnProject($client, $this->fixtures->shop, 'client');
+        $manager = $this->fixtures->user('thomas@agency.test', internal: true);
+        $this->fixtures->grantOnProject($manager, $this->fixtures->shop, 'project_manager');
+        $onlooker = $this->fixtures->user('lea@agency.test', internal: true);
+        $admin = $this->fixtures->user('admin@agency.test', admin: true);
+
+        self::assertTrue($this->access->canMoveFreely($manager, $this->fixtures->shop));
+        self::assertFalse($this->access->canMoveFreely($manager, $this->fixtures->otherProject), 'where the role is held, nowhere else');
+        self::assertFalse($this->access->canMoveFreely($client, $this->fixtures->shop), 'her role is held to the workflow');
+        self::assertFalse($this->access->canMoveFreely($onlooker, $this->fixtures->shop), 'being internal moves nothing');
+        self::assertTrue($this->access->canMoveFreely($admin, $this->fixtures->otherProject));
+
+        $this->fixtures->shop->archive();
+        self::assertFalse($this->access->canMoveFreely($manager, $this->fixtures->shop));
+        self::assertFalse($this->access->canMoveFreely($admin, $this->fixtures->shop), 'not even an administrator');
     }
 
     public function testNoTransitionIsAllowedOnAReadOnlyProject(): void
@@ -153,15 +176,14 @@ final class AccessControlTest extends KernelTestCase
         $workflow = self::getContainer()->get(ConfigRegistry::class)->definition()->workflow('bug');
         $developer = $this->fixtures->user('nadia@agency.test', internal: true);
         $this->fixtures->grantOnWorkspace($developer, $this->fixtures->workspace, 'developer');
-        $admin = $this->fixtures->user('admin@agency.test', admin: true);
 
+        self::assertTrue($this->access->canTransition($developer, $workflow->transition('start'), $this->fixtures->intranet));
         $this->fixtures->shop->archive();
         self::assertFalse($this->access->canTransition($developer, $workflow->transition('start'), $this->fixtures->shop));
-        self::assertFalse($this->access->canTransition($admin, $workflow->transition('start'), $this->fixtures->shop), 'not even an administrator');
+        self::assertTrue($this->access->canTransition($developer, $workflow->transition('start'), $this->fixtures->intranet), 'the other project of the workspace goes on');
 
         $this->fixtures->workspace->archive();
-        self::assertFalse($this->access->canTransition($admin, $workflow->transition('start'), $this->fixtures->intranet));
-        self::assertTrue($this->access->canTransition($admin, $workflow->transition('start'), $this->fixtures->otherProject));
+        self::assertFalse($this->access->canTransition($developer, $workflow->transition('start'), $this->fixtures->intranet));
     }
 
     public function testTheTransitionsOfAnIssueAreThoseLeavingItsPlaceThatTheRoleMayTrigger(): void
@@ -181,7 +203,7 @@ final class AccessControlTest extends KernelTestCase
         self::assertSame([], $this->access->transitionsFor($client, $issue), 'an archived project allows nothing');
     }
 
-    public function testMovesFollowTheWorkflowFirstThenLeaveItForWhoeverMay(): void
+    public function testMovesAreEveryPlaceForWhoMovesFreelyAndTheActionsOfTheOthers(): void
     {
         $client = $this->fixtures->user('claire@client.test');
         $this->fixtures->grantOnWorkspace($client, $this->fixtures->workspace, 'client');
@@ -192,13 +214,13 @@ final class AccessControlTest extends KernelTestCase
         $tracker = new Tracker($this->fixtures->shop, 'Bug', DefinitionFactory::workflowRow('bug'));
         $issue = new Issue($this->fixtures->shop, $tracker, DefinitionFactory::placeRow('to_test'), 1, $client, 'Export', '');
 
-        $moves = static fn (array $moves): array => array_map(static fn (PlaceMove $move): string => $move->place->id.':'.($move->transition->id ?? 'forced'), $moves);
+        $moves = static fn (array $moves): array => array_map(static fn (PlaceMove $move): string => $move->place->id.':'.($move->transition->id ?? 'free'), $moves);
         self::assertSame(['in_progress:refuse', 'done:accept'], $moves($this->access->movesFor($client, $issue)), 'the actions of the role, in the order of the places');
-        self::assertSame([], $this->access->movesFor($developer, $issue), 'no action, and no issue.bypass_workflow');
+        self::assertSame([], $this->access->movesFor($developer, $issue), 'held to the workflow, without an action from there');
         self::assertSame(
-            ['new:forced', 'in_progress:refuse', 'done:accept'],
+            ['new:free', 'in_progress:free', 'done:free'],
             $moves($this->access->movesFor($manager, $issue)),
-            'an action wherever one leads, outside the workflow elsewhere, never to the place the issue is on',
+            'every other place of the workflow, never by an action, never the place the issue is on',
         );
 
         $this->fixtures->shop->archive();

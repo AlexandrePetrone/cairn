@@ -57,7 +57,7 @@ final class ConfigDeletions
         if ($held > 0) {
             return DeletionRefusal::roleHeld($role->getLabel(), $held);
         }
-        // An action must keep a role that triggers it: the role leaves the actions first.
+        // Nobody loses an action unseen: the role leaves the actions first.
         $actions = array_map(static fn (Transition $transition): string => \sprintf('%s (%s)', $transition->getLabel(), $transition->getWorkflow()->getLabel()), $this->transitions->findNamingRole($role));
         if ([] !== $actions) {
             return DeletionRefusal::roleTriggersActions($role->getLabel(), $actions);

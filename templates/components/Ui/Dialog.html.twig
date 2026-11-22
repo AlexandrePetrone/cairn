@@ -1,9 +1,9 @@
-{# A modal, opened while something waits for a choice. Rendered by a live component while its state says so: the backdrop, the close button and Escape (the `dialog` controller) call `closeAction` (a live action name). Or rendered by a page whose address opens it (`/releases/new`), usually loaded into the `modal` Turbo frame of the page behind: `closeHref` is then the address of the page without it; the backdrop, the close button and Escape empty the frame (`dialog#dismiss`), or follow the link when the page was opened at the address of the dialog. The first field gets the focus. `description` sits under the title, `content` is the body, `footer` the row of buttons; `size` widens it for a longer form. #}
+{# A modal, opened while something waits for a choice. Rendered by a live component while its state says so: the backdrop, the close button and Escape (the `dialog` controller) call `closeAction` (a live action name). Or rendered by a page whose address opens it (`/releases/new`), usually loaded into the `modal` Turbo frame of the page behind: `closeHref` is then the address of the page without it; the backdrop, the close button and Escape empty the frame (`dialog#dismiss`), or follow the link when the page was opened at the address of the dialog. The first field gets the focus. `description` sits under the title, `content` is the body, `footer` the row of buttons; `size` widens it for a longer form, or for a drawing. #}
 {% props title, closeAction = null, closeHref = null, size = 'md' %}
 {# The panel sits in a layer that scrolls when the dialog is taller than the screen; the layer lets the clicks through to the backdrop, and the panel clips nothing, so a list a field opens may reach past its edge. #}
 {% set dialogPanelClasses = html_cva(
     base: 'pointer-events-auto mx-auto w-full rounded-lg border border-line bg-overlay p-4 shadow-2xl space-y-3',
-    variants: { size: { md: 'max-w-md', lg: 'max-w-xl' } },
+    variants: { size: { md: 'max-w-md', lg: 'max-w-xl', xl: 'max-w-3xl' } },
 ) %}
 <div data-controller="dialog" data-action="keydown.esc@document->dialog#close" {{ attributes.without('class') }}>
     {% if closeHref %}

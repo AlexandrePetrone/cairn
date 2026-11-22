@@ -52,10 +52,18 @@ class TransitionRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return list<Transition> the actions, of any workflow, the role may trigger
+     * @return list<Transition> the actions, of any workflow, that name the role
      */
     public function findNamingRole(Role $role): array
     {
-        return array_map(static fn (TransitionRole $allowed): Transition => $allowed->getTransition(), $this->getEntityManager()->getRepository(TransitionRole::class)->findBy(['role' => $role]));
+        return array_map(static fn (TransitionRole $allowed): Transition => $allowed->getTransition(), $this->namingsOf($role));
+    }
+
+    /**
+     * @return list<TransitionRole> the rows that name the role on an action
+     */
+    public function namingsOf(Role $role): array
+    {
+        return $this->getEntityManager()->getRepository(TransitionRole::class)->findBy(['role' => $role]);
     }
 }

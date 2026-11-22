@@ -8,7 +8,7 @@ use App\Security\Permission;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * A permission a role holds, outside the workflows: one row per pair.
+ * A permission a role holds: one row per pair.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'config_role_permission')]

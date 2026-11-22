@@ -76,7 +76,7 @@ final class IssueHandlerSupport
         }
 
         $body = trim((string) $comment);
-        if ('' === $body && $this->access->commentRequired($actor, $transition, $project)) {
+        if ('' === $body && $transition->requiresComment) {
             throw IssueException::commentRequired($transition->id);
         }
 
@@ -100,7 +100,7 @@ final class IssueHandlerSupport
     /**
      * The issue just took a place: it stands on top of that kanban column,
      * a step over the highest rank there. Called wherever an issue enters
-     * a place (creation, transition, forced place, change of tracker).
+     * a place (creation, action, free move, change of tracker).
      */
     public function arrive(Issue $issue): void
     {

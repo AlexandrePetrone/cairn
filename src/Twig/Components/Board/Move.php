@@ -29,9 +29,9 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * the `board` controller calls `move` when a card is dropped on another
  * column, where it stays in the meantime. How the viewer may take the
  * issue to that place is looked up again here (AccessControl::movesFor()):
- * with nothing to ask, MoveIssue takes it there, by the action that leads
- * to the place or outside the workflow; otherwise a dialog asks for the
- * comment an action requires, or which of several actions. Once the move is settled the
+ * with nothing to ask, MoveIssue takes it there, freely or by the action
+ * that leads to the place; otherwise a dialog asks for the comment an
+ * action requires, or which of several actions. Once the move is settled the
  * browser is told (`board:moved`): applied, with the places the card may
  * now go to, or not, and the controller puts the card back. No column is
  * read again.
@@ -93,8 +93,8 @@ final class Move
             return;
         }
         $transition = $moves[0]->transition;
-        if (1 === \count($moves) && (null === $transition || !$this->isCommentRequired($issue, $transition))) {
-            // Nothing to ask: MoveIssue takes the action when there is one, forces the place otherwise.
+        if (1 === \count($moves) && (null === $transition || !$transition->requiresComment)) {
+            // Nothing to ask: MoveIssue takes the action of a role held to the workflow, the place otherwise.
             $done = null === $transition
                 ? $this->translator->trans('issue.move.done', ['%key%' => $issue->getKey(), '%place%' => $moves[0]->place->label])
                 : $this->translator->trans('issue.transition.applied', ['%key%' => $issue->getKey(), '%transition%' => $transition->label]);
@@ -146,7 +146,7 @@ final class Move
             return;
         }
         $comment = '' === trim($this->comment) ? null : $this->comment;
-        if ($this->isCommentRequired($issue, $transition) && null === $comment) {
+        if ($transition->requiresComment && null === $comment) {
             $this->error = $transition->commentPrompt ?? $this->translator->trans('issue.transition.comment_required');
 
             return;
@@ -189,11 +189,6 @@ final class Move
         return array_find($this->getTransitions(), fn (TransitionDefinition $transition): bool => $transition->id === $this->transitionId);
     }
 
-    public function isCommentRequired(Issue $issue, TransitionDefinition $transition): bool
-    {
-        return $this->access->commentRequired($this->viewer->get(), $transition, $issue->getProject());
-    }
-
     public function canCommentPrivately(Issue $issue): bool
     {
         return $this->access->isGranted($this->viewer->get(), Permission::CommentSetPrivate, $issue->getProject());
@@ -230,8 +225,8 @@ final class Move
 
     /**
      * Tells the browser how the move of a card ended: applied, with the
-     * places the viewer may now move the issue to from where it stands
-     * (and those among them outside the workflow), or not, and the card
+     * places the viewer may now move the issue to from where it stands,
+     * or not, and the card
      * goes back to its column. `top` says the card was not placed where it
      * was dropped: it stands on top of its column.
      */
@@ -243,7 +238,6 @@ final class Move
             'applied' => null !== $moved,
             'top' => $top,
             'places' => PlaceMove::placeIds($moves),
-            'forced' => PlaceMove::placeIds($moves, forcedOnly: true),
         ]);
     }
 
@@ -275,7 +269,7 @@ final class Move
 
     /**
      * How the viewer may take the issue to the place: one move per action
-     * that leads there, or a single one outside the workflow.
+     * that leads there, or a single one for whoever moves freely.
      *
      * @return list<PlaceMove>
      */

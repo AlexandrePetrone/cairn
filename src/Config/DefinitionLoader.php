@@ -64,8 +64,12 @@ final class DefinitionLoader
         }
 
         $places = [];
+        $aside = [];
         foreach ($this->entityManager->getRepository(WorkflowPlace::class)->findBy([], ['position' => 'ASC', 'id' => 'ASC']) as $used) {
             $places[$used->getWorkflow()->getId()][] = $used->getPlace()->getId();
+            if (null !== $used->getBeside()) {
+                $aside[$used->getWorkflow()->getId()][$used->getPlace()->getId()] = $used->getBeside()->getPlace()->getId();
+            }
         }
         $fields = [];
         foreach ($this->entityManager->getRepository(WorkflowField::class)->findBy([], ['position' => 'ASC', 'id' => 'ASC']) as $used) {
@@ -96,7 +100,7 @@ final class DefinitionLoader
         }
 
         return new InstanceDefinition(
-            roles: array_map(static fn (Role $role): RoleDefinition => new RoleDefinition($role->getId(), $role->getLabel(), $role->isInternalOnly(), $role->followsNewIssues()), $roles),
+            roles: array_map(static fn (Role $role): RoleDefinition => new RoleDefinition($role->getId(), $role->getLabel(), $role->isInternalOnly(), $role->followsNewIssues(), $role->hasFreeWorkflow()), $roles),
             permissions: $permissions,
             fields: array_map(static fn (Field $field): FieldDefinition => new FieldDefinition($field->getId(), $field->getLabel(), $field->getType(), $field->getOptions(), $field->getPlaceholder(), $field->getHelp(), $field->isInternalOnly()), $this->ordered(Field::class)),
             links: array_map(static fn (LinkType $link): LinkTypeDefinition => new LinkTypeDefinition($link->getId(), $link->getLabel(), $link->getInverseLabel()), $this->ordered(LinkType::class)),
@@ -108,6 +112,7 @@ final class DefinitionLoader
                 places: $places[$workflow->getId()] ?? [],
                 transitions: $transitions[$workflow->getId()] ?? [],
                 fields: $fields[$workflow->getId()] ?? [],
+                aside: $aside[$workflow->getId()] ?? [],
             ), $this->ordered(Workflow::class)),
         );
     }

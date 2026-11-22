@@ -1,4 +1,4 @@
-{# The roles in their order, from the broadest to the narrowest, and the rights outside the workflows. A role is created and changed in a dialog; the rights are ticked in place. #}
+{# The roles in their order, from the broadest to the narrowest, and the rights. A role is created and changed in a dialog; the rights are ticked in place. #}
 {% extends 'admin/configuration/base.html.twig' %}
 
 {% set configurationSubject = 'roles' %}
@@ -23,7 +23,21 @@
 {% endblock %}
 
 {% block modal %}
+    {# Freeing a role takes it out of its actions for good: said before it is done, with the rules left without anyone to trigger them. #}
+    {% set modalNote = '' %}
+    {% if (dialogLeaves.actions ?? []) is not empty %}
+        {% set modalNote %}
+            <twig:Ui:Callout tone="amber" size="sm" class="mt-4">
+                <p>{{ 'admin.configuration.roles.leaves_actions'|trans({ '%count%': dialogLeaves.actions|length, '%actions%': dialogLeaves.actions|join(', ') }) }}</p>
+                {% if dialogLeaves.rules is not empty %}
+                    <p class="mt-2">{{ 'admin.configuration.roles.leaves_rules'|trans({ '%count%': dialogLeaves.rules|length }) }}</p>
+                    <ul class="mt-1 list-disc pl-5">{% for rule in dialogLeaves.rules %}<li>{{ rule }}</li>{% endfor %}</ul>
+                {% endif %}
+            </twig:Ui:Callout>
+        {% endset %}
+    {% endif %}
     {{ include('admin/configuration/_dialog.html.twig', {
+        note: modalNote,
         title: dialogRole ? dialogRole.label : 'admin.configuration.roles.new'|trans,
         closeHref: path('app_admin_configuration_roles'),
         submitLabel: (dialogRole ? 'admin.configuration.save' : 'admin.configuration.create')|trans,

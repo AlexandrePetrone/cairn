@@ -10,9 +10,11 @@ use App\Config\ConfigValidator;
 use App\Config\Definition\InstanceDefinition;
 use App\Config\FieldType;
 use App\Config\TransitionStyle;
+use App\Entity\ConfigChange;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
 use App\Entity\Transition;
+use App\Entity\TransitionRole;
 use App\Message\Command\Automation\CreateRule;
 use App\Message\Command\Automation\DeleteRule;
 use App\Message\Command\Config\AddWorkflowPlace;
@@ -144,14 +146,48 @@ final class ConfigHandlersTest extends KernelTestCase
 
         $auditor = $this->commands->dispatch(new CreateRole('Auditor'));
         $this->commands->dispatch(new GrantPermission($auditor->getId(), Permission::IssueCreate));
-        $this->commands->dispatch(new UpdateTransition('bug', 'accept', roles: ['client', 'project_manager', 'auditor']));
+        $this->commands->dispatch(new UpdateTransition('bug', 'accept', roles: ['client', 'auditor']));
         $this->refused('admin.refused.config.role_in_actions', new DeleteRole('auditor'));
 
-        $this->commands->dispatch(new UpdateTransition('bug', 'accept', roles: ['client', 'project_manager']));
+        $this->commands->dispatch(new UpdateTransition('bug', 'accept', roles: ['client']));
         $this->commands->dispatch(new DeleteRole('auditor'));
 
         self::assertFalse($this->definition()->hasRole('auditor'));
         self::assertSame(['project_manager', 'developer', 'client'], $this->definition()->rolesGranted(Permission::IssueCreate), 'its permissions went with it');
+    }
+
+    public function testAnActionIsForTheRolesHeldToTheWorkflow(): void
+    {
+        $this->refused('admin.refused.config.role_moves_freely', new UpdateTransition('bug', 'accept', roles: ['client', 'project_manager']));
+        $this->refused('admin.refused.config.role_moves_freely', new CreateTransition('bug', 'Close', ['new'], 'done', ['project_manager']));
+
+        // Without a role nobody takes it for now: the roles that move freely get there anyway.
+        $this->commands->dispatch(new CreateTransition('bug', 'Close', ['new'], 'done', []));
+        self::assertSame([], $this->definition()->workflow('bug')->transition('close')->roles);
+    }
+
+    public function testARoleFreedFromTheWorkflowLeavesTheActionsThatNamedIt(): void
+    {
+        $this->commands->dispatch(new UpdateRole('developer', freeWorkflow: true));
+
+        self::assertTrue($this->definition()->role('developer')->freeWorkflow);
+        self::assertSame([], $this->definition()->workflow('bug')->transition('start')->roles);
+        self::assertSame([], $this->entityManager->getRepository(TransitionRole::class)->findBy(['role' => 'developer']), 'the rows are gone, not hidden');
+        self::assertSame('Role "Developer" given a free workflow: taken out of 2 actions.', $this->lastChange());
+
+        // Held to the workflow again, it starts with no action: nothing comes back unseen.
+        $this->commands->dispatch(new UpdateRole('developer', freeWorkflow: false));
+        self::assertSame([], $this->definition()->workflow('bug')->transition('start')->roles);
+        self::assertSame('Role "Developer" changed.', $this->lastChange());
+
+        // A role that moves freely names no action, so nothing but its holders and the rules keeps it.
+        $auditor = $this->commands->dispatch(new CreateRole('Auditor'));
+        $this->commands->dispatch(new UpdateTransition('bug', 'accept', roles: ['client', 'auditor']));
+        $this->commands->dispatch(new UpdateRole($auditor->getId(), freeWorkflow: true));
+        $this->commands->dispatch(new DeleteRole('auditor'));
+
+        self::assertFalse($this->definition()->hasRole('auditor'));
+        self::assertSame(['client'], $this->definition()->workflow('bug')->transition('accept')->roles);
     }
 
     public function testARoleStaysWhileARuleAimsAtItsReferent(): void
@@ -345,6 +381,35 @@ final class ConfigHandlersTest extends KernelTestCase
         self::assertSame('Support, Bug', $deletions->field('environment')?->parameters['%workflows%']);
     }
 
+    public function testAWorkflowSaysWhichOfItsPlacesStandBesideItsPath(): void
+    {
+        $this->commands->dispatch(new UpdateWorkflow('bug', aside: ['to_test' => 'in_progress', 'done' => 'new']));
+        self::assertSame(['to_test' => 'in_progress', 'done' => 'new'], $this->definition()->workflow('bug')->aside, 'a closed place as any other');
+        self::assertSame(['new', 'in_progress'], $this->definition()->workflow('bug')->path());
+
+        // The path starts where the issues do, whichever of the two is changed.
+        $this->refused('admin.refused.config.initial_aside', new UpdateWorkflow('bug', aside: ['new' => 'in_progress']));
+        $this->refused('admin.refused.config.initial_aside', new UpdateWorkflow('bug', initial: 'to_test'));
+        // A place stands beside the path: not beside itself, nor beside one that left it.
+        $this->refused('admin.refused.config.beside_the_path', new UpdateWorkflow('bug', aside: ['to_test' => 'to_test']));
+        $this->refused('admin.refused.config.beside_the_path', new UpdateWorkflow('bug', aside: ['to_test' => 'done', 'done' => 'new']));
+        $this->commands->dispatch(new CreatePlace('Parked', PlaceStatus::Waiting));
+        $this->refused('admin.refused.config.not_a_place_of', new UpdateWorkflow('bug', aside: ['parked' => 'new']));
+        $this->refused('admin.refused.config.not_a_place_of', new UpdateWorkflow('bug', aside: ['to_test' => 'parked']));
+        self::assertSame(['to_test' => 'in_progress', 'done' => 'new'], $this->definition()->workflow('bug')->aside, 'a refusal changes nothing');
+
+        // An order says nothing of it.
+        $this->commands->dispatch(new UpdateWorkflow('bug', places: ['new', 'to_test', 'in_progress', 'done']));
+        self::assertSame(['to_test' => 'in_progress', 'done' => 'new'], $this->definition()->workflow('bug')->aside);
+
+        // The place it stood beside leaves the workflow: it is back on the path.
+        $this->commands->dispatch(new RemoveWorkflowPlace('bug', 'in_progress'));
+        self::assertSame(['done' => 'new'], $this->definition()->workflow('bug')->aside);
+
+        $this->commands->dispatch(new UpdateWorkflow('bug', aside: []));
+        self::assertSame([], $this->definition()->workflow('bug')->aside);
+    }
+
     public function testAnActionKeepsToThePlacesOfItsWorkflowAndToOnePerPairOfPlaces(): void
     {
         $this->commands->dispatch(new CreateWorkflow('Support', 'new'));
@@ -461,6 +526,11 @@ final class ConfigHandlersTest extends KernelTestCase
         } catch (ConfigChangeException $e) {
             self::assertSame('An access carries the role "Client": revoke it or give it another role first.', $e->trans(self::getContainer()->get(TranslatorInterface::class)));
         }
+    }
+
+    private function lastChange(): ?string
+    {
+        return $this->entityManager->getRepository(ConfigChange::class)->findOneBy([], ['id' => 'DESC'])?->getSummary();
     }
 
     private function definition(): InstanceDefinition

@@ -75,7 +75,7 @@ use App\Api\State\UpdateIssueProcessor;
         ),
         new Put(
             uriTemplate: '/issues/{key}/step',
-            description: 'Takes the issue to a step of its workflow: by the action of the token\'s user that leads there when there is one, otherwise outside the workflow, for whoever may. To name the action or send a comment with it, use `transitions`.',
+            description: 'Takes the issue to a step of its workflow: any step when the role of the token\'s user moves issues freely, otherwise a step an action of theirs leads to. A role that moves freely is offered no action (`transitions` is empty); the others name the action or send a comment with it through `transitions`.',
             input: StepInput::class,
             read: false,
             processor: MoveIssueProcessor::class,
