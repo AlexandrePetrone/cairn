@@ -4,12 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Scene;
 
-use App\Config\Definition\FieldDefinition;
-use App\Config\Definition\FieldUsage;
-use App\Config\Definition\InstanceDefinition;
-use App\Config\Definition\WorkflowDefinition;
-use App\Config\FieldType;
-use App\Config\StarterKit;
 use App\Entity\Budget;
 use App\Entity\BudgetLine;
 use App\Entity\Enum\BudgetLineStatus;
@@ -41,8 +35,7 @@ use Symfony\Component\DependencyInjection\Container;
 
 /**
  * The Maison Dupont shop as the page and component tests need it, built
- * through the real commands under the example configuration (the one the
- * screens are written for). Thomas manages the workspace, Nadia and Léa
+ * through the real commands under its own configuration (ShopConfiguration). Thomas manages the workspace, Nadia and Léa
  * develop on the shop and Marc on the intranet only, Claire is the
  * client, Paul only reads, Sophie is the client of another workspace
  * whose project is archived. Julie administers the instance and holds no
@@ -89,41 +82,11 @@ final class ShopScene
         $this->access = $container->get(AccessControl::class);
         $this->workflows = $container->get(WorkflowProvider::class);
 
-        $this->commands->dispatch(new InstallConfiguration(self::configuration($container->get(StarterKit::class))));
+        $this->commands->dispatch(new InstallConfiguration(ShopConfiguration::definition()));
 
         $this->people();
         $this->places();
         $this->issues();
-    }
-
-    /**
-     * The starter configuration, with the two cases it does not show: a
-     * field for internal users only (`estimate`, on bugs) and a workflow
-     * without fields (tasks).
-     */
-    private static function configuration(StarterKit $kit): InstanceDefinition
-    {
-        $example = $kit->definition();
-        $fields = [
-            'bug' => [...array_values($example->workflows['bug']->fields), new FieldUsage('estimate')],
-            'task' => [],
-        ];
-
-        return new InstanceDefinition(
-            roles: array_values($example->roles),
-            permissions: $example->permissions,
-            fields: [...array_values($example->fields), new FieldDefinition(id: 'estimate', label: 'Estimate (days)', type: FieldType::Number, internalOnly: true)],
-            links: array_values($example->links),
-            places: array_values($example->places),
-            workflows: array_map(static fn (WorkflowDefinition $workflow) => new WorkflowDefinition(
-                id: $workflow->id,
-                label: $workflow->label,
-                initial: $workflow->initial,
-                places: $workflow->places,
-                transitions: array_values($workflow->transitions),
-                fields: $fields[$workflow->id] ?? array_values($workflow->fields),
-            ), array_values($example->workflows)),
-        );
     }
 
     public function user(string $email): User
