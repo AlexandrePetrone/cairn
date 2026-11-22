@@ -137,7 +137,7 @@ final class AppStory extends Story
             'lea' => ['lea.fontaine@cairn.test', 'Léa', 'Fontaine', 'sso'],
             'marc' => ['marc.petit@cairn.test', 'Marc', 'Petit', 'internal'],
             'claire' => ['claire.martin@maison-dupont.test', 'Claire', 'Martin', 'external', 'Maison Dupont'],
-            'paul' => ['paul.roussel@maison-dupont.test', 'Paul', 'Roussel', 'external', 'Maison Dupont'],
+            'paul' => ['paul.roussel@studio-pixel.test', 'Paul', 'Roussel', 'external', 'Studio Pixel'],
             'ines' => ['ines.garnier@vallier.test', 'Inès', 'Garnier', 'external', 'Vallier'],
             'remi' => ['remi.colin@natura.test', 'Rémi', 'Colin', 'external', 'Natura'],
             'sophie' => ['sophie.bernard@travelia.test', 'Sophie', 'Bernard', 'external', 'Travelia'],
@@ -160,7 +160,7 @@ final class AppStory extends Story
     private function projects(): iterable
     {
         // Managers and clients hold their role on the workspace, developers on each project.
-        $dupont = $this->workspace('Maison Dupont', 'MD', notes: 'Main contact: Claire Martin (head of e-commerce). Paul Roussel (accounting) does not sign off deliveries: read-only.', manager: 'thomas', clients: ['claire' => 'client', 'paul' => 'client_readonly']);
+        $dupont = $this->workspace('Maison Dupont', 'MD', notes: 'Main contact: Claire Martin (head of e-commerce). Paul Roussel (Studio Pixel) designs the shop as a partner: no access to the budgets.', manager: 'thomas', clients: ['claire' => 'client', 'paul' => 'partner']);
         $vallier = $this->workspace('Vallier Group', 'GV', notes: 'Two projects, a single IT contact.', manager: 'thomas', clients: ['ines' => 'client']);
         $natura = $this->workspace('Natura Cosmetics', 'NC', notes: 'Redesign delivered in November, back office under maintenance.', manager: 'yann', clients: ['remi' => 'client']);
         $travelia = $this->workspace('Travelia', 'TR', notes: 'Contract ended in August 2026.', manager: 'yann', clients: ['sophie' => 'client']);
@@ -168,7 +168,7 @@ final class AppStory extends Story
         // [tracker, title, target place, criticality, assignee, private]
         yield ['project' => $this->project($dupont, 'Online shop', 'SPT', 'Online shop and checkout.', developers: ['nadia', 'lea']), 'people' => ['manager' => 'thomas', 'developers' => ['nadia', 'lea'], 'client' => 'claire'], 'issues' => [
             ['bug', 'Endless spinner on the cart page', 'new', Criticality::Blocking],
-            ['bug', 'The promo code is not applied to discounted products', 'qualified', Criticality::High, 'lea'],
+            ['bug', 'The promo code is not applied to discounted products', 'to_do', Criticality::High, 'lea'],
             ['bug', 'Typo in the footer', 'new', Criticality::Low],
             ['bug', 'The CSV export of orders is empty', 'to_test', Criticality::High, 'nadia'],
             ['bug', 'Shipping costs are not shown for Corsica', 'in_progress', Criticality::Normal, 'nadia'],
@@ -209,7 +209,7 @@ final class AppStory extends Story
             ]],
         ]];
         yield ['project' => $this->project($dupont, 'Intranet', 'INT', 'Internal tool of the stores.', developers: ['marc']), 'people' => ['manager' => 'thomas', 'developers' => ['marc'], 'client' => 'claire'], 'issues' => [
-            ['bug', 'The schedule does not show public holidays', 'qualified', Criticality::Normal, 'marc'],
+            ['bug', 'The schedule does not show public holidays', 'to_do', Criticality::Normal, 'marc'],
             ['bug', 'Cannot log in from the Lyon store', 'in_progress', Criticality::Blocking, 'marc'],
             ['evolution', 'Staff directory', 'to_estimate', Criticality::Low],
             ['evolution', 'Online leave requests', 'done', Criticality::Normal, 'marc'],
@@ -225,7 +225,7 @@ final class AppStory extends Story
             ['task', 'Move the storage to S3', 'in_progress', Criticality::Normal, 'marc'],
         ]];
         yield ['project' => $this->project($vallier, 'Mobile app', 'APP', 'App of the field sales team.', developers: ['nadia']), 'people' => ['manager' => 'thomas', 'developers' => ['nadia'], 'client' => 'ines'], 'issues' => [
-            ['bug', 'Crash on startup on Android 12', 'qualified', Criticality::Blocking, 'nadia'],
+            ['bug', 'Crash on startup on Android 12', 'to_do', Criticality::Blocking, 'nadia'],
             ['bug', 'Offline sync loses the notes', 'in_progress', Criticality::High, 'nadia'],
             ['evolution', 'Dark mode', 'to_estimate', Criticality::Low],
             ['evolution', 'Barcode scanner', 'to_test', Criticality::Normal, 'nadia'],
@@ -548,11 +548,7 @@ final class AppStory extends Story
     public static function fieldsFor(WorkflowDefinition $workflow, int $index): array
     {
         $values = [
-            'environment' => ['prod', 'preprod'][$index % 2],
             'url' => 'https://www.example.test/'.['panier', 'compte', 'catalogue', 'commande'][$index % 4],
-            'steps' => '1. I open the page. 2. I click on the button. 3. Nothing happens.',
-            'browser' => ['Chrome 130 on macOS', 'Safari on iPhone', 'Firefox on Windows'][($index + 1) % 3],
-            'goal' => 'Save time for the teams who handle orders every day.',
             'due_date' => '2026-12-15',
         ];
 

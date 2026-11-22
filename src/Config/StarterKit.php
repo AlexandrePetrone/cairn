@@ -39,8 +39,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class StarterKit
 {
     private const array INTERNAL = ['project_manager', 'developer'];
-    private const array INTERNAL_AND_CLIENT = ['project_manager', 'developer', 'client'];
-    private const array CLIENT_FACING = ['project_manager', 'client'];
+    private const array INTERNAL_AND_CLIENT = ['project_manager', 'developer', 'client', 'partner'];
+    private const array CLIENT_FACING = ['project_manager', 'client', 'partner'];
     private const array MANAGERS = ['project_manager'];
 
     public function __construct(
@@ -151,7 +151,7 @@ final class StarterKit
                 new RoleDefinition('project_manager', $this->label('role.project_manager'), internalOnly: true, followsNewIssues: true),
                 new RoleDefinition('developer', $this->label('role.developer'), internalOnly: true),
                 new RoleDefinition('client', $this->label('role.client')),
-                new RoleDefinition('client_readonly', $this->label('role.client_readonly')),
+                new RoleDefinition('partner', $this->label('role.partner')),
             ],
 
             // Permissions outside workflows. Administrators hold all of them.
@@ -176,16 +176,12 @@ final class StarterKit
                 Permission::ProjectManageMembers->value => self::MANAGERS,
                 Permission::ReleaseManage->value => self::MANAGERS,
                 Permission::BudgetManage->value => self::MANAGERS,
-                Permission::BudgetView->value => ['project_manager', 'developer', 'client', 'client_readonly'],
+                Permission::BudgetView->value => ['project_manager', 'developer', 'client'],
             ],
 
             // An estimate is not a field: it is a line of a budget of the project.
             fields: [
-                $this->field('environment', FieldType::Choice, options: ['prod', 'preprod']),
                 $this->field('url', FieldType::Url, placeholder: true, help: true),
-                $this->field('steps', FieldType::Textarea, placeholder: true, help: true),
-                $this->field('browser', FieldType::Text, placeholder: true),
-                $this->field('goal', FieldType::Textarea, placeholder: true, help: true),
                 $this->field('due_date', FieldType::Date),
             ],
 
@@ -200,7 +196,8 @@ final class StarterKit
             places: [
                 $this->place('new', PlaceStatus::Open),
                 $this->place('needs_info', PlaceStatus::Waiting),
-                $this->place('qualified', PlaceStatus::Open),
+                $this->place('to_do', PlaceStatus::Open),
+                $this->place('feedback', PlaceStatus::Waiting),
                 $this->place('to_estimate', PlaceStatus::Open),
                 $this->place('to_approve', PlaceStatus::Waiting),
                 $this->place('planned', PlaceStatus::InProgress),
@@ -217,48 +214,47 @@ final class StarterKit
                     id: 'bug',
                     label: $this->label('workflow.bug.label'),
                     initial: 'new',
-                    places: ['new', 'needs_info', 'qualified', 'in_progress', 'blocked', 'to_test', 'to_release', 'done', 'declined'],
+                    places: ['new', 'needs_info', 'to_do', 'feedback', 'in_progress', 'blocked', 'to_test', 'to_release', 'done', 'declined'],
                     transitions: [
                         $this->transition('bug', 'ask_info', from: ['new'], to: 'needs_info', roles: self::INTERNAL, requiresComment: true),
                         $this->transition('bug', 'provide_info', from: ['needs_info'], to: 'new', roles: self::INTERNAL_AND_CLIENT, style: TransitionStyle::Primary),
-                        $this->transition('bug', 'qualify', from: ['new'], to: 'qualified', roles: self::INTERNAL),
-                        $this->transition('bug', 'reject', from: ['new', 'needs_info', 'qualified'], to: 'declined', roles: self::INTERNAL, style: TransitionStyle::Danger),
-                        $this->transition('bug', 'start', from: ['new', 'qualified'], to: 'in_progress', roles: self::INTERNAL),
+                        $this->transition('bug', 'qualify', from: ['new'], to: 'to_do', roles: self::INTERNAL),
+                        $this->transition('bug', 'reject', from: ['new', 'needs_info', 'to_do'], to: 'declined', roles: self::INTERNAL, style: TransitionStyle::Danger),
+                        $this->transition('bug', 'start', from: ['new', 'to_do'], to: 'in_progress', roles: self::INTERNAL),
+                        $this->transition('bug', 'explain', from: ['new', 'to_do'], to: 'feedback', roles: self::INTERNAL, requiresComment: true),
+                        $this->transition('bug', 'acknowledge', from: ['feedback'], to: 'done', roles: self::CLIENT_FACING, style: TransitionStyle::Primary),
+                        $this->transition('bug', 'insist', from: ['feedback'], to: 'new', roles: self::CLIENT_FACING, requiresComment: true),
                         $this->transition('bug', 'block', from: ['in_progress'], to: 'blocked', roles: self::INTERNAL, requiresComment: true),
-                        $this->transition('bug', 'resume', from: ['blocked'], to: 'in_progress', roles: self::INTERNAL),
                         $this->transition('bug', 'deliver', from: ['in_progress'], to: 'to_test', roles: self::INTERNAL),
                         $this->transition('bug', 'accept', from: ['to_test'], to: 'to_release', roles: self::CLIENT_FACING, style: TransitionStyle::Primary),
                         $this->transition('bug', 'refuse', from: ['to_test'], to: 'in_progress', roles: self::CLIENT_FACING, style: TransitionStyle::Danger, requiresComment: true),
                         $this->transition('bug', 'release', from: ['to_release'], to: 'done', roles: self::INTERNAL, style: TransitionStyle::Primary),
                         $this->transition('bug', 'reopen', from: ['done'], to: 'in_progress', roles: self::CLIENT_FACING),
-                        $this->transition('bug', 'reopen_rejected', from: ['declined'], to: 'new', roles: self::INTERNAL),
                     ],
-                    fields: [new FieldUsage('environment', required: true), new FieldUsage('url'), new FieldUsage('steps'), new FieldUsage('browser')],
+                    fields: [new FieldUsage('url')],
                 ),
                 new WorkflowDefinition(
                     id: 'evolution',
                     label: $this->label('workflow.evolution.label'),
                     initial: 'new',
-                    places: ['new', 'to_estimate', 'to_approve', 'planned', 'in_progress', 'blocked', 'to_test', 'to_release', 'done', 'declined'],
+                    places: ['new', 'feedback', 'to_estimate', 'to_approve', 'planned', 'in_progress', 'blocked', 'to_test', 'to_release', 'done', 'declined'],
                     transitions: [
                         $this->transition('evolution', 'estimate', from: ['new'], to: 'to_estimate', roles: self::INTERNAL),
                         $this->transition('evolution', 'decline', from: ['new', 'to_estimate'], to: 'declined', roles: self::INTERNAL, style: TransitionStyle::Danger),
+                        $this->transition('evolution', 'explain', from: ['new', 'to_estimate'], to: 'feedback', roles: self::INTERNAL, requiresComment: true),
+                        $this->transition('evolution', 'acknowledge', from: ['feedback'], to: 'done', roles: self::CLIENT_FACING, style: TransitionStyle::Primary),
+                        $this->transition('evolution', 'insist', from: ['feedback'], to: 'new', roles: self::CLIENT_FACING, requiresComment: true),
                         $this->transition('evolution', 'submit_estimate', from: ['to_estimate'], to: 'to_approve', roles: self::INTERNAL),
                         $this->transition('evolution', 'approve', from: ['to_approve'], to: 'planned', roles: self::CLIENT_FACING, style: TransitionStyle::Primary),
-                        $this->transition('evolution', 'decline_estimate', from: ['to_approve'], to: 'declined', roles: self::CLIENT_FACING, style: TransitionStyle::Danger, requiresComment: true),
-                        $this->transition('evolution', 'unplan', from: ['planned'], to: 'to_estimate', roles: self::INTERNAL),
+                        $this->transition('evolution', 'decline_estimate', from: ['to_approve'], to: 'declined', roles: self::CLIENT_FACING, style: TransitionStyle::Danger),
                         $this->transition('evolution', 'start', from: ['planned'], to: 'in_progress', roles: self::INTERNAL),
                         $this->transition('evolution', 'block', from: ['planned', 'in_progress'], to: 'blocked', roles: self::INTERNAL, requiresComment: true),
-                        $this->transition('evolution', 'resume', from: ['blocked'], to: 'in_progress', roles: self::INTERNAL),
-                        $this->transition('evolution', 'replan', from: ['blocked'], to: 'planned', roles: self::INTERNAL),
                         $this->transition('evolution', 'deliver', from: ['in_progress'], to: 'to_test', roles: self::INTERNAL),
                         $this->transition('evolution', 'accept', from: ['to_test'], to: 'to_release', roles: self::CLIENT_FACING, style: TransitionStyle::Primary),
                         $this->transition('evolution', 'refuse', from: ['to_test'], to: 'in_progress', roles: self::CLIENT_FACING, style: TransitionStyle::Danger, requiresComment: true),
                         $this->transition('evolution', 'release', from: ['to_release'], to: 'done', roles: self::INTERNAL, style: TransitionStyle::Primary),
-                        $this->transition('evolution', 'reopen', from: ['done'], to: 'in_progress', roles: self::INTERNAL),
-                        $this->transition('evolution', 'reopen_declined', from: ['declined'], to: 'new', roles: self::INTERNAL),
                     ],
-                    fields: [new FieldUsage('goal', required: true), new FieldUsage('due_date')],
+                    fields: [new FieldUsage('due_date')],
                 ),
                 // Internal tasks: the team tests and releases them itself.
                 new WorkflowDefinition(
@@ -268,15 +264,10 @@ final class StarterKit
                     places: ['new', 'in_progress', 'blocked', 'to_test', 'to_release', 'done', 'declined'],
                     transitions: [
                         $this->transition('task', 'start', from: ['new'], to: 'in_progress', roles: self::INTERNAL),
-                        $this->transition('task', 'block', from: ['in_progress'], to: 'blocked', roles: self::INTERNAL, requiresComment: true),
-                        $this->transition('task', 'resume', from: ['blocked'], to: 'in_progress', roles: self::INTERNAL),
                         $this->transition('task', 'deliver', from: ['in_progress'], to: 'to_test', roles: self::INTERNAL),
                         $this->transition('task', 'accept', from: ['to_test'], to: 'to_release', roles: self::INTERNAL, style: TransitionStyle::Primary),
-                        $this->transition('task', 'refuse', from: ['to_test'], to: 'in_progress', roles: self::INTERNAL, style: TransitionStyle::Danger, requiresComment: true),
                         $this->transition('task', 'release', from: ['to_release'], to: 'done', roles: self::INTERNAL, style: TransitionStyle::Primary),
                         $this->transition('task', 'cancel', from: ['new', 'in_progress', 'blocked'], to: 'declined', roles: self::INTERNAL, style: TransitionStyle::Danger),
-                        $this->transition('task', 'reopen', from: ['done'], to: 'new', roles: self::INTERNAL),
-                        $this->transition('task', 'reopen_cancelled', from: ['declined'], to: 'new', roles: self::INTERNAL),
                     ],
                     fields: [new FieldUsage('due_date')],
                 ),

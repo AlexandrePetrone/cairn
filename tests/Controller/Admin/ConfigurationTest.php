@@ -578,7 +578,7 @@ final class ConfigurationTest extends WebTestCase
         $this->client->followRedirect();
         self::assertSelectorTextContains('body', 'Starter configuration installed.');
         self::assertSelectorTextContains('#bug', 'Bug');
-        self::assertSame(['project_manager', 'developer', 'client', 'client_readonly'], $this->definition()->roleIds());
+        self::assertSame(['project_manager', 'developer', 'client', 'partner'], $this->definition()->roleIds());
     }
 
     /**

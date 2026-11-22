@@ -10,6 +10,7 @@ use App\Config\ConfigValidator;
 use App\Config\Definition\InstanceDefinition;
 use App\Config\StarterKit;
 use App\Message\Command\Config\InstallConfiguration;
+use App\Security\Permission;
 use App\Tests\Config\Fixture\DefinitionFactory;
 use App\Tests\KernelHelpers;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -88,6 +89,27 @@ final class StarterKitTest extends KernelTestCase
         self::assertEquals($ids($this->in('en')), $ids($this->in('fr')));
         self::assertSame('Chef de projet', $this->in('fr')->role('project_manager')->label);
         self::assertSame('Project manager', $this->in('en')->role('project_manager')->label);
+    }
+
+    public function testAPartnerActsAsAClientButReadsNoBudget(): void
+    {
+        $definition = $this->kit->definition();
+
+        foreach (Permission::cases() as $permission) {
+            $granted = $definition->rolesGranted($permission);
+            if (Permission::BudgetView === $permission) {
+                self::assertContains('client', $granted);
+                self::assertNotContains('partner', $granted, 'a partner works on the issues, not on what the client bought');
+            } else {
+                self::assertSame(\in_array('client', $granted, true), \in_array('partner', $granted, true), $permission->value);
+            }
+        }
+
+        foreach ($definition->workflows as $workflow) {
+            foreach ($workflow->transitions as $transition) {
+                self::assertSame(\in_array('client', $transition->roles, true), \in_array('partner', $transition->roles, true), $workflow->id.'.'.$transition->id);
+            }
+        }
     }
 
     public function testInstallingWritesWhatTheApplicationThenReads(): void

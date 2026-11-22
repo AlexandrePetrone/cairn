@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Story;
 
-use App\Config\Definition\TransitionDefinition;
 use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
 use App\Entity\Project;
@@ -13,11 +12,10 @@ use App\Entity\Workspace;
 use App\Factory\MembershipFactory;
 use App\Factory\ProjectFactory;
 use App\Factory\TrackerFactory;
-use App\Message\Command\Issue\ApplyTransition;
 use App\Message\Command\Issue\CreateIssue;
+use App\Message\Command\Issue\MoveIssue;
 use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
-use App\Security\AccessControl;
 use App\Workflow\WorkflowProvider;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Clock\Clock;
@@ -49,7 +47,6 @@ final class VolumeStory extends Story
 
     public function __construct(
         private readonly CommandBus $commands,
-        private readonly AccessControl $access,
         private readonly WorkflowProvider $workflows,
         private readonly EntityManagerInterface $entityManager,
     ) {
@@ -57,7 +54,7 @@ final class VolumeStory extends Story
 
     public function build(): void
     {
-        foreach (['yann' => 'yann.leroy@cairn.test', 'lea' => 'lea.fontaine@cairn.test', 'nadia' => 'nadia.benali@cairn.test', 'remi' => 'remi.colin@natura.test', 'admin' => 'admin@cairn.test'] as $key => $email) {
+        foreach (['yann' => 'yann.leroy@cairn.test', 'lea' => 'lea.fontaine@cairn.test', 'nadia' => 'nadia.benali@cairn.test', 'remi' => 'remi.colin@natura.test'] as $key => $email) {
             $this->users[$key] = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]) ?? throw new \LogicException(\sprintf('Load AppStory first: no %s.', $email));
         }
         $natura = $this->entityManager->getRepository(Workspace::class)->findOneBy(['key' => 'NC']) ?? throw new \LogicException('Load AppStory first: no NC workspace.');
@@ -113,20 +110,17 @@ final class VolumeStory extends Story
             $this->commands->dispatch(new UpdateIssue((int) $this->users['yann']->getId(), $issue->getKey(), assigneeId: $this->users[$assignee]->getId()));
         }
 
-        // Every place of the workflow in turn, so that each one has issues.
+        // Every place of the workflow in turn, so that each one has issues:
+        // the manager moves the issue there directly, whatever the actions
+        // of the workflow, which this story does not follow.
         $places = $workflow->places;
-        foreach ($workflow->pathTo($places[intdiv($index, 3) % \count($places)]) as $step => $transition) {
-            $clock->modify(\sprintf('+%d hours', 1 + ($index + $step * 5) % 20));
+        $target = $places[intdiv($index, 3) % \count($places)];
+        if ($target !== $workflow->initial) {
+            $clock->modify(\sprintf('+%d hours', 1 + $index % 20));
             if ($clock->now() > $now) {
-                $clock = new MockClock($now->modify('-1 hour'));
-                Clock::set($clock);
+                Clock::set(new MockClock($now->modify('-1 hour')));
             }
-            $this->commands->dispatch(new ApplyTransition(
-                actorId: (int) $this->actorFor($transition, $project)->getId(),
-                issueKey: $issue->getKey(),
-                transitionId: $transition->id,
-                comment: $transition->requiresComment ? 'Still reproducible.' : null,
-            ));
+            $this->commands->dispatch(new MoveIssue((int) $this->users['yann']->getId(), $issue->getKey(), $target));
         }
     }
 
@@ -139,19 +133,5 @@ final class VolumeStory extends Story
             'evolution' => self::EVOLUTION_WISHES[$index % \count(self::EVOLUTION_WISHES)].' in '.$screen,
             default => self::TASK_CHORES[$index % \count(self::TASK_CHORES)].' ('.$screen.')',
         };
-    }
-
-    /**
-     * The client for acceptance, a developer for the work, the manager otherwise.
-     */
-    private function actorFor(TransitionDefinition $transition, Project $project): User
-    {
-        foreach (['remi', 'lea', 'yann', 'admin'] as $key) {
-            if ($this->access->canTransition($this->users[$key], $transition, $project)) {
-                return $this->users[$key];
-            }
-        }
-
-        throw new \LogicException(\sprintf('Nobody may apply transition "%s".', $transition->id));
     }
 }

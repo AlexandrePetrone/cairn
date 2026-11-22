@@ -4,11 +4,12 @@ role:
     project_manager: 'Project manager'
     developer: Developer
     client: Client
-    client_readonly: 'Client (read-only)'
+    partner: Partner
 place:
     new: New
-    needs_info: 'Info requested'
-    qualified: Qualified
+    needs_info: 'Details requested'
+    to_do: 'To do'
+    feedback: 'Answer to confirm'
     to_estimate: 'To estimate'
     to_approve: 'Estimate to approve'
     planned: Planned
@@ -17,28 +18,12 @@ place:
     to_test: 'To test'
     to_release: 'To release'
     done: Done
-    declined: Declined
+    declined: 'Closed without action'
 field:
-    environment:
-        label: Environment
-        option:
-            prod: Production
-            preprod: Pre-production
     url:
         label: 'Affected URL'
         placeholder: 'https://…'
         help: 'The URL where the problem occurs.'
-    steps:
-        label: 'Steps to reproduce'
-        placeholder: '1. I go to… 2. I click on… 3. I see…'
-        help: 'What you did, what you expected, what happened.'
-    browser:
-        label: Context
-        placeholder: 'Chrome 130 on macOS, Safari on iPhone, account used…'
-    goal:
-        label: Goal
-        placeholder: 'Which problem does this feature solve, and for whom?'
-        help: 'The need rather than the solution: it helps us offer the right answer.'
     due_date:
         label: 'Desired due date'
 link:
@@ -54,19 +39,30 @@ workflow:
     bug:
         label: Bug
         transition:
+            explain:
+                label: 'Explain how it works'
+                description: "It is not a bug: the team explains, and waits for the client's confirmation."
+                prompt: 'Explain how it works, or why it behaves this way.'
+            acknowledge:
+                label: 'Accept the answer'
+                description: 'The explanation answers the question: the issue is closed.'
+            insist:
+                label: 'Dispute the answer'
+                description: 'The explanation does not answer the question: the issue goes back to the team.'
+                prompt: 'Say what is still not right.'
             ask_info:
                 label: 'Ask for details'
                 description: "Something is missing to understand the bug: the issue waits for the client's answer."
                 prompt: 'Say what we are missing to reproduce the problem.'
             provide_info:
-                label: Answer
+                label: 'Provide details'
                 description: 'The details are given: the issue goes back to the team.'
             qualify:
-                label: Qualify
-                description: "The bug is understood and reproduced: it joins the team's queue."
+                label: 'Acknowledge'
+                description: "The bug is understood: it joins the team's queue."
             reject:
                 label: Reject
-                description: 'It is not a bug, or it will not be fixed: the issue is closed.'
+                description: 'It is not a bug, or it will not be fixed: the issue is closed without action.'
             start:
                 label: Start
                 description: 'The fix begins.'
@@ -74,17 +70,14 @@ workflow:
                 label: Block
                 description: 'The fix cannot move forward: it depends on a third party or a prerequisite.'
                 prompt: 'Say what is blocking and who must lift it.'
-            resume:
-                label: Resume
-                description: 'The blocker is lifted: the fix resumes.'
             deliver:
                 label: 'Deliver for testing'
                 description: 'The fix is on pre-production, ready to be checked.'
             accept:
-                label: Accept
+                label: 'Accept delivery'
                 description: 'The fix is accepted: it waits for its release to production.'
             refuse:
-                label: Refuse
+                label: 'Refuse delivery'
                 description: 'The fix is not right: the issue goes back to development, with the comment that says why.'
                 prompt: 'Explain what is wrong: a comment is required to refuse.'
             release:
@@ -93,18 +86,26 @@ workflow:
             reopen:
                 label: Reopen
                 description: 'The problem came back: the issue goes back to development.'
-            reopen_rejected:
-                label: Reopen
-                description: 'The issue is reviewed again from the start.'
     evolution:
         label: Feature
         transition:
+            explain:
+                label: 'Explain how it works'
+                description: "It is not a change to make: the team explains, and waits for the client's confirmation."
+                prompt: 'Explain how it works, or why it behaves this way.'
+            acknowledge:
+                label: 'Accept the answer'
+                description: 'The explanation answers the question: the issue is closed.'
+            insist:
+                label: 'Dispute the answer'
+                description: 'The explanation does not answer the question: the issue goes back to the team.'
+                prompt: 'Say what is still not right.'
             estimate:
-                label: 'To estimate'
+                label: 'Have it estimated'
                 description: 'The request is understood: it goes to estimation.'
             decline:
                 label: Decline
-                description: 'The feature will not be built: the issue is closed.'
+                description: 'The feature will not be built: the issue is closed without action.'
             submit_estimate:
                 label: 'Submit the estimate'
                 description: 'The estimate was sent to the client: the issue waits for their decision.'
@@ -112,12 +113,8 @@ workflow:
                 label: 'Accept the estimate'
                 description: 'The estimate is accepted: the feature is planned.'
             decline_estimate:
-                label: 'Refuse the estimate'
-                description: 'The estimate is refused: the feature will not be built and the issue is closed.'
-                prompt: 'A comment is required to refuse the estimate.'
-            unplan:
-                label: Unplan
-                description: 'The plan is called into question: the feature goes back to estimation.'
+                label: 'Cancel the request'
+                description: 'The client gives up the feature in view of the estimate: the issue is closed without action.'
             start:
                 label: Start
                 description: 'The work begins.'
@@ -125,66 +122,37 @@ workflow:
                 label: Block
                 description: 'The feature cannot move forward: it depends on a third party or a prerequisite.'
                 prompt: 'Say what is blocking and who must lift it.'
-            resume:
-                label: Resume
-                description: 'The blocker is lifted: the work resumes.'
-            replan:
-                label: Replan
-                description: "The blocker is lifted: the feature goes back to the team's queue."
             deliver:
                 label: 'Deliver for testing'
                 description: 'The feature is on pre-production, ready to be checked.'
             accept:
-                label: Accept
+                label: 'Accept delivery'
                 description: 'The feature matches the request: it waits for its release to production.'
             refuse:
-                label: Refuse
+                label: 'Refuse delivery'
                 description: 'The feature does not match the request: it goes back to development, with the comment that says why.'
                 prompt: 'Explain what does not match the request: a comment is required to refuse.'
             release:
                 label: 'Release to production'
                 description: 'The feature is in production: the issue is closed.'
-            reopen:
-                label: Reopen
-                description: 'The delivered feature needs more work.'
-            reopen_declined:
-                label: Reopen
-                description: 'The issue is reviewed again from the start.'
     task:
         label: 'Internal task'
         transition:
             start:
                 label: Start
                 description: 'The task is taken on.'
-            block:
-                label: Block
-                description: 'The task cannot move forward: it depends on a third party or a prerequisite.'
-                prompt: 'Say what is blocking and who must lift it.'
-            resume:
-                label: Resume
-                description: 'The blocker is lifted: the task resumes.'
             deliver:
                 label: 'Deliver for testing'
                 description: 'The task is on pre-production, ready to be checked by the team.'
             accept:
-                label: Accept
+                label: 'Accept delivery'
                 description: 'The internal testing passed: the task waits for its release to production.'
-            refuse:
-                label: Refuse
-                description: 'The internal testing failed: the task goes back in progress.'
-                prompt: 'Explain what is wrong: a comment is required to refuse.'
             release:
                 label: 'Release to production'
                 description: 'The task is in production: it is done.'
             cancel:
                 label: Cancel
-                description: 'The task will not be done.'
-            reopen:
-                label: Reopen
-                description: 'The task is back to do.'
-            reopen_cancelled:
-                label: Reopen
-                description: 'The task is to do again.'
+                description: 'The task will not be done: it is closed without action.'
 template:
     name: 'Web project'
     description: 'Bugs, features and internal tasks, issues handed to the referent project manager.'
