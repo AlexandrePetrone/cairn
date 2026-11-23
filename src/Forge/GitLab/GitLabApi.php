@@ -17,7 +17,10 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * the instance of `FORGE_GITLAB_URL`. Project webhooks only: the hook
  * listens to pushes and merge requests and sends the secret as
  * `X-Gitlab-Token`. GitLab answers 404 both for a hook already gone and
- * for a project the token lost access to; both are taken as gone.
+ * for a project the token lost access to; both are taken as gone. With
+ * `FORGE_GITLAB_HOOK_SECRET`, a system hook of the instance delivers every
+ * repository instead (`GitLabRequestParser` checks it) and nothing is
+ * installed.
  */
 final class GitLabApi implements ForgeApi
 {
@@ -31,6 +34,9 @@ final class GitLabApi implements ForgeApi
         private readonly string $token,
         #[Autowire(env: 'DEFAULT_URI')]
         private readonly string $defaultUri,
+        #[Autowire(env: 'FORGE_GITLAB_HOOK_SECRET')]
+        #[\SensitiveParameter]
+        private readonly string $hookSecret = '',
     ) {
     }
 
@@ -42,6 +48,11 @@ final class GitLabApi implements ForgeApi
     public function isConfigured(): bool
     {
         return '' !== trim($this->token) && '' !== trim($this->baseUrl);
+    }
+
+    public function hasInstanceHook(): bool
+    {
+        return '' !== trim($this->hookSecret);
     }
 
     public function deliveryUrl(): string

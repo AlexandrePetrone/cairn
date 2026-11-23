@@ -46,6 +46,11 @@ final class CodeRepositoryException extends \DomainException implements Translat
         return new self(\sprintf('No instance token for "%s": install the webhook by hand.', $forge->value), 'code_repository.refused.api_not_configured');
     }
 
+    public static function instanceHook(Forge $forge): self
+    {
+        return new self(\sprintf('The instance hook of "%s" already delivers every repository: no webhook to install.', $forge->value), 'code_repository.refused.instance_hook');
+    }
+
     public static function forgeRefused(\Throwable $cause): self
     {
         return new self('The forge refused the webhook call: '.$cause->getMessage(), 'code_repository.refused.forge_refused');

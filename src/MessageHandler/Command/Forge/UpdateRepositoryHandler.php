@@ -36,6 +36,9 @@ final class UpdateRepositoryHandler
         $repository = $this->repositories->find($command->codeRepositoryId) ?? throw CodeRepositoryException::notFound('Repository', $command->codeRepositoryId);
         $this->actor->denyUnlessGranted($command->actorId, Permission::ProjectConfigure, $repository->getProject());
         $api = $this->apis->for($repository->getForge());
+        if (true === $command->installed && !$repository->isInstalled() && $api->hasInstanceHook()) {
+            throw CodeRepositoryException::instanceHook($repository->getForge());
+        }
         if (true === $command->installed && !$api->isConfigured()) {
             throw CodeRepositoryException::apiNotConfigured($repository->getForge());
         }
@@ -52,7 +55,10 @@ final class UpdateRepositoryHandler
                 $repository->markInstalled($api->installHook($repository->getPath(), $repository->getSecret()));
             }
             if (false === $command->installed && null !== $hookId = $repository->getHookId()) {
-                $api->uninstallHook($repository->getPath(), $hookId);
+                // Without the instance token the forge cannot be told: the hook stays there, to remove by hand.
+                if ($api->isConfigured()) {
+                    $api->uninstallHook($repository->getPath(), $hookId);
+                }
                 $repository->markUninstalled();
             }
         } catch (ForgeApiException $e) {

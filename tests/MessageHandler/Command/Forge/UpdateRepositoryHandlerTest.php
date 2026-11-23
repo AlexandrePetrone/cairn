@@ -46,8 +46,14 @@ final class UpdateRepositoryHandlerTest extends KernelTestCase
 
     private function gitlab(string $token, MockResponse ...$responses): void
     {
+        $this->gitlabWithHook($token, '', ...$responses);
+    }
+
+    /** GitLab with a system hook of the instance when `$hookSecret` is not empty. */
+    private function gitlabWithHook(string $token, string $hookSecret, MockResponse ...$responses): void
+    {
         $this->responses = array_values($responses);
-        self::getContainer()->set(GitLabApi::class, new GitLabApi(new MockHttpClient($this->responses), self::getContainer()->get(UrlGeneratorInterface::class), 'https://gitlab.test/', $token, 'https://cairn.test'));
+        self::getContainer()->set(GitLabApi::class, new GitLabApi(new MockHttpClient($this->responses), self::getContainer()->get(UrlGeneratorInterface::class), 'https://gitlab.test/', $token, 'https://cairn.test', $hookSecret));
     }
 
     private function link(?int $actorId = null, string $path = 'maison-dupont/shop'): CodeRepository
@@ -99,6 +105,68 @@ final class UpdateRepositoryHandlerTest extends KernelTestCase
     public function testWithoutAnInstanceTokenInstallationIsRefused(): void
     {
         $this->gitlab('');
+        $repository = $this->link();
+
+        $this->expectException(CodeRepositoryException::class);
+        $this->expectExceptionMessage('No instance token');
+        $this->commands->dispatch(new UpdateRepository((int) $repository->getId(), installed: true));
+    }
+
+    public function testWithAnInstanceHookNoWebhookIsInstalledAndAnOldOneIsStillRemoved(): void
+    {
+        $this->gitlabWithHook('glpat-test', 'the-secret-of-the-instance-hook', new MockResponse('', ['http_code' => 204]));
+        // Linked before the instance had its hook: this one still has a webhook of its own.
+        $repository = $this->link();
+        $repository->markInstalled('42');
+        $this->entityManager->flush();
+        $other = $this->link(path: 'maison-dupont/intranet');
+
+        $this->commands->dispatch(new UpdateRepository((int) $repository->getId(), installed: false));
+        self::assertFalse($repository->isInstalled());
+        self::assertSame('DELETE', $this->responses[0]->getRequestMethod());
+
+        try {
+            $this->commands->dispatch(new UpdateRepository((int) $other->getId(), installed: true));
+            self::fail('A webhook was installed beside the instance hook.');
+        } catch (CodeRepositoryException $e) {
+            self::assertStringContainsString('instance hook', $e->getMessage());
+        }
+        self::assertFalse($other->isInstalled());
+    }
+
+    public function testAskingAgainForAnInstalledWebhookChangesNothingEvenWithAnInstanceHook(): void
+    {
+        $this->gitlabWithHook('glpat-test', 'the-secret-of-the-instance-hook');
+        $repository = $this->link();
+        $repository->markInstalled('42');
+        $this->entityManager->flush();
+
+        $this->commands->dispatch(new UpdateRepository((int) $repository->getId(), installed: true));
+
+        self::assertSame('42', $repository->getHookId(), 'GitLab was not called: it had no answer to give');
+    }
+
+    public function testWithoutTheInstanceTokenAnInstalledRepositoryIsStillRemovedAndUnlinked(): void
+    {
+        // The token is gone since the webhooks were installed: GitLab cannot be told, and is not called.
+        $this->gitlabWithHook('', 'the-secret-of-the-instance-hook');
+        $repository = $this->link();
+        $repository->markInstalled('42');
+        $other = $this->link(path: 'maison-dupont/intranet');
+        $other->markInstalled('43');
+        $this->entityManager->flush();
+        $otherId = (int) $other->getId();
+
+        $this->commands->dispatch(new UpdateRepository((int) $repository->getId(), installed: false));
+        self::assertFalse($repository->isInstalled());
+
+        $this->commands->dispatch(new UnlinkRepository($otherId));
+        self::assertNull($this->entityManager->find(CodeRepository::class, $otherId));
+    }
+
+    public function testABlankSecretIsNoInstanceHook(): void
+    {
+        $this->gitlabWithHook('', " \n");
         $repository = $this->link();
 
         $this->expectException(CodeRepositoryException::class);

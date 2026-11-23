@@ -1170,11 +1170,14 @@ project:
             link: Lier
             link_help: "Aucun jeton d'instance n'est configuré : le webhook sera à installer à la main, avec l'adresse et le secret affichés."
             link_help_api: "Le webhook est installé sur la forge dès que le dépôt est lié, avec le jeton de l'instance."
+            link_help_instance: "Le hook de l'instance GitLab livre tous les dépôts : il n'y a rien à installer sur la forge."
             installed: 'Webhook installé le %date%'
+            instance_hook: Livré par le hook d'instance
             not_installed: Webhook à installer
             empty: Aucun dépôt lié
             empty_hint: Liez un dépôt pour voir ses commits et ses merge requests sur les demandes qu'ils citent.
             linked_installed: 'Dépôt %path% lié, webhook installé.'
+            linked_instance: 'Dépôt %path% lié : le hook d''instance le livre.'
             linked_manual: 'Dépôt %path% lié. Installez le webhook à la main avec l''adresse et le secret affichés.'
             unlink_confirm: Délier ce dépôt ? Son webhook est retiré ; les références déjà relevées restent sur les demandes.
             action:
@@ -1601,6 +1604,7 @@ code_repository:
         forge_unavailable: Cette forge n'est pas encore prise en charge.
         already_linked: 'Le dépôt %path% est déjà lié à ce projet.'
         api_not_configured: "Aucun jeton d'instance pour cette forge : installez le webhook à la main."
+        instance_hook: "Le hook d'instance livre déjà ce dépôt : il n'y a pas de webhook à installer."
         forge_refused: "La forge a refusé l'appel : vérifiez le chemin du dépôt et les droits du jeton de l'instance."
 forge:
     gitlab: GitLab

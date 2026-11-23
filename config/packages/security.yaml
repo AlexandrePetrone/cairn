@@ -21,7 +21,8 @@ security:
             security: false
         webhook:
             # The forges deliver here, authenticated by the secret of the
-            # repository named in the payload (Forge/GitLab/GitLabRequestParser):
+            # repository named in the payload or by the one of the instance
+            # hook (Forge/GitLab/GitLabRequestParser):
             # no session, no user, no CSRF.
             pattern: ^/webhook/
             security: false

@@ -1,8 +1,11 @@
 # Deliveries of the forges (push, merge request) land on /webhook/{type}.
-# No secret here: each linked repository (CodeRepository) has its own,
-# which the parser checks against the repository named in the payload.
+# Each linked repository (CodeRepository) has a secret of its own, which the
+# parser checks against the repository named in the payload. The secret
+# below is the one of a system hook of the GitLab instance, optional: a
+# delivery that carries it is taken for any linked repository.
 framework:
     webhook:
         routing:
             gitlab:
                 service: App\Forge\GitLab\GitLabRequestParser
+                secret: '%env(FORGE_GITLAB_HOOK_SECRET)%'

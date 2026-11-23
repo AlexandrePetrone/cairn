@@ -34,9 +34,11 @@ final class UnlinkRepositoryHandler
     {
         $repository = $this->repositories->find($command->codeRepositoryId) ?? throw CodeRepositoryException::notFound('Repository', $command->codeRepositoryId);
         $this->actor->denyUnlessGranted($command->actorId, Permission::ProjectConfigure, $repository->getProject());
-        if (null !== $hookId = $repository->getHookId()) {
+        $api = $this->apis->for($repository->getForge());
+        // Without the instance token the forge cannot be told: the hook stays there, to remove by hand.
+        if (null !== ($hookId = $repository->getHookId()) && $api->isConfigured()) {
             try {
-                $this->apis->for($repository->getForge())->uninstallHook($repository->getPath(), $hookId);
+                $api->uninstallHook($repository->getPath(), $hookId);
             } catch (ForgeApiException $e) {
                 throw CodeRepositoryException::forgeRefused($e);
             }

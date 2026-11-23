@@ -32,7 +32,13 @@ final class RepositoriesTest extends WebTestCase
 
     private function gitlab(string $token, MockResponse ...$responses): void
     {
-        self::getContainer()->set(GitLabApi::class, new GitLabApi(new MockHttpClient(array_values($responses)), self::getContainer()->get(UrlGeneratorInterface::class), 'https://gitlab.test', $token, 'https://cairn.test'));
+        $this->gitlabWithHook($token, '', ...$responses);
+    }
+
+    /** GitLab with a system hook of the instance when `$hookSecret` is not empty. */
+    private function gitlabWithHook(string $token, string $hookSecret, MockResponse ...$responses): void
+    {
+        self::getContainer()->set(GitLabApi::class, new GitLabApi(new MockHttpClient(array_values($responses)), self::getContainer()->get(UrlGeneratorInterface::class), 'https://gitlab.test', $token, 'https://cairn.test', $hookSecret));
     }
 
     private function signInAs(string $email): void
@@ -109,6 +115,34 @@ final class RepositoriesTest extends WebTestCase
         $this->client->submitForm('Link', ['code_repository[path]' => 'maison-dupont/shop']);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('form[name="code_repository"]', 'already linked');
+    }
+
+    public function testWithAnInstanceHookLinkingIsAllThereIsToDo(): void
+    {
+        // A token besides: the hook of the instance wins, GitLab is not called.
+        $this->gitlabWithHook('glpat-test', 'the-secret-of-the-instance-hook');
+        $this->signInAs('thomas.girard@cairn.test');
+        $this->client->request('GET', '/MD/SPT/settings/repositories/new');
+        self::assertSelectorTextContains('[role="dialog"]', 'nothing to install');
+
+        $this->client->submitForm('Link', ['code_repository[path]' => 'maison-dupont/shop']);
+        self::assertResponseRedirects('/MD/SPT/settings/repositories');
+        $this->client->followRedirect();
+
+        $linked = $this->linked();
+        self::assertCount(1, $linked);
+        self::assertFalse($linked[0]->isInstalled());
+        self::assertSelectorTextContains('body', 'the instance hook delivers it');
+        self::assertSelectorTextContains('main', 'Delivered by the instance hook');
+        self::assertSelectorNotExists('code.select-all', 'neither an address nor a secret to paste');
+        self::assertSelectorTextNotContains('main', $linked[0]->getSecret());
+        self::assertSelectorNotExists('button:contains("Install the webhook")');
+        self::assertSelectorNotExists('button:contains("Regenerate the secret")');
+        self::assertSelectorExists('button:contains("Unlink")');
+
+        $this->client->request('POST', \sprintf('/MD/SPT/settings/repositories/%d/install', $linked[0]->getId()), ['_token' => $this->client->getCrawler()->filter('input[name="_token"]')->attr('value')]);
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('body', 'no webhook to install', 'refused by the command, not by a missing button');
     }
 
     public function testTheActionsOnALinkedRepository(): void

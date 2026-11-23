@@ -52,6 +52,7 @@ x-cairn: &cairn
     OIDC_NAME: ${OIDC_NAME:-SSO}
     FORGE_GITLAB_URL: ${FORGE_GITLAB_URL:-https://gitlab.com}
     FORGE_GITLAB_TOKEN: ${FORGE_GITLAB_TOKEN:-}
+    FORGE_GITLAB_HOOK_SECRET: ${FORGE_GITLAB_HOOK_SECRET:-}
   volumes:
     # The attachments, the import archives and the certificates of Caddy: with the database,
     # all there is to back up.

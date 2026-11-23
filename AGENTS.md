@@ -383,7 +383,14 @@ src/
 
 ### Forges and imports
 
-- A linked repository has a secret of its own, never an instance-wide one.
+- A delivery proves where it comes from in one of two ways: the secret of
+  the link, which every linked repository has of its own, or the secret of
+  a system hook of the forge's instance (`FORGE_GITLAB_HOOK_SECRET`,
+  optional, `ForgeApi::hasInstanceHook()`), which stands for every link of
+  the repository named and installs nothing. Either way a repository
+  nobody linked leaves nothing, and none links itself: what the instance
+  hook delivers besides is accepted and ignored. The README says what the
+  instance hook costs; the two change together.
   `Forge/GitLab/GitLabRequestParser` authenticates and tames everything it
   reads, then emits neutral events (`Forge/Event/`). Code references are
   private, without author, notify nobody and never apply a transition.

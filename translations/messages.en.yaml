@@ -1170,11 +1170,14 @@ project:
             link: Link
             link_help: "No instance token is configured: the webhook will have to be installed by hand, with the address and secret shown."
             link_help_api: "The webhook is installed on the forge as soon as the repository is linked, with the token of the instance."
+            link_help_instance: "The hook of the GitLab instance delivers every repository: there is nothing to install on the forge."
             installed: 'Webhook installed on %date%'
+            instance_hook: Delivered by the instance hook
             not_installed: Webhook to install
             empty: No linked repository
             empty_hint: Link a repository to see its commits and merge requests on the issues they mention.
             linked_installed: 'Repository %path% linked, webhook installed.'
+            linked_instance: 'Repository %path% linked: the instance hook delivers it.'
             linked_manual: 'Repository %path% linked. Install the webhook by hand with the address and secret shown.'
             unlink_confirm: Unlink this repository? Its webhook is removed; the references already noted stay on the issues.
             action:
@@ -1601,6 +1604,7 @@ code_repository:
         forge_unavailable: This forge is not supported yet.
         already_linked: 'The repository %path% is already linked to this project.'
         api_not_configured: "No instance token for this forge: install the webhook by hand."
+        instance_hook: "The instance hook already delivers this repository: there is no webhook to install."
         forge_refused: "The forge refused the call: check the repository path and the rights of the token of the instance."
 forge:
     gitlab: GitLab

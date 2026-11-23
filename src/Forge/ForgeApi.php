@@ -22,6 +22,13 @@ interface ForgeApi
     /** Whether an instance token is set: without one, webhooks are installed by hand. */
     public function isConfigured(): bool;
 
+    /**
+     * Whether a hook of the forge's instance delivers every repository, with
+     * a secret of the instance: a linked repository then needs no webhook of
+     * its own, and none is installed.
+     */
+    public function hasInstanceHook(): bool;
+
     /** Where this forge delivers to, absolute, built from `DEFAULT_URI`: it goes to the forge, through the API or by hand. */
     public function deliveryUrl(): string;
 

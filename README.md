@@ -141,9 +141,10 @@ MAILER_FROM="Cairn <no-reply@cairn.example>"
 CAIRN_LOCALE=en
 # Where attachments are stored, outside public/
 ATTACHMENTS_DIR=/var/lib/cairn/attachments
-# Optional: lets project managers install GitLab webhooks from Cairn
+# Optional: how GitLab delivers to Cairn, see below
 FORGE_GITLAB_URL=https://gitlab.example
 FORGE_GITLAB_TOKEN=<token with the api scope>
+FORGE_GITLAB_HOOK_SECRET=<random string>
 # Where archives wait to be imported (Administration > Imports)
 IMPORTS_DIR=/var/lib/cairn/imports
 # Optional: single sign-on, see below
@@ -179,6 +180,34 @@ Good to know:
 - **The provider must send `email_verified: true`**: this is what links its user to the Cairn account the first time. Entra ID does not send it, so it does not work.
 - **One account, one method**: an account that uses single sign-on has no password.
 - **Remember to deactivate accounts in Cairn**: removing someone from the directory closes neither their session nor their API tokens.
+
+### GitLab webhooks (optional)
+
+A project manager links a repository in the settings of a project (Repositories), by its path. From then on, the commits and merge requests of that repository that mention an issue of the project show up on it. A repository nobody linked never leaves anything in Cairn. GitLab can deliver to Cairn in three ways:
+
+| Way | In GitLab | What Cairn holds |
+|---|---|---|
+| By hand (default) | For each repository, a Maintainer adds a webhook with the address and the secret shown by Cairn | A secret per repository |
+| Instance token | Once: a token with the `api` scope, for an account that is Maintainer of the repositories. Cairn then installs each webhook itself | A secret per repository, and a token that can read and write those repositories |
+| Instance hook | Once: a system hook, as an administrator | One secret for the whole instance, and no access to GitLab |
+
+For the instance token, set `FORGE_GITLAB_URL` and `FORGE_GITLAB_TOKEN`.
+
+The instance hook is for a self-managed GitLab (system hooks exist in every tier, but not on GitLab.com). To set it up:
+
+1. Generate a secret, for example with `openssl rand -hex 32`.
+2. In GitLab, as an administrator: **Admin** > **System hooks** > **Add new webhook**.
+3. Set **URL** to `https://<your domain>/webhook/gitlab` and **Secret token** to the secret. Under **Trigger**, select **Push events** and **Merge request events** only. Leave **Enable SSL verification** selected.
+4. Set `FORGE_GITLAB_HOOK_SECRET` to the same secret and restart Cairn.
+
+Linking a repository in Cairn is then all there is to do: nothing is installed in GitLab, and the settings of a project show neither an address nor a secret. Repositories that already have a webhook of their own keep working.
+
+**Security limits of the instance hook.** It replaces the secret of each repository with a single secret shared by the whole GitLab instance:
+
+- **One secret protects every linked repository.** Whoever knows it can send Cairn forged commits and merge requests in the name of any linked repository. These references stay private, notify nobody and move no issue, but they show on the issues they mention. If the secret leaks, change it in GitLab and in Cairn.
+- **Linking a repository no longer proves control over it.** With a secret per repository, only a Maintainer of the repository can add the webhook in GitLab. With the instance hook, anyone who may configure a project in Cairn can link any repository of the GitLab instance to it, and see the commits and merge requests of that repository that mention an issue of their project.
+
+In return, Cairn holds no access token to GitLab. Prefer a secret per repository when people outside your team may configure projects, or when GitLab hosts repositories whose activity must not leave it.
 
 ### Real time (optional)
 
@@ -340,6 +369,8 @@ castor assets:clean             # back to the Vite server
        -H "X-Gitlab-Event: Push Hook" -H "X-Gitlab-Token: <repository secret>" \
        -H "Content-Type: application/json" -d @tests/Forge/Fixture/gitlab_push.json
   ```
+
+  With `FORGE_GITLAB_HOOK_SECRET` set in `.env.local`, the same request with that secret as `X-Gitlab-Token` is taken as a delivery of the instance hook.
 
 ## License
 

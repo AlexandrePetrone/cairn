@@ -9,16 +9,20 @@ use App\Forge\GitLab\GitLabRequestParser;
 use App\Tests\MessageHandler\Command\Forge\ForgeTestSupport;
 use App\Tests\Security\AccessFixtures;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\TestWith;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Webhook\Exception\RejectWebhookException;
 
 /**
  * What the parser makes of a delivery; the token and the repository are
- * checked end to end by GitLabWebhookTest.
+ * checked end to end by GitLabWebhookTest. The second argument of `parse()`
+ * is the secret of the instance hook, empty when the instance has none.
  */
 final class GitLabRequestParserTest extends KernelTestCase
 {
+    private const string HOOK_SECRET = 'the-secret-of-the-instance-hook';
+
     private GitLabRequestParser $parser;
     private AccessFixtures $access;
     private ForgeTestSupport $forge;
@@ -120,6 +124,83 @@ final class GitLabRequestParserTest extends KernelTestCase
         self::assertIsArray($events);
         self::assertCount(1, $events);
         self::assertSame('ignored', $events[0]->getName());
+    }
+
+    public function testTheInstanceHookStandsForEveryLinkOfTheRepository(): void
+    {
+        $this->forge->link($this->access->shop, secret: str_repeat('ab', 20));
+        $this->forge->link($this->access->otherProject, secret: str_repeat('cd', 20));
+        $this->forge->link($this->access->intranet, path: 'maison-dupont/intranet', secret: str_repeat('ef', 20));
+        // A system hook names a push by `event_name` only.
+        $body = self::fixture('gitlab_push');
+        unset($body['object_kind']);
+
+        $events = $this->parser->parse(self::request($body, self::HOOK_SECRET), self::HOOK_SECRET);
+
+        self::assertIsArray($events);
+        self::assertCount(2, $events, 'whatever the secret of each link, and not the link of another repository');
+        self::assertContainsOnlyInstancesOf(PushReceived::class, $events);
+    }
+
+    public function testTheInstanceHookAlsoDeliversWhatNobodyLinkedWhichIsIgnored(): void
+    {
+        $this->forge->link($this->access->shop, secret: str_repeat('ab', 20));
+        $unlinked = self::fixture('gitlab_push');
+        $unlinked['project']['path_with_namespace'] = 'someone/else';
+        $account = ['event_name' => 'user_create', 'email' => 'someone@gitlab.test', 'name' => 'Someone', 'username' => 'someone', 'user_id' => 41];
+        $odd = ['event_name' => 'push', 'project' => 'maison-dupont/shop'];
+
+        foreach ([$unlinked, $account, $odd] as $body) {
+            $events = $this->parser->parse(self::request($body, self::HOOK_SECRET), self::HOOK_SECRET);
+
+            self::assertIsArray($events);
+            self::assertCount(1, $events);
+            self::assertSame('ignored', $events[0]->getName(), 'accepted, and nothing made of it');
+        }
+    }
+
+    public function testTheSecretOfALinkStillWorksBesideTheInstanceHook(): void
+    {
+        $this->forge->link($this->access->shop, secret: str_repeat('ab', 20));
+        $this->forge->link($this->access->otherProject, secret: str_repeat('cd', 20));
+
+        $events = $this->parser->parse(self::request(self::fixture('gitlab_push'), str_repeat('ab', 20)), self::HOOK_SECRET);
+
+        self::assertIsArray($events);
+        self::assertCount(1, $events, 'the hook of a repository speaks for the links that have its secret only');
+
+        try {
+            $this->parser->parse(self::request(self::fixture('gitlab_push'), 'not-the-secret-of-the-instance'), self::HOOK_SECRET);
+            self::fail('A wrong secret went through.');
+        } catch (RejectWebhookException $e) {
+            self::assertSame(403, $e->getStatusCode());
+        }
+    }
+
+    public function testTheSecretOfTheInstanceIsComparedWithoutTheBlanksAroundIt(): void
+    {
+        $this->forge->link($this->access->shop, secret: str_repeat('ab', 20));
+
+        $events = $this->parser->parse(self::request(self::fixture('gitlab_push'), self::HOOK_SECRET), self::HOOK_SECRET."\n");
+
+        self::assertIsArray($events);
+        self::assertContainsOnlyInstancesOf(PushReceived::class, $events);
+    }
+
+    #[TestWith([''])]
+    #[TestWith([" \n"])]
+    public function testWithoutAnInstanceHookItsSecretOpensNothing(string $configured): void
+    {
+        $this->forge->link($this->access->shop, secret: str_repeat('ab', 20));
+
+        foreach ([self::HOOK_SECRET, ''] as $token) {
+            try {
+                $this->parser->parse(self::request(self::fixture('gitlab_push'), $token), $configured);
+                self::fail('A delivery went through without the secret of a link.');
+            } catch (RejectWebhookException $e) {
+                self::assertSame(403, $e->getStatusCode(), 'an empty secret is no secret');
+            }
+        }
     }
 
     public function testARequestWithoutGitLabHeadersIsNotAWebhook(): void

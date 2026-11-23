@@ -197,7 +197,7 @@ final class SettingsController extends AbstractController
     /**
      * The repositories linked to the project, each installed on its forge
      * or waiting to be, by the API or by hand with the URL and the secret
-     * shown.
+     * shown; none of it where a hook of the instance delivers them all.
      */
     #[Route('/repositories', name: 'app_project_settings_repositories', methods: ['GET'])]
     public function repositories(#[CurrentProject] Project $project, Request $request, CodeRepositoryRepository $repositories, ForgeApiLocator $apis): Response
@@ -207,7 +207,8 @@ final class SettingsController extends AbstractController
 
     /**
      * The list of the repositories with the dialog linking one more,
-     * installed at once when the instance token allows it.
+     * installed at once when the instance token allows it, and never where
+     * a hook of the instance delivers every repository.
      */
     #[Route('/repositories/new', name: 'app_project_settings_repository_new', methods: ['GET', 'POST'])]
     public function newRepository(#[CurrentProject] Project $project, #[CurrentUser] User $actor, Request $request, CodeRepositoryRepository $repositories, ForgeApiLocator $apis): Response
@@ -221,7 +222,9 @@ final class SettingsController extends AbstractController
             try {
                 $repository = $this->commands->dispatch(new LinkRepository((int) $project->getId(), $forge, (string) $data->path, (int) $actor->getId()));
                 \assert($repository instanceof CodeRepository);
-                if ($apis->for($forge)->isConfigured()) {
+                if ($apis->for($forge)->hasInstanceHook()) {
+                    $this->addFlash('success', $this->translator->trans('project.settings.repository.linked_instance', ['%path%' => $repository->getPath()]));
+                } elseif ($apis->for($forge)->isConfigured()) {
                     $this->commands->dispatch(new UpdateRepository((int) $repository->getId(), installed: true, actorId: (int) $actor->getId()));
                     $this->addFlash('success', $this->translator->trans('project.settings.repository.linked_installed', ['%path%' => $repository->getPath()]));
                 } else {
@@ -272,6 +275,7 @@ final class SettingsController extends AbstractController
         return $this->renderWithDialog($request, 'project/settings/repositories.html.twig', [
             'project' => $project,
             'canInstall' => $api->isConfigured(),
+            'instanceHook' => $api->hasInstanceHook(),
             'form' => $form,
         ], static fn (): array => [
             'repositories' => $repositories->findByProject($project),

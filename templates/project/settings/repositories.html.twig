@@ -1,6 +1,6 @@
 {% extends 'project/settings/base.html.twig' %}
 
-{# The repositories of the forges linked to the project, with their webhook installed or not; `form`, at its own address, is the dialog linking one more. A repository waiting for its webhook shows what to paste on the forge; unlinking confirms in place. #}
+{# The repositories of the forges linked to the project, with their webhook installed or not; `form`, at its own address, is the dialog linking one more. A repository waiting for its webhook shows what to paste on the forge, unless the hook of the instance delivers it (`instanceHook`): there is then nothing to install; unlinking confirms in place. #}
 {% block settings_title %}{{ 'nav.project.configuration.repositories'|trans }}{% endblock %}
 
 {% block settings_count %}{{ repositories|length }}{% endblock %}
@@ -21,19 +21,23 @@
                     <code class="font-mono text-sm font-medium text-strong">{{ repository.path }}</code>
                     {% if repository.installed %}
                         <twig:Ui:Badge tone="emerald" size="sm" icon="check">{{ 'project.settings.repository.installed'|trans({ '%date%': repository.installedAt|date('d/m/Y') }) }}</twig:Ui:Badge>
+                    {% elseif instanceHook %}
+                        <twig:Ui:Badge tone="emerald" size="sm" icon="check">{{ 'project.settings.repository.instance_hook'|trans }}</twig:Ui:Badge>
                     {% else %}
                         <twig:Ui:Badge tone="amber" size="sm" icon="circle-alert">{{ 'project.settings.repository.not_installed'|trans }}</twig:Ui:Badge>
                     {% endif %}
                     <div class="ml-auto flex flex-wrap items-center gap-2">
                         {% if repository.installed %}
                             {{ include('project/settings/_repository_action.html.twig', { action: 'uninstall' }) }}
-                        {% elseif canInstall %}
+                        {% elseif canInstall and not instanceHook %}
                             {{ include('project/settings/_repository_action.html.twig', { action: 'install', variant: 'primary' }) }}
                         {% endif %}
-                        {{ include('project/settings/_repository_action.html.twig', { action: 'secret', variant: 'ghost' }) }}
+                        {% if repository.installed or not instanceHook %}
+                            {{ include('project/settings/_repository_action.html.twig', { action: 'secret', variant: 'ghost' }) }}
+                        {% endif %}
                     </div>
                 </div>
-                {% if not repository.installed %}
+                {% if not repository.installed and not instanceHook %}
                     <twig:Ui:Callout tone="blue" class="mt-3">
                         <p class="font-medium">{{ 'project.settings.repository.manual.title'|trans }}</p>
                         <p class="mt-1 text-xs">{{ 'project.settings.repository.manual.intro'|trans }}</p>
@@ -61,9 +65,9 @@
     </div>
 {% endblock %}
 
-{# Answered alone to a request made for the frame: it reads only `project`, `form` and `canInstall`. #}
+{# Answered alone to a request made for the frame: it reads only `project`, `form`, `canInstall` and `instanceHook`. #}
 {% block modal %}
-    {% set modalHelp %}<p class="mt-3 text-xs text-muted">{{ (canInstall ? 'project.settings.repository.link_help_api' : 'project.settings.repository.link_help')|trans }}</p>{% endset %}
+    {% set modalHelp %}<p class="mt-3 text-xs text-muted">{{ (instanceHook ? 'project.settings.repository.link_help_instance' : (canInstall ? 'project.settings.repository.link_help_api' : 'project.settings.repository.link_help'))|trans }}</p>{% endset %}
     {{ include('project/_form_dialog.html.twig', {
         title: 'project.settings.repository.new'|trans,
         closeHref: path('app_project_settings_repositories', { workspaceKey: project.workspace.key, projectKey: project.key }),

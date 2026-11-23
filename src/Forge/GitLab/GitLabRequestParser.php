@@ -23,13 +23,17 @@ use Symfony\Component\Webhook\Client\AbstractRequestParser;
 use Symfony\Component\Webhook\Exception\RejectWebhookException;
 
 /**
- * Reads a GitLab webhook delivery. The repository named in the payload
- * must be linked to a project, and the `X-Gitlab-Token` header must be
- * the secret of that link: there is no instance-wide secret, so the
- * `$secret` the framework passes is ignored. One neutral event per link
- * matched, since each is bound to its project. A kind Cairn does not read
- * (a tag, a note, a pipeline) is accepted and ignored: GitLab disables a
- * webhook after repeated 4xx answers.
+ * Reads a GitLab webhook delivery, which proves where it comes from in one
+ * of two ways. The hook of a repository sends the secret of its link as
+ * `X-Gitlab-Token`: the repository named in the payload must be linked,
+ * with that secret. A system hook of the instance sends the `$secret` the
+ * framework passes (`FORGE_GITLAB_HOOK_SECRET`, empty when there is none)
+ * and stands for every link of the repository named; it also delivers the
+ * repositories nobody linked and the administration of GitLab (accounts,
+ * keys, members), which are accepted and ignored. One neutral event per
+ * link matched, since each is bound to its project. A kind Cairn does not
+ * read (a tag, a note, a pipeline) is accepted and ignored: GitLab disables
+ * a webhook after repeated 4xx answers.
  */
 final class GitLabRequestParser extends AbstractRequestParser
 {
@@ -55,20 +59,28 @@ final class GitLabRequestParser extends AbstractRequestParser
      */
     protected function doParse(Request $request, #[\SensitiveParameter] string $secret): array
     {
-        // The token has the shape of a secret of ours before the body is read.
         $token = (string) $request->headers->get('X-Gitlab-Token');
-        if (1 !== preg_match('/^[0-9a-f]{40}$/', $token)) {
+        // A header carries no surrounding blank, so the secret is compared without any.
+        $secret = trim($secret);
+        $instanceHook = '' !== $secret && hash_equals($secret, $token);
+        // Otherwise the token has the shape of a secret of ours before the body is read.
+        if (!$instanceHook && 1 !== preg_match('/^[0-9a-f]{40}$/', $token)) {
             throw new RejectWebhookException(403, 'Unknown repository or invalid token.');
         }
         $payload = $request->toArray();
-        $path = self::str($payload['project']['path_with_namespace'] ?? null, 255);
-        $links = array_values(array_filter($this->repositories->findByPath(Forge::GitLab, $path), static fn (CodeRepository $link): bool => $link->acceptsToken($token)));
-        if ([] === $links) {
-            throw new RejectWebhookException(403, 'Unknown repository or invalid token.');
+        $project = $payload['project'] ?? null;
+        $path = self::str(\is_array($project) ? $project['path_with_namespace'] ?? null : null, 255);
+        $links = '' === $path ? [] : $this->repositories->findByPath(Forge::GitLab, $path);
+        if (!$instanceHook) {
+            $links = array_values(array_filter($links, static fn (CodeRepository $link): bool => $link->acceptsToken($token)));
+            if ([] === $links) {
+                throw new RejectWebhookException(403, 'Unknown repository or invalid token.');
+            }
         }
 
         $id = self::str($request->headers->get('X-Gitlab-Event-UUID') ?? (string) Uuid::v4(), 64);
-        $events = match (self::str($payload['object_kind'] ?? null, 40)) {
+        // A system hook names a push by `event_name` only.
+        $events = [] === $links ? null : match (self::str($payload['object_kind'] ?? $payload['event_name'] ?? null, 40)) {
             'push' => $this->push($payload, $links),
             'merge_request' => $this->mergeRequest($payload, $links),
             default => null,
