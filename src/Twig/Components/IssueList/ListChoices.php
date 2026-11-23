@@ -6,7 +6,9 @@ namespace App\Twig\Components\IssueList;
 
 use App\Config\ConfigRegistry;
 use App\Config\Definition\PlaceDefinition;
+use App\Entity\Issue;
 use App\Entity\Release;
+use App\Entity\Tag;
 use App\Entity\Tracker;
 use App\Entity\User;
 use App\Form\Issue\IssueListFilters;
@@ -18,7 +20,9 @@ use App\Message\Query\Project\ListTrackers;
 use App\Message\Query\Project\ListVisibleProjects;
 use App\Message\Query\Project\ProjectSummary;
 use App\Message\QueryBus;
+use App\Repository\IssueTagRepository;
 use App\Repository\ReleaseRepository;
+use App\Repository\TagRepository;
 use App\Security\Viewer;
 
 /**
@@ -38,6 +42,9 @@ final class ListChoices
     /** @var \WeakMap<ListScope, list<Release>> */
     private \WeakMap $releases;
 
+    /** @var \WeakMap<ListScope, list<Tag>> */
+    private \WeakMap $tags;
+
     /** @var \WeakMap<ListScope, list<PlaceDefinition>> */
     private \WeakMap $places;
 
@@ -45,10 +52,13 @@ final class ListChoices
         private readonly QueryBus $queries,
         private readonly Viewer $viewer,
         private readonly ReleaseRepository $releaseRepository,
+        private readonly TagRepository $tagRepository,
+        private readonly IssueTagRepository $issueTags,
         private readonly ConfigRegistry $config,
     ) {
         $this->trackers = new \WeakMap();
         $this->releases = new \WeakMap();
+        $this->tags = new \WeakMap();
         $this->places = new \WeakMap();
     }
 
@@ -68,6 +78,7 @@ final class ListChoices
             assignee: $scope->offers('assignee') ? $filters->assignees : [],
             criticality: $scope->offers('criticality') ? $filters->criticality : [],
             release: [] !== $filters->releases && $this->offersReleases($scope) ? $filters->releases : [],
+            tag: $this->knownTags($scope, $filters),
             q: $filters->q,
             closed: $filters->closed,
             page: $filters->page,
@@ -96,6 +107,7 @@ final class ListChoices
             assignee: $scope->offers('assignee') ? $filters->assignees : [],
             criticality: $scope->offers('criticality') ? $filters->criticality : [],
             release: [] !== $filters->releases && $this->offersReleases($scope) ? $filters->releases : [],
+            tag: $this->knownTags($scope, $filters),
             q: $filters->q,
             sort: IssueSort::Rank,
             order: \SortDirection::Descending,
@@ -151,6 +163,38 @@ final class ListChoices
     }
 
     /**
+     * The tags of the project, by name.
+     *
+     * @return list<Tag>
+     */
+    public function tags(ListScope $scope): array
+    {
+        return $this->tags[$scope] ??= null === $scope->project ? [] : $this->tagRepository->findByProject($scope->project);
+    }
+
+    /**
+     * The tag filter is offered on the lists of a project that has tags,
+     * when the page offers it.
+     */
+    public function offersTags(ListScope $scope): bool
+    {
+        return $scope->offers('tag') && [] !== $this->tags($scope);
+    }
+
+    /**
+     * The tags the issues of a page carry, which their rows and cards
+     * show, across projects too: one read for the page.
+     *
+     * @param iterable<Issue> $issues
+     *
+     * @return array<int, list<Tag>> issue id => its tags by name
+     */
+    public function tagsOf(iterable $issues): array
+    {
+        return $this->issueTags->tagsByIssue($issues);
+    }
+
+    /**
      * @return list<User>
      */
     public function members(ListScope $scope): array
@@ -189,6 +233,22 @@ final class ListChoices
     public function grouping(ListScope $scope, IssueListFilters $filters): ?IssueGrouping
     {
         return \in_array($filters->group, $this->groupings($scope), true) ? $filters->group : null;
+    }
+
+    /**
+     * The chosen tags the project still has, and "none": a tag deleted
+     * since the list was arranged filters nothing.
+     *
+     * @return list<int>
+     */
+    private function knownTags(ListScope $scope, IssueListFilters $filters): array
+    {
+        if ([] === $filters->tags || !$this->offersTags($scope)) {
+            return [];
+        }
+        $known = [0, ...array_map(static fn (Tag $tag): int => (int) $tag->getId(), $this->tags($scope))];
+
+        return array_values(array_intersect($filters->tags, $known));
     }
 
     /**

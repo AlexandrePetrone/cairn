@@ -13,6 +13,7 @@
 {% set selectionChangeTrackers = this.changeTrackers %}
 {% set selectionAssignee = this.assignee %}
 {% set selectionRelease = this.release %}
+{% set selectionTag = this.tag %}
 {% set selectionArrivals = {} %}
 {% set selectionTrackerPlaces = {} %}
 {% if report is null %}
@@ -236,6 +237,37 @@
                                         {% if criticality == level %}{{ selectionCheck }}{% endif %}
                                     </twig:Ui:Dropdown:Item>
                                 {% endfor %}
+                            </twig:block>
+                        </twig:Ui:Dropdown>
+                    {% endif %}
+
+                    {% if selectionActions.tags is not empty %}
+                        <twig:Ui:Dropdown width="sm" class="block">
+                            <twig:block name="trigger">
+                                <div class="{{ selectionRowClasses }}">
+                                    <div class="{{ selectionLabelClasses }}">{{ 'issue.bulk.add_tag'|trans }}</div>
+                                    <div class="min-w-0 flex-1">
+                                        <button type="button" class="{{ selectionValueClasses }}" aria-expanded="false" aria-haspopup="menu" aria-label="{{ 'issue.show.change_property'|trans({ '%property%': 'issue.show.tags'|trans }) }}" data-action="dropdown#toggle">
+                                            {% if selectionTag %}
+                                                <twig:Ui:Tag :colour="selectionTag.colour.value">{{ selectionTag.name }}</twig:Ui:Tag>
+                                            {% else %}
+                                                {{ selectionUnchanged }}
+                                            {% endif %}
+                                            {{ selectionChevron }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </twig:block>
+                            <twig:block name="content">
+                                <div class="max-h-72 overflow-y-auto">
+                                    <twig:Ui:Dropdown:Item data-action="live#action dropdown#close" data-live-action-param="change" data-live-property-param="tag">{{ selectionUnchanged }}</twig:Ui:Dropdown:Item>
+                                    {% for tag in selectionActions.tags %}
+                                        <twig:Ui:Dropdown:Item :active="tag.id == tagId" data-action="live#action dropdown#close" data-live-action-param="change" data-live-property-param="tag" data-live-value-param="{{ tag.id }}">
+                                            <twig:Ui:Tag :colour="tag.colour.value">{{ tag.name }}</twig:Ui:Tag>
+                                            {% if tag.id == tagId %}{{ selectionCheck }}{% endif %}
+                                        </twig:Ui:Dropdown:Item>
+                                    {% endfor %}
+                                </div>
                             </twig:block>
                         </twig:Ui:Dropdown>
                     {% endif %}

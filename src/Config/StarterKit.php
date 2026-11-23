@@ -169,6 +169,7 @@ final class StarterKit
                 Permission::IssueSetCriticality->value => self::INTERNAL_AND_CLIENT,
                 Permission::IssueSetPrivate->value => self::INTERNAL,
                 Permission::IssueSetRelease->value => self::INTERNAL,
+                Permission::IssueSetTags->value => self::INTERNAL_AND_CLIENT,
                 Permission::IssueLink->value => self::INTERNAL,
                 Permission::CommentCreate->value => self::INTERNAL_AND_CLIENT,
                 Permission::CommentSetPrivate->value => self::INTERNAL,

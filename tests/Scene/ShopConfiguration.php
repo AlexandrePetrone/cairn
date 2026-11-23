@@ -71,6 +71,7 @@ final class ShopConfiguration
             Permission::IssueSetCriticality->value => ['project_manager', 'developer', 'client'],
             Permission::IssueSetPrivate->value => ['project_manager', 'developer'],
             Permission::IssueSetRelease->value => ['project_manager', 'developer'],
+            Permission::IssueSetTags->value => ['project_manager', 'developer', 'client'],
             Permission::IssueLink->value => ['project_manager', 'developer'],
             Permission::CommentCreate->value => ['project_manager', 'developer', 'client'],
             Permission::CommentSetPrivate->value => ['project_manager', 'developer'],

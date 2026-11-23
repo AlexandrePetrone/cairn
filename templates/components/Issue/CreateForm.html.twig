@@ -39,6 +39,22 @@
                     {% if form.criticality is defined %}
                         <div class="p-4">{{ form_row(form.criticality) }}</div>
                     {% endif %}
+                    {% if form.tags is defined %}
+                        {# Each tag is a checkbox drawn as the tag itself. #}
+                        <fieldset class="p-4">
+                            <legend class="float-left w-full text-sm font-medium text-body">{{ form.tags.vars.label|trans }} <span class="font-normal text-faint">{{ 'form.optional'|trans }}</span></legend>
+                            <div class="clear-both flex flex-wrap gap-1.5 pt-1.5">
+                                {% for choice in form.tags %}
+                                    <label class="cursor-pointer">
+                                        <input type="checkbox" id="{{ choice.vars.id }}" name="{{ choice.vars.full_name }}" value="{{ choice.vars.value }}" class="peer sr-only" {{ choice.vars.checked ? 'checked' }}>
+                                        <twig:Ui:Tag :colour="choice.vars.attr['data-colour']" class="peer-checked:bg-brand-soft peer-checked:ring-2 peer-checked:ring-brand peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus">{{ choice.vars.label }}</twig:Ui:Tag>
+                                    </label>
+                                    {% do choice.setRendered %}
+                                {% endfor %}
+                            </div>
+                            {% do form.tags.setRendered %}
+                        </fieldset>
+                    {% endif %}
                 </div>
             </section>
 

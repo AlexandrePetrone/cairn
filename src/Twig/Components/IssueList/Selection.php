@@ -8,12 +8,14 @@ use App\Config\Definition\PlaceDefinition;
 use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
 use App\Entity\Release;
+use App\Entity\Tag;
 use App\Entity\Tracker;
 use App\Entity\User;
 use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ChangeTracker;
 use App\Message\Command\Issue\FollowIssue;
 use App\Message\Command\Issue\MoveIssue;
+use App\Message\Command\Issue\TagIssue;
 use App\Message\Command\Issue\UnfollowIssue;
 use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
@@ -35,10 +37,10 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * The selection page: the issues the viewer still sees among those
  * checked, and the changes to apply to all of them (ListSelectionActions
  * says which are offered). Changes add up, each left alone until chosen:
- * the step, the properties, following, a comment. Applying dispatches the
+ * the step, the properties, a tag to add, following, a comment. Applying dispatches the
  * ordinary commands for each issue, each in its own transaction: the step
  * (MoveIssue, or ChangeTracker when a tracker was chosen and the issue is of another), one
- * UpdateIssue for the properties, the comment, the subscription. A refusal
+ * UpdateIssue for the properties, TagIssue, the comment, the subscription. A refusal
  * stops the issue there and leaves the others done; the page then reports
  * what each issue got, and the refused ones can be taken again.
  */
@@ -79,6 +81,10 @@ final class Selection
     /** Null leaves the release, UpdateIssue::NOBODY takes the issues out of theirs. */
     #[LiveProp]
     public ?int $releaseId = null;
+
+    /** The tag put on every issue, beside those each carries; null adds none. */
+    #[LiveProp]
+    public ?int $tagId = null;
 
     #[LiveProp]
     public ?bool $private = null;
@@ -200,6 +206,11 @@ final class Selection
         return array_find($this->getSelection()->releases, fn (Release $release): bool => $release->getId() === $this->releaseId);
     }
 
+    public function getTag(): ?Tag
+    {
+        return array_find($this->getSelection()->tags, fn (Tag $tag): bool => $tag->getId() === $this->tagId);
+    }
+
     /**
      * Records the choice made in the menu of a property; no value leaves
      * the property alone. Only what the selection offers is kept.
@@ -209,10 +220,12 @@ final class Selection
     {
         $selection = $this->getSelection();
         // An id the selection offers, or UpdateIssue::NOBODY.
-        $among = static fn (array $entities): bool => null === $value || (ctype_digit($value) && (UpdateIssue::NOBODY === (int) $value || array_any($entities, static fn (User|Release $entity): bool => $entity->getId() === (int) $value)));
+        $among = static fn (array $entities): bool => null === $value || (ctype_digit($value) && (UpdateIssue::NOBODY === (int) $value || array_any($entities, static fn (User|Release|Tag $entity): bool => $entity->getId() === (int) $value)));
         $offered = match ($property) {
             'assignee' => $selection->canAssign && $among($selection->assignees),
             'release' => [] !== $selection->releases && $among($selection->releases),
+            // A tag is added, never taken off here: there is no "none" to choose.
+            'tag' => (null === $value || 0 !== (int) $value) && $among($selection->tags),
             'criticality' => $selection->canSetCriticality && (null === $value || null !== Criticality::tryFrom($value)),
             'visibility' => $selection->canSetPrivate && \in_array($value, [null, 'public', 'private'], true),
             'follow' => \in_array($value, [null, 'follow', 'unfollow'], true),
@@ -225,6 +238,7 @@ final class Selection
         match ($property) {
             'assignee' => $this->assigneeId = null === $value ? null : (int) $value,
             'release' => $this->releaseId = null === $value ? null : (int) $value,
+            'tag' => $this->tagId = null === $value ? null : (int) $value,
             'criticality' => $this->criticality = $value,
             'visibility' => $this->private = null === $value ? null : 'private' === $value,
             'follow' => $this->follow = null === $value ? null : 'follow' === $value,
@@ -347,6 +361,10 @@ final class Selection
                 private: $this->private,
                 releaseId: $this->releaseId,
             );
+        }
+
+        if (null !== $this->tagId) {
+            yield $this->translator->trans('issue.bulk.add_tag') => new TagIssue($actorId, $key, $this->tagId);
         }
 
         if ('' !== trim($this->comment)) {

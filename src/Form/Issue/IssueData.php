@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Form\Issue;
 
 use App\Entity\Enum\Criticality;
+use App\Entity\Tag;
 use App\Entity\User;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -27,6 +28,9 @@ final class IssueData
     public ?User $assignee = null;
 
     public bool $private = false;
+
+    /** @var list<Tag> the tags of the project the issue is created with */
+    public array $tags = [];
 
     /** @var array<string, mixed> field id => value, for the fields of the tracker's workflow */
     public array $fields = [];

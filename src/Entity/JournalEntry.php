@@ -110,7 +110,8 @@ class JournalEntry
     /**
      * A property of the issue changed: `assignee` (full names), `criticality`
      * (enum values), `visibility` (`public`, `private`), `title` (the
-     * titles) or `description` (both texts). Null is "none".
+     * titles), `description` (both texts), `tag_added` (the name of the tag,
+     * in `to`) or `tag_removed` (in `from`). Null is "none".
      */
     public static function changed(Issue $issue, ?User $author, string $field, ?string $from, ?string $to): self
     {

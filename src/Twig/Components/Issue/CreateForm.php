@@ -8,6 +8,7 @@ use App\Config\ConfigRegistry;
 use App\Entity\Attachment;
 use App\Entity\Issue;
 use App\Entity\Project;
+use App\Entity\Tag;
 use App\Entity\Tracker;
 use App\Form\Issue\IssueData;
 use App\Form\Issue\IssueType;
@@ -17,7 +18,9 @@ use App\Message\Query\Project\ListProjectMembers;
 use App\Message\Query\Project\ListTrackers;
 use App\Message\QueryBus;
 use App\MessageHandler\Command\Issue\IssueException;
+use App\MessageHandler\Command\Tag\TagException;
 use App\Repository\AttachmentRepository;
+use App\Repository\TagRepository;
 use App\Security\AccessControl;
 use App\Security\Permission;
 use App\Security\Viewer;
@@ -73,6 +76,7 @@ final class CreateForm extends AbstractController
         private readonly AccessControl $access,
         private readonly Viewer $viewer,
         private readonly AttachmentRepository $attachments,
+        private readonly TagRepository $tags,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -165,8 +169,10 @@ final class CreateForm extends AbstractController
                 private: $data->private,
                 fields: array_filter($data->fields, static fn (mixed $value): bool => null !== $value && '' !== $value),
                 attachments: $this->pending,
+                tagIds: array_map(static fn (Tag $tag): int => (int) $tag->getId(), $data->tags),
             ));
-        } catch (IssueException) {
+        } catch (IssueException|TagException) {
+            // A tag deleted while the issue was being written is a refusal like another.
             $this->failure = $translator->trans('issue.create.refused');
 
             return null;
@@ -215,6 +221,7 @@ final class CreateForm extends AbstractController
             'internal' => $viewer->isInternal(),
             'criticality' => $this->access->isGranted($viewer, Permission::IssueSetCriticality, $this->project),
             'members' => $this->access->isGranted($viewer, Permission::IssueAssign, $this->project) ? $this->queries->ask(new ListProjectMembers($this->project)) : null,
+            'tags' => $this->access->isGranted($viewer, Permission::IssueSetTags, $this->project) ? $this->tags->findByProject($this->project) : [],
             // Issues of a private tracker are private whatever one chooses.
             'private' => !$tracker->isPrivate() && $this->access->isGranted($viewer, Permission::IssueSetPrivate, $this->project),
             'project' => $this->project,

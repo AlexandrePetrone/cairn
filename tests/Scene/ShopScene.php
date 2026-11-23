@@ -10,10 +10,12 @@ use App\Entity\BudgetLine;
 use App\Entity\Enum\BudgetLineStatus;
 use App\Entity\Enum\BudgetUnit;
 use App\Entity\Enum\Criticality;
+use App\Entity\Enum\TagColour;
 use App\Entity\Issue;
 use App\Entity\Membership;
 use App\Entity\Project;
 use App\Entity\Release;
+use App\Entity\Tag;
 use App\Entity\Tracker;
 use App\Entity\User;
 use App\Entity\Workspace;
@@ -24,9 +26,11 @@ use App\Message\Command\Issue\AddComment;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\Command\Issue\CreateIssue;
 use App\Message\Command\Issue\MoveIssue;
+use App\Message\Command\Issue\TagIssue;
 use App\Message\Command\Issue\UpdateIssue;
 use App\Message\Command\Project\UpdateProject;
 use App\Message\Command\Release\CreateRelease;
+use App\Message\Command\Tag\CreateTag;
 use App\Message\CommandBus;
 use App\Security\AccessControl;
 use App\Tests\Config\Fixture\DefinitionFactory;
@@ -162,6 +166,24 @@ final class ShopScene
         }
 
         return $release;
+    }
+
+    /**
+     * A tag of the shop, which has none until then, on the issues named:
+     * Thomas, who manages the workspace, creates it.
+     *
+     * @param list<string> $keys
+     */
+    public function tag(string $name = 'Back office', TagColour $colour = TagColour::Blue, array $keys = []): Tag
+    {
+        $thomas = (int) $this->user('thomas.girard@cairn.test')->getId();
+        $tag = $this->commands->dispatch(new CreateTag($thomas, (int) $this->shop->getId(), $name, $colour));
+        \assert($tag instanceof Tag);
+        foreach ($keys as $key) {
+            $this->commands->dispatch(new TagIssue($thomas, $key, (int) $tag->getId()));
+        }
+
+        return $tag;
     }
 
     /**

@@ -16,6 +16,7 @@ final readonly class CreateIssue
     /**
      * @param array<string, mixed> $fields      field id => value, for the fields of the tracker's workflow
      * @param list<string>         $attachments uuids of the actor's pending files sent with the issue
+     * @param list<int>            $tagIds      tags of the project the issue is created with, which takes `issue.set_tags`
      */
     public function __construct(
         public int $actorId,
@@ -30,6 +31,7 @@ final readonly class CreateIssue
         public bool $private = false,
         public array $fields = [],
         public array $attachments = [],
+        public array $tagIds = [],
     ) {
     }
 }

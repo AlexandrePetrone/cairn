@@ -6,6 +6,7 @@ namespace App\Twig\Components\Board;
 
 use App\Config\Definition\PlaceDefinition;
 use App\Entity\Issue;
+use App\Entity\Tag;
 use App\Entity\Tracker;
 use App\Form\Issue\IssueListFilters;
 use App\Message\QueryBus;
@@ -92,6 +93,16 @@ final class Column
             $this->placeId,
             $this->open ? min(200, self::BATCH * max(1, $this->batches)) : 1,
         ));
+    }
+
+    /**
+     * The tags of the cards shown.
+     *
+     * @return array<int, list<Tag>> issue id => its tags
+     */
+    public function getTags(): array
+    {
+        return $this->choices->tagsOf($this->getIssues()->items);
     }
 
     public function getRemaining(): int

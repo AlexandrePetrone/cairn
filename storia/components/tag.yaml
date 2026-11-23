@@ -1,0 +1,6 @@
+component: Ui:Tag
+variants:
+    gray: { blocks: { content: Back office } }
+    blue: { args: { colour: blue }, blocks: { content: Front office } }
+    small: { args: { colour: emerald, size: sm }, blocks: { content: API } }
+    long_name: { args: { colour: fuchsia, size: sm, class: w-24 }, blocks: { content: Customer account and loyalty programme } }

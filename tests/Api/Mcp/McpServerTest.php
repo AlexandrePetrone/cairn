@@ -6,6 +6,7 @@ namespace App\Tests\Api\Mcp;
 
 use App\Attachment\AttachmentStorage;
 use App\Entity\Enum\ApiTokenScope;
+use App\Entity\Enum\TagColour;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Uid\Uuid;
 
@@ -153,8 +154,11 @@ final class McpServerTest extends McpTestCase
     public function testAProjectSaysWhatItsIssuesAreMadeOf(): void
     {
         $secret = $this->tokenFor(self::DEVELOPER, ApiTokenScope::Read)->secret;
+        $this->scene->tag('Back office', TagColour::Teal, ['MD-SPT-3']);
 
         $view = $this->read('get_project', ['key' => 'MD-SPT'], $secret);
+        self::assertSame([['name' => 'Back office', 'colour' => 'teal']], array_map(static fn (array $tag): array => ['name' => $tag['name'], 'colour' => $tag['colour']], $view['tags']));
+        self::assertSame(['Back office'], array_column($this->read('get_issue', ['key' => 'MD-SPT-3'], $secret)['issue']['tags'], 'name'));
 
         self::assertSame('MD-SPT', $view['project']['key']);
         self::assertContains('Bug', array_column($view['trackers'], 'name'));

@@ -75,6 +75,8 @@ issue:
         nobody: Personne
         release: Version
         no_release: Aucune
+        tags: Étiquettes
+        no_tag: Aucune
         visibility: Visibilité
         visible_externals: Tous les membres
         hidden_externals: Internes seulement
@@ -92,6 +94,8 @@ issue:
         changed:
             assignee: 'a changé l''assigné : %from% → %to%'
             release: 'a changé la version : %from% → %to%'
+            tag_added: 'a ajouté l''étiquette %to%'
+            tag_removed: 'a retiré l''étiquette %from%'
             criticality: 'a changé la criticité : %from% → %to%'
             visibility: 'a changé la visibilité : %from% → %to%'
             title: 'a changé le titre : « %from% » → « %to% »'
@@ -196,6 +200,7 @@ issue:
         description: Description
         description_placeholder: Ce qui se passe, ce que vous attendiez, et comment le reproduire si c'est un bug.
         criticality: Criticité
+        tags: Étiquettes
         assignee: Assigné
         assignee_none: Personne
         private: Demande privée
@@ -213,6 +218,7 @@ issue:
             open: Ouvertes
             all: Toutes
         no_release: Sans version
+        no_tag: Sans étiquette
         group:
             label: Grouper par
             none: Aucun groupe
@@ -242,6 +248,7 @@ issue:
         changes: Modifications à appliquer
         unchanged: Inchangé
         follow: Suivi
+        add_tag: Ajouter une étiquette
         changes_tracker: change de catégorie
         remove: 'Retirer %key% de la sélection'
         comment_label: Commentaire
@@ -278,6 +285,7 @@ filter:
     criticality: Criticité
     assignee: Assigné
     release: Version
+    tag: Étiquette
     clear: Tout effacer
 
 nav:
@@ -298,6 +306,7 @@ nav:
             title: Configuration
             general: Général
             trackers: Catégories
+            tags: Étiquettes
             access: Accès
             automations: Automatisations
             repositories: Dépôts
@@ -1232,6 +1241,49 @@ workflow:
         dotted: 'Pointillé fort : action qui ramène à une étape précédente'
         comment: '💬 : commentaire obligatoire'
 
+tag:
+    intro: Les étiquettes classent les demandes du projet par ce qu'elles concernent, une partie du produit par exemple. Une demande en porte plusieurs, et chaque liste se filtre par elles.
+    new: Nouvelle étiquette
+    create: Créer l'étiquette
+    save: Enregistrer
+    edit: 'Modifier l''étiquette %name%'
+    created: 'Étiquette %name% créée.'
+    saved: Étiquette enregistrée.
+    deleted: 'Étiquette %name% supprimée.'
+    empty: Pas encore d'étiquette
+    empty_hint: Créez la première, puis posez-la sur les demandes depuis leur page, à leur création, ou sur plusieurs à la fois depuis une liste.
+    delete: Supprimer l'étiquette
+    delete_help: '{0}Aucune demande ne porte cette étiquette.|{1}1 demande porte cette étiquette et la perdra.|]1,Inf[ %count% demandes portent cette étiquette et la perdront.'
+    delete_confirm: L'étiquette est supprimée définitivement. L'historique des demandes garde son nom.
+    form:
+        name: Nom
+        name_help: Unique dans le projet, 40 caractères au plus.
+        colour: Couleur
+    refused:
+        name_taken: 'Le projet a déjà une étiquette nommée %name%.'
+        other_project: 'L''étiquette %name% appartient à un autre projet.'
+    colour:
+        red: Rouge
+        orange: Orange
+        amber: Ambre
+        yellow: Jaune
+        lime: Citron vert
+        green: Vert
+        emerald: Émeraude
+        teal: Sarcelle
+        cyan: Cyan
+        sky: Ciel
+        blue: Bleu
+        indigo: Indigo
+        violet: Violet
+        purple: Pourpre
+        fuchsia: Fuchsia
+        pink: Rose
+        rose: Framboise
+        brown: Brun
+        slate: Ardoise
+        gray: Gris
+
 release:
     title: Versions
     intro: Une version regroupe les demandes d'une même livraison. Le rattachement se fait depuis la fiche demande, propriété Version, ou pour plusieurs depuis la sélection.
@@ -1412,6 +1464,9 @@ permission:
         set_release:
             label: Rattacher une demande à une version
             help: Placer une demande dans une version ouverte du projet, ou l'en retirer.
+        set_tags:
+            label: Étiqueter les demandes
+            help: Poser les étiquettes du projet sur une demande, ou les en retirer.
     comment:
         create:
             label: Commenter

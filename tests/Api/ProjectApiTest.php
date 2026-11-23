@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Api;
 
+use App\Entity\Enum\TagColour;
 use App\Markdown\MarkdownRenderer;
 use App\Message\Command\Issue\CreateIssue;
 use App\Message\Command\Project\CreateProject;
@@ -122,5 +123,29 @@ final class ProjectApiTest extends ApiTestCase
         self::assertSame('open', $releases['member'][0]['status']);
         self::assertSame(2, $releases['member'][0]['issues']);
         self::assertSame(50, $releases['member'][0]['progress']);
+    }
+
+    public function testTheTagsOfAProjectComeByNameAndItsIssuesSayWhichTheyCarry(): void
+    {
+        $front = $this->scene->tag('Front', TagColour::Rose, ['MD-SPT-3']);
+        $back = $this->scene->tag('Back office', TagColour::Teal, ['MD-SPT-3', 'MD-SPT-4']);
+        $secret = $this->tokenFor(self::DEVELOPER)->secret;
+
+        $tags = $this->api('GET', '/api/projects/MD-SPT/tags', $secret);
+        self::assertResponseIsSuccessful();
+        self::assertSame(
+            [['id' => $back->getId(), 'name' => 'Back office', 'colour' => 'teal'], ['id' => $front->getId(), 'name' => 'Front', 'colour' => 'rose']],
+            array_map(static fn (array $tag): array => ['id' => $tag['id'], 'name' => $tag['name'], 'colour' => $tag['colour']], $tags['member']),
+        );
+
+        $issue = $this->api('GET', '/api/issues/MD-SPT-3', $secret);
+        self::assertSame(['Back office', 'Front'], array_column($issue['tags'], 'name'));
+        self::assertSame('teal', $issue['tags'][0]['colour']);
+
+        $list = $this->api('GET', '/api/issues?project=MD-SPT', $secret);
+        $carried = array_column(array_map(static fn (array $listed): array => [$listed['key'], array_column($listed['tags'], 'name')], $list['member']), 1, 0);
+        self::assertSame(['Back office', 'Front'], $carried['MD-SPT-3']);
+        self::assertSame(['Back office'], $carried['MD-SPT-4']);
+        self::assertSame([], $carried['MD-SPT-1'], 'an issue without any says so');
     }
 }

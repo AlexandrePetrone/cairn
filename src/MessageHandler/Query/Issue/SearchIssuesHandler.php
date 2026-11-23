@@ -7,6 +7,7 @@ namespace App\MessageHandler\Query\Issue;
 use App\Config\ConfigRegistry;
 use App\Entity\Enum\PlaceStatus;
 use App\Entity\Issue;
+use App\Entity\IssueTag;
 use App\Entity\User;
 use App\Message\Query\Issue\IssueGrouping;
 use App\Message\Query\Issue\IssueSort;
@@ -164,6 +165,21 @@ final class SearchIssuesHandler
             }
             if (\in_array(0, $query->release, true)) {
                 $conditions[] = 'r.id IS NULL';
+            }
+            $queryBuilder->andWhere($queryBuilder->expr()->orX(...$conditions));
+        }
+
+        if ([] !== $query->tag) {
+            // One of the tags chosen is enough; "none" is an issue no tag is tied to.
+            $carried = \sprintf('SELECT 1 FROM %s it WHERE it.issue = i', IssueTag::class);
+            $tags = array_values(array_filter($query->tag, static fn (int $id): bool => 0 !== $id));
+            $conditions = [];
+            if ([] !== $tags) {
+                $conditions[] = \sprintf('EXISTS (%s AND it.tag IN (:tag))', $carried);
+                $queryBuilder->setParameter('tag', $tags);
+            }
+            if (\in_array(0, $query->tag, true)) {
+                $conditions[] = \sprintf('NOT EXISTS (%s)', str_replace(' it', ' untagged', $carried));
             }
             $queryBuilder->andWhere($queryBuilder->expr()->orX(...$conditions));
         }

@@ -7,8 +7,10 @@ namespace App\Tests\Twig\Components\IssueList;
 use App\Entity\Comment;
 use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
+use App\Entity\Tag;
 use App\Entity\User;
 use App\Repository\IssueSubscriptionRepository;
+use App\Repository\IssueTagRepository;
 use App\Tests\Scene\ShopScene;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -238,6 +240,24 @@ final class SelectionTest extends KernelTestCase
 
         self::assertSame('2.5.0', $this->reloaded('MD-SPT-1')->getRelease()?->getName());
         self::assertSame('2.5.0', $this->reloaded('MD-SPT-2')->getRelease()?->getName());
+    }
+
+    public function testATagIsAddedToSeveralIssuesBesideThoseTheyCarry(): void
+    {
+        $front = $this->scene->tag('Front', keys: ['MD-SPT-1']);
+        $back = $this->scene->tag('Back office');
+        $intranetBug = $this->scene->intranetBug();
+        self::assertStringNotContainsString('data-live-property-param="tag"', (string) $this->selection('thomas.girard@cairn.test', 'MD-SPT-1', $intranetBug->getKey())->render(), 'a tag belongs to one project');
+
+        $component = $this->selection('claire.martin@maison-dupont.test', 'MD-SPT-1', 'MD-SPT-2');
+        $component->call('change', ['property' => 'tag', 'value' => (string) $back->getId()]);
+        self::assertStringContainsString('Back office</span></span>', (string) $component->call('change', ['property' => 'tag', 'value' => '00'])->render(), 'no tag is "none": the choice made stays');
+        $component->call('apply');
+
+        $tags = self::getContainer()->get(IssueTagRepository::class);
+        $names = fn (string $key): array => array_map(static fn (Tag $tag): string => $tag->getName(), $tags->tagsOf($this->reloaded($key)));
+        self::assertSame(['Back office', 'Front'], $names('MD-SPT-1'), 'the tag it carried stays');
+        self::assertSame(['Back office'], $names('MD-SPT-2'));
     }
 
     public function testARefusalStopsItsIssueAndLeavesTheOthersDone(): void
