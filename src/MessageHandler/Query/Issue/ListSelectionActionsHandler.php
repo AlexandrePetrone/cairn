@@ -18,6 +18,7 @@ use App\Message\QueryBus;
 use App\Repository\EntityList;
 use App\Repository\IssueOrder;
 use App\Repository\ReleaseRepository;
+use App\Repository\TagRepository;
 use App\Security\AccessControl;
 use App\Security\Permission;
 use App\Security\Visibility;
@@ -42,6 +43,7 @@ final class ListSelectionActionsHandler
         private readonly AccessControl $access,
         private readonly QueryBus $queries,
         private readonly ReleaseRepository $releases,
+        private readonly TagRepository $tags,
         private readonly ConfigRegistry $config,
     ) {
     }
@@ -73,6 +75,7 @@ final class ListSelectionActionsHandler
             canSetCriticality: $everywhere(Permission::IssueSetCriticality),
             canSetPrivate: $everywhere(Permission::IssueSetPrivate),
             releases: null !== $project && $everywhere(Permission::IssueSetRelease) ? $this->releases->findByProject($project, openOnly: true) : [],
+            tags: null !== $project && $everywhere(Permission::IssueSetTags) ? $this->tags->findByProject($project) : [],
             moveTrackers: null === $project ? [] : $this->moveTrackers($viewer, $project, $issues),
             places: null !== $project && $this->access->canMoveFreely($viewer, $project) ? $this->commonPlaces($issues) : [],
         );

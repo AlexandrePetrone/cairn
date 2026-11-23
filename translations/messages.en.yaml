@@ -75,6 +75,8 @@ issue:
         nobody: Nobody
         release: Release
         no_release: None
+        tags: Tags
+        no_tag: None
         visibility: Visibility
         visible_externals: All members
         hidden_externals: Internal users only
@@ -92,6 +94,8 @@ issue:
         changed:
             assignee: 'changed the assignee: %from% → %to%'
             release: 'changed the release: %from% → %to%'
+            tag_added: 'added the tag %to%'
+            tag_removed: 'removed the tag %from%'
             criticality: 'changed the criticality: %from% → %to%'
             visibility: 'changed the visibility: %from% → %to%'
             title: 'changed the title: "%from%" → "%to%"'
@@ -196,6 +200,7 @@ issue:
         description: Description
         description_placeholder: What happens, what you expected, and how to reproduce it if it is a bug.
         criticality: Criticality
+        tags: Tags
         assignee: Assignee
         assignee_none: Nobody
         private: Private issue
@@ -221,6 +226,7 @@ issue:
             project: Project
             release: Release
         no_release: No release
+        no_tag: No tag
         empty: No issue matches
         empty_hint: Widen the filters or show closed issues.
         column:
@@ -242,6 +248,7 @@ issue:
         changes: Changes to apply
         unchanged: Unchanged
         follow: Following
+        add_tag: Add a tag
         changes_tracker: changes category
         remove: 'Remove %key% from the selection'
         comment_label: Comment
@@ -278,6 +285,7 @@ filter:
     criticality: Criticality
     assignee: Assignee
     release: Release
+    tag: Tag
     clear: Clear all
 
 nav:
@@ -298,6 +306,7 @@ nav:
             title: Configuration
             general: General
             trackers: Categories
+            tags: Tags
             access: Access
             automations: Automations
             repositories: Repositories
@@ -1232,6 +1241,49 @@ workflow:
         dotted: 'Strong dotted line: an action back to an earlier step'
         comment: '💬: comment required'
 
+tag:
+    intro: Tags sort the issues of the project by what they are about, a part of the product for instance. An issue carries several, and every list filters by them.
+    new: New tag
+    create: Create the tag
+    save: Save
+    edit: 'Change the tag %name%'
+    created: 'Tag %name% created.'
+    saved: Tag saved.
+    deleted: 'Tag %name% deleted.'
+    empty: No tags yet
+    empty_hint: Create the first one, then put it on issues from their page, when creating them, or on several at once from a list.
+    delete: Delete the tag
+    delete_help: '{0}No issue carries this tag.|{1}1 issue carries this tag and will lose it.|]1,Inf[ %count% issues carry this tag and will lose it.'
+    delete_confirm: The tag is deleted for good. The history of the issues keeps its name.
+    form:
+        name: Name
+        name_help: Unique in the project, 40 characters at most.
+        colour: Colour
+    refused:
+        name_taken: 'The project already has a tag named %name%.'
+        other_project: 'The tag %name% belongs to another project.'
+    colour:
+        red: Red
+        orange: Orange
+        amber: Amber
+        yellow: Yellow
+        lime: Lime
+        green: Green
+        emerald: Emerald
+        teal: Teal
+        cyan: Cyan
+        sky: Sky
+        blue: Blue
+        indigo: Indigo
+        violet: Violet
+        purple: Purple
+        fuchsia: Fuchsia
+        pink: Pink
+        rose: Rose
+        brown: Brown
+        slate: Slate
+        gray: Grey
+
 release:
     title: Releases
     intro: A release gathers the issues of one delivery. Issues are scheduled from their own page, field Release, or several at once from the selection.
@@ -1412,6 +1464,9 @@ permission:
         set_release:
             label: Schedule issues in a release
             help: Put an issue in an open release of the project, or take it out.
+        set_tags:
+            label: Tag issues
+            help: Put the tags of the project on an issue, or take them off.
     comment:
         create:
             label: Comment

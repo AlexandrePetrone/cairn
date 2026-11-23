@@ -17,6 +17,7 @@ use App\Api\Resource\Value\IssueField;
 use App\Api\Resource\Value\NamedRef;
 use App\Api\Resource\Value\OfferedTransition;
 use App\Api\Resource\Value\PlaceRef;
+use App\Api\Resource\Value\TagRef;
 use App\Api\Resource\Value\UserRef;
 use App\Api\State\ApplyTransitionProcessor;
 use App\Api\State\ChangeTrackerProcessor;
@@ -94,6 +95,7 @@ use App\Api\State\UpdateIssueProcessor;
 final readonly class IssueResource
 {
     /**
+     * @param list<TagRef>                 $tags
      * @param list<IssueField>|null        $fields      on the issue itself only
      * @param list<FileRef>|null           $attachments on the issue itself only: its own files, those of a comment come with it
      * @param list<OfferedTransition>|null $transitions on the issue itself only
@@ -114,6 +116,8 @@ final readonly class IssueResource
         public UserRef $author,
         public ?UserRef $assignee,
         public ?NamedRef $release,
+        /** The tags of its project it carries, by name. */
+        public array $tags,
         public \DateTimeImmutable $createdAt,
         public \DateTimeImmutable $updatedAt,
         public ?\DateTimeImmutable $closedAt,

@@ -8,6 +8,7 @@ use App\Config\Definition\InstanceDefinition;
 use App\Config\Definition\WorkflowDefinition;
 use App\Entity\Enum\Criticality;
 use App\Entity\Project;
+use App\Entity\Tag;
 use App\Entity\User;
 use App\Form\Type\MarkdownType;
 use App\Form\Type\ToggleType;
@@ -59,6 +60,19 @@ final class IssueType extends AbstractType
                 'label' => 'issue.field.criticality',
             ]);
         }
+        if ([] !== $options['tags']) {
+            $builder->add('tags', ChoiceType::class, [
+                'choices' => $options['tags'],
+                'choice_label' => static fn (Tag $tag): string => $tag->getName(),
+                'choice_value' => static fn (?Tag $tag): ?string => null === $tag ? null : (string) $tag->getId(),
+                'choice_attr' => static fn (Tag $tag): array => ['data-colour' => $tag->getColour()->value],
+                'choice_translation_domain' => false,
+                'multiple' => true,
+                'expanded' => true,
+                'required' => false,
+                'label' => 'issue.field.tags',
+            ]);
+        }
         if (null !== $options['members']) {
             $builder->add('assignee', ChoiceType::class, [
                 'choices' => $options['members'],
@@ -87,6 +101,7 @@ final class IssueType extends AbstractType
                 'internal' => false,
                 'criticality' => true,
                 'members' => null,
+                'tags' => [],
                 'private' => false,
                 'project' => null,
             ])
@@ -96,10 +111,12 @@ final class IssueType extends AbstractType
             ->setAllowedTypes('internal', 'bool')
             ->setAllowedTypes('criticality', 'bool')
             ->setAllowedTypes('members', ['null', User::class.'[]'])
+            ->setAllowedTypes('tags', Tag::class.'[]')
             ->setAllowedTypes('private', 'bool')
             ->setAllowedTypes('project', ['null', Project::class])
             ->setInfo('internal', 'whether internal-only fields are shown')
             ->setInfo('members', 'the people the issue may be assigned to, null when the viewer may not assign')
+            ->setInfo('tags', 'the tags of the project the issue may be created with, none when it has none or the viewer may not tag')
             ->setInfo('private', 'whether the viewer may make the issue private')
             ->setInfo('project', 'where the description editor suggests issues and people and sends images');
     }

@@ -71,6 +71,19 @@ final class ColumnTest extends KernelTestCase
         self::assertStringNotContainsString('MD-SPT-1"', $render);
     }
 
+    public function testTheCardsShowTheirTagsAndTheColumnFiltersByThem(): void
+    {
+        $tag = $this->scene->tag('Back office', keys: ['MD-SPT-2']);
+
+        $render = (string) $this->column('new', 'claire.martin@maison-dupont.test')->render();
+        self::assertStringContainsString('Back office', $render);
+        self::assertStringContainsString('MD-SPT-1', $render);
+
+        $render = (string) $this->column('new', 'claire.martin@maison-dupont.test', ['query' => ['tags' => [(string) $tag->getId()]]])->render();
+        self::assertStringContainsString('MD-SPT-2', $render);
+        self::assertStringNotContainsString('MD-SPT-1', $render);
+    }
+
     public function testAColumnGrowsByBatches(): void
     {
         foreach (range(1, Column::BATCH + 5) as $index) {

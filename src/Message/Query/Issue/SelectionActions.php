@@ -8,6 +8,7 @@ use App\Config\Definition\PlaceDefinition;
 use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\Release;
+use App\Entity\Tag;
 use App\Entity\Tracker;
 use App\Entity\User;
 
@@ -23,6 +24,7 @@ final readonly class SelectionActions
      * @param Project|null          $project      the project of the issues, when the selection holds one
      * @param list<User>            $assignees    members of every project of the selection
      * @param list<Release>         $releases     the open releases of the project, when the selection holds one project
+     * @param list<Tag>             $tags         the tags of the project the viewer may put on the issues, when the selection holds one project
      * @param list<Tracker>         $moveTrackers the trackers every issue may be moved to, for who moves freely,
      *                                            when the selection holds one project
      * @param list<PlaceDefinition> $places       the places every issue may be taken to in its own tracker: those the workflows
@@ -38,6 +40,7 @@ final readonly class SelectionActions
         public bool $canSetCriticality = false,
         public bool $canSetPrivate = false,
         public array $releases = [],
+        public array $tags = [],
         public array $moveTrackers = [],
         public array $places = [],
     ) {

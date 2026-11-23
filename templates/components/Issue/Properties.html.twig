@@ -19,6 +19,10 @@
 {% set propertiesCanSetRelease = this.canSetRelease %}
 {% set propertiesCanSetVisibility = this.canSetVisibility %}
 {% set propertiesHasReleases = this.hasReleases %}
+{% set propertiesTagChoices = this.tagChoices %}
+{% set propertiesTags = propertiesTagChoices is empty ? [] : this.tags %}
+{% set propertiesTagIds = propertiesTags|map(tag => tag.id) %}
+{% set propertiesCanSetTags = this.canSetTags %}
 <div {{ attributes }} data-loading="addClass(opacity-60)">
     <section class="rounded-lg border border-line bg-surface text-[13px] shadow-sm">
         <div class="flex items-center gap-2 rounded-t-lg border-b border-line-subtle bg-subtle/80 px-3.5 py-2.5">
@@ -143,6 +147,48 @@
                     <div class="{{ propertiesLabelClasses }}">{{ 'issue.show.criticality'|trans }}</div>
                     <div class="min-w-0 flex-1">{{ propertiesCriticality }}</div>
                 </div>
+            {% endif %}
+
+            {% if propertiesTagChoices is not empty %}
+                {% set propertiesTagList %}
+                    {% for tag in propertiesTags %}
+                        <twig:Ui:Tag :colour="tag.colour.value">{{ tag.name }}</twig:Ui:Tag>
+                    {% else %}
+                        <span class="text-faint">{{ 'issue.show.no_tag'|trans }}</span>
+                    {% endfor %}
+                {% endset %}
+                {% if propertiesCanSetTags %}
+                    <twig:Ui:Dropdown width="sm" class="block">
+                        <twig:block name="trigger">
+                            <div class="{{ propertiesRowClasses }} items-start">
+                                <div class="{{ propertiesLabelClasses }} pt-1.5">{{ 'issue.show.tags'|trans }}</div>
+                                <div class="min-w-0 flex-1">
+                                    <button type="button" class="{{ propertiesValueClasses }} flex-wrap" aria-expanded="false" aria-haspopup="menu" aria-label="{{ 'issue.show.change_property'|trans({ '%property%': 'issue.show.tags'|trans }) }}" data-action="dropdown#toggle">
+                                        {{ propertiesTagList }}
+                                        <twig:ux:icon name="lucide:chevrons-up-down" class="hover-actions h-3.5 w-3.5 shrink-0 text-faint" />
+                                    </button>
+                                </div>
+                            </div>
+                        </twig:block>
+                        <twig:block name="content">
+                            {# Several are ticked one after the other: the menu stays open. #}
+                            <div class="max-h-72 overflow-y-auto">
+                                {% for tag in propertiesTagChoices %}
+                                    {% set propertiesTagActive = tag.id in propertiesTagIds %}
+                                    <twig:Ui:Dropdown:Item :active="propertiesTagActive" role="menuitemcheckbox" aria-checked="{{ propertiesTagActive ? 'true' : 'false' }}" data-action="live#action" data-live-action-param="toggleTag" data-live-tag-param="{{ tag.id }}">
+                                        <twig:Ui:Tag :colour="tag.colour.value">{{ tag.name }}</twig:Ui:Tag>
+                                        {% if propertiesTagActive %}<twig:ux:icon name="lucide:check" class="ml-auto h-4 w-4 shrink-0 text-brand" />{% endif %}
+                                    </twig:Ui:Dropdown:Item>
+                                {% endfor %}
+                            </div>
+                        </twig:block>
+                    </twig:Ui:Dropdown>
+                {% else %}
+                    <div class="{{ propertiesRowClasses }} items-start">
+                        <div class="{{ propertiesLabelClasses }} pt-1.5">{{ 'issue.show.tags'|trans }}</div>
+                        <div class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 py-1">{{ propertiesTagList }}</div>
+                    </div>
+                {% endif %}
             {% endif %}
 
             {% set propertiesAssignee %}

@@ -5,6 +5,7 @@
 {% set boardColumnIssues = this.issues %}
 {% set boardColumnRemaining = this.remaining %}
 {% set boardColumnRanks = this.canRank %}
+{% set boardColumnTags = open ? this.tags : {} %}
 {% set boardColumnClasses = html_cva(
     base: 'group/column relative flex shrink-0 flex-col rounded-lg border border-line bg-sunken/80 transition-all',
     variants: { open: { true: 'w-72', false: 'w-10 has-[[data-board-state=allowed]]:border-brand-line has-[[data-board-state=denied]]:opacity-40 has-[[data-board-over]]:border-focus has-[[data-board-over]]:bg-brand-soft-hover' } },
@@ -46,7 +47,9 @@
                         :assigneeKind="issue.assignee and not issue.assignee.internal ? 'external' : 'internal'"
                         :private="issue.private or issue.tracker.private"
                         :release="issue.release ? issue.release.name : null"
-                    />
+                    >
+                        <twig:block name="tags">{% for tag in boardColumnTags[issue.id] ?? [] %}<twig:Ui:Tag :colour="tag.colour.value" size="sm">{{ tag.name }}</twig:Ui:Tag>{% endfor %}</twig:block>
+                    </twig:Ui:BoardCard>
                 </li>
             {% endfor %}
         {% endif %}

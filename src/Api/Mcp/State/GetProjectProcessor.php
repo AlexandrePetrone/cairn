@@ -12,12 +12,14 @@ use App\Api\Mcp\GetProjectTool;
 use App\Api\Mcp\ProjectView;
 use App\Api\Resource\MemberResource;
 use App\Api\Resource\ReleaseResource;
+use App\Api\Resource\TagResource;
 use App\Api\State\Lookup;
 use App\Api\State\ProjectProvider;
 use App\Entity\User;
 use App\Message\Query\Project\ListProjectMembers;
 use App\Message\Query\Project\ListTrackers;
 use App\Message\Query\Release\ListReleases;
+use App\Message\Query\Tag\ListTags;
 use App\Message\QueryBus;
 use App\Security\Viewer;
 
@@ -50,6 +52,7 @@ final class GetProjectProcessor implements ProcessorInterface
             array_map($this->trackers->map(...), $this->queries->ask(new ListTrackers($viewer, $project, archived: true))),
             array_map(fn (User $user): MemberResource => MemberResource::of($this->refs->user($user)), $this->queries->ask(new ListProjectMembers($project))),
             array_map(ReleaseResource::of(...), $this->queries->ask(new ListReleases($viewer, $project))),
+            array_map(TagResource::of(...), $this->queries->ask(new ListTags($project))),
         );
     }
 }

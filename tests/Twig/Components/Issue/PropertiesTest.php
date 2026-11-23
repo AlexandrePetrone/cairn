@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Tests\Twig\Components\Issue;
 
 use App\Entity\Enum\JournalEntryType;
+use App\Entity\Enum\TagColour;
 use App\Entity\Issue;
 use App\Entity\JournalEntry;
+use App\Entity\Tag;
 use App\Entity\User;
 use App\Message\Command\Issue\ApplyTransition;
 use App\Message\CommandBus;
+use App\Repository\IssueTagRepository;
 use App\Tests\Scene\ShopScene;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -99,6 +102,28 @@ final class PropertiesTest extends KernelTestCase
         $component->call('change', ['property' => 'release', 'value' => (string) $release->getId()]);
         self::assertSame('2.5.0', $this->reloaded()->getRelease()?->getName());
         self::assertStringContainsString('2.5.0', (string) $this->properties('claire.martin@maison-dupont.test')->render());
+    }
+
+    public function testTheTagsShowOnceTheProjectHasTagsAndAreTickedOneByOne(): void
+    {
+        self::assertStringNotContainsString('data-live-action-param="toggleTag"', (string) $this->properties('thomas.girard@cairn.test')->render());
+
+        $back = $this->scene->tag('Back office');
+        $front = $this->scene->tag('Front', TagColour::Rose);
+        $tags = self::getContainer()->get(IssueTagRepository::class);
+        $names = fn (): array => array_map(static fn (Tag $tag): string => $tag->getName(), $tags->tagsOf($this->reloaded()));
+
+        $component = $this->properties('claire.martin@maison-dupont.test');
+        self::assertStringContainsString(\sprintf('data-live-tag-param="%d"', $front->getId()), (string) $component->render(), 'a client tags too');
+
+        $component->call('toggleTag', ['tag' => $back->getId()]);
+        $render = $component->call('toggleTag', ['tag' => $front->getId()])->render();
+        self::assertSame(['Back office', 'Front'], $names());
+        self::assertNotNull($component->getEmittedEvent($render, 'issue:changed'), 'the history of the page follows');
+
+        $component->call('toggleTag', ['tag' => $back->getId()]);
+        self::assertSame(['Front'], $names(), 'ticked again, the tag is taken off');
+        self::assertSame(['field' => 'tag_removed', 'from' => 'Back office', 'to' => null], $this->lastEntry()?->getData());
     }
 
     public function testSomeoneOutsideTheProjectCannotBeAssigned(): void

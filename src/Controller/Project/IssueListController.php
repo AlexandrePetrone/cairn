@@ -35,19 +35,19 @@ final class IssueListController extends AbstractController
     #[Route('', name: 'app_project_issues', methods: ['GET', 'PUT'])]
     public function all(Request $request, #[CurrentProject] Project $project, #[CurrentUser] User $viewer): Response
     {
-        return $this->list($request, $viewer, 'all', new ListScope($request->getBaseUrl().$request->getPathInfo(), ['place', 'tracker', 'criticality', 'assignee', 'release'], $project));
+        return $this->list($request, $viewer, 'all', new ListScope($request->getBaseUrl().$request->getPathInfo(), ['place', 'tracker', 'criticality', 'assignee', 'release', 'tag'], $project));
     }
 
     #[Route('/assigned', name: 'app_project_issues_assigned', methods: ['GET', 'PUT'])]
     public function assigned(Request $request, #[CurrentProject] Project $project, #[CurrentUser] User $viewer): Response
     {
-        return $this->list($request, $viewer, 'assigned', new ListScope($request->getBaseUrl().$request->getPathInfo(), ['place', 'tracker', 'criticality', 'release'], $project, assigneeId: $viewer->getId()));
+        return $this->list($request, $viewer, 'assigned', new ListScope($request->getBaseUrl().$request->getPathInfo(), ['place', 'tracker', 'criticality', 'release', 'tag'], $project, assigneeId: $viewer->getId()));
     }
 
     #[Route('/created', name: 'app_project_issues_created', methods: ['GET', 'PUT'])]
     public function created(Request $request, #[CurrentProject] Project $project, #[CurrentUser] User $viewer): Response
     {
-        return $this->list($request, $viewer, 'created', new ListScope($request->getBaseUrl().$request->getPathInfo(), ['place', 'tracker', 'criticality', 'assignee', 'release'], $project, authorId: $viewer->getId()));
+        return $this->list($request, $viewer, 'created', new ListScope($request->getBaseUrl().$request->getPathInfo(), ['place', 'tracker', 'criticality', 'assignee', 'release', 'tag'], $project, authorId: $viewer->getId()));
     }
 
     /**

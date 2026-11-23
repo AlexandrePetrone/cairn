@@ -97,7 +97,7 @@ final class IssueCollectionProvider implements ProviderInterface
             perPage: $perPage,
         ));
 
-        return new Page(array_map($this->issues->summary(...), $found->items), $found->total, $found->page, $found->perPage);
+        return new Page($this->issues->summaries($found->items), $found->total, $found->page, $found->perPage);
     }
 
     /**

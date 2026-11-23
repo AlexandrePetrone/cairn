@@ -17,7 +17,7 @@ use App\Message\Query\Issue\IssueSort;
  */
 final readonly class ListScope
 {
-    public const array DIMENSIONS = ['place', 'project', 'tracker', 'criticality', 'assignee', 'release'];
+    public const array DIMENSIONS = ['place', 'project', 'tracker', 'criticality', 'assignee', 'release', 'tag'];
 
     /**
      * @param string       $path        the address of the list, without its query string
@@ -43,7 +43,7 @@ final readonly class ListScope
      */
     public static function ofTracker(Tracker $tracker, string $path = ''): self
     {
-        return new self($path, ['place', 'criticality', 'assignee', 'release'], $tracker->getProject(), $tracker);
+        return new self($path, ['place', 'criticality', 'assignee', 'release', 'tag'], $tracker->getProject(), $tracker);
     }
 
     public function offers(string $dimension): bool

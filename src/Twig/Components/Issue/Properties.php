@@ -8,16 +8,21 @@ use App\Config\Definition\PlaceDefinition;
 use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
 use App\Entity\Release;
+use App\Entity\Tag;
 use App\Entity\Tracker;
 use App\Entity\User;
 use App\Message\Command\Issue\ChangeTracker;
 use App\Message\Command\Issue\MoveIssue;
+use App\Message\Command\Issue\TagIssue;
+use App\Message\Command\Issue\UntagIssue;
 use App\Message\Command\Issue\UpdateIssue;
 use App\Message\CommandBus;
 use App\Message\Query\Project\ListProjectMembers;
 use App\Message\Query\Project\ListTrackers;
 use App\Message\QueryBus;
+use App\Repository\IssueTagRepository;
 use App\Repository\ReleaseRepository;
+use App\Repository\TagRepository;
 use App\Security\AccessControl;
 use App\Security\Permission;
 use App\Security\PlaceMove;
@@ -35,9 +40,10 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
  * The properties of an issue in the side panel of its page: step,
- * assignee, criticality, release and visibility read as values and, for
- * whoever may change them, open a menu of the choices; the release shows
- * once the project has releases.
+ * criticality, tags, assignee, release and visibility read as values and,
+ * for whoever may change them, open a menu of the choices; the release
+ * shows once the project has releases, the tags once it has tags. The
+ * menu of the tags ticks several and stays open.
  * The step is a menu for whoever moves freely
  * (`AccessControl::canMoveFreely()`): the other places of the workflow
  * and, last, the other trackers of the project, each with the places of
@@ -71,6 +77,8 @@ final class Properties
         private readonly Viewer $viewer,
         private readonly QueryBus $queries,
         private readonly ReleaseRepository $releases,
+        private readonly TagRepository $tags,
+        private readonly IssueTagRepository $issueTags,
         private readonly WorkflowProvider $workflows,
         private readonly TranslatorInterface $translator,
     ) {
@@ -208,6 +216,44 @@ final class Properties
         }
 
         return $choices;
+    }
+
+    public function canSetTags(): bool
+    {
+        return $this->access->isGranted($this->viewer->get(), Permission::IssueSetTags, $this->issue->getProject());
+    }
+
+    /**
+     * The tags of the project, by name: none, and the issue shows no row
+     * for them.
+     *
+     * @return list<Tag>
+     */
+    public function getTagChoices(): array
+    {
+        return $this->tags->findByProject($this->issue->getProject());
+    }
+
+    /**
+     * @return list<Tag>
+     */
+    public function getTags(): array
+    {
+        return $this->issueTags->tagsOf($this->issue);
+    }
+
+    /**
+     * Puts the tag on the issue, or takes it off when it carries it.
+     */
+    #[LiveAction]
+    public function toggleTag(CommandBus $commands, #[LiveArg] int $tag): void
+    {
+        $actorId = (int) $this->viewer->get()->getId();
+        $key = $this->issue->getKey();
+        $carried = array_any($this->getTags(), static fn (Tag $carried): bool => $carried->getId() === $tag);
+        if ($this->tryCommand($commands, $carried ? new UntagIssue($actorId, $key, $tag) : new TagIssue($actorId, $key, $tag))) {
+            $this->announce($this->translator->trans('issue.action.done', ['%key%' => $key]));
+        }
     }
 
     /**

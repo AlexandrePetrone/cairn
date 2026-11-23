@@ -6,10 +6,13 @@ namespace App\MessageHandler\Command\Issue;
 
 use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
+use App\Entity\IssueTag;
 use App\Entity\JournalEntry;
 use App\Event\IssueCreated;
 use App\Message\Command\Issue\CreateIssue;
+use App\MessageHandler\Command\Tag\TagException;
 use App\Repository\ProjectRepository;
+use App\Repository\TagRepository;
 use App\Repository\TrackerRepository;
 use App\Security\AccessControl;
 use App\Security\Permission;
@@ -25,6 +28,7 @@ final class CreateIssueHandler
         private readonly IssueHandlerSupport $support,
         private readonly ProjectRepository $projects,
         private readonly TrackerRepository $trackers,
+        private readonly TagRepository $tags,
         private readonly AccessControl $access,
         private readonly WorkflowProvider $workflows,
         private readonly EntityManagerInterface $entityManager,
@@ -53,12 +57,21 @@ final class CreateIssueHandler
         $this->support->denyUnless(null === $command->assigneeId || $this->access->isGranted($actor, Permission::IssueAssign, $project), 'assign issues');
         $this->support->denyUnless(!$command->private || $this->access->isGranted($actor, Permission::IssueSetPrivate, $project), 'make issues private');
         $this->support->denyUnless(Criticality::DEFAULT === $command->criticality || $this->access->isGranted($actor, Permission::IssueSetCriticality, $project), 'set the criticality');
+        $this->support->denyUnless([] === $command->tagIds || $this->access->isGranted($actor, Permission::IssueSetTags, $project), 'tag issues');
 
         $workflow = $this->workflows->definition($tracker->getWorkflowId());
         $this->support->assertKnownFields($workflow, $command->fields);
         $this->support->assertRequiredFields($workflow, $command->fields);
 
         $assignee = $this->support->assignee($command->assigneeId, $project);
+        $tags = [];
+        foreach (array_unique($command->tagIds) as $tagId) {
+            $tag = $this->tags->find($tagId) ?? throw TagException::notFound('Tag', $tagId);
+            if ($tag->getProject() !== $project) {
+                throw TagException::otherProject($tag->getName(), $project->getIssuePrefix());
+            }
+            $tags[] = $tag;
+        }
 
         // Lock the project row so that concurrent creations draw distinct numbers.
         $this->entityManager->lock($project, LockMode::PESSIMISTIC_WRITE);
@@ -73,6 +86,9 @@ final class CreateIssueHandler
         $this->support->arrive($issue);
         $this->entityManager->persist($issue);
         $this->support->writeFieldValues($issue, $command->fields);
+        foreach ($tags as $tag) {
+            $this->entityManager->persist(new IssueTag($issue, $tag));
+        }
 
         // Files sent while writing the issue were uploaded before it existed.
         $this->support->claimAttachments($actor, $issue, $command->attachments, $command->description);

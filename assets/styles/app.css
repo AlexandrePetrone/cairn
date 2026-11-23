@@ -110,6 +110,28 @@
     --color-sky: light-dark(#0369a1, #7dd3fc);
     --color-sky-soft: light-dark(#f0f9ff, #152e3e);
 
+    /* The dot of a tag (Ui:Tag), one per case of TagColour: a mark beside the name, never a text colour. */
+    --color-tag-red: light-dark(#dc2626, #f87171);
+    --color-tag-orange: light-dark(#ea580c, #fb923c);
+    --color-tag-amber: light-dark(#b45309, #fbbf24);
+    --color-tag-yellow: light-dark(#a16207, #fde047);
+    --color-tag-lime: light-dark(#4d7c0f, #a3e635);
+    --color-tag-green: light-dark(#15803d, #4ade80);
+    --color-tag-emerald: light-dark(#059669, #34d399);
+    --color-tag-teal: light-dark(#0d9488, #2dd4bf);
+    --color-tag-cyan: light-dark(#0891b2, #22d3ee);
+    --color-tag-sky: light-dark(#0284c7, #38bdf8);
+    --color-tag-blue: light-dark(#2563eb, #60a5fa);
+    --color-tag-indigo: light-dark(#4f46e5, #818cf8);
+    --color-tag-violet: light-dark(#7c3aed, #a78bfa);
+    --color-tag-purple: light-dark(#9333ea, #c084fc);
+    --color-tag-fuchsia: light-dark(#c026d3, #e879f9);
+    --color-tag-pink: light-dark(#db2777, #f472b6);
+    --color-tag-rose: light-dark(#e11d48, #fb7185);
+    --color-tag-brown: light-dark(#92644a, #c4a08a);
+    --color-tag-slate: light-dark(#475569, #94a3b8);
+    --color-tag-gray: light-dark(#78716c, #a8a29e);
+
     /* The stripes behind private content (private-hatching): amber, quieter on a dark ground. */
     --color-hatch: light-dark(#f59e0b0f, #f59e0b08);
 }

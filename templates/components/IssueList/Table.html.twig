@@ -6,6 +6,7 @@
 {% set tableGrouping = this.grouping %}
 {% set tableColumns = this.columns %}
 {% set tableShowProject = scope.showProject %}
+{% set tableTags = this.tags %}
 <div {{ attributes.defaults({ class: 'px-4 sm:px-6 py-4 space-y-3' }) }} data-controller="selection"
     data-selection-one-value="{{ 'issue.bulk.selected.one'|trans }}"
     data-selection-other-value="{{ 'issue.bulk.selected.other'|trans }}">
@@ -54,10 +55,10 @@
                             <span>{{ tableGroupIssue.project.name }} <span class="font-normal text-faint">· {{ tableGroupIssue.project.workspace.name }}</span></span>
                         {% endif %}
                     </twig:Ui:Table:GroupRow>
-                    {% for issue in tableGroup.issues %}{{ include('components/IssueList/_row.html.twig', { group: tableGroup.key, showProject: tableShowProject }) }}{% endfor %}
+                    {% for issue in tableGroup.issues %}{{ include('components/IssueList/_row.html.twig', { group: tableGroup.key, showProject: tableShowProject, tags: tableTags[issue.id] ?? [] }) }}{% endfor %}
                 {% endfor %}
             {% else %}
-                {% for issue in tableIssues.items %}{{ include('components/IssueList/_row.html.twig', { group: null, showProject: tableShowProject }) }}{% endfor %}
+                {% for issue in tableIssues.items %}{{ include('components/IssueList/_row.html.twig', { group: null, showProject: tableShowProject, tags: tableTags[issue.id] ?? [] }) }}{% endfor %}
             {% endif %}
         </twig:Ui:Table>
     {% endif %}

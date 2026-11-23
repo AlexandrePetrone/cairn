@@ -13,7 +13,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 #[McpTool(
     name: 'get_project',
-    description: 'Reads a project: its categories with the steps and the fields of their workflow (an archived one takes no new issue), its members and its releases. What creating, assigning or moving an issue needs to name.',
+    description: 'Reads a project: its categories with the steps and the fields of their workflow (an archived one takes no new issue), its members, its releases and its tags. What creating, assigning or moving an issue needs to name.',
     structuredContent: false,
     outputFormats: ['json' => ['application/json']],
     security: "is_granted('api.read')",

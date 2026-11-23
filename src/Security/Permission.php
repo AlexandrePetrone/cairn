@@ -22,6 +22,8 @@ enum Permission: string
     case IssueSetCriticality = 'issue.set_criticality';
     /** Schedule an issue in an open release of its project, or take it out. */
     case IssueSetRelease = 'issue.set_release';
+    /** Put the tags of the project on an issue, or take them off. */
+    case IssueSetTags = 'issue.set_tags';
     /** Link an issue to another one, or remove a link; across projects when held on both. */
     case IssueLink = 'issue.link';
     /** Arrange the cards of a kanban column by hand; the order is everyone's. */
@@ -48,7 +50,7 @@ enum Permission: string
     {
         return match ($this) {
             self::IssueCreate, self::IssueEdit, self::IssueDelete, self::IssueSetPrivate => PermissionGroup::Issues,
-            self::IssueAssign, self::IssueSetCriticality, self::IssueSetRelease, self::IssueLink, self::IssueRank => PermissionGroup::Tracking,
+            self::IssueAssign, self::IssueSetCriticality, self::IssueSetRelease, self::IssueSetTags, self::IssueLink, self::IssueRank => PermissionGroup::Tracking,
             self::CommentCreate, self::CommentEdit, self::CommentSetPrivate => PermissionGroup::Comments,
             self::ProjectConfigure, self::ProjectManageMembers, self::ReleaseManage => PermissionGroup::Project,
             self::BudgetView, self::BudgetManage => PermissionGroup::Budgets,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Assets;
 
+use App\Entity\Enum\TagColour;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -40,6 +41,12 @@ final class ColourRolesTest extends TestCase
         foreach (self::TONES as $tone) {
             yield "$tone on $tone-soft" => [$tone, "$tone-soft", 4.5];
             yield "$tone on surface" => [$tone, 'surface', 4.5];
+        }
+        // The dot of a tag is a mark, not a text: the floor of what is not read (WCAG 1.4.11).
+        foreach (TagColour::cases() as $colour) {
+            foreach (self::GROUNDS as $ground) {
+                yield "tag-{$colour->value} on $ground" => ['tag-'.$colour->value, $ground, 3.0];
+            }
         }
         yield 'brand on brand-soft' => ['brand', 'brand-soft', 4.5];
         yield 'on-inverse on inverse' => ['on-inverse', 'inverse', 4.5];

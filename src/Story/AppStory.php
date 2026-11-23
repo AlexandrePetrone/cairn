@@ -17,9 +17,11 @@ use App\Entity\Enum\Criticality;
 use App\Entity\Enum\Forge;
 use App\Entity\Enum\MergeRequestState;
 use App\Entity\Enum\ReleaseStatus;
+use App\Entity\Enum\TagColour;
 use App\Entity\Issue;
 use App\Entity\Project;
 use App\Entity\Release;
+use App\Entity\Tag;
 use App\Entity\Tracker;
 use App\Entity\User;
 use App\Entity\Workspace;
@@ -47,6 +49,7 @@ use App\Message\Command\Issue\UpdateIssue;
 use App\Message\Command\Project\UpdateProject;
 use App\Message\Command\Release\CreateRelease;
 use App\Message\Command\Release\UpdateRelease;
+use App\Message\Command\Tag\CreateTag;
 use App\Message\CommandBus;
 use App\Security\AccessControl;
 use App\Workflow\WorkflowProvider;
@@ -105,9 +108,10 @@ final class AppStory extends Story
                 $project = $definition['project'];
                 $trackers = $this->createTrackers($project);
                 $dates = self::creationDates($now, \count($definition['issues']));
+                $tags = $this->createTags($project, $this->users[$definition['people']['manager']], $definition['tags'] ?? []);
                 $issues = [];
                 foreach ($definition['issues'] as $index => $issue) {
-                    $issues[] = $this->createIssue($project, $trackers[$issue[0]], $issue, $definition['people'], $dates[$index], $now, $index);
+                    $issues[] = $this->createIssue($project, $trackers[$issue[0]], $issue, $definition['people'], $dates[$index], $now, $index, $tags[$index] ?? []);
                 }
                 foreach ($definition['releases'] ?? [] as $release) {
                     $this->createRelease($project, $this->users[$definition['people']['manager']], $release, $issues, $now);
@@ -156,7 +160,7 @@ final class AppStory extends Story
     }
 
     /**
-     * @return iterable<array{project: Project, people: array{manager: string, developers: list<string>, client: ?string}, issues: list<array{0: string, 1: string, 2: string, 3: Criticality, 4?: ?string, 5?: bool}>, releases?: list<array{0: string, 1: int, 2: string, 3: ReleaseStatus, 4: list<int>}>, budgets?: list<array{0: string, 1: int, 2: list<array{0: ?int, 1: ?string, 2: BudgetLineStatus, 3: float|int|null}>}>, archived?: bool}>
+     * @return iterable<array{project: Project, people: array{manager: string, developers: list<string>, client: ?string}, issues: list<array{0: string, 1: string, 2: string, 3: Criticality, 4?: ?string, 5?: bool}>, tags?: list<array{0: string, 1: TagColour, 2: list<int>}>, releases?: list<array{0: string, 1: int, 2: string, 3: ReleaseStatus, 4: list<int>}>, budgets?: list<array{0: string, 1: int, 2: list<array{0: ?int, 1: ?string, 2: BudgetLineStatus, 3: float|int|null}>}>, archived?: bool}>
      */
     private function projects(): iterable
     {
@@ -186,6 +190,11 @@ final class AppStory extends Story
             ['task', 'Upgrade Symfony to 8.1', 'in_progress', Criticality::Normal, 'nadia'],
             ['task', 'Purge the Varnish cache after deployment', 'done', Criticality::Low, 'lea'],
             ['task', 'Review the indexes of the orders table', 'new', Criticality::Normal],
+        ], 'tags' => [
+            // [name, colour, indexes of the issues created with it]
+            ['Front office', TagColour::Blue, [0, 1, 2, 4, 5, 6, 8]],
+            ['Back office', TagColour::Violet, [1, 3, 8, 9]],
+            ['Mobile', TagColour::Emerald, [5]],
         ], 'releases' => [
             // [name, planned in days from now, description, status, indexes of its issues]
             ['2.4.0', -10, 'Display fixes and customer reviews.', ReleaseStatus::Delivered, [5, 6, 13]],
@@ -304,10 +313,33 @@ final class AppStory extends Story
     }
 
     /**
+     * The tags of a project, created before its issues, which are then
+     * created with theirs: no history to rewrite.
+     *
+     * @param list<array{0: string, 1: TagColour, 2: list<int>}> $definitions
+     *
+     * @return array<int, list<int>> index of an issue of the project => the ids of its tags
+     */
+    private function createTags(Project $project, User $manager, array $definitions): array
+    {
+        $tagged = [];
+        foreach ($definitions as [$name, $colour, $indexes]) {
+            $tag = $this->commands->dispatch(new CreateTag((int) $manager->getId(), (int) $project->getId(), $name, $colour));
+            \assert($tag instanceof Tag);
+            foreach ($indexes as $index) {
+                $tagged[$index][] = (int) $tag->getId();
+            }
+        }
+
+        return $tagged;
+    }
+
+    /**
      * @param array{0: string, 1: string, 2: string, 3: Criticality, 4?: ?string, 5?: bool} $definition
      * @param array{manager: string, developers: list<string>, client: ?string}             $people
+     * @param list<int>                                                                     $tagIds     the tags it is created with
      */
-    private function createIssue(Project $project, Tracker $tracker, array $definition, array $people, \DateTimeImmutable $createdAt, \DateTimeImmutable $now, int $index): Issue
+    private function createIssue(Project $project, Tracker $tracker, array $definition, array $people, \DateTimeImmutable $createdAt, \DateTimeImmutable $now, int $index, array $tagIds = []): Issue
     {
         [, $title, $targetPlace, $criticality] = $definition;
         $assignee = $definition[4] ?? null;
@@ -327,6 +359,7 @@ final class AppStory extends Story
             criticality: $criticality,
             private: $definition[5] ?? false,
             fields: self::fieldsFor($workflow, $index),
+            tagIds: $tagIds,
         ));
         \assert($issue instanceof Issue);
 

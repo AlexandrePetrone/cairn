@@ -28,6 +28,7 @@ final readonly class IssueListFilters
      * @param list<int>         $trackers
      * @param list<int>         $assignees   user ids, 0 for unassigned
      * @param list<int>         $releases    release ids, 0 for the issues in no release
+     * @param list<int>         $tags        tag ids, 0 for the issues without any tag
      * @param list<Criticality> $criticality
      * @param bool              $closed      list closed issues too
      * @param ?IssueSort        $sort        null for the default order
@@ -39,6 +40,7 @@ final readonly class IssueListFilters
         public array $trackers = [],
         public array $assignees = [],
         public array $releases = [],
+        public array $tags = [],
         public array $criticality = [],
         public string $q = '',
         public bool $closed = false,
@@ -63,6 +65,7 @@ final readonly class IssueListFilters
             trackers: QueryIds::of($query['trackers'] ?? null),
             assignees: QueryIds::of($query['assignees'] ?? null, withZero: true),
             releases: QueryIds::of($query['releases'] ?? null, withZero: true),
+            tags: QueryIds::of($query['tags'] ?? null, withZero: true),
             criticality: array_values(array_filter(array_map(Criticality::tryFrom(...), array_unique(self::strings($query['criticality'] ?? null))))),
             q: \is_string($query['q'] ?? null) ? trim($query['q']) : '',
             closed: \in_array($query['closed'] ?? null, ['1', 'on', 'true', 1, true], true),
@@ -101,6 +104,7 @@ final readonly class IssueListFilters
             'criticality' => $this->criticalityValues(),
             'assignees' => $this->assignees,
             'releases' => $this->releases,
+            'tags' => $this->tags,
             'q' => $this->q,
             'closed' => $this->closed ? 1 : null,
             'group' => $this->group?->value,
@@ -135,7 +139,7 @@ final readonly class IssueListFilters
      */
     public function hasFilters(): bool
     {
-        return [] !== $this->places || [] !== $this->projects || [] !== $this->trackers || [] !== $this->assignees || [] !== $this->releases
+        return [] !== $this->places || [] !== $this->projects || [] !== $this->trackers || [] !== $this->assignees || [] !== $this->releases || [] !== $this->tags
             || [] !== $this->criticality || '' !== $this->q;
     }
 

@@ -6,6 +6,7 @@ namespace App\Twig\Components\IssueList;
 
 use App\Config\Definition\PlaceDefinition;
 use App\Entity\Issue;
+use App\Entity\Tag;
 use App\Form\Issue\IssueListFilters;
 use App\Message\Query\Issue\IssueGrouping;
 use App\Message\QueryBus;
@@ -45,6 +46,16 @@ final class Table
     public function getIssues(): Pagination
     {
         return $this->issues ??= $this->queries->ask($this->choices->search($this->scope, $this->filters));
+    }
+
+    /**
+     * The tags of the issues of the page, which their rows show.
+     *
+     * @return array<int, list<Tag>> issue id => its tags
+     */
+    public function getTags(): array
+    {
+        return $this->choices->tagsOf($this->getIssues()->items);
     }
 
     /**

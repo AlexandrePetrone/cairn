@@ -8,10 +8,12 @@ use App\Entity\Attachment;
 use App\Entity\Enum\Criticality;
 use App\Entity\Issue;
 use App\Entity\Project;
+use App\Entity\Tag;
 use App\Entity\Tracker;
 use App\Repository\AttachmentRepository;
 use App\Repository\IssueFieldValueRepository;
 use App\Repository\IssueRepository;
+use App\Repository\IssueTagRepository;
 use App\Tests\Scene\ShopScene;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -74,6 +76,29 @@ final class CreateFormTest extends KernelTestCase
         self::assertSame('new', $issue->getPlace());
         self::assertFalse($issue->isPrivate());
         self::assertSame('claire.martin@maison-dupont.test', $issue->getAuthor()->getEmail());
+    }
+
+    public function testAnIssueIsCreatedWithTheTagsTicked(): void
+    {
+        $component = $this->form('claire.martin@maison-dupont.test')->set('trackerId', $this->bugs->getId());
+        self::assertStringNotContainsString('issue[tags][]', (string) $component->render(), 'a project without tags asks for none');
+
+        $back = $this->scene->tag('Back office');
+        $front = $this->scene->tag('Front');
+        $this->scene->tag('Mobile');
+        $component = $this->form('claire.martin@maison-dupont.test')->set('trackerId', $this->bugs->getId());
+        self::assertStringContainsString('issue[tags][]', (string) $component->render());
+
+        $component->submitForm(['issue' => [
+            'title' => 'The cart empties itself',
+            'description' => 'After ten minutes, the cart is empty.',
+            'fields' => ['environment' => 'prod'],
+            'tags' => [(string) $back->getId(), (string) $front->getId()],
+        ]], 'save');
+
+        self::assertSame(302, $component->response()->getStatusCode(), $component->response()->getContent() ?: '');
+        $names = array_map(static fn (Tag $tag): string => $tag->getName(), self::getContainer()->get(IssueTagRepository::class)->tagsOf($this->issue('MD-SPT-11')));
+        self::assertSame(['Back office', 'Front'], $names);
     }
 
     public function testCreateAndContinueLeadsBackToTheNewIssuePage(): void

@@ -31,6 +31,7 @@ final readonly class SearchIssues implements Query
      * @param list<int>          $assignee    user ids, 0 for unassigned
      * @param list<Criticality>  $criticality
      * @param list<int>          $release     release ids, 0 for the issues in no release
+     * @param list<int>          $tag         tag ids, 0 for the issues without any tag: an issue is listed when it carries one of them
      * @param ?string            $q           words of the title, a full key, or the start of a number
      * @param bool               $closed      list closed issues too (implied when `status` names closed or `place` is set)
      * @param IssueSort|null     $sort        the column to sort by, before the default order
@@ -50,6 +51,7 @@ final readonly class SearchIssues implements Query
         public array $assignee = [],
         public array $criticality = [],
         public array $release = [],
+        public array $tag = [],
         public ?string $q = null,
         public bool $closed = false,
         #[Assert\Positive]

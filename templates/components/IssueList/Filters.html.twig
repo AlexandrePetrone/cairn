@@ -88,6 +88,16 @@
                 {% endfor %}
             </twig:Ui:Filter:Menu>
         {% endif %}
+        {% if filtersChoices.offersTags(scope) %}
+            <twig:Ui:Filter:Menu :label="'filter.tag'|trans" :count="filters.tags|length">
+                <twig:Ui:Filter:Option name="tags[]" value="0" :checked="0 in filters.tags"><span class="text-xs text-muted">{{ 'issue.list.no_tag'|trans }}</span></twig:Ui:Filter:Option>
+                {% for filtersTag in filtersChoices.tags(filtersScope) %}
+                    <twig:Ui:Filter:Option name="tags[]" :value="filtersTag.id" :checked="filtersTag.id in filters.tags">
+                        <twig:Ui:Tag :colour="filtersTag.colour.value">{{ filtersTag.name }}</twig:Ui:Tag>
+                    </twig:Ui:Filter:Option>
+                {% endfor %}
+            </twig:Ui:Filter:Menu>
+        {% endif %}
         <twig:Ui:Filter:Search :value="filters.q" class="w-48 xl:w-60" />
         <button type="button" class="text-xs text-brand hover:underline" data-filters-target="clear" data-action="filters#clear" {{ filters.hasFilters ? '' : 'hidden' }}>{{ 'filter.clear'|trans }}</button>
         {% set filtersGrouping = filtersChoices.grouping(scope, filters) %}

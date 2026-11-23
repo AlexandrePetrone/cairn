@@ -23,8 +23,9 @@ without its Doctrine bridge), `symfony/mcp-bundle`, Mercure
   else. No soft delete, no bin, no anonymising: what is deleted is
   deleted physically, and three rules say what may be.
   - Current state or configuration (an attachment, a comment, a
-    membership, a link, a rule, a release, a budget line, a template) goes
-    freely, by whoever manages it; the journal keeps what it said.
+    membership, a link, a rule, a release, a tag, a budget line, a
+    template) goes freely, by whoever manages it; the journal keeps what
+    it said.
   - What holds history is archived, and deleted only while empty: a
     tracker without issues, an account that left no trace
     (`UserRepository::hasHistory()`), a configuration row nothing uses.
@@ -103,6 +104,7 @@ translation keys. Never mix them.
 | `private`        | Private           | Privé            | Hidden from external users.                                      |
 | `AuthMethod`     | Sign-in method    | Méthode de connexion | Password, or the identity provider of the instance (SSO).    |
 | `Release`        | Release           | Version          | Planned delivery, optional per project.                          |
+| `Tag`            | Tag               | Étiquette        | What the issues of a project are sorted by, several per issue, optional per project. |
 | `JournalEntry`   | History           | Historique       | Immutable journal, keeps the labels of the time.                 |
 | `Attachment`     | File              | Fichier          |                                                                  |
 | `ConfigChange`   | History (configuration) | Historique (configuration) | A change made to the configuration.            |
@@ -286,6 +288,15 @@ src/
   reads what each journal type recorded, for the thread and the mails.
 - **Releases are optional, without a setting**: a project without any
   release shows none of it.
+- **Tags are optional the same way, and belong to one project**: a closed
+  list its managers keep (`project.configure`), in a colour of a closed
+  palette (`TagColour`, a token each). An issue carries several
+  (`IssueTag`), put on and taken off one at a time (`TagIssue`,
+  `UntagIssue`, under `issue.set_tags`), each journaled; deleting a tag
+  takes it off its issues without a word. Every reader of the project
+  sees them. The lists of a project filter by them, an issue showing
+  when it carries one of those chosen; no list groups by them, no rule
+  and no template names them, and the API only reads them.
 - **An issue list is an address**: the route fixes a `ListScope`, the query
   string only arranges (`Form/Issue/IssueListFilters`; an unknown value is
   ignored, never an error). `IssueList/ListChoices` is the one place that

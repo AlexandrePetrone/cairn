@@ -1,4 +1,4 @@
-{# One row of IssueList:Table: its checkbox, sent to the selection page with the form of the bar, then its cells. `group` is the key of its group in a grouped list, which folds it. #}
+{# One row of IssueList:Table: its checkbox, sent to the selection page with the form of the bar, then its cells. `group` is the key of its group in a grouped list, which folds it; `tags` are those the issue carries, after its title. #}
 {% set rowClosed = issue_status(issue) == 'closed' %}
 {% set issueRoute = { workspaceKey: issue.project.workspace.key, projectKey: issue.project.key } %}
 {% set issueHref = path('app_issue_show', issueRoute|merge({ number: issue.number })) %}
@@ -16,6 +16,7 @@
     <td class="sm:px-3 sm:py-2.5 order-4 basis-full sm:basis-auto {{ rowClosed ? 'text-muted' : 'text-strong' }}">
         <a href="{{ issueHref }}" class="hover:text-brand">{{ issue.title }}</a>
         {% if issue.private %}<twig:Ui:Badge tone="amber" size="sm" icon="lock">{{ 'issue.private'|trans }}</twig:Ui:Badge>{% endif %}
+        {% for tag in tags %}<twig:Ui:Tag :colour="tag.colour.value" size="sm" class="ml-0.5">{{ tag.name }}</twig:Ui:Tag>{% endfor %}
     </td>
     <td class="sm:px-3 sm:py-2.5 order-5 whitespace-nowrap text-xs text-muted">{{ issue.tracker.name }}</td>
     <td class="sm:px-3 sm:py-2.5 order-6 whitespace-nowrap"><twig:Ui:Status:Step :status="issue_status(issue)" :label="issue_place(issue)" /></td>
