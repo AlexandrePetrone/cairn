@@ -1366,6 +1366,9 @@ account:
             issue:
                 title: One email per issue
                 description: A separate email for each issue that changed.
+            none:
+                title: No email
+                description: You get no notification email. You still follow the issues.
         save: Save
         saved: Preferences saved.
     security:

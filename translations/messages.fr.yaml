@@ -1366,6 +1366,9 @@ account:
             issue:
                 title: Un e-mail par demande
                 description: Un e-mail distinct pour chaque demande modifiée.
+            none:
+                title: Aucun e-mail
+                description: Vous ne recevez aucun e-mail de notification. Les demandes restent suivies.
         save: Enregistrer
         saved: Préférences enregistrées.
     security:

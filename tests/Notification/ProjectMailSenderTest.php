@@ -156,6 +156,30 @@ final class ProjectMailSenderTest extends KernelTestCase
         self::assertContains(\sprintf('[Maison Dupont / Online shop] %s Blurry logo', $second->getKey()), $subjects);
     }
 
+    public function testWhoeverChoseNoMailGetsNoneAndNothingWaitsForThem(): void
+    {
+        $this->fixtures->manager->groupMails(MailGrouping::None);
+        $this->fixtures->createIssue($this->fixtures->client);
+        $this->queue();
+        $this->clock->sleep(ProjectMailSender::CALM);
+
+        self::assertSame(0, $this->sender->sendDue());
+        self::assertEmailCount(0);
+        self::assertSame([], $this->waiting(), 'nothing was queued for Thomas');
+    }
+
+    public function testWhatWaitedIsLeftOutOnceNoMailIsChosen(): void
+    {
+        $this->fixtures->createIssue($this->fixtures->client);
+        $this->queue();
+        $this->fixtures->manager->groupMails(MailGrouping::None);
+        $this->clock->sleep(ProjectMailSender::CALM);
+        self::assertNotSame([], $this->waiting());
+        self::assertSame(0, $this->sender->sendDue());
+        self::assertEmailCount(0);
+        self::assertSame([], $this->waiting(), 'what waited is gone without a mail');
+    }
+
     public function testAProjectThatNeverCalmsDownLeavesAfterTheLongestWait(): void
     {
         $issue = $this->fixtures->createIssue($this->fixtures->client);
